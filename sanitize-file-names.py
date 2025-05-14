@@ -1,4 +1,4 @@
-"""In specified folders, sanitize all files names."""
+"""In specified folders, sanitize all file names."""
 
 import re
 import argparse
@@ -39,8 +39,8 @@ def validate_folder(folder_path: Path, label: str) -> None:
         sys.exit(1)
 
 def main() -> None:
-    home = Path.home()
-    default_base = home / "Apps" / "yt-dlp"
+    default_base = Path.cwd()
+    # default_base = wd / "Apps" / "yt-dlp"
     parser = argparse.ArgumentParser(
         description="Rename files in folders by removing leading non-alphanumeric (English/Greek) characters."
     )
