@@ -2,17 +2,33 @@
 import argparse
 import os
 import subprocess
-import sys
+import re
 from pathlib import Path
 
 greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE"
 
-def validate_args(args: argparse.Namespace) -> None:
-    allowed = {'audio', 'subs'}
-    for arg in vars(args):
-        if getattr(args, arg) and arg not in allowed and arg != 'playlist_url':
-            print(f"Invalid option: --{arg}. Only --audio and --subs are allowed.")
-            sys.exit(1)
+# Regex: remove leading non-alphanumeric (English/Greek) characters, including spaces
+pattern = re.compile(r'^[^a-zA-Z0-9\u0370-\u03FF]+')
+
+def clean_filename(filename: str) -> str:
+    """Remove leading unwanted characters (including spaces) from filename."""
+    return pattern.sub('', filename)
+
+def process_folder(folder_path: Path) -> None:
+    """Rename files in the folder by removing leading unwanted characters."""
+    ctr = 0
+    for file_path in folder_path.iterdir():
+        if file_path.is_file():
+            new_name = clean_filename(file_path.name)
+            if new_name and new_name != file_path.name:
+                new_path = file_path.with_name(new_name)
+                if not new_path.exists():
+                    file_path.rename(new_path)
+                    ctr += 1
+                    print(f"Renamed: '{file_path.name}' -> '{new_name}'")
+                else:
+                    print(f"Skipped (target exists): '{new_name}'")
+    print(f"Rename {ctr} files in folder '{folder_path}'")
 
 def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool) -> None:
     yt_dlp_cmd = [
@@ -32,7 +48,8 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool
     print("Downloading videos with yt-dlp...")
     subprocess.run(yt_dlp_cmd, check=True)
 
-def extract_audio(ffmpeg_exe: Path, video_folder: str, audio_folder: str) -> None:
+def extract_audio_with_ffmpeg(ffmpeg_exe: Path, video_folder: str, audio_folder: str) -> None:
+    """Using the MP4 files that were already download, extract the audio with ffmpeg."""
     video_files = list(Path(video_folder).glob('*.mp4'))
     for video_file in video_files:
         audio_file = Path(audio_folder) / (video_file.stem + '.mp3')
@@ -46,6 +63,25 @@ def extract_audio(ffmpeg_exe: Path, video_folder: str, audio_folder: str) -> Non
             ]
             subprocess.run(ffmpeg_cmd, check=True)
 
+def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str) -> None:
+    """Use yt-dlp to download and extract MP3 audio with metadata and thumbnail."""
+    yt_dlp_cmd = [
+        ytdlp_exe,
+        '--yes-playlist',
+        '-f', 'bestaudio/best',
+        '--extract-audio',
+        '--audio-format', 'mp3',
+        '--audio-quality', '192k',
+        '--embed-metadata',
+        '--add-metadata',
+        '--embed-thumbnail',
+        '--parse-metadata', 'playlist_index:%(track_number)s',
+        '-o', os.path.join(audio_folder, '%(title)s.%(ext)s'),
+        playlist_url
+    ]
+    print("Downloading and extracting audio with yt-dlp...")
+    subprocess.run(yt_dlp_cmd, check=True)
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Download YouTube playlist as video and/or audio, optionally with subtitles.")
@@ -56,15 +92,6 @@ def main() -> None:
     parser.add_argument('--subs', action='store_true',
                         help='Download subtitles (Greek, English, Hebrew) as SRT files')
     args = parser.parse_args()
-
-    # Abort on any unknown arguments
-    # args, unknown = parser.parse_known_args()
-    # if unknown:
-    #     print(f"Invalid options: {' '.join(unknown)}. Only --audio and --subs are allowed.")
-    #     sys.exit(1)
-
-    # Validate allowed arguments
-    # validate_args(args=args)
 
     home_dir = Path.home()
     yt_dlp_dir = home_dir / "Apps" / "yt-dlp"
@@ -86,9 +113,18 @@ def main() -> None:
     # Always download videos
     run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, subs=args.subs)
 
-    # If --audio, extract MP3 from downloaded videos
+    # If --audio,
     if args.audio:
-        extract_audio(ffmpeg_exe=ffmpeg_exe, video_folder=video_folder, audio_folder=audio_folder)
+        # Old way: extract MP3 from downloaded videos
+        # extract_audio_with_ffmpeg(ffmpeg_exe=ffmpeg_exe, video_folder=video_folder, audio_folder=audio_folder)
+
+        # New way: run yt-dlp a second time to download audio and add tags
+        extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder)
+
+    # Sanitize downloaded file names
+    process_folder(folder_path=Path(video_folder))
+    if args.audio:
+        process_folder(folder_path=Path(audio_folder))
 
 if __name__ == '__main__':
     main()
