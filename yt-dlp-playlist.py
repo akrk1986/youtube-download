@@ -6,8 +6,8 @@ import re
 from pathlib import Path
 
 greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE"
-yt_dlp_extra_flag_1 = '--ignore-errors'
-yt_dlp_extra_flag_2 = '--no-abort-on-error'
+# yt_dlp_extra_flag_1 = '--ignore-errors'
+# yt_dlp_extra_flag_2 = '--no-abort-on-error'
 
 # Regex: remove leading non-alphanumeric (English/Greek) characters, including spaces
 pattern = re.compile(r'^[^a-zA-Z0-9\u0370-\u03FF]+')
@@ -36,8 +36,8 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool
     yt_dlp_cmd = [
         ytdlp_exe,
         '--yes-playlist',
-        yt_dlp_extra_flag_1,
-        yt_dlp_extra_flag_2,
+        # yt_dlp_extra_flag_1,
+        # yt_dlp_extra_flag_2,
         '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
         '--merge-output-format', 'mp4',
         '-o', os.path.join(video_folder, '%(title)s.%(ext)s'),
@@ -72,8 +72,8 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
     yt_dlp_cmd = [
         ytdlp_exe,
         '--yes-playlist',
-        yt_dlp_extra_flag_1,
-        yt_dlp_extra_flag_2,
+        # yt_dlp_extra_flag_1,
+        # yt_dlp_extra_flag_2,
         '-f', 'bestaudio/best',
         '--extract-audio',
         '--audio-format', 'mp3',
@@ -126,7 +126,7 @@ def main() -> None:
         # It is faster, but you lose the ID tags so FFMPEG has no tags
         # extract_audio_with_ffmpeg(ffmpeg_exe=ffmpeg_exe, video_folder=video_folder, audio_folder=audio_folder)
 
-        # New way: run yt-dlp a second time to download videos, extract audio and add tags
+        # New method: run yt-dlp a second time to download videos, extract audio and add tags
         extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder)
 
     # Sanitize downloaded file names
