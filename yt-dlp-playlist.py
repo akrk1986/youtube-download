@@ -6,6 +6,8 @@ import re
 from pathlib import Path
 
 greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE"
+yt_dlp_extra_flag_1 = '--ignore-errors'
+yt_dlp_extra_flag_2 = '--no-abort-on-error'
 
 # Regex: remove leading non-alphanumeric (English/Greek) characters, including spaces
 pattern = re.compile(r'^[^a-zA-Z0-9\u0370-\u03FF]+')
@@ -34,6 +36,8 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool
     yt_dlp_cmd = [
         ytdlp_exe,
         '--yes-playlist',
+        yt_dlp_extra_flag_1,
+        yt_dlp_extra_flag_2,
         '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
         '--merge-output-format', 'mp4',
         '-o', os.path.join(video_folder, '%(title)s.%(ext)s'),
@@ -46,7 +50,7 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool
             '--convert-subs', 'srt'
         ]
     print("Downloading videos with yt-dlp...")
-    subprocess.run(yt_dlp_cmd, check=True)
+    subprocess.run(yt_dlp_cmd, check=False)
 
 def extract_audio_with_ffmpeg(ffmpeg_exe: Path, video_folder: str, audio_folder: str) -> None:
     """Using the MP4 files that were already download, extract the audio with ffmpeg."""
@@ -61,13 +65,15 @@ def extract_audio_with_ffmpeg(ffmpeg_exe: Path, video_folder: str, audio_folder:
                 '-vn', '-ab', '192k', '-ar', '44100', '-y',
                 str(audio_file)
             ]
-            subprocess.run(ffmpeg_cmd, check=True)
+            subprocess.run(ffmpeg_cmd, check=False)
 
 def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str) -> None:
     """Use yt-dlp to download and extract MP3 audio with metadata and thumbnail."""
     yt_dlp_cmd = [
         ytdlp_exe,
         '--yes-playlist',
+        yt_dlp_extra_flag_1,
+        yt_dlp_extra_flag_2,
         '-f', 'bestaudio/best',
         '--extract-audio',
         '--audio-format', 'mp3',
@@ -80,7 +86,7 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         playlist_url
     ]
     print("Downloading and extracting audio with yt-dlp...")
-    subprocess.run(yt_dlp_cmd, check=True)
+    subprocess.run(yt_dlp_cmd, check=False)
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -108,17 +114,19 @@ def main() -> None:
     video_folder = os.path.abspath('yt-videos')
     audio_folder = os.path.abspath('yt-audio')
     os.makedirs(video_folder, exist_ok=True)
-    os.makedirs(audio_folder, exist_ok=True)
+    if args.audio:
+        os.makedirs(audio_folder, exist_ok=True)
 
     # Always download videos
     run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, subs=args.subs)
 
     # If --audio,
     if args.audio:
-        # Old way: extract MP3 from downloaded videos
+        # Old method: extract MP3 from downloaded videos
+        # It is faster, but you lose the ID tags so FFMPEG has no tags
         # extract_audio_with_ffmpeg(ffmpeg_exe=ffmpeg_exe, video_folder=video_folder, audio_folder=audio_folder)
 
-        # New way: run yt-dlp a second time to download audio and add tags
+        # New way: run yt-dlp a second time to download videos, extract audio and add tags
         extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder)
 
     # Sanitize downloaded file names
