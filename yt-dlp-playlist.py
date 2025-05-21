@@ -9,19 +9,19 @@ greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1Ne
 # yt_dlp_extra_flag_1 = '--ignore-errors'
 # yt_dlp_extra_flag_2 = '--no-abort-on-error'
 
-# Regex: remove leading non-alphanumeric (English/Greek) characters, including spaces
+# Regex to remove leading non-alphanumeric (English/Greek) characters, including spaces
 pattern = re.compile(r'^[^a-zA-Z0-9\u0370-\u03FF]+')
 
-def clean_filename(filename: str) -> str:
+def sanitize_filename(filename: str) -> str:
     """Remove leading unwanted characters (including spaces) from filename."""
     return pattern.sub('', filename)
 
-def process_folder(folder_path: Path) -> None:
-    """Rename files in the folder by removing leading unwanted characters."""
+def sanitize_folder(folder_path: Path) -> None:
+    """Sanitize file names in the folder by removing leading unwanted characters."""
     ctr = 0
     for file_path in folder_path.iterdir():
         if file_path.is_file():
-            new_name = clean_filename(file_path.name)
+            new_name = sanitize_filename(file_path.name)
             if new_name and new_name != file_path.name:
                 new_path = file_path.with_name(new_name)
                 if not new_path.exists():
@@ -30,9 +30,10 @@ def process_folder(folder_path: Path) -> None:
                     print(f"Renamed: '{file_path.name}' -> '{new_name}'")
                 else:
                     print(f"Skipped (target exists): '{new_name}'")
-    print(f"Rename {ctr} files in folder '{folder_path}'")
+    print(f"Renamed {ctr} files in folder '{folder_path}'")
 
 def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool) -> None:
+    """Extract videos from YouTube playlist/video with yt-dlp. Include subtitles if requested."""
     yt_dlp_cmd = [
         ytdlp_exe,
         '--yes-playlist',
@@ -44,16 +45,18 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool
         playlist_url
     ]
     if subs:
+        # Extract subtitles in Greek, English, Hebrew
         yt_dlp_cmd[1:1] = [
             '--write-subs',
             '--sub-lang', 'el,en,he',
             '--convert-subs', 'srt'
         ]
     print("Downloading videos with yt-dlp...")
+    # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
 
 def extract_audio_with_ffmpeg(ffmpeg_exe: Path, video_folder: str, audio_folder: str) -> None:
-    """Using the MP4 files that were already download, extract the audio with ffmpeg."""
+    """Using the MP4 files that were already downloaded by yt-dlp, extract the audio using ffmpeg."""
     video_files = list(Path(video_folder).glob('*.mp4'))
     for video_file in video_files:
         audio_file = Path(audio_folder) / (video_file.stem + '.mp3')
@@ -86,11 +89,12 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         playlist_url
     ]
     print("Downloading and extracting audio with yt-dlp...")
+    # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Download YouTube playlist as video and/or audio, optionally with subtitles.")
+        description="Download YouTube playlist/video, optionally with subtitles.")
     parser.add_argument('playlist_url', nargs='?',
                         default=greek_to_dl_playlist_url,
                         help='YouTube playlist URL')
@@ -104,10 +108,10 @@ def main() -> None:
     yt_dlp_exe = yt_dlp_dir / "yt-dlp.exe"
     ffmpeg_exe = yt_dlp_dir / "ffmpeg.exe"
 
-    assert Path(yt_dlp_exe).exists(), f"YT-DLP exe not found at '{yt_dlp_exe}'"
-    assert Path(ffmpeg_exe).exists(), f"FFMPEG exe not found at '{ffmpeg_exe}'"
+    assert Path(yt_dlp_exe).exists(), f"YT-DLP executable not found at '{yt_dlp_exe}'"
+    assert Path(ffmpeg_exe).exists(), f"FFMPEG executable not found at '{ffmpeg_exe}'"
 
-    # Prompt for playlist URL if not provided
+    # Prompt for playlist/video URL if not provided
     if not args.playlist_url:
         args.playlist_url = input("Enter the YouTube playlist/video URL: ").strip()
 
@@ -120,7 +124,6 @@ def main() -> None:
     # Always download videos
     run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, subs=args.subs)
 
-    # If --audio,
     if args.audio:
         # Old method: extract MP3 from downloaded videos
         # It is faster, but you lose the ID tags so FFMPEG has no tags
@@ -130,9 +133,9 @@ def main() -> None:
         extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder)
 
     # Sanitize downloaded file names
-    process_folder(folder_path=Path(video_folder))
+    sanitize_folder(folder_path=Path(video_folder))
     if args.audio:
-        process_folder(folder_path=Path(audio_folder))
+        sanitize_folder(folder_path=Path(audio_folder))
 
 if __name__ == '__main__':
     main()
