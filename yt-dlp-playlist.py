@@ -84,7 +84,8 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         '--embed-metadata',
         '--add-metadata',
         '--embed-thumbnail',
-        '--parse-metadata', 'playlist_index:%(track_number)s',
+        # '--parse-metadata', 'playlist_index:%(track_number)s',
+        '--parse-metadata', 'album_artist:%(artist)s',
         '-o', os.path.join(audio_folder, '%(title)s.%(ext)s'),
         playlist_url
     ]
