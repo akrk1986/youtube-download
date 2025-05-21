@@ -95,12 +95,9 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Download YouTube playlist/video, optionally with subtitles.")
-    parser.add_argument('playlist_url', nargs='?',
-                        default=greek_to_dl_playlist_url,
-                        help='YouTube playlist URL')
+    parser.add_argument('playlist_url', nargs='?', help='YouTube playlist/video URL')
     parser.add_argument('--audio', action='store_true', help='Also extract audio as MP3')
-    parser.add_argument('--subs', action='store_true',
-                        help='Download subtitles (Greek, English, Hebrew) as SRT files')
+    parser.add_argument('--subs', action='store_true', help='Download subtitles')
     args = parser.parse_args()
 
     home_dir = Path.home()
