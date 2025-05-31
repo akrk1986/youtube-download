@@ -6,8 +6,7 @@ import re
 from pathlib import Path
 
 greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE"
-# yt_dlp_extra_flag_1 = '--ignore-errors'
-# yt_dlp_extra_flag_2 = '--no-abort-on-error'
+yt_dlp_write_json_flag = '--write-info-json'
 
 # Regex to remove leading non-alphanumeric (English/Greek) characters, including spaces
 pattern = re.compile(r'^[^a-zA-Z0-9\u0370-\u03FF]+')
@@ -37,8 +36,7 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool
     yt_dlp_cmd = [
         ytdlp_exe,
         '--yes-playlist',
-        # yt_dlp_extra_flag_1,
-        # yt_dlp_extra_flag_2,
+        yt_dlp_write_json_flag,
         '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
         '--merge-output-format', 'mp4',
         '-o', os.path.join(video_folder, '%(title)s.%(ext)s'),
@@ -75,8 +73,6 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
     yt_dlp_cmd = [
         ytdlp_exe,
         '--yes-playlist',
-        # yt_dlp_extra_flag_1,
-        # yt_dlp_extra_flag_2,
         '-f', 'bestaudio/best',
         '--extract-audio',
         '--audio-format', 'mp3',
@@ -86,6 +82,7 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         '--embed-thumbnail',
         # '--parse-metadata', 'playlist_index:%(track_number)s',
         '--parse-metadata', 'album_artist:%(artist)s',
+        '--parse-metadata', 'artist:%(artist)s',
         '-o', os.path.join(audio_folder, '%(title)s.%(ext)s'),
         playlist_url
     ]
@@ -111,7 +108,7 @@ def main() -> None:
 
     # Prompt for playlist/video URL if not provided
     if not args.playlist_url:
-        args.playlist_url = input("Enter the YouTube playlist/video URL: ").strip()
+        args.playlist_url = input("Enter the YouTube URL: ").strip()
 
     video_folder = os.path.abspath('yt-videos')
     audio_folder = os.path.abspath('yt-audio')
