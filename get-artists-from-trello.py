@@ -5,6 +5,15 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+def capitalize_greek_name(name: str) -> str:
+    """
+    If the name is all uppercase, capitalize each word (first letter uppercase, rest lowercase).
+    Otherwise, return as is.
+    """
+    if name.isupper():
+        return ' '.join(word.capitalize() for word in name.split())
+    return name
+
 def parse_card_name(card_name: str) -> Tuple[str, str, bool]:
     """
     Splits the card name into Greek and English names.
@@ -22,7 +31,8 @@ def parse_card_name(card_name: str) -> Tuple[str, str, bool]:
         greek = parts[0]
         english = ''
         warning = True
-    return greek.strip(), english.strip(), warning
+    greek = capitalize_greek_name(greek.strip())
+    return greek, english.strip(), warning
 
 def extract_artists(
     trello_data: Dict[str, Any]
