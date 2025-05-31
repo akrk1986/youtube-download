@@ -10,17 +10,21 @@ def load_artists(artists_json_path: Path) -> List[Dict[str, str]]:
         data = json.load(f)
     return data['artists']
 
-def find_artists_in_string(text: str, artists: List[Dict[str, str]]) -> str:
-    """Return Greek names of artists found in the text ('' if none, 'A1 + A2' if multiple)."""
-    found: Set[str] = set()
+def find_artists_in_string(text: str, artists: list[dict]) -> tuple[int, str]:
+    """Return (number of unique artists found, 'A1 + A2 + ...') or (0, '') if none."""
+    found: set[str] = set()
     lowered_text = text.lower()
     for artist in artists:
         greek = artist['Greek name']
         english = artist['English name']
+        # Check for Greek name
         if greek and greek.lower() in lowered_text:
             found.add(greek)
+        # Check for English name
         if english and english.lower() in lowered_text:
             found.add(greek)
     if not found:
-        return ""
-    return ' + '.join(sorted(found))
+        return 0, ""
+    result = ' + '.join(sorted(found))
+    return len(found), result
+

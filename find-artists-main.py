@@ -25,8 +25,8 @@ def main() -> None:
         return
 
     artists = load_artists(args.artists_json)
-    result = find_artists_in_string(args.input_string, artists)
-    print(result)
+    n_found, result = find_artists_in_string(args.input_string, artists)
+    print(f"Found {n_found} artists, result: '{result}'")
 
 if __name__ == '__main__':
     main()
