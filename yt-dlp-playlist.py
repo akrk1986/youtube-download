@@ -4,6 +4,9 @@ import os
 import subprocess
 import re
 from pathlib import Path
+from artist_search import load_artists, find_artists_in_string
+from set_artist_from_title import process_mp3_files
+
 
 greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE"
 yt_dlp_write_json_flag = '--write-info-json'
@@ -102,6 +105,7 @@ def main() -> None:
     yt_dlp_dir = home_dir / "Apps" / "yt-dlp"
     yt_dlp_exe = yt_dlp_dir / "yt-dlp.exe"
     ffmpeg_exe = yt_dlp_dir / "ffmpeg.exe"
+    artists_json = Path('Data/artists.json')
 
     assert Path(yt_dlp_exe).exists(), f"YT-DLP executable not found at '{yt_dlp_exe}'"
     assert Path(ffmpeg_exe).exists(), f"FFMPEG executable not found at '{ffmpeg_exe}'"
@@ -131,6 +135,8 @@ def main() -> None:
     sanitize_folder(folder_path=Path(video_folder))
     if args.audio:
         sanitize_folder(folder_path=Path(audio_folder))
+        #
+        process_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
 
 if __name__ == '__main__':
     main()

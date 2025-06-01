@@ -32,10 +32,7 @@ def _artist_search_variants(full_name: str) -> List[str]:
         variants.add(full_name.strip())
     return list(variants)
 
-def find_artists_in_string(
-    text: str,
-    artists: List[Dict[str, str]]
-) -> Tuple[int, str]:
+def find_artists_in_string(text: str, artists: List[Dict[str, str]]) -> Tuple[int, str]:
     """
     Return (number of unique artists found, 'A1 + A2 + ...') or (0, '') if none.
     Advanced matching: for each artist, look for:
