@@ -3,7 +3,6 @@ import argparse
 import os
 import subprocess
 from pathlib import Path
-# from artist_search import load_artists, find_artists_in_string
 from process_mp3_files_for_tags import process_mp3_files
 from utils import sanitize_string
 
@@ -15,7 +14,7 @@ def sanitize_folder(folder_path: Path) -> None:
     ctr = 0
     for file_path in folder_path.iterdir():
         if file_path.is_file():
-            new_name = sanitize_string(file_path.name)
+            new_name = sanitize_string(dirty_string=file_path.name)
             if new_name and new_name != file_path.name:
                 new_path = file_path.with_name(new_name)
                 if not new_path.exists():
@@ -80,7 +79,7 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         '-o', os.path.join(audio_folder, '%(title)s.%(ext)s'),
         playlist_url
     ]
-    print("Downloading and extracting audio with yt-dlp...")
+    print("==== Downloading and extracting audio with yt-dlp ====")
     # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
 
@@ -115,8 +114,8 @@ def main() -> None:
     run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, subs=args.subs)
 
     if args.audio:
-        # Old method: extract MP3 from downloaded videos
-        # It is faster, but you lose the ID tags so FFMPEG has no tags
+        ## Old method: extract MP3 from downloaded videos
+        ## It is faster, but you lose the ID tags so FFMPEG has no tags.
         # extract_audio_with_ffmpeg(ffmpeg_exe=ffmpeg_exe, video_folder=video_folder, audio_folder=audio_folder)
 
         # New method: run yt-dlp a second time to download videos, extract audio and add tags
@@ -127,7 +126,7 @@ def main() -> None:
     if args.audio:
         # Sanitize downloaded audio file names
         sanitize_folder(folder_path=Path(audio_folder))
-        #
+        # Modify some MP3 tags based on the title
         process_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
 
 if __name__ == '__main__':

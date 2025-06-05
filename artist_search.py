@@ -1,5 +1,4 @@
 """Artist search utilities for Greek music artists."""
-
 import json
 import re
 from pathlib import Path

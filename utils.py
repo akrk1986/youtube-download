@@ -1,5 +1,4 @@
 """Sanitize string, for file names and MP3 title."""
-
 import re
 
 # Regex: remove leading non-alphanumeric (English+Greek) characters, including spaces

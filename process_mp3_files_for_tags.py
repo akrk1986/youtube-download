@@ -1,5 +1,4 @@
 """Scan MP3 files in a folder, detect artists in Title, and update tags accordingly."""
-
 from pathlib import Path
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3NoHeaderError
@@ -34,4 +33,3 @@ def process_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
             print(f"Updated {mp3_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
         else:
             print(f"No artist found in title for {mp3_file.name}")
-

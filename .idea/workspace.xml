@@ -5,10 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sanitize-file-names.py" beforeDir="false" afterPath="$PROJECT_DIR$/sanitize-file-names.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/set_artist_from_title.py" beforeDir="false" afterPath="$PROJECT_DIR$/process_mp3_files_for_tags.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/artist_search.py" beforeDir="false" afterPath="$PROJECT_DIR$/artist_search.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/process_mp3_files_for_tags.py" beforeDir="false" afterPath="$PROJECT_DIR$/process_mp3_files_for_tags.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/yt-dlp-playlist.py" beforeDir="false" afterPath="$PROJECT_DIR$/yt-dlp-playlist.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
