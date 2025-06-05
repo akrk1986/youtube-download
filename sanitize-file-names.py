@@ -1,24 +1,17 @@
 """In specified folders, sanitize all file names."""
 
-import re
 import argparse
 import sys
 from pathlib import Path
+from utils import sanitize_string
 
-
-# Regex: remove leading non-alphanumeric (English/Greek) characters, including spaces
-pattern = re.compile(r'^[^a-zA-Z0-9\u0370-\u03FF]+')
-
-def clean_filename(filename: str) -> str:
-    """Remove leading unwanted characters (including spaces) from filename."""
-    return pattern.sub('', filename)
 
 def process_folder(folder_path: Path) -> None:
     """Rename files in the folder by removing leading unwanted characters."""
     ctr = 0
     for file_path in folder_path.iterdir():
         if file_path.is_file():
-            new_name = clean_filename(file_path.name)
+            new_name = sanitize_string(dirty_string=file_path.name)
             if new_name and new_name != file_path.name:
                 new_path = file_path.with_name(new_name)
                 if not new_path.exists():

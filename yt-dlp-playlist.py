@@ -2,28 +2,20 @@
 import argparse
 import os
 import subprocess
-import re
 from pathlib import Path
-from artist_search import load_artists, find_artists_in_string
-from set_artist_from_title import process_mp3_files
-
+# from artist_search import load_artists, find_artists_in_string
+from process_mp3_files_for_tags import process_mp3_files
+from utils import sanitize_string
 
 greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE"
 yt_dlp_write_json_flag = '--write-info-json'
-
-# Regex to remove leading non-alphanumeric (English/Greek) characters, including spaces
-pattern = re.compile(r'^[^a-zA-Z0-9\u0370-\u03FF]+')
-
-def sanitize_filename(filename: str) -> str:
-    """Remove leading unwanted characters (including spaces) from filename."""
-    return pattern.sub('', filename)
 
 def sanitize_folder(folder_path: Path) -> None:
     """Sanitize file names in the folder by removing leading unwanted characters."""
     ctr = 0
     for file_path in folder_path.iterdir():
         if file_path.is_file():
-            new_name = sanitize_filename(file_path.name)
+            new_name = sanitize_string(file_path.name)
             if new_name and new_name != file_path.name:
                 new_path = file_path.with_name(new_name)
                 if not new_path.exists():
@@ -83,7 +75,6 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         '--embed-metadata',
         '--add-metadata',
         '--embed-thumbnail',
-        # '--parse-metadata', 'playlist_index:%(track_number)s',
         '--parse-metadata', 'album_artist:%(artist)s',
         '--parse-metadata', 'artist:%(artist)s',
         '-o', os.path.join(audio_folder, '%(title)s.%(ext)s'),
@@ -131,9 +122,10 @@ def main() -> None:
         # New method: run yt-dlp a second time to download videos, extract audio and add tags
         extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder)
 
-    # Sanitize downloaded file names
+    # Sanitize downloaded video file names
     sanitize_folder(folder_path=Path(video_folder))
     if args.audio:
+        # Sanitize downloaded audio file names
         sanitize_folder(folder_path=Path(audio_folder))
         #
         process_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
