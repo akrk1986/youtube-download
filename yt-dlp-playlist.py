@@ -27,8 +27,20 @@ def sanitize_folder(folder_path: Path) -> None:
 
 def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool) -> None:
     """Extract videos from YouTube playlist/video with yt-dlp. Include subtitles if requested."""
+    # Prepare environment with UTF-8 settings
+    env = os.environ.copy()
+    env.update({
+        'LANG': 'en_US.UTF-8',
+        'LC_ALL': 'en_US.UTF-8',
+        'PYTHONIOENCODING': 'utf-8',
+        'PYTHONUTF8': '1'
+    })
+
+    print_opts = ['--quiet', '--print', 'Downloading: %(title)s', '--print', 'Saved as: %(filename)s']
+
     yt_dlp_cmd = [
         ytdlp_exe,
+        '--quiet', '--print', 'Downloading: %(title)s', '--print', 'Saved as: %(filename)s',
         '--yes-playlist',
         yt_dlp_write_json_flag,
         '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
@@ -45,7 +57,7 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool
         ]
     print("Downloading videos with yt-dlp...")
     # Ignore errors (most common error is when playlist contains unavailable videos)
-    subprocess.run(yt_dlp_cmd, check=False)
+    subprocess.run(yt_dlp_cmd, env=env, check=False, encoding='utf-8')
 
 def extract_audio_with_ffmpeg(ffmpeg_exe: Path, video_folder: str, audio_folder: str) -> None:
     """Using the MP4 files that were already downloaded by yt-dlp, extract the audio using ffmpeg."""
@@ -109,6 +121,8 @@ def main() -> None:
     os.makedirs(video_folder, exist_ok=True)
     if args.audio:
         os.makedirs(audio_folder, exist_ok=True)
+
+    os.environ['PYTHONIOENCODING'] = 'utf-8'
 
     # Always download videos
     run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, subs=args.subs)
