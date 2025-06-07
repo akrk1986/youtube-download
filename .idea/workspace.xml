@@ -220,12 +220,12 @@
     </configuration>
     <list>
       <item itemvalue="Python.dlp-DL-Singles-audio-only" />
+      <item itemvalue="Python.dlp-DL-Singles-both" />
       <item itemvalue="Python.dlp-prompt-both" />
       <item itemvalue="Python.dlp-prompt-video-only" />
-      <item itemvalue="Python.dlp-DL-Singles-both" />
-      <item itemvalue="Python.sanitize-file-names" />
       <item itemvalue="Python.find-artists-main" />
       <item itemvalue="Python.get-artists-from-trello" />
+      <item itemvalue="Python.sanitize-file-names" />
     </list>
     <recent_temporary>
       <list>
