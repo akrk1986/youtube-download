@@ -3,6 +3,8 @@ import json
 import re
 from pathlib import Path
 from typing import List, Dict, Tuple, Set
+from utils import remove_diacritics
+
 
 def load_artists(artists_json_path: Path) -> List[Dict[str, str]]:
     """Load artists from a JSON file."""
@@ -42,9 +44,12 @@ def find_artists_in_string(text: str, artists: List[Dict[str, str]]) -> Tuple[in
     For both Greek and English names.
     """
     found: Set[str] = set()
-    lowered_text = text.lower()
+    # normalize Greek strings by replacing diacritics with base letter
+    lowered_text_x = text.lower()
+    lowered_text = remove_diacritics(lowered_text_x)
     for artist in artists:
-        greek = artist['Greek name']
+        greek_x = artist['Greek name']
+        greek = remove_diacritics(greek_x)
         english = artist['English name']
         # For both Greek and English names, generate all search variants
         for name in filter(None, [greek, english]):
@@ -52,7 +57,7 @@ def find_artists_in_string(text: str, artists: List[Dict[str, str]]) -> Tuple[in
                 # Use regex for word boundary matching (to avoid partial matches)
                 pattern = r'\b' + re.escape(variant) + r'\b'
                 if re.search(pattern, lowered_text, flags=re.IGNORECASE):
-                    found.add(greek)
+                    found.add(greek_x)
                     break  # Only need to add once per artist
     if not found:
         return 0, ""

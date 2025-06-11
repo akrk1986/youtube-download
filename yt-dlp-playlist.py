@@ -25,17 +25,20 @@ def sanitize_folder(folder_path: Path) -> None:
                     print(f"Skipped (target exists): '{new_name}'")
     print(f"Renamed {ctr} files in folder '{folder_path}'")
 
-def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool) -> None:
+def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool,
+               write_json: bool) -> None:
     """Extract videos from YouTube playlist/video with yt-dlp. Include subtitles if requested."""
     yt_dlp_cmd = [
         ytdlp_exe,
         '--yes-playlist',
-        yt_dlp_write_json_flag,
         '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
         '--merge-output-format', 'mp4',
         '-o', os.path.join(video_folder, '%(title)s.%(ext)s'),
         playlist_url
     ]
+    if write_json:
+        yt_dlp_cmd[1:1] = [yt_dlp_write_json_flag]
+
     if subs:
         # Extract subtitles in Greek, English, Hebrew
         yt_dlp_cmd[1:1] = [
@@ -89,6 +92,7 @@ def main() -> None:
     parser.add_argument('playlist_url', nargs='?', help='YouTube playlist/video URL')
     parser.add_argument('--audio', action='store_true', help='Also extract audio as MP3')
     parser.add_argument('--subs', action='store_true', help='Download subtitles')
+    parser.add_argument('--json', action='store_true', help='Write JSON file')
     args = parser.parse_args()
 
     home_dir = Path.home()
@@ -111,7 +115,8 @@ def main() -> None:
         os.makedirs(audio_folder, exist_ok=True)
 
     # Always download videos
-    run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, subs=args.subs)
+    run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, subs=args.subs,
+               write_json=args.json)
 
     if args.audio:
         ## Old method: extract MP3 from downloaded videos
