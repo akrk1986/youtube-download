@@ -6,6 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sanitize-file-names.py" beforeDir="false" afterPath="$PROJECT_DIR$/sanitize-file-names.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,11 +41,14 @@
     "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
     "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.1-dlp-DL-Singles-both.executor": "Run",
     "Python.dlp-DL-Singles-both.executor": "Run",
     "Python.dlp-prompt-both.executor": "Run",
     "Python.dlp-prompt-video-only.executor": "Run",
-    "Python.find-artists-main.executor": "Run",
+    "Python.find-artists-main.executor": "Debug",
     "Python.get-artists-from-trello.executor": "Run",
+    "Python.greek_search_comprehensive.executor": "Run",
+    "Python.main_greek_search.executor": "Run",
     "Python.sanitize-file-names.executor": "Run",
     "Python.yt-dlp-one-song-prompt.executor": "Run",
     "Python.yt-dlp-playlist-audio-only.executor": "Run",
@@ -68,30 +72,8 @@
       </console-settings>
     </option>
   </component>
-  <component name="RunManager" selected="Python.dlp-prompt-video-only">
-    <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP">
-      <module name="youtube-download" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/yt-dlp-playlist.py" />
-      <option name="PARAMETERS" value="&quot;https://youtube.com/playlist?list=PLRXnwzqAlx1OjuERxW0S7XEdJCgl_lf_L&amp;si=J1TKhRslqYl2W4JX&quot; --audio" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="dlp-DL-Singles-both" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP" temporary="true">
+  <component name="RunManager" selected="Python.main_greek_search">
+    <configuration name="1-dlp-DL-Singles-both" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP" temporary="true">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -106,6 +88,28 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/yt-dlp-playlist.py" />
       <option name="PARAMETERS" value="&quot; https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE&quot; --audio --subs" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="2-dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP">
+      <module name="youtube-download" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/yt-dlp-playlist.py" />
+      <option name="PARAMETERS" value="&quot;https://youtube.com/playlist?list=PLRXnwzqAlx1OjuERxW0S7XEdJCgl_lf_L&amp;si=J1TKhRslqYl2W4JX&quot; --audio" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -140,6 +144,9 @@
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="true" />
@@ -168,7 +175,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/find-artists-main.py" />
-      <option name="PARAMETERS" value="" />
+      <option name="PARAMETERS" value="&quot;ΒΑΣΩ ΑΘΑΝΑΣΑΚΗ- MEDLEY ΔΗΜΟΤΙΚΑ ΧΟΡΕΥΤΙΚΑ «ΤΑ 7ΡΙΑ» ..Κλαρίνο: ΓΙΩΡΓΟΣ ΚΑΡΑΤΖΙΝΗΣ&quot;" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -190,6 +197,28 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/get-artists-from-trello.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="main_greek_search" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="youtube-download" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="C:\Users\user\PycharmProjects\youtube-download\main_greek_search.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -222,19 +251,21 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Python.dlp-DL-Singles-audio-only" />
+      <item itemvalue="Python.2-dlp-DL-Singles-audio-only" />
       <item itemvalue="Python.dlp-prompt-both" />
       <item itemvalue="Python.dlp-prompt-video-only" />
-      <item itemvalue="Python.dlp-DL-Singles-both" />
+      <item itemvalue="Python.1-dlp-DL-Singles-both" />
       <item itemvalue="Python.sanitize-file-names" />
+      <item itemvalue="Python.main_greek_search" />
       <item itemvalue="Python.find-artists-main" />
       <item itemvalue="Python.get-artists-from-trello" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.dlp-DL-Singles-both" />
-        <item itemvalue="Python.get-artists-from-trello" />
+        <item itemvalue="Python.main_greek_search" />
         <item itemvalue="Python.find-artists-main" />
+        <item itemvalue="Python.1-dlp-DL-Singles-both" />
+        <item itemvalue="Python.get-artists-from-trello" />
       </list>
     </recent_temporary>
   </component>
@@ -268,5 +299,16 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/find-artists-main.py</url>
+          <line>27</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

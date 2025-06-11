@@ -5,6 +5,9 @@ import sys
 from pathlib import Path
 from utils import sanitize_string
 
+default_video_folder = 'yt-videos'
+default_audio_folder = 'yt-audio'
+
 
 def process_folder(folder_path: Path) -> None:
     """Rename files in the folder by removing leading unwanted characters."""
@@ -39,9 +42,9 @@ def main() -> None:
     )
     parser.add_argument("--base-dir", type=Path, default=default_base,
                         help=f"Base directory (default: '{default_base}')")
-    parser.add_argument("folder1", type=str,
+    parser.add_argument("folder1", type=str, default=default_video_folder,
                         help="First folder under base directory (mandatory)")
-    parser.add_argument("folder2", type=str, nargs="?", default=None,
+    parser.add_argument("folder2", type=str, nargs="?", default=default_audio_folder,
                         help="Second folder under base directory (optional)")
     args = parser.parse_args()
 
