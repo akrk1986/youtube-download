@@ -5,13 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/greek_substr_search.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/artist_search.py" beforeDir="false" afterPath="$PROJECT_DIR$/artist_search.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main_greek_search.py" beforeDir="false" afterPath="$PROJECT_DIR$/main_greek_search.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sanitize-file-names.py" beforeDir="false" afterPath="$PROJECT_DIR$/main-sanitize-file-names.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/yt-dlp-playlist.py" beforeDir="false" afterPath="$PROJECT_DIR$/yt-dlp-playlist.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,6 +41,7 @@
     "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.1-dlp-DL-Singles-both.executor": "Run",
+    "Python.dlp-DL-Singles-audio-only.executor": "Run",
     "Python.dlp-DL-Singles-both.executor": "Run",
     "Python.dlp-prompt-both.executor": "Run",
     "Python.dlp-prompt-video-only.executor": "Debug",
@@ -78,7 +73,7 @@
       </console-settings>
     </option>
   </component>
-  <component name="RunManager" selected="Python.dlp-prompt-both">
+  <component name="RunManager" selected="Python.dlp-DL-Singles-both">
     <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -288,11 +283,11 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.dlp-DL-Singles-both" />
+        <item itemvalue="Python.get-artists-from-trello" />
         <item itemvalue="Python.main_greek_search (1)" />
         <item itemvalue="Python.main_greek_search" />
         <item itemvalue="Python.find-artists-main" />
-        <item itemvalue="Python.dlp-DL-Singles-both" />
-        <item itemvalue="Python.get-artists-from-trello" />
       </list>
     </recent_temporary>
   </component>
