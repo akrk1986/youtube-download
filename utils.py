@@ -1,12 +1,15 @@
-"""Greek strings handling, for file names and MP3 title."""
+"""Greek strings handling, for file names and MP3 titles."""
 import re
 import unicodedata
 
-# Regex: remove leading non-alphanumeric (English+Greek) characters, including spaces
-pattern = re.compile(r'^[^a-zA-Z0-9\u0370-\u03FF]+')
+# Regex: remove leading non-alphanumeric characters (English+Greek+Hebrew), including spaces
+pattern = re.compile(r'^[^a-zA-Z0-9\u0370-\u03FF\u05d0-\u05ea]+')
 
 def sanitize_string(dirty_string: str) -> str:
-    """Remove leading unwanted characters (including spaces) from string."""
+    """
+    Remove leading unwanted characters (including spaces) from string.
+    See the comment above 'pattern'.
+    """
     return pattern.sub('', dirty_string)
 
 def remove_diacritics(text: str) -> str:
@@ -25,7 +28,7 @@ def remove_diacritics(text: str) -> str:
 
 def greek_search(big_string: str, sub_string: str) -> bool:
     """
-    Check if sub_string appears in big_string, ignoring Greek diacritics.
+    Check if sub_string appears in big_string (case-insensitive), ignoring Greek diacritics (=letters with accents).
 
     Args:
         big_string (str): The string to search in
