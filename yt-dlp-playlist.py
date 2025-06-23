@@ -90,10 +90,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Download YouTube playlist/video, optionally with subtitles.")
     parser.add_argument('playlist_url', nargs='?', help='YouTube playlist/video URL')
-    parser.add_argument('--audio', action='store_true', help='Also extract audio as MP3')
+    parser.add_argument('--with-audio', action='store_true', help='Also extract audio as MP3')
+    parser.add_argument('--only-audio', action='store_true', help='Delete video files after extraction')
     parser.add_argument('--subs', action='store_true', help='Download subtitles')
     parser.add_argument('--json', action='store_true', help='Write JSON file')
     args = parser.parse_args()
+
+    need_audio = args.with_audio or args.only_audio
 
     home_dir = Path.home()
     yt_dlp_dir = home_dir / "Apps" / "yt-dlp"
@@ -110,25 +113,25 @@ def main() -> None:
 
     video_folder = os.path.abspath('yt-videos')
     audio_folder = os.path.abspath('yt-audio')
-    os.makedirs(video_folder, exist_ok=True)
-    if args.audio:
+    if not args.only_audio:
+        os.makedirs(video_folder, exist_ok=True)
+    if need_audio:
         os.makedirs(audio_folder, exist_ok=True)
 
-    # Always download videos
-    run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, subs=args.subs,
-               write_json=args.json)
+    # Download videos if requested
+    if not args.only_audio:
+        run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, subs=args.subs,
+                   write_json=args.json)
 
-    if args.audio:
-        ## Old method: extract MP3 from downloaded videos
-        ## It is faster, but you lose the ID tags so FFMPEG has no tags.
-        # extract_audio_with_ffmpeg(ffmpeg_exe=ffmpeg_exe, video_folder=video_folder, audio_folder=audio_folder)
-
-        # New method: run yt-dlp a second time to download videos, extract audio and add tags
+    # Download audios if requested
+    if need_audio:
+        # Run yt-dlp to download videos, and let yt-dlp extract audio and add tags
         extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder)
 
     # Sanitize downloaded video file names
-    sanitize_folder(folder_path=Path(video_folder))
-    if args.audio:
+    if not args.only_audio:
+        sanitize_folder(folder_path=Path(video_folder))
+    if need_audio:
         # Sanitize downloaded audio file names
         sanitize_folder(folder_path=Path(audio_folder))
         # Modify some MP3 tags based on the title
