@@ -6,7 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/yt-dlp-playlist.py" beforeDir="false" afterPath="$PROJECT_DIR$/yt-dlp-playlist.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -74,8 +74,8 @@
       </console-settings>
     </option>
   </component>
-  <component name="RunManager" selected="Python.dlp-prompt-both">
-    <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP">
+  <component name="RunManager" selected="Python.dlp-DL-Singles-audio-only">
+    <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -89,7 +89,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/yt-dlp-playlist.py" />
-      <option name="PARAMETERS" value="&quot;https://youtube.com/playlist?list=PLRXnwzqAlx1OjuERxW0S7XEdJCgl_lf_L&amp;si=J1TKhRslqYl2W4JX&quot; --audio" />
+      <option name="PARAMETERS" value="&quot;https://youtube.com/playlist?list=PLRXnwzqAlx1OjuERxW0S7XEdJCgl_lf_L&amp;si=J1TKhRslqYl2W4JX&quot; --only-audio" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -97,7 +97,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="dlp-DL-Singles-both" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP" temporary="true">
+    <configuration name="dlp-DL-Singles-both" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets" temporary="true">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -111,7 +111,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/yt-dlp-playlist.py" />
-      <option name="PARAMETERS" value="&quot; https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE&quot; --audio --subs" />
+      <option name="PARAMETERS" value="&quot; https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE&quot; --with-audio --subs" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -119,7 +119,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="dlp-prompt-both" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP">
+    <configuration name="dlp-prompt-both" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-prompt">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -133,30 +133,8 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/yt-dlp-playlist.py" />
-      <option name="PARAMETERS" value="--audio --subs" />
+      <option name="PARAMETERS" value="--with-audio --subs" />
       <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="dlp-prompt-video-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP">
-      <module name="youtube-download" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/yt-dlp-playlist.py" />
-      <option name="PARAMETERS" value="--subs" />
-      <option name="SHOW_COMMAND_LINE" value="true" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
       <option name="REDIRECT_INPUT" value="false" />
@@ -275,9 +253,8 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Python.dlp-DL-Singles-audio-only" />
       <item itemvalue="Python.dlp-prompt-both" />
-      <item itemvalue="Python.dlp-prompt-video-only" />
+      <item itemvalue="Python.dlp-DL-Singles-audio-only" />
       <item itemvalue="Python.dlp-DL-Singles-both" />
       <item itemvalue="Python.main-sanitize-file-names" />
       <item itemvalue="Python.main_greek_search (1)" />
