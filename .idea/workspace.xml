@@ -6,6 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/yt-dlp-playlist.py" beforeDir="false" afterPath="$PROJECT_DIR$/yt-dlp-playlist.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,8 +47,8 @@
     "Python.dlp-DL-Singles-both-אקצפ.executor": "Run",
     "Python.dlp-DL-Singles-both.executor": "Run",
     "Python.dlp-prompt-audio-only.executor": "Run",
-    "Python.dlp-prompt-both.executor": "Run",
-    "Python.dlp-prompt-video-only.executor": "Debug",
+    "Python.dlp-prompt-both.executor": "Debug",
+    "Python.dlp-prompt-video-only.executor": "Run",
     "Python.find-artists-main.executor": "Debug",
     "Python.get-artists-from-trello.executor": "Run",
     "Python.greek_search_comprehensive.executor": "Run",
@@ -75,7 +77,7 @@
       </console-settings>
     </option>
   </component>
-  <component name="RunManager" selected="Python.dlp-DL-Singles-both-OLD">
+  <component name="RunManager" selected="Python.dlp-prompt-both">
     <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -178,7 +180,29 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/yt-dlp-playlist.py" />
-      <option name="PARAMETERS" value="--with-audio --subs" />
+      <option name="PARAMETERS" value="--with-audio --subs --split-chapters" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="dlp-prompt-video-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-prompt">
+      <module name="youtube-download" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/yt-dlp-playlist.py" />
+      <option name="PARAMETERS" value="--subs --split-chapters" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -299,6 +323,7 @@
     </configuration>
     <list>
       <item itemvalue="Python.dlp-prompt-both" />
+      <item itemvalue="Python.dlp-prompt-video-only" />
       <item itemvalue="Python.dlp-prompt-audio-only" />
       <item itemvalue="Python.dlp-DL-Singles-audio-only" />
       <item itemvalue="Python.dlp-DL-Singles-both-OLD" />
@@ -357,6 +382,21 @@
           <url>file://$PROJECT_DIR$/find-artists-main.py</url>
           <line>27</line>
           <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/yt-dlp-playlist.py</url>
+          <line>154</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/yt-dlp-playlist.py</url>
+          <line>152</line>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/yt-dlp-playlist.py</url>
+          <line>162</line>
+          <option name="timeStamp" value="4" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

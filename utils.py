@@ -1,6 +1,10 @@
 """Greek strings handling, for file names and MP3 titles."""
 import re
 import unicodedata
+import os
+import shutil
+from pathlib import Path
+
 
 # Regex: remove leading non-alphanumeric characters (English+Greek+Hebrew), including spaces
 pattern = re.compile(r'^[^a-zA-Z0-9\u0370-\u03FF\u05d0-\u05ea]+')
@@ -47,3 +51,89 @@ def greek_search(big_string: str, sub_string: str) -> bool:
 
     # Check if sub_string appears in big_string
     return sub_string_clean in big_string_clean
+
+def organize_media_files() -> dict:
+    """
+    Move all MP3 files to 'yt-audio' subfolder and all MP4 files to 'yt-videos' subfolder.
+    Creates the subfolders if they don't exist.
+
+    Returns:
+        dict: Summary of moved files with counts and any errors
+    """
+    current_dir = Path('.')
+    audio_dir = current_dir / 'yt-audio'
+    video_dir = current_dir / 'yt-videos'
+
+    # Create directories if they don't exist
+    audio_dir.mkdir(exist_ok=True)
+    video_dir.mkdir(exist_ok=True)
+
+    moved_files = {'mp3': [], 'mp4': [], 'errors': []}
+
+    # Find and move MP3 files
+    for mp3_file in current_dir.glob('*.mp3'):
+        try:
+            destination = audio_dir / mp3_file.name
+            shutil.move(str(mp3_file), str(destination))
+            moved_files['mp3'].append(mp3_file.name)
+            print(f"Moved {mp3_file.name} -> yt-audio/")
+        except Exception as e:
+            error_msg = f"Error moving {mp3_file.name}: {str(e)}"
+            moved_files['errors'].append(error_msg)
+            print(error_msg)
+
+    # Find and move MP4 files
+    for mp4_file in current_dir.glob('*.mp4'):
+        try:
+            destination = video_dir / mp4_file.name
+            shutil.move(str(mp4_file), str(destination))
+            moved_files['mp4'].append(mp4_file.name)
+            print(f"Moved {mp4_file.name} -> yt-videos/")
+        except Exception as e:
+            error_msg = f"Error moving {mp4_file.name}: {str(e)}"
+            moved_files['errors'].append(error_msg)
+            print(error_msg)
+
+    # Print summary
+    print(f"\nSummary:")
+    print(f"MP3 files moved: {len(moved_files['mp3'])}")
+    print(f"MP4 files moved: {len(moved_files['mp4'])}")
+    if moved_files['errors']:
+        print(f"Errors: {len(moved_files['errors'])}")
+
+    return moved_files
+
+def organize_media_files_silent() -> dict:
+    """
+    Same as organize_media_files() but without print statements.
+    Returns only the summary dictionary.
+    """
+    current_dir = Path('.')
+    audio_dir = current_dir / 'yt-audio'
+    video_dir = current_dir / 'yt-videos'
+
+    # Create directories if they don't exist
+    audio_dir.mkdir(exist_ok=True)
+    video_dir.mkdir(exist_ok=True)
+
+    moved_files = {'mp3': [], 'mp4': [], 'errors': []}
+
+    # Move MP3 files
+    for mp3_file in current_dir.glob('*.mp3'):
+        try:
+            destination = audio_dir / mp3_file.name
+            shutil.move(str(mp3_file), str(destination))
+            moved_files['mp3'].append(mp3_file.name)
+        except Exception as e:
+            moved_files['errors'].append(f"Error moving {mp3_file.name}: {str(e)}")
+
+    # Move MP4 files
+    for mp4_file in current_dir.glob('*.mp4'):
+        try:
+            destination = video_dir / mp4_file.name
+            shutil.move(str(mp4_file), str(destination))
+            moved_files['mp4'].append(mp4_file.name)
+        except Exception as e:
+            moved_files['errors'].append(f"Error moving {mp4_file.name}: {str(e)}")
+
+    return moved_files

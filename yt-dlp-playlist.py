@@ -1,15 +1,37 @@
 """Using yt-dlp, download all videos from YT playlist, and extract the MP3 files for them."""
 import argparse
 import os
+import json
 import subprocess
 from pathlib import Path
 from process_mp3_files_for_tags import process_mp3_files
-from utils import sanitize_string
+from utils import sanitize_string, organize_media_files
 
 greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE"
 yt_dlp_write_json_flag = '--write-info-json'
+yt_dlp_split_chapters_flag = '--split-chapters'
 
-def sanitize_folder(folder_path: Path) -> None:
+def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
+    """
+    Get the number of chapters in a YouTube video using yt-dlp.
+
+    Args:
+        ytdlp_exe (Path): path to yt-dlp executable
+        playlist_url (str): YouTube video URL
+
+    Returns:
+        int: Number of chapters (0 if none or error)
+    """
+    try:
+        cmd = [ytdlp_exe, '--dump-json', '--no-download', playlist_url]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        video_info = json.loads(result.stdout)
+        chapters = video_info.get('chapters', [])
+        return len(chapters)
+    except:
+        return 0
+
+def sanitize_filenames_in_folder(folder_path: Path) -> None:
     """Sanitize file names in the folder by removing leading unwanted characters."""
     ctr = 0
     for file_path in folder_path.iterdir():
@@ -26,7 +48,7 @@ def sanitize_folder(folder_path: Path) -> None:
     print(f"Renamed {ctr} files in folder '{folder_path}'")
 
 def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool,
-               write_json: bool) -> None:
+               write_json: bool, has_chapters: bool, split_chapters: bool) -> None:
     """Extract videos from YouTube playlist/video with yt-dlp. Include subtitles if requested."""
     yt_dlp_cmd = [
         ytdlp_exe,
@@ -38,6 +60,8 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool
     ]
     if write_json:
         yt_dlp_cmd[1:1] = [yt_dlp_write_json_flag]
+    if split_chapters and has_chapters:
+        yt_dlp_cmd[1:1] = [yt_dlp_split_chapters_flag]
 
     if subs:
         # Extract subtitles in Greek, English, Hebrew
@@ -47,11 +71,14 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool
             '--convert-subs', 'srt'
         ]
     print("Downloading videos with yt-dlp...")
+    print(f'========\n{yt_dlp_cmd}\n========')
     # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
 
 def extract_audio_with_ffmpeg(ffmpeg_exe: Path, video_folder: str, audio_folder: str) -> None:
-    """Using the MP4 files that were already downloaded by yt-dlp, extract the audio using ffmpeg."""
+    """Using the MP4 files that were already downloaded by yt-dlp, extract the audio using ffmpeg.
+    Currently not in use.
+    """
     video_files = list(Path(video_folder).glob('*.mp4'))
     for video_file in video_files:
         audio_file = Path(audio_folder) / (video_file.stem + '.mp3')
@@ -65,7 +92,8 @@ def extract_audio_with_ffmpeg(ffmpeg_exe: Path, video_folder: str, audio_folder:
             ]
             subprocess.run(ffmpeg_cmd, check=False)
 
-def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str) -> None:
+def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
+                             has_chapters: bool, split_chapters: bool) -> None:
     """Use yt-dlp to download and extract MP3 audio with metadata and thumbnail."""
     yt_dlp_cmd = [
         ytdlp_exe,
@@ -82,6 +110,9 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         '-o', os.path.join(audio_folder, '%(title)s.%(ext)s'),
         playlist_url
     ]
+    if split_chapters and has_chapters:
+        yt_dlp_cmd[1:1] = [yt_dlp_split_chapters_flag]
+
     print("==== Downloading and extracting audio with yt-dlp ====")
     # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
@@ -92,6 +123,7 @@ def main() -> None:
     parser.add_argument('playlist_url', nargs='?', help='YouTube playlist/video URL')
     parser.add_argument('--with-audio', action='store_true', help='Also extract audio as MP3')
     parser.add_argument('--only-audio', action='store_true', help='Delete video files after extraction')
+    parser.add_argument('--split-chapters', action='store_true', help='Split to chapters')
     parser.add_argument('--subs', action='store_true', help='Download subtitles')
     parser.add_argument('--json', action='store_true', help='Write JSON file')
     args = parser.parse_args()
@@ -109,7 +141,7 @@ def main() -> None:
 
     # Prompt for playlist/video URL if not provided
     if not args.playlist_url:
-        args.playlist_url = input("Enter the YouTube URL: ").strip()
+        args.playlist_url = input("Enter the URL: ").strip()
 
     video_folder = os.path.abspath('yt-videos')
     audio_folder = os.path.abspath('yt-audio')
@@ -118,22 +150,41 @@ def main() -> None:
     if need_audio:
         os.makedirs(audio_folder, exist_ok=True)
 
+    chapters_count = get_chapter_count(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url)
+    has_chapters = chapters_count > 0
+    print(f'Video has {chapters_count} chapters')
+
     # Download videos if requested
     if not args.only_audio:
         run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, subs=args.subs,
-                   write_json=args.json)
+                   write_json=args.json, split_chapters=args.split_chapters, has_chapters=has_chapters)
 
     # Download audios if requested
     if need_audio:
         # Run yt-dlp to download videos, and let yt-dlp extract audio and add tags
-        extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder)
+        extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder,
+                                 split_chapters=args.split_chapters, has_chapters=has_chapters)
+
+    # Move chapter files (audio and videos) to the sub-folders
+    result = organize_media_files()
+
+    # Check results
+    if result['mp3'] or result['mp4']:
+        print("\nFiles organized successfully!")
+    else:
+        print("\nNo MP3 or MP4 files found in current directory.")
+
+    if result['errors']:
+        print("\nErrors encountered:")
+        for error in result['errors']:
+            print(f"- {error}")
 
     # Sanitize downloaded video file names
     if not args.only_audio:
-        sanitize_folder(folder_path=Path(video_folder))
+        sanitize_filenames_in_folder(folder_path=Path(video_folder))
     if need_audio:
         # Sanitize downloaded audio file names
-        sanitize_folder(folder_path=Path(audio_folder))
+        sanitize_filenames_in_folder(folder_path=Path(audio_folder))
         # Modify some MP3 tags based on the title
         process_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
 

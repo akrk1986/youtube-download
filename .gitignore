@@ -3,4 +3,6 @@
 /yt-videos-old
 /yt-audio-old
 /Data
+*.mp3
+*.mp4
 *.pyc
