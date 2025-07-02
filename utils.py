@@ -52,7 +52,7 @@ def greek_search(big_string: str, sub_string: str) -> bool:
     # Check if sub_string appears in big_string
     return sub_string_clean in big_string_clean
 
-def organize_media_files() -> dict:
+def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
     """
     Move all MP3 files to 'yt-audio' subfolder and all MP4 files to 'yt-videos' subfolder.
     Creates the subfolders if they don't exist.
@@ -60,13 +60,7 @@ def organize_media_files() -> dict:
     Returns:
         dict: Summary of moved files with counts and any errors
     """
-    current_dir = Path('.')
-    audio_dir = current_dir / 'yt-audio'
-    video_dir = current_dir / 'yt-videos'
-
-    # Create directories if they don't exist
-    audio_dir.mkdir(exist_ok=True)
-    video_dir.mkdir(exist_ok=True)
+    current_dir = Path.cwd()
 
     moved_files = {'mp3': [], 'mp4': [], 'errors': []}
 

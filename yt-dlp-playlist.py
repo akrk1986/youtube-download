@@ -166,7 +166,7 @@ def main() -> None:
                                  split_chapters=args.split_chapters, has_chapters=has_chapters)
 
     # Move chapter files (audio and videos) to the sub-folders
-    result = organize_media_files()
+    result = organize_media_files(video_dir=Path(video_folder), audio_dir=Path(audio_folder))
 
     # Check results
     if result['mp3'] or result['mp4']:
