@@ -6,7 +6,7 @@ import json
 import csv
 import re
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any
 
 
 def _parse_time_to_seconds(time_str: str) -> int:
@@ -62,7 +62,7 @@ def _extract_chapters_from_description(description: str) -> List[Dict[str, Any]]
 
 
 def _get_video_info(yt_dlp_path: Path, url: str) -> Dict[str, Any]:
-    """Get video information using yt-dlp."""
+    """Get video information using yt-dlp by requesting the meta-data as JSON."""
     cmd = [
         str(yt_dlp_path),
         '--dump-json',

@@ -9,7 +9,7 @@ from pathlib import Path
 from yt_chapter_extractor import extract_youtube_chapters
 
 
-def main():
+def main() -> None:
     """Main function to handle command line arguments and extract chapters."""
     parser = argparse.ArgumentParser(
         description="Extract chapters from YouTube videos and save to CSV"
