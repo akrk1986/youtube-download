@@ -5,9 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/get-chapters-main.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/yt_chapter_extractor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/yt-dlp-playlist.py" beforeDir="false" afterPath="$PROJECT_DIR$/yt-dlp-playlist.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,7 +47,7 @@
     "Python.dlp-DL-Singles-both-אקצפ.executor": "Run",
     "Python.dlp-DL-Singles-both.executor": "Run",
     "Python.dlp-prompt-audio-only.executor": "Run",
-    "Python.dlp-prompt-both.executor": "Debug",
+    "Python.dlp-prompt-both.executor": "Run",
     "Python.dlp-prompt-video-only.executor": "Run",
     "Python.find-artists-main.executor": "Debug",
     "Python.get-artists-from-trello.executor": "Run",
