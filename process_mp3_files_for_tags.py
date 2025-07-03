@@ -6,7 +6,11 @@ from artist_search import load_artists, find_artists_in_string
 from utils import sanitize_string
 
 
-def process_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
+def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
+    """Based on artists list loaded from an external file, scan the MP3 file title,
+     and check if it contains any artist names from the artists list.
+    If found, set the ID3 tags 'artist' and 'album artist' to the artist name(s).
+    """
     artists = load_artists(artists_json_path=artists_json)
     for mp3_file in mp3_folder.glob("*.mp3"):
         try:
@@ -33,3 +37,16 @@ def process_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
             print(f"Updated {mp3_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
         else:
             print(f"No artist found in title for {mp3_file.name}")
+
+def set_title_in_chapter_mp3_files(mp3_folder: Path) -> int:
+    """
+    Clean up 'title' tag in MP3 chapter files.
+    File name pattern:
+    <original file name> - <song # (3 digits)> <song name from playlist> [<YouTube ID in playlist> (e.g. 'F_vC6A1EKAw')]
+    A possible regex: (.*) - (\d\d\d) (.*) (\[.*\])
+    We need two strings: <song #> (group 2), <song name from playlist> (group 3).
+
+    :param mp3_folder: Path to audio files folder
+    :return: # of files whose title was modified
+    """
+    return 0

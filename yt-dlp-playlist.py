@@ -4,7 +4,7 @@ import os
 import json
 import subprocess
 from pathlib import Path
-from process_mp3_files_for_tags import process_mp3_files
+from process_mp3_files_for_tags import set_artists_in_mp3_files, set_title_in_chapter_mp3_files
 from utils import sanitize_string, organize_media_files
 
 greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE"
@@ -165,7 +165,7 @@ def main() -> None:
         extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder,
                                  split_chapters=args.split_chapters, has_chapters=has_chapters)
 
-    # Move chapter files (audio and videos) to the sub-folders
+    # Move chapter files (audio and videos), if any exist, to the corresponding sub-folders
     result = organize_media_files(video_dir=Path(video_folder), audio_dir=Path(audio_folder))
 
     # Check results
@@ -186,7 +186,10 @@ def main() -> None:
         # Sanitize downloaded audio file names
         sanitize_filenames_in_folder(folder_path=Path(audio_folder))
         # Modify some MP3 tags based on the title
-        process_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
+        set_artists_in_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
+        # if the audio files are chapters, clean up the 'title' ID3 tag
+        if has_chapters:
+            _ = set_title_in_chapter_mp3_files(mp3_folder=Path(audio_folder))
 
 if __name__ == '__main__':
     main()
