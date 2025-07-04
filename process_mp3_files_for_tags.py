@@ -52,10 +52,28 @@ def set_title_in_chapter_mp3_files(mp3_folder: Path) -> int:
     :param mp3_folder: Path to audio files folder
     :return: # of files whose title was modified
     """
+    ctr = 0
     for mp3_file in mp3_folder.glob("*.mp3"):
-        song_name, file_name, song_number = extract_song_info(file_name=mp3_file.name)
-        print(f"song_name, f_name, song_#: '{song_name}', '{file_name}, '{song_number}'")
-    return 0
+        try:
+            audio = EasyID3(mp3_file)
+        except ID3NoHeaderError:
+            # If no ID3 tag exists, create one
+            audio = EasyID3()
+
+        try:
+            song_name, file_name, song_number = extract_song_info(file_name=mp3_file.name)
+            print(f"title, f_name, song_#: '{song_name}', '{file_name}, '{song_number}'")
+
+            audio['title'] = song_name
+            audio['tracknumber'] = int(song_number)
+            audio['TRCK'] = int(song_number)
+            audio.save(mp3_file)
+            ctr += 1
+        except ValueError:
+            # no chapter file, ignore
+            ...
+
+    return ctr
 
 
 _windows_reserved_names = {
@@ -124,7 +142,7 @@ def _sanitize_filename(filename: str) -> str:
     return sanitized
 
 def extract_song_info(file_name: str) -> Tuple[str, str, str]:
-    pattern = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]$'
+    pattern = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]\.[mM][pP][3-4]$'
     match = re.match(pattern, file_name)
     if not match:
         raise ValueError('String does not match the expected pattern')

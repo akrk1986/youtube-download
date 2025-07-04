@@ -45,7 +45,8 @@
     "Python.dlp-DL-Singles-audio-only.executor": "Run",
     "Python.dlp-DL-Singles-both-אקצפ.executor": "Run",
     "Python.dlp-DL-Singles-both.executor": "Run",
-    "Python.dlp-prompt-audio-only.executor": "Run",
+    "Python.dlp-prompt-audio-only-chapters.executor": "Debug",
+    "Python.dlp-prompt-audio-only.executor": "Debug",
     "Python.dlp-prompt-both.executor": "Run",
     "Python.dlp-prompt-video-only.executor": "Run",
     "Python.find-artists-main.executor": "Debug",
@@ -77,7 +78,7 @@
       </console-settings>
     </option>
   </component>
-  <component name="RunManager" selected="Python.test_chapter_regex">
+  <component name="RunManager" selected="Python.dlp-prompt-audio-only-chapters">
     <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -137,6 +138,28 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/yt-dlp-playlist.py" />
       <option name="PARAMETERS" value="&quot; https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE&quot; --with-audio --subs" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="dlp-prompt-audio-only-chapters" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-prompt">
+      <module name="youtube-download" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/yt-dlp-playlist.py" />
+      <option name="PARAMETERS" value="--only-audio --split-chapters" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -325,6 +348,7 @@
       <item itemvalue="Python.dlp-prompt-both" />
       <item itemvalue="Python.dlp-prompt-video-only" />
       <item itemvalue="Python.dlp-prompt-audio-only" />
+      <item itemvalue="Python.dlp-prompt-audio-only-chapters" />
       <item itemvalue="Python.dlp-DL-Singles-audio-only" />
       <item itemvalue="Python.dlp-DL-Singles-both-OLD" />
       <item itemvalue="Python.dlp-DL-Singles-both" />
@@ -384,24 +408,9 @@
           <option name="timeStamp" value="1" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/yt-dlp-playlist.py</url>
-          <line>154</line>
-          <option name="timeStamp" value="2" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/yt-dlp-playlist.py</url>
-          <line>152</line>
-          <option name="timeStamp" value="3" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/utils.py</url>
-          <line>67</line>
-          <option name="timeStamp" value="6" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/yt-dlp-playlist.py</url>
-          <line>29</line>
-          <option name="timeStamp" value="7" />
+          <url>file://$PROJECT_DIR$/process_mp3_files_for_tags.py</url>
+          <line>54</line>
+          <option name="timeStamp" value="11" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
