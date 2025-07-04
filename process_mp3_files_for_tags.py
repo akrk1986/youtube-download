@@ -57,29 +57,87 @@ def set_title_in_chapter_mp3_files(mp3_folder: Path) -> int:
         print(f"song_name, f_name, song_#: '{song_name}', '{file_name}, '{song_number}'")
     return 0
 
+
+_windows_reserved_names = {
+    'CON', 'PRN', 'AUX', 'NUL',
+    *(f'COM{i}' for i in range(1, 10)),
+    *(f'LPT{i}' for i in range(1, 10))
+}
+
+_invalid_windows_chars = set('<>:"/\\|?*')
+_invalid_linux_chars = set('/')
+_control_chars = set(chr(i) for i in range(32))  # ASCII control chars 0-31
+
+def _is_valid_filename(filename: str) -> bool:
+    if not filename:
+        return False
+    if filename.upper() in _windows_reserved_names:
+        return False
+    if any(ch in _invalid_windows_chars for ch in filename):
+        return False
+    if any(ch in _invalid_linux_chars for ch in filename):
+        return False
+    if any(ch in _control_chars for ch in filename):
+        return False
+    if filename[-1] in {' ', '.'}:
+        return False
+    return True
+
 def _remove_emojis(text: str) -> str:
-    # Remove all emoji characters (Symbols, Other)
     return ''.join(c for c in text if not unicodedata.category(c).startswith('So'))
 
+def _sanitize_filename(filename: str) -> str:
+    # List of common Unicode slashes and solidus-like characters
+    unicode_slashes = [
+        '/',        # U+002F
+        '\\',       # U+005C backslash
+        '∕',        # U+2215
+        '⁄',        # U+2044
+        '⧸',        # U+29F8
+        '⧹',        # U+29F9
+        '╱',        # U+2571
+        '╲',        # U+2572
+        '／',       # U+FF0F
+        '＼',       # U+FF3C
+    ]
+    # Create a regex pattern to match any of the slash-like characters, possibly surrounded by spaces
+    slash_pattern = '[' + ''.join(re.escape(s) for s in unicode_slashes) + ']'
+    # Replace any slash-like character (with optional surrounding spaces) with a single hyphen
+    filename = re.sub(rf'\s*{slash_pattern}\s*', '-', filename)
+    # Remove other invalid Windows characters and ASCII control chars
+    invalid_chars = set('<>:"|?*')
+    control_chars = set(chr(i) for i in range(32))
+    sanitized = ''.join(
+        c for c in filename
+        if c not in invalid_chars and c not in control_chars
+    )
+    # Remove leading and trailing hyphens, spaces, and dots
+    sanitized = sanitized.strip('-. ')
+    # Avoid reserved Windows names
+    windows_reserved = {
+        'CON', 'PRN', 'AUX', 'NUL',
+        *(f'COM{i}' for i in range(1, 10)),
+        *(f'LPT{i}' for i in range(1, 10))
+    }
+    if sanitized.upper() in windows_reserved or not sanitized:
+        sanitized = f'_{sanitized}'
+    return sanitized
+
 def extract_song_info(file_name: str) -> Tuple[str, str, str]:
-    """Return sanitized parts of the string by the pattern."""
-    # Regex pattern:
-    # Group 1: file name (anything, lazy)
-    # Group 2: song number (3 digits)
-    # Group 3: song name (anything, lazy)
-    # Group 4: YouTube ID (no whitespace, no emojis)
     pattern = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]$'
     match = re.match(pattern, file_name)
     if not match:
         raise ValueError('String does not match the expected pattern')
 
-    file_name = match.group(1).strip()
+    extracted_file_name = match.group(1).strip()
     song_number = match.group(2).strip()
     song_name = match.group(3).strip()
-    _youtube_id = match.group(4).strip()  # no emojis or whitespace expected here
+    _youtube_id = match.group(4).strip()
 
-    # Remove emojis from file_name and song_name only
-    file_name = _remove_emojis(file_name).strip()
+    extracted_file_name = _remove_emojis(extracted_file_name).strip()
     song_name = _remove_emojis(song_name).strip()
 
-    return song_name, file_name, song_number
+    # Sanitize file name for both Windows and Linux
+    extracted_file_name = _sanitize_filename(extracted_file_name)
+
+    return song_name, extracted_file_name, song_number
