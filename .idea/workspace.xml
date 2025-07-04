@@ -5,9 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/test_chapter_regex.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/process_mp3_files_for_tags.py" beforeDir="false" afterPath="$PROJECT_DIR$/process_mp3_files_for_tags.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/yt-dlp-playlist.py" beforeDir="false" afterPath="$PROJECT_DIR$/yt-dlp-playlist.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -77,7 +77,7 @@
       </console-settings>
     </option>
   </component>
-  <component name="RunManager" selected="Python.dlp-prompt-both">
+  <component name="RunManager" selected="Python.test_chapter_regex">
     <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -210,28 +210,6 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="find-artists-main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="youtube-download" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/find-artists-main.py" />
-      <option name="PARAMETERS" value="&quot;ΒΑΣΩ ΑΘΑΝΑΣΑΚΗ- MEDLEY ΔΗΜΟΤΙΚΑ ΧΟΡΕΥΤΙΚΑ «ΤΑ 7ΡΙΑ» ..Κλαρίνο: ΓΙΩΡΓΟΣ ΚΑΡΑΤΖΙΝΗΣ&quot;" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <configuration name="get-artists-from-trello" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -321,6 +299,28 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="test_chapter_regex" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="youtube-download" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test_chapter_regex.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <list>
       <item itemvalue="Python.dlp-prompt-both" />
       <item itemvalue="Python.dlp-prompt-video-only" />
@@ -329,18 +329,18 @@
       <item itemvalue="Python.dlp-DL-Singles-both-OLD" />
       <item itemvalue="Python.dlp-DL-Singles-both" />
       <item itemvalue="Python.main-sanitize-file-names" />
+      <item itemvalue="Python.test_chapter_regex" />
       <item itemvalue="Python.main_greek_search (1)" />
       <item itemvalue="Python.main_greek_search" />
-      <item itemvalue="Python.find-artists-main" />
       <item itemvalue="Python.get-artists-from-trello" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.test_chapter_regex" />
         <item itemvalue="Python.dlp-DL-Singles-both" />
         <item itemvalue="Python.get-artists-from-trello" />
         <item itemvalue="Python.main_greek_search (1)" />
         <item itemvalue="Python.main_greek_search" />
-        <item itemvalue="Python.find-artists-main" />
       </list>
     </recent_temporary>
   </component>
