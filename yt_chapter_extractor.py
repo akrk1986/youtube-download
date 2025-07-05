@@ -1,12 +1,11 @@
 """
 Functions to extract YouTube video chapters using yt-dlp.
 """
-import subprocess
-import json
 import csv
 import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any
+from utils import get_video_info
 
 
 def _parse_time_to_seconds(time_str: str) -> int:
@@ -61,24 +60,6 @@ def _extract_chapters_from_description(description: str) -> List[Dict[str, Any]]
     return chapters
 
 
-def _get_video_info(yt_dlp_path: Path, url: str) -> Dict[str, Any]:
-    """Get video information using yt-dlp by requesting the meta-data as JSON."""
-    cmd = [
-        str(yt_dlp_path),
-        '--dump-json',
-        '--no-download',
-        url
-    ]
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        return json.loads(result.stdout)
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"yt-dlp failed: {e.stderr}")
-    except json.JSONDecodeError as e:
-        raise RuntimeError(f"Failed to parse yt-dlp output: {e}")
-
-
 def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> Optional[str]:
     """
     Extract chapters from a YouTube video and save to CSV.
@@ -91,7 +72,7 @@ def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> Optional[str]:
         Path to the created CSV file if successful, None if no chapters found
     """
     # Get video information
-    video_info = _get_video_info(yt_dlp_path, url)
+    video_info = get_video_info(yt_dlp_path, url)
 
     video_title = video_info.get('title', 'Unknown')
     video_duration = video_info.get('duration', 0)

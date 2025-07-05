@@ -11,8 +11,8 @@ from utils import sanitize_string
 
 def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
     """Based on artists list loaded from an external file, scan the MP3 file title,
-     and check if it contains any artist names from the artists list.
-    If found, set the ID3 tags 'artist' and 'album artist' to the artist name(s).
+       and check if it contains any artist names from the artists list.
+       If found, set the ID3 tags 'artist' and 'album artist' to the artist name(s).
     """
     artists = load_artists(artists_json_path=artists_json)
     for mp3_file in mp3_folder.glob("*.mp3"):
@@ -33,6 +33,11 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
         if count > 0:
             audio["artist"] = [artist_string]
             audio["albumartist"] = [artist_string]
+        else:
+            art = audio.get('artist')
+            alb_art = audio.get('albumartist')
+            print(f"No known artist in title, a/aa tags='{art}'/'{alb_art}'")
+
         if upd_title:
             audio['title'] = clean_title
         if count > 0 or upd_title:
@@ -46,7 +51,7 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path) -> int:
     Set 'title' and 'tracknumber' tags in MP3 chapter files in the given folder.
     File name pattern from chapters, as extracted by YT-DLP:
     <original file name> - <song # (3 digits)> <song name from playlist> [<YouTube ID in playlist> (e.g. 'F_vC6A1EKAw')]
-    A possible regex: (.*) - (\\d\\d\\d) (.*) (\\[.*\\])\.mp3
+    A possible regex: (.*) - (\d\d\d) (.*) (\[.*\]).mp3
     We need two strings: <song #> (group 2), <song name from playlist> (group 3).
 
     :param mp3_folder: Path to audio files folder

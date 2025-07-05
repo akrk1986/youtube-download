@@ -1,9 +1,10 @@
 """Greek strings handling, for file names and MP3 titles."""
 import re
 import unicodedata
-import os
 import shutil
 from pathlib import Path
+import subprocess
+import json
 
 
 # Regex: remove leading non-alphanumeric characters (English+Greek+Hebrew), including spaces
@@ -131,3 +132,20 @@ def organize_media_files_silent() -> dict:
             moved_files['errors'].append(f"Error moving {mp4_file.name}: {str(e)}")
 
     return moved_files
+
+def get_video_info(yt_dlp_path: Path, url: str) -> Dict[str, Any]:
+    """Get video information using yt-dlp by requesting the meta-data as JSON."""
+    cmd = [
+        str(yt_dlp_path),
+        '--dump-json',
+        '--no-download',
+        url
+    ]
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return json.loads(result.stdout)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"yt-dlp failed: {e.stderr}")
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"Failed to parse yt-dlp output: {e}")
