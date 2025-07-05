@@ -5,11 +5,13 @@ import json
 import subprocess
 from pathlib import Path
 from process_mp3_files_for_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
-from utils import sanitize_string, organize_media_files
+from utils import sanitize_string, organize_media_files, get_video_info
+
 
 greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE"
 yt_dlp_write_json_flag = '--write-info-json'
 yt_dlp_split_chapters_flag = '--split-chapters'
+
 
 def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
     """
@@ -95,6 +97,24 @@ def extract_audio_with_ffmpeg(ffmpeg_exe: Path, video_folder: str, audio_folder:
 def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
                              has_chapters: bool, split_chapters: bool) -> None:
     """Use yt-dlp to download and extract MP3 audio with metadata and thumbnail."""
+
+    # Check if video has 'artist' or 'uploader' tags.
+    # Use either to embed 'artist' and 'albumartist' tags in the MP3 file.
+    video_info = get_video_info(yt_dlp_path=ytdlp_exe, url=playlist_url)
+    artist = video_info.get('artist')
+    uploader = video_info.get('uploader')
+    have_artist = artist is not None and artist not in ('NA', '')
+    have_uploader = uploader is not None and uploader not in ('NA', '')
+    a = aa = up = None
+    if have_artist:
+        a = 'artist:%(artist)s'
+        aa = 'album_artist:%(artist)s'
+        up = 'uploader:%(artist)s'
+    elif have_uploader:
+        a = 'artist:%(uploader)s'
+        aa = 'album_artist:%(uploader)s'
+        up = 'uploader:%(uploader)s'
+
     yt_dlp_cmd = [
         ytdlp_exe,
         '--yes-playlist',
@@ -105,15 +125,23 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         '--embed-metadata',
         '--add-metadata',
         '--embed-thumbnail',
-        '--parse-metadata', 'album_artist:%(artist)s',
-        '--parse-metadata', 'artist:%(artist)s',
+        #'--parse-metadata', 'album_artist:%(artist)s',
+        #'--parse-metadata', 'artist:%(artist)s',
         '-o', os.path.join(audio_folder, '%(title)s.%(ext)s'),
         playlist_url
     ]
+    if have_artist or have_uploader:
+        yt_dlp_cmd[1:1] = ['--parse-metadata', a,
+                           '--parse-metadata', aa,
+                           #'--parse-metadata', up,
+                           ]
+
     if split_chapters and has_chapters:
         yt_dlp_cmd[1:1] = [yt_dlp_split_chapters_flag]
 
     print("==== Downloading and extracting audio with yt-dlp ====")
+    print(f"CMD: '{yt_dlp_cmd}'")
+    print('='*54)
     # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
 

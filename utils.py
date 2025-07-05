@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 import subprocess
 import json
+from typing import Dict, Any
 
 
 # Regex: remove leading non-alphanumeric characters (English+Greek+Hebrew), including spaces
