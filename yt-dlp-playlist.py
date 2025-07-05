@@ -4,7 +4,7 @@ import os
 import json
 import subprocess
 from pathlib import Path
-from process_mp3_files_for_tags import set_artists_in_mp3_files, set_title_in_chapter_mp3_files
+from process_mp3_files_for_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
 from utils import sanitize_string, organize_media_files
 
 greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE"
@@ -168,7 +168,7 @@ def main() -> None:
     # Move chapter files (audio and videos), if any exist, to the corresponding sub-folders
     result = organize_media_files(video_dir=Path(video_folder), audio_dir=Path(audio_folder))
 
-    # Check results
+    # Check move results
     if result['mp3'] or result['mp4']:
         print("\nFiles organized successfully!")
     else:
@@ -189,7 +189,7 @@ def main() -> None:
         set_artists_in_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
         # if the audio files are chapters, clean up the 'title' ID3 tag
         if has_chapters:
-            _ = set_title_in_chapter_mp3_files(mp3_folder=Path(audio_folder))
+            _ = set_tags_in_chapter_mp3_files(mp3_folder=Path(audio_folder))
 
 if __name__ == '__main__':
     main()

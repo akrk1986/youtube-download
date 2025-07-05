@@ -41,12 +41,12 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
         else:
             print(f"No artist found in title for {mp3_file.name}")
 
-def set_title_in_chapter_mp3_files(mp3_folder: Path) -> int:
+def set_tags_in_chapter_mp3_files(mp3_folder: Path) -> int:
     """
-    Clean up 'title' tag in MP3 chapter files.
-    File name pattern:
+    Set 'title' and 'tracknumber' tags in MP3 chapter files in the given folder.
+    File name pattern from chapters, as extracted by YT-DLP:
     <original file name> - <song # (3 digits)> <song name from playlist> [<YouTube ID in playlist> (e.g. 'F_vC6A1EKAw')]
-    A possible regex: (.*) - (\\d\\d\\d) (.*) (\\[.*\\])
+    A possible regex: (.*) - (\\d\\d\\d) (.*) (\\[.*\\])\.mp3
     We need two strings: <song #> (group 2), <song name from playlist> (group 3).
 
     :param mp3_folder: Path to audio files folder
@@ -59,22 +59,25 @@ def set_title_in_chapter_mp3_files(mp3_folder: Path) -> int:
         except ID3NoHeaderError:
             # If no ID3 tag exists, create one
             audio = EasyID3()
+        except Exception as e:
+            # probably not a valid MP3 file, ignore
+            continue
 
+        song_name, file_name, song_number = extract_chapter_info(file_name=mp3_file.name)
+        print(f"title, f_name, song_#: '{song_name}', '{file_name}, '{song_number}'")
+        if song_name is None:
+            continue
         try:
-            song_name, file_name, song_number = extract_song_info(file_name=mp3_file.name)
-            print(f"title, f_name, song_#: '{song_name}', '{file_name}, '{song_number}'")
-
             audio['title'] = song_name
-            audio['tracknumber'] = int(song_number)
-            audio['TRCK'] = int(song_number)
+            if song_number:
+                audio['tracknumber'] = str(int(song_number))
             audio.save(mp3_file)
             ctr += 1
-        except ValueError:
+        except Exception as e:
             # no chapter file, ignore
-            ...
+            print(f"ERR: {e}")
 
     return ctr
-
 
 _windows_reserved_names = {
     'CON', 'PRN', 'AUX', 'NUL',
@@ -141,11 +144,17 @@ def _sanitize_filename(filename: str) -> str:
         sanitized = f'_{sanitized}'
     return sanitized
 
-def extract_song_info(file_name: str) -> Tuple[str, str, str]:
+def extract_chapter_info(file_name: str) -> Tuple[str | None, str | None, str | None]:
+    """Given a file name which is an MP3/MP4 chapter, extract relevant parts:
+    - file name
+    - song number
+    - song name.
+    """
     pattern = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]\.[mM][pP][3-4]$'
     match = re.match(pattern, file_name)
     if not match:
-        raise ValueError('String does not match the expected pattern')
+        print(f"File name '{file_name}' does not match the chapter pattern, skipped")
+        return None, None, None
 
     extracted_file_name = match.group(1).strip()
     song_number = match.group(2).strip()
