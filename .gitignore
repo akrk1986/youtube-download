@@ -4,5 +4,6 @@
 /yt-audio-old
 /Data
 *.mp3
+*.webm
 *.mp4
 *.pyc
