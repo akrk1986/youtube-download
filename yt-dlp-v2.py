@@ -11,6 +11,9 @@ from mutagen.id3 import ID3, TPE1, TPE2, TIT2, TALB
 from mutagen.mp3 import MP3
 import argparse
 
+# FFmpeg binary location - modify this path as needed
+FFMPEG_BIN = "C:/Users/User/Apps/ffmpeg_bin/ffmpeg.exe"  # Default path, change as needed
+
 
 def extract_video_info(url):
     """Extract video information without downloading"""
@@ -36,9 +39,13 @@ def extract_video_info(url):
 
 def download_audio(url, output_path='.'):
     """Download audio as MP3 using yt-dlp"""
+    # Create yt-audio subfolder
+    yt_audio_path = os.path.join(output_path, 'yt-audio')
+    os.makedirs(yt_audio_path, exist_ok=True)
+
     ydl_opts = {
         'format': 'bestaudio/best',
-        'outtmpl': os.path.join(output_path, '%(title)s.%(ext)s'),
+        'outtmpl': os.path.join(yt_audio_path, '%(title)s.%(ext)s'),
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -48,13 +55,18 @@ def download_audio(url, output_path='.'):
         'no_warnings': True,
     }
 
+    # Add ffmpeg location if specified
+    if FFMPEG_BIN and os.path.exists(FFMPEG_BIN):
+        ffprobe_bin = FFMPEG_BIN.replace('ffmpeg', 'ffprobe')
+        ydl_opts['ffmpeg_location'] = os.path.dirname(FFMPEG_BIN)
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
             info = ydl.extract_info(url, download=True)
             # Construct the expected filename
             title = info.get('title', 'Unknown')
             filename = f"{title}.mp3"
-            filepath = os.path.join(output_path, filename)
+            filepath = os.path.join(yt_audio_path, filename)
             return filepath, info
         except Exception as e:
             print(f"Error downloading audio: {e}")
@@ -151,7 +163,7 @@ def process_youtube_video(url, output_path='.'):
 
 def main():
     parser = argparse.ArgumentParser(description='Extract audio from YouTube videos with ID3 tags')
-    parser.add_argument('url', help='YouTube video URL')
+    parser.add_argument('url', nargs='?', help='YouTube video URL')
     parser.add_argument('-o', '--output', default='.', help='Output directory (default: current directory)')
 
     args = parser.parse_args()
@@ -165,12 +177,20 @@ def main():
         print("Install with: pip install yt-dlp mutagen")
         sys.exit(1)
 
+    # Get URL from user if not provided
+    url = args.url
+    if not url:
+        url = input("Enter YouTube video URL: ").strip()
+        if not url:
+            print("No URL provided. Exiting.")
+            sys.exit(1)
+
     # Check if output directory exists
     if not os.path.exists(args.output):
         os.makedirs(args.output)
 
     # Process the video
-    success = process_youtube_video(args.url, args.output)
+    success = process_youtube_video(url, args.output)
     sys.exit(0 if success else 1)
 
 
