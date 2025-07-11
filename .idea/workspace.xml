@@ -62,7 +62,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "Pre-chapters",
     "ignore.virus.scanning.warn.message": "true",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
@@ -75,7 +75,7 @@
       </console-settings>
     </option>
   </component>
-  <component name="RunManager" selected="Python.dlp-DL-Singles-both-OLD">
+  <component name="RunManager" selected="Python.dlp-DL-Singles-both">
     <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
