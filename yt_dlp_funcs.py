@@ -232,18 +232,14 @@ def _add_metadata_postprocessor(options: Dict[str, Any], output_dir: Path) -> Di
     return options
 
 class MyCustomPP(PostProcessor):
-    def zzrun(self, info):
-        # Custom processing logic here
-        print(f"Processing {info.get('filepath')}")
-        return [], info
-
     def run(self, info_dict):
         """Hook to sanitize filenames"""
         if 'title' in info_dict:
             info_dict['title'] = _sanitize_filename(info_dict['title'])
         return [], info_dict
 
-def download_youtube_content(url: str, output_dir: Path, only_audio: bool = False,
+def download_youtube_content(url: str, output_dir: Path,
+                             only_audio: bool = False,
                              with_audio: bool = False) -> bool:
     """
     Download YouTube video(s) and/or audio(s) from URL

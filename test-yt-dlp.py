@@ -51,7 +51,7 @@ Examples:
         '--output-dir',
         type=Path,
         default=Path.cwd(),
-        help='Output directory for downloads (default: current directory)'
+        help='Output parent directory for downloads (default: current directory)'
     )
 
     parser.add_argument(
@@ -94,7 +94,6 @@ def _validate_url(url: str) -> bool:
         'm.youtube.com',
         'music.youtube.com'
     ]
-
     return any(domain in url for domain in youtube_domains)
 
 
