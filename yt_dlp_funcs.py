@@ -2,8 +2,8 @@
 """
 YouTube downloader functions using yt-dlp
 """
-
 import yt_dlp
+from yt_dlp.postprocessor.common import PostProcessor
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 import logging
@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # FFmpeg location - customize this path based on your setup
-FFMPEG_LOCATION = Path("/usr/local/bin") if platform.system() != "Windows" else Path("C:/ffmpeg/bin")
+FFMPEG_LOCATION = Path("/usr/local/bin") if platform.system() != "Windows" else Path("C:/Users/user/Apps/ffmpeg_bin")
 
 
 def _sanitize_filename(filename: str) -> str:
@@ -231,6 +231,17 @@ def _add_metadata_postprocessor(options: Dict[str, Any], output_dir: Path) -> Di
 
     return options
 
+class MyCustomPP(PostProcessor):
+    def zzrun(self, info):
+        # Custom processing logic here
+        print(f"Processing {info.get('filepath')}")
+        return [], info
+
+    def run(self, info_dict):
+        """Hook to sanitize filenames"""
+        if 'title' in info_dict:
+            info_dict['title'] = _sanitize_filename(info_dict['title'])
+        return [], info_dict
 
 def download_youtube_content(url: str, output_dir: Path, only_audio: bool = False,
                              with_audio: bool = False) -> bool:
@@ -266,16 +277,9 @@ def download_youtube_content(url: str, output_dir: Path, only_audio: bool = Fals
 
         # Download with yt-dlp
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Custom filename sanitization hook
-            def sanitize_filename_hook(info_dict):
-                """Hook to sanitize filenames"""
-                if 'title' in info_dict:
-                    info_dict['title'] = _sanitize_filename(info_dict['title'])
-                return info_dict
-
             # Add the hook to sanitize filenames
-            ydl.add_post_processor(lambda info: sanitize_filename_hook(info), when='pre_process')
-
+            # ydl.add_post_processor(lambda info: sanitize_filename_hook(info), when='pre_process')
+            ydl.add_post_processor(MyCustomPP(), when='pre_process')
             # Get video info first to check if it's a playlist
             info = ydl.extract_info(url, download=False)
 
@@ -293,7 +297,6 @@ def download_youtube_content(url: str, output_dir: Path, only_audio: bool = Fals
                 # For playlist, we need to handle metadata differently
                 if only_audio or with_audio:
                     ydl_opts = _update_options_for_playlist(ydl_opts, output_dir)
-
             else:
                 logger.info("Found single video")
 

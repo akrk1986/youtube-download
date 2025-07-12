@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/yt_dlp_funcs.py" beforeDir="false" afterPath="$PROJECT_DIR$/yt_dlp_funcs.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -57,7 +58,7 @@
     "Python.main_greek_search (1).executor": "Run",
     "Python.main_greek_search.executor": "Run",
     "Python.sanitize-file-names.executor": "Run",
-    "Python.test-yt-dlp - both.executor": "Run",
+    "Python.test-yt-dlp - both.executor": "Debug",
     "Python.test_chapter_regex.executor": "Run",
     "Python.yt-dlp-one-song-prompt.executor": "Run",
     "Python.yt-dlp-playlist-audio-only.executor": "Run",
