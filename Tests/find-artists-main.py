@@ -2,7 +2,7 @@
 
 import argparse
 from pathlib import Path
-from artist_search import load_artists, find_artists_in_string
+from artist_search_funcs import load_artists, find_artists_in_string
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Search for Greek music artists in a string.")

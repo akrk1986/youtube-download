@@ -5,7 +5,7 @@ from mutagen.id3 import ID3NoHeaderError
 import re
 import unicodedata
 from typing import Tuple
-from artist_search import load_artists, find_artists_in_string
+from artist_search_funcs import load_artists, find_artists_in_string
 from utils import sanitize_string
 
 

@@ -6,7 +6,7 @@ Main script to extract YouTube video chapters using yt-dlp.
 import argparse
 import sys
 from pathlib import Path
-from yt_chapter_extractor import extract_youtube_chapters
+from chapter_extractor_funcs import extract_youtube_chapters
 
 
 def main() -> None:
