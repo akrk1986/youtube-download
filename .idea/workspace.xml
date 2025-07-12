@@ -43,7 +43,7 @@
     &quot;Python.1-dlp-DL-Singles-both.executor&quot;: &quot;Run&quot;,
     &quot;Python.dlp-DL-Singles-audio-only.executor&quot;: &quot;Run&quot;,
     &quot;Python.dlp-DL-Singles-both-אקצפ.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-DL-Singles-both.executor&quot;: &quot;Run&quot;,
+    &quot;Python.dlp-DL-Singles-both.executor&quot;: &quot;Debug&quot;,
     &quot;Python.dlp-prompt-audio-only-chapters.executor&quot;: &quot;Debug&quot;,
     &quot;Python.dlp-prompt-audio-only.executor&quot;: &quot;Run&quot;,
     &quot;Python.dlp-prompt-both.executor&quot;: &quot;Run&quot;,
@@ -430,6 +430,16 @@
           <url>file://$PROJECT_DIR$/find-artists-main.py</url>
           <line>27</line>
           <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/utils.py</url>
+          <line>138</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/yt-dlp-playlist.py</url>
+          <line>102</line>
+          <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
