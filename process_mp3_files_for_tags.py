@@ -51,7 +51,7 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path) -> int:
     Set 'title' and 'tracknumber' tags in MP3 chapter files in the given folder.
     File name pattern from chapters, as extracted by YT-DLP:
     <original file name> - <song # (3 digits)> <song name from playlist> [<YouTube ID in playlist> (e.g. 'F_vC6A1EKAw')]
-    A possible regex: (.*) - (\d\d\d) (.*) (\[.*\]).mp3
+    A possible regex: (.*) - ([0-9]{3}) (.*) (\[.*\]).mp3
     We need two strings: <song #> (group 2), <song name from playlist> (group 3).
 
     :param mp3_folder: Path to audio files folder
@@ -64,7 +64,7 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path) -> int:
         except ID3NoHeaderError:
             # If no ID3 tag exists, create one
             audio = EasyID3()
-        except Exception as e:
+        except Exception:
             # probably not a valid MP3 file, ignore
             continue
 

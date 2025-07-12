@@ -1,4 +1,4 @@
-"""Greek strings handling, for file names and MP3 titles."""
+"""Misc. utility functions for yt-dlp scripts."""
 import re
 import unicodedata
 import shutil
@@ -6,7 +6,10 @@ from pathlib import Path
 import subprocess
 import json
 from typing import Dict, Any
+import yt_dlp
 
+
+# Greek strings handling, for file names and MP3 titles
 
 # Regex: remove leading non-alphanumeric characters (English+Greek+Hebrew), including spaces
 pattern = re.compile(r'^[^a-zA-Z0-9\u0370-\u03FF\u05d0-\u05ea]+')
@@ -53,6 +56,8 @@ def greek_search(big_string: str, sub_string: str) -> bool:
 
     # Check if sub_string appears in big_string
     return sub_string_clean in big_string_clean
+
+# Other utilities
 
 def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
     """
@@ -149,4 +154,20 @@ def get_video_info(yt_dlp_path: Path, url: str) -> Dict[str, Any]:
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"yt-dlp failed: {e.stderr}")
     except json.JSONDecodeError as e:
-        raise RuntimeError(f"Failed to parse yt-dlp output: {e}")
+        raise RuntimeError(f"Failed to parse yt-dlp output for '{url}': {e}")
+
+def is_playlist(url: str) -> bool:
+    """Check if url is a playlist, w/o downloading"""
+    ydl_opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'extract_flat': True,
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        try:
+            info = ydl.extract_info(url=url, download=False)
+            return info.get('_type') == 'playlist'
+        except Exception as e:
+            print(f"Error: failed to get video info {e}")
+            return False

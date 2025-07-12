@@ -5,18 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/Tests/main-check-if-playlist.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/artist_search.py" beforeDir="false" afterPath="$PROJECT_DIR$/artist_search_funcs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/find-artists-main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/get-artists-from-trello.py" beforeDir="false" afterPath="$PROJECT_DIR$/main-get-artists-from-trello.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/get-chapters-main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/main-sanitize-file-names.py" beforeDir="false" afterPath="$PROJECT_DIR$/Tests/main-sanitize-file-names.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main_greek_search.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/process_mp3_files_for_tags.py" beforeDir="false" afterPath="$PROJECT_DIR$/process_mp3_files_for_tags.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_chapter_regex.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/yt-dlp-powershell.ps1" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/yt-dlp-v2.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/yt_chapter_extractor.py" beforeDir="false" afterPath="$PROJECT_DIR$/chapter_extractor_funcs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/yt-dlp-playlist.py" beforeDir="false" afterPath="$PROJECT_DIR$/yt-dlp-playlist.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,42 +39,44 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.1-dlp-DL-Singles-both.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-DL-Singles-audio-only.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-DL-Singles-both-אקצפ.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-DL-Singles-both.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.dlp-prompt-audio-only-chapters.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.dlp-prompt-audio-only.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-prompt-both.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-prompt-video-only.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-v2-prompt-audio-only (1).executor&quot;: &quot;Run&quot;,
-    &quot;Python.find-artists-main.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.get-artists-from-trello.executor&quot;: &quot;Run&quot;,
-    &quot;Python.greek_search_comprehensive.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main_greek_search (1).executor&quot;: &quot;Run&quot;,
-    &quot;Python.main_greek_search.executor&quot;: &quot;Run&quot;,
-    &quot;Python.sanitize-file-names.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test_chapter_regex.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-one-song-prompt.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-playlist-audio-only.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-playlist-audio.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-playlist-singles.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-playlist.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-prompt-video-only.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-v2.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.1-dlp-DL-Singles-both.executor": "Run",
+    "Python.dlp-DL-Singles-audio-only.executor": "Run",
+    "Python.dlp-DL-Singles-both-אקצפ.executor": "Run",
+    "Python.dlp-DL-Singles-both.executor": "Run",
+    "Python.dlp-prompt-audio-only-chapters.executor": "Debug",
+    "Python.dlp-prompt-audio-only.executor": "Run",
+    "Python.dlp-prompt-both.executor": "Run",
+    "Python.dlp-prompt-video-only.executor": "Run",
+    "Python.dlp-v2-prompt-audio-only (1).executor": "Run",
+    "Python.find-artists-main.executor": "Debug",
+    "Python.get-artists-from-trello.executor": "Run",
+    "Python.greek_search_comprehensive.executor": "Run",
+    "Python.main-check-if-playlist.executor": "Run",
+    "Python.main-get-artists-from-trello.executor": "Run",
+    "Python.main_greek_search (1).executor": "Run",
+    "Python.main_greek_search.executor": "Run",
+    "Python.sanitize-file-names.executor": "Run",
+    "Python.test_chapter_regex.executor": "Run",
+    "Python.yt-dlp-one-song-prompt.executor": "Run",
+    "Python.yt-dlp-playlist-audio-only.executor": "Run",
+    "Python.yt-dlp-playlist-audio.executor": "Run",
+    "Python.yt-dlp-playlist-singles.executor": "Run",
+    "Python.yt-dlp-playlist.executor": "Run",
+    "Python.yt-dlp-prompt-video-only.executor": "Run",
+    "Python.yt-dlp-v2.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
-}</component>
+}]]></component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
       <console-settings module-name="youtube-download" is-module-sdk="true">
@@ -89,6 +84,11 @@
         <option name="myModuleName" value="youtube-download" />
       </console-settings>
     </option>
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\user\PycharmProjects\youtube-download\Tests" />
+    </key>
   </component>
   <component name="RunManager" selected="Python.dlp-DL-Singles-both">
     <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
@@ -267,6 +267,28 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="main-check-if-playlist" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="youtube-download" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Tests/main-check-if-playlist.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="main-get-artists-from-trello" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -280,7 +302,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="C:\Users\user\PycharmProjects\youtube-download\main-get-artists-from-trello.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-get-artists-from-trello.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -305,28 +327,6 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="C:\Users\user\PycharmProjects\youtube-download\Tests\main-sanitize-file-names.py" />
       <option name="PARAMETERS" value="yt-videos yt-audio" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="main_greek_search (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="youtube-download" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main_greek_search.py" />
-      <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -388,18 +388,18 @@
       <item itemvalue="Python.dlp-DL-Singles-both-OLD" />
       <item itemvalue="Python.dlp-DL-Singles-both" />
       <item itemvalue="Python.main-sanitize-file-names" />
+      <item itemvalue="Python.main-check-if-playlist" />
       <item itemvalue="Python.yt-dlp-v2" />
       <item itemvalue="Python.test_chapter_regex" />
-      <item itemvalue="Python.main_greek_search (1)" />
       <item itemvalue="Python.main-get-artists-from-trello" />
     </list>
     <recent_temporary>
       <list>
         <item itemvalue="Python.dlp-DL-Singles-both" />
+        <item itemvalue="Python.main-check-if-playlist" />
+        <item itemvalue="Python.main-get-artists-from-trello" />
         <item itemvalue="Python.yt-dlp-v2" />
         <item itemvalue="Python.test_chapter_regex" />
-        <item itemvalue="Python.main-get-artists-from-trello" />
-        <item itemvalue="Python.main_greek_search (1)" />
       </list>
     </recent_temporary>
   </component>
@@ -439,13 +439,8 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/utils.py</url>
-          <line>138</line>
+          <line>143</line>
           <option name="timeStamp" value="2" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/yt-dlp-playlist.py</url>
-          <line>102</line>
-          <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
