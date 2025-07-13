@@ -167,7 +167,8 @@ def is_playlist(url: str) -> bool:
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
             info = ydl.extract_info(url=url, download=False)
-            return info.get('_type') == 'playlist'
+            return info.get('webpage_url_basename') == 'playlist'
+            #return info.get('_type') == 'playlist'
         except Exception as e:
             print(f"Error: failed to get video info {e}")
             return False

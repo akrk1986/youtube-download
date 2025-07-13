@@ -50,7 +50,7 @@ def sanitize_filenames_in_folder(folder_path: Path) -> None:
     print(f"Renamed {ctr} files in folder '{folder_path}'")
 
 def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool,
-               write_json: bool, has_chapters: bool, split_chapters: bool, is_playlist: bool) -> None:
+               write_json: bool, has_chapters: bool, split_chapters: bool, is_it_playlist: bool) -> None:
     """Extract videos from YouTube playlist/video with yt-dlp. Include subtitles if requested."""
     yt_dlp_cmd = [
         ytdlp_exe,
@@ -59,7 +59,7 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool
         '-o', os.path.join(video_folder, '%(title)s.%(ext)s'),
         playlist_url
     ]
-    if is_playlist:
+    if is_it_playlist:
         yt_dlp_cmd[1:1] = [yt_dlp_is_playlist_flag]
     if write_json:
         yt_dlp_cmd[1:1] = [yt_dlp_write_json_flag]
@@ -96,26 +96,31 @@ def extract_audio_with_ffmpeg(ffmpeg_exe: Path, video_folder: str, audio_folder:
             subprocess.run(ffmpeg_cmd, check=False)
 
 def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
-                             has_chapters: bool, split_chapters: bool, is_playlist: bool) -> None:
+                             has_chapters: bool, split_chapters: bool, is_it_playlist: bool) -> None:
     """Use yt-dlp to download and extract MP3 audio with metadata and thumbnail."""
 
-    # Check if video has 'artist' or 'uploader' tags.
+    # For a single video, check if video has 'artist' or 'uploader' tags.
     # Use either to embed 'artist' and 'albumartist' tags in the MP3 file.
-    video_info = get_video_info(yt_dlp_path=ytdlp_exe, url=playlist_url)
-    artist = video_info.get('artist')
-    uploader = video_info.get('uploader')
-    have_artist = artist is not None and artist not in ('NA', '')
-    have_uploader = uploader is not None and uploader not in ('NA', '')
-    a = aa = None
-    # upl = None
-    if have_artist:
-        a = 'artist:%(artist)s'
-        aa = 'album_artist:%(artist)s'
-        # upl = 'uploader:%(artist)s'
-    elif have_uploader:
-        a = 'artist:%(uploader)s'
-        aa = 'album_artist:%(uploader)s'
-        # upl = 'uploader:%(uploader)s'
+    artist_pat = album_artist_pat = None
+
+    if is_it_playlist:
+        have_artist = have_uploader = False
+        print('URL is a playlist, cannot extract artist/uploader')
+    else:
+        video_info = get_video_info(yt_dlp_path=ytdlp_exe, url=playlist_url)
+        artist = video_info.get('artist')
+        uploader = video_info.get('uploader')
+        have_artist = artist is not None and artist not in ('NA', '')
+        have_uploader = uploader is not None and uploader not in ('NA', '')
+        # upl = None
+        if have_artist:
+            artist_pat = 'artist:%(artist)s'
+            album_artist_pat = 'album_artist:%(artist)s'
+            # upl = 'uploader:%(artist)s'
+        elif have_uploader:
+            artist_pat = 'artist:%(uploader)s'
+            album_artist_pat = 'album_artist:%(uploader)s'
+            # upl = 'uploader:%(uploader)s'
 
     yt_dlp_cmd = [
         ytdlp_exe,
@@ -126,19 +131,16 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         '--embed-metadata',
         '--add-metadata',
         '--embed-thumbnail',
-        #'--parse-metadata', 'album_artist:%(artist)s',
-        #'--parse-metadata', 'artist:%(artist)s',
         '-o', os.path.join(audio_folder, '%(title)s.%(ext)s'),
         playlist_url
     ]
 
-    if is_playlist:
+    if is_it_playlist:
         yt_dlp_cmd[1:1] = [yt_dlp_is_playlist_flag]
 
     if have_artist or have_uploader:
-        yt_dlp_cmd[1:1] = ['--parse-metadata', a,
-                           '--parse-metadata', aa,
-                           #'--parse-metadata', up,
+        yt_dlp_cmd[1:1] = ['--parse-metadata', artist_pat,
+                           '--parse-metadata', album_artist_pat,
                            ]
 
     if split_chapters and has_chapters:
@@ -196,14 +198,14 @@ def main() -> None:
     if not args.only_audio:
         run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, subs=args.subs,
                    write_json=args.json, split_chapters=args.split_chapters, has_chapters=has_chapters,
-                   is_playlist=url_is_playlist)
+                   is_it_playlist=url_is_playlist)
 
     # Download audios if requested
     if need_audio:
         # Run yt-dlp to download videos, and let yt-dlp extract audio and add tags
         extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder,
                                  split_chapters=args.split_chapters, has_chapters=has_chapters,
-                                 is_playlist=url_is_playlist)
+                                 is_it_playlist=url_is_playlist)
 
     # If chapters, move chapter files (audio and videos), if any exist, to the corresponding sub-folders.
     # This is because chapter files are extracted to the current directory.
