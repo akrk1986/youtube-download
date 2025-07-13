@@ -131,6 +131,8 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         '--embed-metadata',
         '--add-metadata',
         '--embed-thumbnail',
+        #'--parse-metadata', 'track:',        # Clear the track #, as per Claude AI
+        #'--parse-metadata', 'tracknumber:',  # Clear the track #, as per Claude AI
         '-o', os.path.join(audio_folder, '%(title)s.%(ext)s'),
         playlist_url
     ]
