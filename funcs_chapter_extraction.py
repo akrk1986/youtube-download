@@ -5,7 +5,7 @@ import csv
 import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any
-from utils import get_video_info
+from funcs_utils import get_video_info
 
 
 def _parse_time_to_seconds(time_str: str) -> int:

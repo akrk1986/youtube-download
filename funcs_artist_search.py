@@ -3,7 +3,7 @@ import json
 import re
 from pathlib import Path
 from typing import List, Dict, Tuple, Set
-from utils import remove_diacritics
+from funcs_utils import remove_diacritics
 
 
 def load_artists(artists_json_path: Path) -> List[Dict[str, str]]:

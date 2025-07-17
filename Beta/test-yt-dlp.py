@@ -7,9 +7,7 @@ import argparse
 from pathlib import Path
 import sys
 import logging
-from typing import Optional
-
-from yt_dlp_funcs import download_youtube_content, get_video_info, list_available_formats
+from Beta.yt_dlp_funcs import download_youtube_content, get_video_info, list_available_formats
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

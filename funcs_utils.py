@@ -8,7 +8,6 @@ import json
 from typing import Dict, Any
 import yt_dlp
 
-
 # Greek strings handling, for file names and MP3 titles
 
 # Regex: remove leading non-alphanumeric characters (English+Greek+Hebrew), including spaces
@@ -57,7 +56,7 @@ def greek_search(big_string: str, sub_string: str) -> bool:
     # Check if sub_string appears in big_string
     return sub_string_clean in big_string_clean
 
-# Other utilities
+# File utilities
 
 def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
     """
@@ -139,6 +138,24 @@ def organize_media_files_silent() -> dict:
 
     return moved_files
 
+def sanitize_filenames_in_folder(folder_path: Path) -> None:
+    """Sanitize file names in the folder by removing leading unwanted characters."""
+    ctr = 0
+    for file_path in folder_path.iterdir():
+        if file_path.is_file():
+            new_name = sanitize_string(dirty_string=file_path.name)
+            if new_name and new_name != file_path.name:
+                new_path = file_path.with_name(new_name)
+                if not new_path.exists():
+                    file_path.rename(new_path)
+                    ctr += 1
+                    print(f"Renamed: '{file_path.name}' -> '{new_name}'")
+                else:
+                    print(f"Skipped (target exists): '{new_name}'")
+    print(f"Renamed {ctr} files in folder '{folder_path}'")
+
+# Video files utils
+
 def get_video_info(yt_dlp_path: Path, url: str) -> Dict[str, Any]:
     """Get video information using yt-dlp by requesting the meta-data as JSON."""
     cmd = [
@@ -172,3 +189,23 @@ def is_playlist(url: str) -> bool:
         except Exception as e:
             print(f"Error: failed to get video info {e}")
             return False
+
+def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
+    """
+    Get the number of chapters in a YouTube video using yt-dlp.
+
+    Args:
+        ytdlp_exe (Path): path to yt-dlp executable
+        playlist_url (str): YouTube video URL
+
+    Returns:
+        int: Number of chapters (0 if none or error)
+    """
+    try:
+        cmd = [ytdlp_exe, '--dump-json', '--no-download', playlist_url]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        video_info = json.loads(result.stdout)
+        chapters = video_info.get('chapters', [])
+        return len(chapters)
+    except:
+        return 0

@@ -1,11 +1,10 @@
 """Using yt-dlp, download all videos from YT playlist, and extract the MP3 files for them."""
 import argparse
 import os
-import json
 import subprocess
 from pathlib import Path
-from process_mp3_files_for_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
-from utils import sanitize_string, organize_media_files, get_video_info, is_playlist
+from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
+from funcs_utils import organize_media_files, get_video_info, is_playlist, get_chapter_count, sanitize_filenames_in_folder
 
 greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE"
 yt_dlp_write_json_flag = '--write-info-json'
@@ -13,43 +12,7 @@ yt_dlp_split_chapters_flag = '--split-chapters'
 yt_dlp_is_playlist_flag = '--yes-playlist'
 
 
-def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
-    """
-    Get the number of chapters in a YouTube video using yt-dlp.
-
-    Args:
-        ytdlp_exe (Path): path to yt-dlp executable
-        playlist_url (str): YouTube video URL
-
-    Returns:
-        int: Number of chapters (0 if none or error)
-    """
-    try:
-        cmd = [ytdlp_exe, '--dump-json', '--no-download', playlist_url]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        video_info = json.loads(result.stdout)
-        chapters = video_info.get('chapters', [])
-        return len(chapters)
-    except:
-        return 0
-
-def sanitize_filenames_in_folder(folder_path: Path) -> None:
-    """Sanitize file names in the folder by removing leading unwanted characters."""
-    ctr = 0
-    for file_path in folder_path.iterdir():
-        if file_path.is_file():
-            new_name = sanitize_string(dirty_string=file_path.name)
-            if new_name and new_name != file_path.name:
-                new_path = file_path.with_name(new_name)
-                if not new_path.exists():
-                    file_path.rename(new_path)
-                    ctr += 1
-                    print(f"Renamed: '{file_path.name}' -> '{new_name}'")
-                else:
-                    print(f"Skipped (target exists): '{new_name}'")
-    print(f"Renamed {ctr} files in folder '{folder_path}'")
-
-def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool,
+def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: bool,
                write_json: bool, has_chapters: bool, split_chapters: bool, is_it_playlist: bool) -> None:
     """Extract videos from YouTube playlist/video with yt-dlp. Include subtitles if requested."""
     yt_dlp_cmd = [
@@ -65,8 +28,7 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, subs: bool
         yt_dlp_cmd[1:1] = [yt_dlp_write_json_flag]
     if split_chapters and has_chapters:
         yt_dlp_cmd[1:1] = [yt_dlp_split_chapters_flag]
-
-    if subs:
+    if get_subs:
         # Extract subtitles in Greek, English, Hebrew
         yt_dlp_cmd[1:1] = [
             '--write-subs',
@@ -116,10 +78,12 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         if have_artist:
             artist_pat = 'artist:%(artist)s'
             album_artist_pat = 'album_artist:%(artist)s'
+            print(f"Video has artist: '{artist}'")
             # upl = 'uploader:%(artist)s'
         elif have_uploader:
             artist_pat = 'artist:%(uploader)s'
             album_artist_pat = 'album_artist:%(uploader)s'
+            print(f"Video has uploader: '{uploader}'")
             # upl = 'uploader:%(uploader)s'
 
     yt_dlp_cmd = [
@@ -198,7 +162,7 @@ def main() -> None:
 
     # Download videos if requested
     if not args.only_audio:
-        run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, subs=args.subs,
+        run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, get_subs=args.subs,
                    write_json=args.json, split_chapters=args.split_chapters, has_chapters=has_chapters,
                    is_it_playlist=url_is_playlist)
 

@@ -3,7 +3,7 @@
 import argparse
 import sys
 from pathlib import Path
-from utils import sanitize_string
+from funcs_utils import sanitize_string
 
 default_video_folder = 'yt-videos'
 default_audio_folder = 'yt-audio'
