@@ -1,10 +1,11 @@
-"""Using yt-dlp, download all videos from YT playlist, and extract the MP3 files for them."""
+"""Using yt-dlp, download videos from YouTube URL, and extract the MP3 files."""
 import argparse
 import os
 import subprocess
 from pathlib import Path
 from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
-from funcs_utils import organize_media_files, get_video_info, is_playlist, get_chapter_count, sanitize_filenames_in_folder
+from funcs_utils import (organize_media_files, get_video_info, is_playlist, get_chapter_count,
+                         sanitize_filenames_in_folder)
 
 greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE"
 yt_dlp_write_json_flag = '--write-info-json'
@@ -41,7 +42,7 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: 
     subprocess.run(yt_dlp_cmd, check=False)
 
 def extract_audio_with_ffmpeg(ffmpeg_exe: Path, video_folder: str, audio_folder: str) -> None:
-    """Using the MP4 files that were already downloaded by yt-dlp, extract the audio using ffmpeg.
+    """Use the MP4 files that were already downloaded by yt-dlp, extract the audio using ffmpeg.
     It's currently unused. Keeping for reference.
     """
     video_files = list(Path(video_folder).glob('*.mp4'))
@@ -72,8 +73,8 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         video_info = get_video_info(yt_dlp_path=ytdlp_exe, url=playlist_url)
         artist = video_info.get('artist')
         uploader = video_info.get('uploader')
-        have_artist = artist is not None and artist not in ('NA', '')
-        have_uploader = uploader is not None and uploader not in ('NA', '')
+        have_artist = artist and artist not in ('NA', '')
+        have_uploader = uploader and uploader not in ('NA', '')
         # upl = None
         if have_artist:
             artist_pat = 'artist:%(artist)s'
@@ -103,12 +104,10 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
 
     if is_it_playlist:
         yt_dlp_cmd[1:1] = [yt_dlp_is_playlist_flag]
-
     if have_artist or have_uploader:
         yt_dlp_cmd[1:1] = ['--parse-metadata', artist_pat,
                            '--parse-metadata', album_artist_pat,
                            ]
-
     if split_chapters and has_chapters:
         yt_dlp_cmd[1:1] = [yt_dlp_split_chapters_flag]
 

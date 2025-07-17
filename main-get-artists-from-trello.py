@@ -1,5 +1,4 @@
 """Convert export from a Trello board to a simpler JSON."""
-
 import argparse
 import json
 from pathlib import Path

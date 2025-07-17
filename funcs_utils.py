@@ -100,7 +100,6 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
     print(f"MP4 files moved: {len(moved_files['mp4'])}")
     if moved_files['errors']:
         print(f"Errors: {len(moved_files['errors'])}")
-
     return moved_files
 
 def organize_media_files_silent() -> dict:
@@ -157,14 +156,13 @@ def sanitize_filenames_in_folder(folder_path: Path) -> None:
 # Video files utils
 
 def get_video_info(yt_dlp_path: Path, url: str) -> Dict[str, Any]:
-    """Get video information using yt-dlp by requesting the meta-data as JSON."""
+    """Get video information using yt-dlp by requesting the meta-data as JSON, w/o download of the video."""
     cmd = [
         str(yt_dlp_path),
         '--dump-json',
         '--no-download',
         url
     ]
-
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return json.loads(result.stdout)
@@ -174,7 +172,8 @@ def get_video_info(yt_dlp_path: Path, url: str) -> Dict[str, Any]:
         raise RuntimeError(f"Failed to parse yt-dlp output for '{url}': {e}")
 
 def is_playlist(url: str) -> bool:
-    """Check if url is a playlist, w/o downloading"""
+    """Check if url is a playlist, w/o downloading.
+    Using the yt-dlp Python library."""
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
@@ -185,7 +184,6 @@ def is_playlist(url: str) -> bool:
         try:
             info = ydl.extract_info(url=url, download=False)
             return info.get('webpage_url_basename') == 'playlist'
-            #return info.get('_type') == 'playlist'
         except Exception as e:
             print(f"Error: failed to get video info {e}")
             return False
