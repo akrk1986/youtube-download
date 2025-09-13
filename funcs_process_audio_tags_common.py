@@ -1,4 +1,4 @@
-"""Scan MP3/M4A chapter files in a folder, detect details in in the file name."""
+"""Scan MP3/M4A chapter files in a folder, detect details in the file name."""
 import re
 import unicodedata
 from typing import Tuple

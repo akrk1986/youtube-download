@@ -1,6 +1,4 @@
-"""
-Functions to extract YouTube video chapters using yt-dlp.
-"""
+""" Functions to extract YouTube video chapters using yt-dlp."""
 import csv
 import re
 from pathlib import Path

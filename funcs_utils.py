@@ -60,7 +60,7 @@ def greek_search(big_string: str, sub_string: str) -> bool:
 
 def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
     """
-    Move all MP3 files to 'yt-audio' subfolder and all MP4 files to 'yt-videos' subfolder.
+    Move all MP3/M4A files to 'yt-audio' subfolder and all MP4 files to 'yt-videos' subfolder.
     Creates the subfolders if they don't exist.
 
     Returns:
@@ -68,17 +68,22 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
     """
     current_dir = Path.cwd()
 
-    moved_files = {'mp3': [], 'mp4': [], 'errors': []}
+    moved_files = {'mp3': [], 'mp4': [], 'm4a': [], 'errors': []}
 
-    # Find and move MP3 files
-    for mp3_file in current_dir.glob('*.mp3'):
+    audio_files = list(current_dir.glob('*.mp3')) + list(current_dir.glob('*.m4a'))
+
+    # Find and move MP3/M4A files
+    for audio_file in audio_files:
         try:
-            destination = audio_dir / mp3_file.name
-            shutil.move(str(mp3_file), str(destination))
-            moved_files['mp3'].append(mp3_file.name)
-            print(f"Moved {mp3_file.name} -> yt-audio/")
+            destination = audio_dir / audio_file.name
+            shutil.move(str(audio_file), str(destination))
+            if audio_file.suffix == 'mp3':
+                moved_files['mp3'].append(audio_file.name)
+            else:
+                moved_files['m4a'].append(audio_file.name)
+            print(f"Moved {audio_file.name} -> yt-audio/")
         except Exception as e:
-            error_msg = f"Error moving {mp3_file.name}: {str(e)}"
+            error_msg = f"Error moving {audio_file.name}: {str(e)}"
             moved_files['errors'].append(error_msg)
             print(error_msg)
 
@@ -97,6 +102,7 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
     # Print summary
     print(f"\nSummary:")
     print(f"MP3 files moved: {len(moved_files['mp3'])}")
+    print(f"M4A files moved: {len(moved_files['m4a'])}")
     print(f"MP4 files moved: {len(moved_files['mp4'])}")
     if moved_files['errors']:
         print(f"Errors: {len(moved_files['errors'])}")
@@ -115,16 +121,21 @@ def organize_media_files_silent() -> dict:
     audio_dir.mkdir(exist_ok=True)
     video_dir.mkdir(exist_ok=True)
 
-    moved_files = {'mp3': [], 'mp4': [], 'errors': []}
+    moved_files = {'mp3': [], 'mp4': [], 'm4a': [], 'errors': []}
+
+    audio_files = list(current_dir.glob('*.mp3')) + list(current_dir.glob('*.m4a'))
 
     # Move MP3 files
-    for mp3_file in current_dir.glob('*.mp3'):
+    for audio_file in audio_files:
         try:
-            destination = audio_dir / mp3_file.name
-            shutil.move(str(mp3_file), str(destination))
-            moved_files['mp3'].append(mp3_file.name)
+            destination = audio_dir / audio_file.name
+            shutil.move(str(audio_file), str(destination))
+            if audio_file.suffix == 'mp3':
+                moved_files['mp3'].append(audio_file.name)
+            else:
+                moved_files['m4a'].append(audio_file.name)
         except Exception as e:
-            moved_files['errors'].append(f"Error moving {mp3_file.name}: {str(e)}")
+            moved_files['errors'].append(f"Error moving {audio_file.name}: {str(e)}")
 
     # Move MP4 files
     for mp4_file in current_dir.glob('*.mp4'):

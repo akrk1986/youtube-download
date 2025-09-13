@@ -220,10 +220,10 @@ def main() -> None:
         result = organize_media_files(video_dir=Path(video_folder), audio_dir=Path(audio_folder))
 
         # Check move results
-        if result['mp3'] or result['mp4']:
+        if result['mp3'] or result['m4a'] or result['mp4']:
             print("\nFiles organized successfully!")
         else:
-            print("\nNo MP3 or MP4 files found in current directory.")
+            print("\nNo MP3/M4A or MP4 files found in current directory.")
 
         if result['errors']:
             print("\nErrors encountered:")
