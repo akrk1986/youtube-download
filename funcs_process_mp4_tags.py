@@ -66,7 +66,7 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
         else:
             print(f"No artist found in title for {m4a_file.name}")
 
-def set_tags_in_chapter_m4a_files(m4a_folder: Path) -> int:
+def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None) -> int:
     """
     Set 'title' and 'tracknumber' tags in M4A chapter files in the given folder.
     File name pattern from chapters, as extracted by YT-DLP:
@@ -103,6 +103,15 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path) -> int:
                     year = date_str[:4]
                     audio["\xa9day"] = [year]
                     print(f"Fixed date format: {date_str} -> {year}")
+
+            # If no artist is set and we have an uploader, use uploader as artist
+            current_artist = audio.get('\xa9ART', [])
+            current_albumartist = audio.get('aART', [])
+
+            if (not current_artist or current_artist == [''] or current_artist == ['NA']) and uploader:
+                audio['\xa9ART'] = [uploader]
+                audio['aART'] = [uploader]
+                print(f"Set artist/albumartist to uploader '{uploader}' for chapter file")
 
             audio.save(m4a_file)
             ctr += 1

@@ -50,7 +50,7 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
         else:
             print(f"No artist found in title for {mp3_file.name}")
 
-def set_tags_in_chapter_mp3_files(mp3_folder: Path) -> int:
+def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None) -> int:
     """
     Set 'title' and 'tracknumber' tags in MP3 chapter files in the given folder.
     File name pattern from chapters, as extracted by YT-DLP:
@@ -80,6 +80,16 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path) -> int:
             audio['title'] = song_name
             if song_number:
                 audio['tracknumber'] = str(int(song_number))
+
+            # If no artist is set and we have an uploader, use uploader as artist
+            current_artist = audio.get('artist', [''])
+            current_albumartist = audio.get('albumartist', [''])
+
+            if (not current_artist or current_artist == [''] or current_artist == ['NA']) and uploader:
+                audio['artist'] = [uploader]
+                audio['albumartist'] = [uploader]
+                print(f"Set artist/albumartist to uploader '{uploader}' for chapter file")
+
             audio.save(mp3_file)
             ctr += 1
         except Exception as e:

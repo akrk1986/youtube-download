@@ -75,7 +75,7 @@ def extract_chapter_info(file_name: str) -> Tuple[str | None, str | None, str | 
     - song number
     - song name.
     """
-    pattern = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]\.[mM][pP][3-4]$'
+    pattern = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]\.(?:mp3|m4a|MP3|M4A)$'
     match = re.match(pattern, file_name)
     if not match:
         print(f"File name '{file_name}' does not match the chapter pattern, skipped")

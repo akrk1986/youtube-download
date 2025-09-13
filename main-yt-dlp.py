@@ -193,10 +193,19 @@ def main() -> None:
         os.makedirs(audio_folder, exist_ok=True)
 
     url_is_playlist = is_playlist(url=args.playlist_url)
+    uploader_name = None  # Initialize uploader name for chapter processing
+
     if not url_is_playlist:
         chapters_count = get_chapter_count(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url)
         has_chapters = chapters_count > 0
         print(f'Video has {chapters_count} chapters')
+
+        # Get uploader information for chapter processing
+        if has_chapters:
+            video_info = get_video_info(yt_dlp_path=yt_dlp_exe, url=args.playlist_url)
+            uploader_name = video_info.get('uploader')
+            if uploader_name and uploader_name not in ('NA', ''):
+                print(f"Uploader for chapters: '{uploader_name}'")
     else:
         print('URL is a playlist, not extracting chapters')
         has_chapters = False
@@ -243,24 +252,24 @@ def main() -> None:
             set_artists_in_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
             # if the audio files are chapters, clean up the 'title' ID3 tag
             if has_chapters:
-                _ = set_tags_in_chapter_mp3_files(mp3_folder=Path(audio_folder))
+                _ = set_tags_in_chapter_mp3_files(mp3_folder=Path(audio_folder), uploader=uploader_name)
         elif args.audio_format == 'm4a':
             # Modify M4A tags based on the title
             set_artists_in_m4a_files(m4a_folder=Path(audio_folder), artists_json=artists_json)
             # if the audio files are chapters, clean up the 'title' MP4 tag
             if has_chapters:
-                _ = set_tags_in_chapter_m4a_files(m4a_folder=Path(audio_folder))
+                _ = set_tags_in_chapter_m4a_files(m4a_folder=Path(audio_folder), uploader=uploader_name)
         elif args.audio_format == 'both':
             # Process both MP3 and M4A files
             print("Processing MP3 files...")
             set_artists_in_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
             if has_chapters:
-                _ = set_tags_in_chapter_mp3_files(mp3_folder=Path(audio_folder))
+                _ = set_tags_in_chapter_mp3_files(mp3_folder=Path(audio_folder), uploader=uploader_name)
 
             print("Processing M4A files...")
             set_artists_in_m4a_files(m4a_folder=Path(audio_folder), artists_json=artists_json)
             if has_chapters:
-                _ = set_tags_in_chapter_m4a_files(m4a_folder=Path(audio_folder))
+                _ = set_tags_in_chapter_m4a_files(m4a_folder=Path(audio_folder), uploader=uploader_name)
 
 if __name__ == '__main__':
     main()
