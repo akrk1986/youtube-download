@@ -7,11 +7,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/funcs_process_audio_tags_common.py" beforeDir="false" afterPath="$PROJECT_DIR$/funcs_process_audio_tags_common.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/funcs_process_mp3_tags.py" beforeDir="false" afterPath="$PROJECT_DIR$/funcs_process_mp3_tags.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/funcs_process_mp4_tags.py" beforeDir="false" afterPath="$PROJECT_DIR$/funcs_process_mp4_tags.py" afterDir="false" />
-    </list>
+    <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

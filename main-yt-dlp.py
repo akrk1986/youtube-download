@@ -43,22 +43,6 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: 
     # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
 
-def extract_audio_with_ffmpeg(ffmpeg_exe: Path, video_folder: str, audio_folder: str) -> None:
-    """Use the MP4 files that were already downloaded by yt-dlp, extract the audio using ffmpeg.
-    It's currently unused. Keeping for reference.
-    """
-    video_files = list(Path(video_folder).glob('*.mp4'))
-    for video_file in video_files:
-        audio_file = Path(audio_folder) / (video_file.stem + '.mp3')
-        if not audio_file.exists():
-            print(f"Extracting audio from {video_file.name}...")
-            ffmpeg_cmd = [
-                ffmpeg_exe, '-hide_banner', '-loglevel', 'info',
-                '-i', str(video_file),
-                '-vn', '-ab', '192k', '-ar', '44100', '-y',
-                str(audio_file)
-            ]
-            subprocess.run(ffmpeg_cmd, check=False)
 
 def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
                           has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
@@ -155,11 +139,9 @@ def main() -> None:
         home_dir = Path.home()
         yt_dlp_dir = home_dir / "Apps" / "yt-dlp"
         yt_dlp_exe = yt_dlp_dir / "yt-dlp.exe"
-        ffmpeg_exe = yt_dlp_dir / "ffmpeg.exe"
     else:
         # Linux/Mac - use system-wide installations
         yt_dlp_exe = "yt-dlp"  # Should be in PATH
-        ffmpeg_exe = "ffmpeg"  # Should be in PATH
 
     # Handle artists.json path relative to script location, not current working directory
     script_dir = Path(__file__).parent
@@ -168,18 +150,12 @@ def main() -> None:
     # Verify executables exist
     if system_platform == "windows":
         assert Path(yt_dlp_exe).exists(), f"YT-DLP executable not found at '{yt_dlp_exe}'"
-        assert Path(ffmpeg_exe).exists(), f"FFMPEG executable not found at '{ffmpeg_exe}'"
     else:
         # For Linux/Mac, check if commands are available in PATH
         try:
             subprocess.run([yt_dlp_exe, "--version"], capture_output=True, check=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
             raise AssertionError(f"YT-DLP not found in PATH. Install with: pip install yt-dlp")
-
-        try:
-            subprocess.run([ffmpeg_exe, "-version"], capture_output=True, check=True)
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            raise AssertionError(f"FFMPEG not found in PATH. Install with: sudo apt install ffmpeg")
 
     # Prompt for playlist/video URL if not provided
     if not args.playlist_url:
@@ -236,7 +212,9 @@ def main() -> None:
         if result['mp3'] or result['m4a'] or result['mp4']:
             print("\nFiles organized successfully!")
         else:
-            print("\nNo MP3/M4A or MP4 files found in current directory.")
+            print("\nNo MP3/M4A"
+                  ""
+                  " or MP4 files found in current directory.")
 
         if result['errors']:
             print("\nErrors encountered:")
