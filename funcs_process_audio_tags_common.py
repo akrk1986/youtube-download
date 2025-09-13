@@ -93,3 +93,27 @@ def extract_chapter_info(file_name: str) -> Tuple[str | None, str | None, str | 
     extracted_file_name = _sanitize_filename(extracted_file_name)
 
     return song_name, extracted_file_name, song_number
+
+def sanitize_album_name(title: str) -> str:
+    """Sanitize video title to use as album name.
+
+    Args:
+        title: The video title to sanitize
+
+    Returns:
+        Sanitized title limited to 64 characters, with emojis and special characters removed
+    """
+    if not title:
+        return ""
+
+    # Remove emojis first
+    no_emojis = _remove_emojis(title)
+
+    # Apply filename sanitization (removes special chars, etc.)
+    sanitized = _sanitize_filename(no_emojis)
+
+    # Limit to 64 characters
+    if len(sanitized) > 64:
+        sanitized = sanitized[:64].rstrip()
+
+    return sanitized

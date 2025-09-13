@@ -2,7 +2,7 @@
 from pathlib import Path
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3NoHeaderError
-from funcs_process_audio_tags_common import extract_chapter_info
+from funcs_process_audio_tags_common import extract_chapter_info, sanitize_album_name
 from funcs_artist_search import load_artists, find_artists_in_string
 from funcs_utils import sanitize_string
 
@@ -50,7 +50,7 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
         else:
             print(f"No artist found in title for {mp3_file.name}")
 
-def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None) -> int:
+def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_title: str = None) -> int:
     """
     Set 'title' and 'tracknumber' tags in MP3 chapter files in the given folder.
     File name pattern from chapters, as extracted by YT-DLP:
@@ -89,6 +89,15 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None) -> int
                 audio['artist'] = [uploader]
                 audio['albumartist'] = [uploader]
                 print(f"Set artist/albumartist to uploader '{uploader}' for chapter file")
+
+            # If no album is set and we have a video title, use sanitized video title as album
+            current_album = audio.get('album', [''])
+
+            if (not current_album or current_album == [''] or current_album == ['NA']) and video_title:
+                sanitized_album = sanitize_album_name(video_title)
+                if sanitized_album:
+                    audio['album'] = [sanitized_album]
+                    print(f"Set album to sanitized video title '{sanitized_album}' for chapter file")
 
             audio.save(mp3_file)
             ctr += 1
