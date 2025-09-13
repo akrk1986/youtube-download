@@ -30,6 +30,18 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
         clean_title = sanitize_string(dirty_string=title)
         upd_title = clean_title != title
 
+        # Fix year format: convert YYYYMMDD to YYYY if needed
+        date_list = audio.get("\xa9day", [])
+        upd_date = False
+        if date_list:
+            date_str = str(date_list[0])
+            # If date is in YYYYMMDD format (8 digits), extract just the year (first 4 digits)
+            if len(date_str) == 8 and date_str.isdigit():
+                year = date_str[:4]
+                audio["\xa9day"] = [year]
+                upd_date = True
+                print(f"Fixed date format: {date_str} -> {year}")
+
         # Look for known artists in title
         count, artist_string = find_artists_in_string(title, artists)
         if count > 0:
@@ -42,7 +54,7 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
 
         if upd_title:
             audio['\xa9nam'] = [clean_title]
-        if count > 0 or upd_title:
+        if count > 0 or upd_title or upd_date:
             audio.save(m4a_file)
             print(f"Updated {m4a_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
         else:
@@ -75,6 +87,17 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path) -> int:
             audio['\xa9nam'] = [song_name]
             if song_number:
                 audio['trkn'] = [(int(song_number), 0)]
+
+            # Fix year format: convert YYYYMMDD to YYYY if needed
+            date_list = audio.get("\xa9day", [])
+            if date_list:
+                date_str = str(date_list[0])
+                # If date is in YYYYMMDD format (8 digits), extract just the year (first 4 digits)
+                if len(date_str) == 8 and date_str.isdigit():
+                    year = date_str[:4]
+                    audio["\xa9day"] = [year]
+                    print(f"Fixed date format: {date_str} -> {year}")
+
             audio.save(m4a_file)
             ctr += 1
         except Exception as e:
