@@ -2,6 +2,7 @@
 import argparse
 import os
 import subprocess
+import platform
 from pathlib import Path
 from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
 from funcs_process_mp4_tags import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
@@ -59,40 +60,15 @@ def extract_audio_with_ffmpeg(ffmpeg_exe: Path, video_folder: str, audio_folder:
             ]
             subprocess.run(ffmpeg_cmd, check=False)
 
-def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
-                             has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_format: str = 'mp3') -> None:
-    """Use yt-dlp to download and extract audio with metadata and thumbnail."""
-
-    # For a single video, check if video has 'artist' or 'uploader' tags.
-    # Use either to embed 'artist' and 'albumartist' tags in the MP3 file.
-    artist_pat = album_artist_pat = None
-
-    if is_it_playlist:
-        have_artist = have_uploader = False
-        print('URL is a playlist, cannot extract artist/uploader')
-    else:
-        video_info = get_video_info(yt_dlp_path=ytdlp_exe, url=playlist_url)
-        artist = video_info.get('artist')
-        uploader = video_info.get('uploader')
-        have_artist = artist and artist not in ('NA', '')
-        have_uploader = uploader and uploader not in ('NA', '')
-        # upl = None
-        if have_artist:
-            artist_pat = 'artist:%(artist)s'
-            album_artist_pat = 'album_artist:%(artist)s'
-            print(f"Video has artist: '{artist}'")
-            # upl = 'uploader:%(artist)s'
-        elif have_uploader:
-            artist_pat = 'artist:%(uploader)s'
-            album_artist_pat = 'album_artist:%(uploader)s'
-            print(f"Video has uploader: '{uploader}'")
-            # upl = 'uploader:%(uploader)s'
-
+def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
+                          has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
+                          format_type: str, artist_pat: str = None, album_artist_pat: str = None) -> None:
+    """Extract audio in a single format using yt-dlp."""
     yt_dlp_cmd = [
         ytdlp_exe,
         '-f', 'bestaudio/best',
         '--extract-audio',
-        '--audio-format', audio_format,
+        '--audio-format', format_type,
         '--audio-quality', '192k',
         '--embed-metadata',
         '--add-metadata',
@@ -105,25 +81,64 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
 
     if is_it_playlist:
         yt_dlp_cmd[1:1] = [yt_dlp_is_playlist_flag]
-    if have_artist or have_uploader:
+    if artist_pat and album_artist_pat:
         yt_dlp_cmd[1:1] = ['--parse-metadata', artist_pat,
                            '--parse-metadata', album_artist_pat,
                            ]
     if split_chapters and has_chapters:
         yt_dlp_cmd[1:1] = [yt_dlp_split_chapters_flag]
 
-    print("==== Downloading and extracting audio with yt-dlp ====")
+    print(f"==== Downloading and extracting {format_type.upper()} audio with yt-dlp ====")
     print(f"CMD: '{yt_dlp_cmd}'")
     print('='*54)
     # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
+
+def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
+                             has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_format: str = 'mp3') -> None:
+    """Use yt-dlp to download and extract audio with metadata and thumbnail."""
+
+    # For a single video, check if video has 'artist' or 'uploader' tags.
+    # Use either to embed 'artist' and 'albumartist' tags in the audio file.
+    artist_pat = album_artist_pat = None
+
+    if is_it_playlist:
+        have_artist = have_uploader = False
+        print('URL is a playlist, cannot extract artist/uploader')
+    else:
+        video_info = get_video_info(yt_dlp_path=ytdlp_exe, url=playlist_url)
+        artist = video_info.get('artist')
+        uploader = video_info.get('uploader')
+        have_artist = artist and artist not in ('NA', '')
+        have_uploader = uploader and uploader not in ('NA', '')
+
+        if have_artist:
+            artist_pat = 'artist:%(artist)s'
+            album_artist_pat = 'album_artist:%(artist)s'
+            print(f"Video has artist: '{artist}'")
+        elif have_uploader:
+            artist_pat = 'artist:%(uploader)s'
+            album_artist_pat = 'album_artist:%(uploader)s'
+            print(f"Video has uploader: '{uploader}'")
+
+    # Handle different audio format options
+    if audio_format == 'both':
+        # Extract both MP3 and M4A formats
+        _extract_single_format(ytdlp_exe, playlist_url, audio_folder, has_chapters,
+                              split_chapters, is_it_playlist, 'mp3', artist_pat, album_artist_pat)
+        _extract_single_format(ytdlp_exe, playlist_url, audio_folder, has_chapters,
+                              split_chapters, is_it_playlist, 'm4a', artist_pat, album_artist_pat)
+    else:
+        # Extract single format
+        _extract_single_format(ytdlp_exe, playlist_url, audio_folder, has_chapters,
+                              split_chapters, is_it_playlist, audio_format, artist_pat, album_artist_pat)
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Download YouTube playlist/video, optionally with subtitles.")
     parser.add_argument('playlist_url', nargs='?', help='YouTube playlist/video URL')
     parser.add_argument('--with-audio', action='store_true', help='Also extract audio (format specified by --audio-format)')
-    parser.add_argument('--audio-format', choices=['mp3', 'm4a'], default='mp3', help='Audio format for extraction (default: mp3)')
+    parser.add_argument('--audio-format', choices=['mp3', 'm4a', 'both'], default='mp3', help='Audio format for extraction: mp3, m4a, or both (default: mp3)')
     parser.add_argument('--only-audio', action='store_true', help='Delete video files after extraction')
     parser.add_argument('--split-chapters', action='store_true', help='Split to chapters')
     parser.add_argument('--subs', action='store_true', help='Download subtitles')
@@ -132,14 +147,39 @@ def main() -> None:
 
     need_audio = args.with_audio or args.only_audio
 
-    home_dir = Path.home()
-    yt_dlp_dir = home_dir / "Apps" / "yt-dlp"
-    yt_dlp_exe = yt_dlp_dir / "yt-dlp.exe"
-    ffmpeg_exe = yt_dlp_dir / "ffmpeg.exe"
-    artists_json = Path('Data/artists.json')
+    # Detect platform and set appropriate executable paths
+    system_platform = platform.system().lower()
 
-    assert Path(yt_dlp_exe).exists(), f"YT-DLP executable not found at '{yt_dlp_exe}'"
-    assert Path(ffmpeg_exe).exists(), f"FFMPEG executable not found at '{ffmpeg_exe}'"
+    if system_platform == "windows":
+        # Windows paths
+        home_dir = Path.home()
+        yt_dlp_dir = home_dir / "Apps" / "yt-dlp"
+        yt_dlp_exe = yt_dlp_dir / "yt-dlp.exe"
+        ffmpeg_exe = yt_dlp_dir / "ffmpeg.exe"
+    else:
+        # Linux/Mac - use system-wide installations
+        yt_dlp_exe = "yt-dlp"  # Should be in PATH
+        ffmpeg_exe = "ffmpeg"  # Should be in PATH
+
+    # Handle artists.json path relative to script location, not current working directory
+    script_dir = Path(__file__).parent
+    artists_json = script_dir / 'Data' / 'artists.json'
+
+    # Verify executables exist
+    if system_platform == "windows":
+        assert Path(yt_dlp_exe).exists(), f"YT-DLP executable not found at '{yt_dlp_exe}'"
+        assert Path(ffmpeg_exe).exists(), f"FFMPEG executable not found at '{ffmpeg_exe}'"
+    else:
+        # For Linux/Mac, check if commands are available in PATH
+        try:
+            subprocess.run([yt_dlp_exe, "--version"], capture_output=True, check=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            raise AssertionError(f"YT-DLP not found in PATH. Install with: pip install yt-dlp")
+
+        try:
+            subprocess.run([ffmpeg_exe, "-version"], capture_output=True, check=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            raise AssertionError(f"FFMPEG not found in PATH. Install with: sudo apt install ffmpeg")
 
     # Prompt for playlist/video URL if not provided
     if not args.playlist_url:
@@ -208,6 +248,17 @@ def main() -> None:
             # Modify M4A tags based on the title
             set_artists_in_m4a_files(m4a_folder=Path(audio_folder), artists_json=artists_json)
             # if the audio files are chapters, clean up the 'title' MP4 tag
+            if has_chapters:
+                _ = set_tags_in_chapter_m4a_files(m4a_folder=Path(audio_folder))
+        elif args.audio_format == 'both':
+            # Process both MP3 and M4A files
+            print("Processing MP3 files...")
+            set_artists_in_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
+            if has_chapters:
+                _ = set_tags_in_chapter_mp3_files(mp3_folder=Path(audio_folder))
+
+            print("Processing M4A files...")
+            set_artists_in_m4a_files(m4a_folder=Path(audio_folder), artists_json=artists_json)
             if has_chapters:
                 _ = set_tags_in_chapter_m4a_files(m4a_folder=Path(audio_folder))
 
