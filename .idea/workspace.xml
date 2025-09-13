@@ -80,7 +80,7 @@
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
     &quot;run.code.analysis.last.selected.profile&quot;: &quot;aDefault&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
   }
 }</component>
   <component name="PyConsoleOptionsProvider">
@@ -98,7 +98,7 @@
       <recent name="C:\Users\user\PycharmProjects\youtube-download\Tests" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.dlp-DL-Singles-both">
+  <component name="RunManager" selected="Python.dlp-prompt-audio-only">
     <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -431,36 +431,36 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Python.dlp-prompt-both-no-chapters" />
-      <item itemvalue="Python.dlp-prompt-both-chapters" />
-      <item itemvalue="Python.dlp-prompt-video-only" />
-      <item itemvalue="Python.dlp-prompt-audio-only" />
-      <item itemvalue="Python.dlp-v2-prompt-audio-only" />
-      <item itemvalue="Python.dlp-prompt-audio-only-chapters" />
       <item itemvalue="Python.dlp-DL-Singles-audio-only" />
       <item itemvalue="Python.dlp-DL-Singles-both-OLD" />
       <item itemvalue="Python.dlp-DL-Singles-both" />
-      <item itemvalue="Python.test-yt-dlp - both" />
+      <item itemvalue="Python.dlp-prompt-audio-only-chapters" />
+      <item itemvalue="Python.dlp-prompt-audio-only" />
+      <item itemvalue="Python.dlp-prompt-both-chapters" />
+      <item itemvalue="Python.dlp-prompt-both-no-chapters" />
+      <item itemvalue="Python.dlp-prompt-video-only" />
+      <item itemvalue="Python.dlp-v2-prompt-audio-only" />
       <item itemvalue="Python.main-sanitize-file-names" />
+      <item itemvalue="Python.test-yt-dlp - both" />
       <item itemvalue="Python.main-check-if-playlist" />
-      <item itemvalue="Python.yt-dlp-v2" />
-      <item itemvalue="Python.test_chapter_regex" />
       <item itemvalue="Python.main-get-artists-from-trello" />
+      <item itemvalue="Python.test_chapter_regex" />
+      <item itemvalue="Python.yt-dlp-v2" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.dlp-DL-Singles-both" />
-        <item itemvalue="Python.main-check-if-playlist" />
-        <item itemvalue="Python.main-get-artists-from-trello" />
         <item itemvalue="Python.yt-dlp-v2" />
         <item itemvalue="Python.test_chapter_regex" />
+        <item itemvalue="Python.main-get-artists-from-trello" />
+        <item itemvalue="Python.main-check-if-playlist" />
+        <item itemvalue="Python.dlp-DL-Singles-both" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-4c141bd692a7-e2d783800521-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-251.26927.90" />
+        <option value="bundled-python-sdk-8753aad8314d-d902c0275401-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-252.25557.178" />
       </set>
     </attachedChunks>
   </component>
