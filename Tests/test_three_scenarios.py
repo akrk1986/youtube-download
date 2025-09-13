@@ -15,6 +15,28 @@ from pathlib import Path
 sys.path.append('..')
 from funcs_utils import is_playlist, get_chapter_count
 
+def _show_file_counts():
+    """Show current file counts in output directories."""
+    video_dir = Path("../yt-videos")
+    audio_dir = Path("../yt-audio")
+
+    if video_dir.exists():
+        video_files = [f for f in video_dir.glob("*") if f.is_file()]
+        print(f"  Video files: {len(video_files)}")
+        for f in video_files[:3]:  # Show first 3
+            print(f"    - {f.name}")
+        if len(video_files) > 3:
+            print(f"    ... and {len(video_files) - 3} more")
+
+    if audio_dir.exists():
+        mp3_files = [f for f in audio_dir.glob("*.mp3") if f.is_file()]
+        m4a_files = [f for f in audio_dir.glob("*.m4a") if f.is_file()]
+        print(f"  Audio files: {len(mp3_files)} MP3, {len(m4a_files)} M4A")
+        for f in (mp3_files + m4a_files)[:3]:  # Show first 3
+            print(f"    - {f.name}")
+        if len(mp3_files) + len(m4a_files) > 3:
+            print(f"    ... and {len(mp3_files) + len(m4a_files) - 3} more")
+
 def run_main_script(url: str, args: list, description: str) -> bool:
     """
     Run the main script with given URL and arguments.
@@ -87,6 +109,33 @@ def main():
     # Check current directory
     print(f"\nCurrent working directory: {os.getcwd()}")
 
+    # Clean up output directories at start
+    print(f"\n🧹 Cleaning up output directories...")
+    video_dir = Path("../yt-videos")
+    audio_dir = Path("../yt-audio")
+
+    if video_dir.exists():
+        video_files = list(video_dir.glob("*"))
+        for f in video_files:
+            if f.is_file():
+                f.unlink()
+                print(f"  Deleted: {f.name}")
+        print(f"✅ Cleaned {len([f for f in video_files if f.is_file()])} video files")
+    else:
+        video_dir.mkdir(exist_ok=True)
+        print("✅ Created yt-videos directory")
+
+    if audio_dir.exists():
+        audio_files = list(audio_dir.glob("*"))
+        for f in audio_files:
+            if f.is_file():
+                f.unlink()
+                print(f"  Deleted: {f.name}")
+        print(f"✅ Cleaned {len([f for f in audio_files if f.is_file()])} audio files")
+    else:
+        audio_dir.mkdir(exist_ok=True)
+        print("✅ Created yt-audio directory")
+
     # Initialize test results
     results = []
 
@@ -149,10 +198,14 @@ def main():
 
     result1 = run_main_script(
         url1,
-        ['--only-audio', '--audio-format', 'mp3'],
-        "Single video - Extract MP3 audio"
+        ['--with-audio', '--audio-format', 'both'],
+        "Single video - Extract both video + audio (MP3 & M4A)"
     )
-    results.append(("Test 1 (Single Video -> MP3)", result1))
+    results.append(("Test 1 (Single Video -> Video + Both Audio Formats)", result1))
+
+    # Show files after Test 1
+    print(f"\n📁 Files after Test 1:")
+    _show_file_counts()
 
     # Test 2: Video with chapters (extract video only)
     print(f"\n🔍 Analyzing URL2 for chapters...")
@@ -184,6 +237,10 @@ def main():
         result2 = False
         results.append(("Test 2 (Chapters Video -> Video Only)", False))
 
+    # Show files after Test 2
+    print(f"\n📁 Files after Test 2:")
+    _show_file_counts()
+
     # Test 3: Playlist (extract audio as M4A)
     print(f"\n🔍 Analyzing URL3...")
     try:
@@ -197,10 +254,10 @@ def main():
 
     result3 = run_main_script(
         url3,
-        ['--only-audio', '--audio-format', 'm4a'],
-        "Playlist - Extract M4A audio"
+        ['--with-audio', '--audio-format', 'both'],
+        "Playlist - Extract both video + audio (MP3 & M4A)"
     )
-    results.append(("Test 3 (Playlist -> M4A)", result3))
+    results.append(("Test 3 (Playlist -> Video + Both Audio Formats)", result3))
 
     # Summary
     print(f"\n{'='*60}")

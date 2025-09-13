@@ -8,3 +8,6 @@
 *.mp4
 *.pyc
 .venv-linux/
+Tests/Data/
+Tests/yt-audio/
+Tests/yt-videos/
