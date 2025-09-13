@@ -36,9 +36,15 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
             alb_art = audio.get('albumartist')
             print(f"No known artist in title, a/aa tags='{art}'/'{alb_art}'")
 
+        # Clear track number for non-chapter files (single videos and playlists)
+        upd_track = False
+        if 'tracknumber' in audio and audio['tracknumber']:
+            audio['tracknumber'] = ['']  # Clear track number
+            upd_track = True
+
         if upd_title:
             audio['title'] = clean_title
-        if count > 0 or upd_title:
+        if count > 0 or upd_title or upd_track:
             audio.save(mp3_file)
             print(f"Updated {mp3_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
         else:

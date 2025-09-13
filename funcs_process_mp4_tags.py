@@ -52,9 +52,15 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
             alb_art = audio.get('aART', [])
             print(f"No known artist in title, a/aa tags='{art}'/'{alb_art}'")
 
+        # Clear track number for non-chapter files (single videos and playlists)
+        upd_track = False
+        if 'trkn' in audio and audio['trkn']:
+            audio['trkn'] = []  # Clear track number
+            upd_track = True
+
         if upd_title:
             audio['\xa9nam'] = [clean_title]
-        if count > 0 or upd_title or upd_date:
+        if count > 0 or upd_title or upd_date or upd_track:
             audio.save(m4a_file)
             print(f"Updated {m4a_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
         else:
