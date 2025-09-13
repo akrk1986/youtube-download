@@ -4,6 +4,7 @@ import os
 import subprocess
 from pathlib import Path
 from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
+from funcs_process_mp4_tags import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
 from funcs_utils import (organize_media_files, get_video_info, is_playlist, get_chapter_count,
                          sanitize_filenames_in_folder)
 
@@ -59,8 +60,8 @@ def extract_audio_with_ffmpeg(ffmpeg_exe: Path, video_folder: str, audio_folder:
             subprocess.run(ffmpeg_cmd, check=False)
 
 def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
-                             has_chapters: bool, split_chapters: bool, is_it_playlist: bool) -> None:
-    """Use yt-dlp to download and extract MP3 audio with metadata and thumbnail."""
+                             has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_format: str = 'mp3') -> None:
+    """Use yt-dlp to download and extract audio with metadata and thumbnail."""
 
     # For a single video, check if video has 'artist' or 'uploader' tags.
     # Use either to embed 'artist' and 'albumartist' tags in the MP3 file.
@@ -91,7 +92,7 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         ytdlp_exe,
         '-f', 'bestaudio/best',
         '--extract-audio',
-        '--audio-format', 'mp3',
+        '--audio-format', audio_format,
         '--audio-quality', '192k',
         '--embed-metadata',
         '--add-metadata',
@@ -121,7 +122,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Download YouTube playlist/video, optionally with subtitles.")
     parser.add_argument('playlist_url', nargs='?', help='YouTube playlist/video URL')
-    parser.add_argument('--with-audio', action='store_true', help='Also extract audio as MP3')
+    parser.add_argument('--with-audio', action='store_true', help='Also extract audio (format specified by --audio-format)')
+    parser.add_argument('--audio-format', choices=['mp3', 'm4a'], default='mp3', help='Audio format for extraction (default: mp3)')
     parser.add_argument('--only-audio', action='store_true', help='Delete video files after extraction')
     parser.add_argument('--split-chapters', action='store_true', help='Split to chapters')
     parser.add_argument('--subs', action='store_true', help='Download subtitles')
@@ -170,7 +172,7 @@ def main() -> None:
         # Run yt-dlp to download videos, and let yt-dlp extract audio and add tags
         extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder,
                                  split_chapters=args.split_chapters, has_chapters=has_chapters,
-                                 is_it_playlist=url_is_playlist)
+                                 is_it_playlist=url_is_playlist, audio_format=args.audio_format)
 
     # If chapters, move chapter files (audio and videos), if any exist, to the corresponding sub-folders.
     # This is because chapter files are extracted to the current directory.
@@ -194,11 +196,20 @@ def main() -> None:
     if need_audio:
         # Sanitize downloaded audio file names
         sanitize_filenames_in_folder(folder_path=Path(audio_folder))
-        # Modify some MP3 tags based on the title
-        set_artists_in_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
-        # if the audio files are chapters, clean up the 'title' ID3 tag
-        if has_chapters:
-            _ = set_tags_in_chapter_mp3_files(mp3_folder=Path(audio_folder))
+
+        # Process audio tags based on format
+        if args.audio_format == 'mp3':
+            # Modify MP3 tags based on the title
+            set_artists_in_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
+            # if the audio files are chapters, clean up the 'title' ID3 tag
+            if has_chapters:
+                _ = set_tags_in_chapter_mp3_files(mp3_folder=Path(audio_folder))
+        elif args.audio_format == 'm4a':
+            # Modify M4A tags based on the title
+            set_artists_in_m4a_files(m4a_folder=Path(audio_folder), artists_json=artists_json)
+            # if the audio files are chapters, clean up the 'title' MP4 tag
+            if has_chapters:
+                _ = set_tags_in_chapter_m4a_files(m4a_folder=Path(audio_folder))
 
 if __name__ == '__main__':
     main()
