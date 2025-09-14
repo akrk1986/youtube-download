@@ -7,7 +7,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="" />
+    <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -97,7 +99,7 @@
       <recent name="C:\Users\user\PycharmProjects\youtube-download\Tests" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.dlp-prompt-audio-only">
+  <component name="RunManager" selected="Python.dlp-DL-Singles-both">
     <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -112,7 +114,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
-      <option name="PARAMETERS" value="&quot;https://youtube.com/playlist?list=PLRXnwzqAlx1OjuERxW0S7XEdJCgl_lf_L&amp;si=J1TKhRslqYl2W4JX&quot; --only-audio --audio-format mp3" />
+      <option name="PARAMETERS" value="&quot;https://youtube.com/playlist?list=PLRXnwzqAlx1OjuERxW0S7XEdJCgl_lf_L&amp;si=J1TKhRslqYl2W4JX&quot; --only-audio --audio-format both" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -120,7 +122,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="dlp-DL-Singles-both-OLD" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
+    <configuration name="dlp-DL-Singles-both-OLD" type="PythonConfigurationType" factoryName="Python" folderName="OLD">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -155,8 +157,8 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="C:\Users\user\PycharmProjects\youtube-download\main-yt-dlp.py" />
-      <option name="PARAMETERS" value="&quot; https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE&quot; --with-audio --audio-format mp3 --subs" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
+      <option name="PARAMETERS" value="&quot; https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE&quot; --with-audio --audio-format both --subs" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -453,7 +455,6 @@
     </configuration>
     <list>
       <item itemvalue="Python.dlp-DL-Singles-audio-only" />
-      <item itemvalue="Python.dlp-DL-Singles-both-OLD" />
       <item itemvalue="Python.dlp-DL-Singles-both" />
       <item itemvalue="Python.dlp-prompt-audio-only-chapters" />
       <item itemvalue="Python.dlp-prompt-audio-only-m4a" />
@@ -462,6 +463,7 @@
       <item itemvalue="Python.dlp-prompt-both-no-chapters" />
       <item itemvalue="Python.dlp-prompt-video-only" />
       <item itemvalue="Python.dlp-v2-prompt-audio-only" />
+      <item itemvalue="Python.dlp-DL-Singles-both-OLD" />
       <item itemvalue="Python.main-sanitize-file-names" />
       <item itemvalue="Python.test-yt-dlp - both" />
       <item itemvalue="Python.main-check-if-playlist" />
@@ -471,11 +473,11 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.dlp-DL-Singles-both" />
         <item itemvalue="Python.yt-dlp-v2" />
         <item itemvalue="Python.test_chapter_regex" />
         <item itemvalue="Python.main-get-artists-from-trello" />
         <item itemvalue="Python.main-check-if-playlist" />
-        <item itemvalue="Python.dlp-DL-Singles-both" />
       </list>
     </recent_temporary>
   </component>
