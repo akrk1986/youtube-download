@@ -6,6 +6,12 @@
 *.mp3
 *.webm
 *.mp4
+*.MP3
+*.M4A
+*.ogg
+*.flac
+*.wav
+*.txt
 *.pyc
 .venv-linux/
 Tests/Data/
