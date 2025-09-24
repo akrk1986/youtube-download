@@ -48,6 +48,10 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
                           has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
                           format_type: str, artist_pat: str = None, album_artist_pat: str = None) -> None:
     """Extract audio in a single format using yt-dlp."""
+    # Create format-specific subfolder
+    format_folder = os.path.join(audio_folder, format_type)
+    os.makedirs(format_folder, exist_ok=True)
+
     yt_dlp_cmd = [
         ytdlp_exe,
         '-f', 'bestaudio/best',
@@ -59,7 +63,7 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
         '--embed-thumbnail',
         #'--parse-metadata', 'track:',        # Clear the track #, as per Claude AI
         #'--parse-metadata', 'tracknumber:',  # Clear the track #, as per Claude AI
-        '-o', os.path.join(audio_folder, '%(title)s.%(ext)s'),
+        '-o', os.path.join(format_folder, '%(title)s.%(ext)s'),
         playlist_url
     ]
 
@@ -225,33 +229,51 @@ def main() -> None:
     if not args.only_audio:
         sanitize_filenames_in_folder(folder_path=Path(video_folder))
     if need_audio:
-        # Sanitize downloaded audio file names
-        sanitize_filenames_in_folder(folder_path=Path(audio_folder))
+        # Sanitize downloaded audio file names in both subfolders
+        if args.audio_format == 'mp3':
+            mp3_subfolder = Path(audio_folder) / 'mp3'
+            if mp3_subfolder.exists():
+                sanitize_filenames_in_folder(folder_path=mp3_subfolder)
+        elif args.audio_format == 'm4a':
+            m4a_subfolder = Path(audio_folder) / 'm4a'
+            if m4a_subfolder.exists():
+                sanitize_filenames_in_folder(folder_path=m4a_subfolder)
+        elif args.audio_format == 'both':
+            mp3_subfolder = Path(audio_folder) / 'mp3'
+            m4a_subfolder = Path(audio_folder) / 'm4a'
+            if mp3_subfolder.exists():
+                sanitize_filenames_in_folder(folder_path=mp3_subfolder)
+            if m4a_subfolder.exists():
+                sanitize_filenames_in_folder(folder_path=m4a_subfolder)
 
         # Process audio tags based on format
         if args.audio_format == 'mp3':
             # Modify MP3 tags based on the title
-            set_artists_in_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
+            mp3_subfolder = Path(audio_folder) / 'mp3'
+            set_artists_in_mp3_files(mp3_folder=mp3_subfolder, artists_json=artists_json)
             # if the audio files are chapters, clean up the 'title' ID3 tag
             if has_chapters:
-                _ = set_tags_in_chapter_mp3_files(mp3_folder=Path(audio_folder), uploader=uploader_name, video_title=video_title)
+                _ = set_tags_in_chapter_mp3_files(mp3_folder=mp3_subfolder, uploader=uploader_name, video_title=video_title)
         elif args.audio_format == 'm4a':
             # Modify M4A tags based on the title
-            set_artists_in_m4a_files(m4a_folder=Path(audio_folder), artists_json=artists_json)
+            m4a_subfolder = Path(audio_folder) / 'm4a'
+            set_artists_in_m4a_files(m4a_folder=m4a_subfolder, artists_json=artists_json)
             # if the audio files are chapters, clean up the 'title' MP4 tag
             if has_chapters:
-                _ = set_tags_in_chapter_m4a_files(m4a_folder=Path(audio_folder), uploader=uploader_name, video_title=video_title)
+                _ = set_tags_in_chapter_m4a_files(m4a_folder=m4a_subfolder, uploader=uploader_name, video_title=video_title)
         elif args.audio_format == 'both':
             # Process both MP3 and M4A files
             print("Processing MP3 files...")
-            set_artists_in_mp3_files(mp3_folder=Path(audio_folder), artists_json=artists_json)
+            mp3_subfolder = Path(audio_folder) / 'mp3'
+            set_artists_in_mp3_files(mp3_folder=mp3_subfolder, artists_json=artists_json)
             if has_chapters:
-                _ = set_tags_in_chapter_mp3_files(mp3_folder=Path(audio_folder), uploader=uploader_name, video_title=video_title)
+                _ = set_tags_in_chapter_mp3_files(mp3_folder=mp3_subfolder, uploader=uploader_name, video_title=video_title)
 
             print("Processing M4A files...")
-            set_artists_in_m4a_files(m4a_folder=Path(audio_folder), artists_json=artists_json)
+            m4a_subfolder = Path(audio_folder) / 'm4a'
+            set_artists_in_m4a_files(m4a_folder=m4a_subfolder, artists_json=artists_json)
             if has_chapters:
-                _ = set_tags_in_chapter_m4a_files(m4a_folder=Path(audio_folder), uploader=uploader_name, video_title=video_title)
+                _ = set_tags_in_chapter_m4a_files(m4a_folder=m4a_subfolder, uploader=uploader_name, video_title=video_title)
 
 if __name__ == '__main__':
     main()

@@ -70,18 +70,34 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
 
     moved_files = {'mp3': [], 'mp4': [], 'm4a': [], 'errors': []}
 
-    audio_files = list(current_dir.glob('*.mp3')) + list(current_dir.glob('*.m4a'))
+    # Get all audio-like files including case variations
+    audio_files = (list(current_dir.glob('*.mp3')) +
+                   list(current_dir.glob('*.m4a')) +
+                   list(current_dir.glob('*.MP3')) +
+                   list(current_dir.glob('*.M4A')))
 
-    # Find and move MP3/M4A files
+    # Find and move MP3/M4A files to their respective subfolders
     for audio_file in audio_files:
         try:
-            destination = audio_dir / audio_file.name
-            shutil.move(str(audio_file), str(destination))
-            if audio_file.suffix == 'mp3':
+            if audio_file.suffix.lower() == '.mp3':
+                subfolder = audio_dir / 'mp3'
                 moved_files['mp3'].append(audio_file.name)
-            else:
+                subfolder_name = 'mp3'
+            elif audio_file.suffix.lower() == '.m4a':
+                subfolder = audio_dir / 'm4a'
                 moved_files['m4a'].append(audio_file.name)
-            print(f"Moved {audio_file.name} -> yt-audio/")
+                subfolder_name = 'm4a'
+            else:
+                # Skip files that are not MP3 or M4A
+                print(f"WARNING: Skipping unsupported audio file type: {audio_file.name} (extension: {audio_file.suffix})")
+                continue
+
+            # Create subfolder if it doesn't exist
+            subfolder.mkdir(parents=True, exist_ok=True)
+
+            destination = subfolder / audio_file.name
+            shutil.move(str(audio_file), str(destination))
+            print(f"Moved {audio_file.name} -> yt-audio/{subfolder_name}/")
         except Exception as e:
             error_msg = f"Error moving {audio_file.name}: {str(e)}"
             moved_files['errors'].append(error_msg)
