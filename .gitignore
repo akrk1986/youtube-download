@@ -12,6 +12,7 @@
 *.flac
 *.wav
 *.txt
+!requirements.txt
 *.pyc
 .venv-linux/
 Tests/Data/
