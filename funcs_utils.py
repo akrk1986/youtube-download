@@ -7,6 +7,7 @@ import subprocess
 import json
 from typing import Dict, Any
 import yt_dlp
+import emoji
 
 # Greek strings handling, for file names and MP3 titles
 
@@ -15,10 +16,71 @@ pattern = re.compile(r'^[^a-zA-Z0-9\u0370-\u03FF\u05d0-\u05ea]+')
 
 def sanitize_string(dirty_string: str) -> str:
     """
-    Remove leading unwanted characters (including spaces) from string.
-    See the comment above 'pattern'.
+    Sanitize filename by:
+    1. Replacing emojis with spaces
+    2. Replacing foreign characters (not English/French/Greek/Hebrew) with spaces
+    3. Removing leading unwanted characters and spaces
+    4. Compressing multiple spaces into one
+    5. Removing trailing spaces before file extension
     """
-    return pattern.sub('', dirty_string)
+    if not dirty_string:
+        return dirty_string
+
+    # Split filename and extension
+    if '.' in dirty_string:
+        name_part, extension = dirty_string.rsplit('.', 1)
+        has_extension = True
+    else:
+        name_part = dirty_string
+        extension = ""
+        has_extension = False
+
+    # 1. Replace all emojis with spaces
+    name_part = emoji.replace_emoji(name_part, replace=' ')
+
+    # 2. Replace foreign characters with spaces
+    # Keep: English (a-z, A-Z), French (àáâãäåæçèéêëìíîïðñòóôõöøùúûüýÿ),
+    #       Greek (α-ω, Α-Ω), Hebrew (א-ת), numbers (0-9), and common punctuation
+    allowed_chars = []
+    for char in name_part:
+        # English letters and numbers
+        if char.isascii() and (char.isalnum() or char in ' .,;:!?()-_[]{}'):
+            allowed_chars.append(char)
+        # Greek letters (main range)
+        elif '\u0370' <= char <= '\u03FF':
+            allowed_chars.append(char)
+        # Hebrew letters
+        elif '\u05d0' <= char <= '\u05ea':
+            allowed_chars.append(char)
+        # French accented characters (Latin-1 Supplement)
+        elif '\u00c0' <= char <= '\u00ff':
+            allowed_chars.append(char)
+        # Additional French characters in Latin Extended-A
+        elif char in 'ĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž':
+            allowed_chars.append(char)
+        else:
+            # Replace foreign character with space
+            allowed_chars.append(' ')
+
+    name_part = ''.join(allowed_chars)
+
+    # 3. Remove leading unwanted characters (using existing pattern)
+    name_part = pattern.sub('', name_part)
+
+    # 4. Compress multiple spaces into one
+    name_part = re.sub(r'\s+', ' ', name_part)
+
+    # 5. Remove leading and trailing spaces
+    name_part = name_part.strip()
+
+    # Reconstruct filename
+    if has_extension and name_part:
+        return f"{name_part}.{extension}"
+    elif has_extension:
+        # If name_part is empty but we had an extension, keep the extension
+        return f"untitled.{extension}"
+    else:
+        return name_part
 
 def remove_diacritics(text: str) -> str:
     """

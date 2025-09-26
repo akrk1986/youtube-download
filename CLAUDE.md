@@ -90,3 +90,4 @@ The codebase has specialized handling for Greek text:
 - Beta features and experiments are in `Beta/` directory
 - Documentation is minimal - mainly workflow guides in `Docs/`
 - The project expects Windows-style executable paths but runs on WSL/Linux
+- any python packages that you install should be added to requirements.txt file. make sure file is in git
