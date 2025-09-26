@@ -1,5 +1,7 @@
 """Test main script imports and basic functionality."""
+import argparse
 import sys
+
 sys.path.append('..')
 
 try:
@@ -9,7 +11,6 @@ try:
     print("✓ Successfully imported all audio tag processing functions")
 
     # Test argument parsing setup
-    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--audio-format', choices=['mp3', 'm4a'], default='mp3')
     args = parser.parse_args(['--audio-format', 'm4a'])

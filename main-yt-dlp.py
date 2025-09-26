@@ -1,9 +1,11 @@
 """Using yt-dlp, download videos from YouTube URL, and extract the MP3 files."""
 import argparse
+import glob
 import os
-import subprocess
 import platform
+import subprocess
 from pathlib import Path
+
 from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
 from funcs_process_mp4_tags import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
 from funcs_utils import (organize_media_files, get_video_info, is_playlist, get_chapter_count,
@@ -82,6 +84,8 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
     # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
 
+
+
 def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
                              has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_format: str = 'mp3') -> None:
     """Use yt-dlp to download and extract audio with metadata and thumbnail."""
@@ -111,7 +115,7 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
 
     # Handle different audio format options
     if audio_format == 'both':
-        # Extract both MP3 and M4A formats
+        # Extract both MP3 and M4A formats directly (will download twice)
         _extract_single_format(ytdlp_exe, playlist_url, audio_folder, has_chapters,
                               split_chapters, is_it_playlist, 'mp3', artist_pat, album_artist_pat)
         _extract_single_format(ytdlp_exe, playlist_url, audio_folder, has_chapters,
@@ -245,6 +249,7 @@ def main() -> None:
                 sanitize_filenames_in_folder(folder_path=mp3_subfolder)
             if m4a_subfolder.exists():
                 sanitize_filenames_in_folder(folder_path=m4a_subfolder)
+
 
         # Process audio tags based on format
         if args.audio_format == 'mp3':

@@ -6,9 +6,10 @@ Test script for three YouTube URL scenarios:
 
 The script will automatically detect chapters and handle each scenario appropriately.
 """
-import sys
-import subprocess
 import os
+import platform
+import subprocess
+import sys
 from pathlib import Path
 
 # Add parent directory to path to import functions
@@ -143,7 +144,6 @@ def main():
     print("\n🔍 Checking prerequisites...")
 
     # Detect platform and set appropriate executable paths (same logic as main script)
-    import platform
     system_platform = platform.system().lower()
 
     if system_platform == "windows":

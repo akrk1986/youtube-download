@@ -1,6 +1,7 @@
 """Test M4A tag processing functions."""
-from pathlib import Path
 import sys
+from pathlib import Path
+
 sys.path.append('..')
 
 try:
