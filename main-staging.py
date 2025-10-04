@@ -8,9 +8,10 @@ import argparse
 import sys
 from pathlib import Path
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3NoHeaderError
+from mutagen.id3 import ID3NoHeaderError, ID3, COMM
 from mutagen.mp4 import MP4
 import arrow
+from funcs_audio_conversion import convert_mp3_to_m4a, convert_m4a_to_mp3
 
 
 def normalize_year(year_str):
@@ -44,10 +45,21 @@ def normalize_year(year_str):
 
 
 def extract_mp3_tags(file_path):
-    """Extract relevant tags from MP3 file using EasyID3."""
+    """Extract relevant tags from MP3 file using EasyID3 and ID3."""
     try:
+        # Use EasyID3 for most tags
         audio = EasyID3(file_path)
         year = normalize_year(audio.get('date', [''])[0])
+
+        # Use raw ID3 for comment tag
+        id3_audio = ID3(file_path)
+        comment = ''
+        if 'COMM::eng' in id3_audio:
+            comment = str(id3_audio['COMM::eng'].text[0])
+        elif id3_audio.getall('COMM'):
+            # Get first comment if no English comment found
+            comment = str(id3_audio.getall('COMM')[0].text[0])
+
         return {
             'title': audio.get('title', [''])[0],
             'artist': audio.get('artist', [''])[0],
@@ -55,7 +67,7 @@ def extract_mp3_tags(file_path):
             'date': year,
             'album': audio.get('album', [''])[0],
             'tracknumber': audio.get('tracknumber', [''])[0],
-            'comment': audio.get('comment', [''])[0],
+            'comment': comment,
             'composer': audio.get('composer', [''])[0]
         }
     except (ID3NoHeaderError, Exception) as e:
@@ -84,18 +96,38 @@ def extract_m4a_tags(file_path):
 
 
 def apply_mp3_tags(file_path, tags):
-    """Apply tags to MP3 file using EasyID3."""
+    """Apply tags to MP3 file using EasyID3 and ID3."""
     try:
+        # Handle most tags with EasyID3
         try:
             audio = EasyID3(file_path)
         except ID3NoHeaderError:
             audio = EasyID3()
 
+        # Handle comment separately with raw ID3
+        id3_audio = ID3(file_path)
+
+        written_tags = []
+        comment_written = False
+
         for key, value in tags.items():
             if value:  # Only set non-empty values
-                audio[key] = [value]
+                if key == 'comment':
+                    # Set comment using raw ID3
+                    id3_audio.add(COMM(encoding=3, lang='eng', desc='', text=[value]))
+                    written_tags.append('comment')
+                    comment_written = True
+                else:
+                    audio[key] = [value]
+                    written_tags.append(key)
 
         audio.save(file_path)
+        if comment_written:
+            id3_audio.save(file_path)
+
+        if written_tags:
+            print(f'  Written tags: {", ".join(written_tags)}')
+
         return True
     except Exception as e:
         print(f'Error writing MP3 tags to {file_path}: {e}')
@@ -118,18 +150,26 @@ def apply_m4a_tags(file_path, tags):
             'composer': '\xa9wrt'
         }
 
+        written_tags = []
+
         for key, value in tags.items():
             if value:  # Only set non-empty values
                 if key == 'tracknumber':
                     try:
                         track_num = int(value)
                         audio['trkn'] = [(track_num, 0)]
+                        written_tags.append('tracknumber')
                     except ValueError:
                         pass
                 elif key in tag_mapping:
                     audio[tag_mapping[key]] = [value]
+                    written_tags.append(key)
 
         audio.save(file_path)
+
+        if written_tags:
+            print(f'  Written tags: {", ".join(written_tags)}')
+
         return True
     except Exception as e:
         print(f'Error writing M4A tags to {file_path}: {e}')
@@ -143,6 +183,11 @@ def main():
         required=True,
         choices=['mp3', 'm4a'],
         help='Source audio format to read tags from (mp3 or m4a)'
+    )
+    parser.add_argument(
+        '--create-missing-files',
+        action='store_true',
+        help='Convert and create missing target files using ffmpeg before copying tags'
     )
 
     args = parser.parse_args()
@@ -171,16 +216,33 @@ def main():
 
     processed_count = 0
     warning_count = 0
+    converted_count = 0
 
     for source_file in source_files:
+        print(f'Processing: {source_file.name}')
+
         # Generate target file path with different extension
         target_file = target_dir / (source_file.stem + f'.{target_format}')
 
-        # Check if target file exists
-        if not target_file.exists():
-            print(f"WARNING: Target file '{target_file.name}' not found for '{source_file.name}'")
-            warning_count += 1
-            continue
+        # Check if target file exists and is not empty
+        if not target_file.exists() or target_file.stat().st_size == 0:
+            if args.create_missing_files:
+                print(f"  Target file '{target_file.name}' does not exist or is empty, converting...")
+                # Convert source file to target format
+                if args.source == 'mp3':
+                    result = convert_mp3_to_m4a(source_file, target_file)
+                else:
+                    result = convert_m4a_to_mp3(source_file, target_file)
+
+                if result is None:
+                    print(f'  Failed to convert {source_file.name}')
+                    warning_count += 1
+                    continue
+                converted_count += 1
+            else:
+                print(f"  WARNING: Target file '{target_file.name}' not found")
+                warning_count += 1
+                continue
 
         # Extract tags from source file
         if args.source == 'mp3':
@@ -199,9 +261,8 @@ def main():
 
         if success:
             processed_count += 1
-            print(f'Copied tags: {source_file.name} -> {target_file.name}')
 
-    print(f'\nCompleted: {processed_count} files processed, {warning_count} warnings')
+    print(f'\nCompleted: {processed_count} files processed, {converted_count} files converted, {warning_count} warnings')
 
 
 if __name__ == '__main__':

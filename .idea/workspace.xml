@@ -9,7 +9,6 @@
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CLAUDE.md" beforeDir="false" afterPath="$PROJECT_DIR$/CLAUDE.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main-staging.py" beforeDir="false" afterPath="$PROJECT_DIR$/main-staging.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -65,6 +64,8 @@
     "Python.greek_search_comprehensive.executor": "Run",
     "Python.main-check-if-playlist.executor": "Run",
     "Python.main-get-artists-from-trello.executor": "Run",
+    "Python.main-staging-m4a-to-mp3.executor": "Run",
+    "Python.main-staging-mp3-to-m4a.executor": "Run",
     "Python.main-staging.executor": "Run",
     "Python.main_greek_search (1).executor": "Run",
     "Python.main_greek_search.executor": "Run",
@@ -102,7 +103,7 @@
       <recent name="C:\Users\user\PycharmProjects\youtube-download\Tests" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main-staging">
+  <component name="RunManager" selected="Python.main-staging-m4a-to-mp3">
     <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -368,7 +369,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="main-staging" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="main-staging-m4a-to-mp3" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -382,7 +383,29 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-staging.py" />
-      <option name="PARAMETERS" value="--source m4a" />
+      <option name="PARAMETERS" value="--source m4a --create" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="main-staging-mp3-to-m4a" type="PythonConfigurationType" factoryName="Python">
+      <module name="youtube-download" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-staging.py" />
+      <option name="PARAMETERS" value="--source mp3 --create" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -469,14 +492,15 @@
       <item itemvalue="Python.dlp-DL-Singles-both-OLD" />
       <item itemvalue="Python.main-sanitize-file-names" />
       <item itemvalue="Python.test-yt-dlp - both" />
-      <item itemvalue="Python.main-staging" />
+      <item itemvalue="Python.main-staging-mp3-to-m4a" />
+      <item itemvalue="Python.main-staging-m4a-to-mp3" />
       <item itemvalue="Python.main-get-artists-from-trello" />
       <item itemvalue="Python.test_chapter_regex" />
       <item itemvalue="Python.yt-dlp-v2" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.main-staging" />
+        <item itemvalue="Python.main-staging-m4a-to-mp3" />
         <item itemvalue="Python.dlp-DL-Singles-both" />
         <item itemvalue="Python.yt-dlp-v2" />
         <item itemvalue="Python.test_chapter_regex" />
