@@ -16,7 +16,7 @@ def _parse_time_to_seconds(time_str: str) -> int:
         hours, minutes, seconds = map(int, parts)
         return hours * 3600 + minutes * 60 + seconds
     else:
-        raise ValueError(f"Invalid time format: {time_str}")
+        raise ValueError(f'Invalid time format: {time_str}')
 
 
 def _extract_chapters_from_description(description: str) -> List[Dict[str, Any]]:
@@ -86,13 +86,13 @@ def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> Optional[str]:
             chapters = extracted_chapters
 
     if not chapters:
-        print(f"No chapters found for video: {video_title}")
+        print(f'No chapters found for video: {video_title}')
         return None
 
     # Create CSV filename based on video title
     safe_title = re.sub(r'[^\w\s-]', '', video_title).strip()
     safe_title = re.sub(r'[-\s]+', '_', safe_title)
-    csv_filename = f"{safe_title}_chapters.csv"
+    csv_filename = f'{safe_title}_chapters.csv'
 
     # Write chapters to CSV
     with open(csv_filename, 'w', newline='', encoding='utf-8') as csvfile:
@@ -118,7 +118,7 @@ def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> Optional[str]:
 
             writer.writerow([i, start_time, end_time, title])
 
-    print(f"Chapters extracted successfully to: {csv_filename}")
-    print(f"Total chapters: {len(chapters)}")
+    print(f'Chapters extracted successfully to: {csv_filename}')
+    print(f'Total chapters: {len(chapters)}')
 
     return csv_filename

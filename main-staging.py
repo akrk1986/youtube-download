@@ -11,28 +11,35 @@ from pathlib import Path
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3NoHeaderError
 from mutagen.mp4 import MP4
+import arrow
 
 
 def normalize_year(year_str):
-    """Normalize year to YYYY format from various formats like YYYYMMDD."""
+    """Normalize year to YYYY format using arrow for date parsing."""
     if not year_str:
         return ''
 
     year_str = str(year_str).strip()
 
-    # If it's 8 digits (YYYYMMDD), extract first 4
-    if len(year_str) == 8 and year_str.isdigit():
-        return year_str[:4]
-
-    # If it's already 4 digits, return as is
-    if len(year_str) == 4 and year_str.isdigit():
-        return year_str
-
-    # Try to extract first 4 digits from string
-    import re
-    match = re.search(r'\d{4}', year_str)
-    if match:
-        return match.group()
+    try:
+        # Try parsing with arrow
+        if len(year_str) == 8 and year_str.isdigit():
+            # YYYYMMDD format
+            parsed_date = arrow.get(year_str, 'YYYYMMDD')
+            return str(parsed_date.year)
+        elif len(year_str) == 4 and year_str.isdigit():
+            # Already YYYY format
+            return year_str
+        else:
+            # Try to parse as date
+            parsed_date = arrow.get(year_str)
+            return str(parsed_date.year)
+    except:
+        # Fallback to regex extraction
+        import re
+        match = re.search(r'\d{4}', year_str)
+        if match:
+            return match.group()
 
     return ''
 
@@ -53,7 +60,7 @@ def extract_mp3_tags(file_path):
             'composer': audio.get('composer', [''])[0]
         }
     except (ID3NoHeaderError, Exception) as e:
-        print(f"Error reading MP3 tags from {file_path}: {e}")
+        print(f'Error reading MP3 tags from {file_path}: {e}')
         return None
 
 
@@ -73,7 +80,7 @@ def extract_m4a_tags(file_path):
             'composer': audio.get('\xa9wrt', [''])[0] if audio.get('\xa9wrt') else ''
         }
     except Exception as e:
-        print(f"Error reading M4A tags from {file_path}: {e}")
+        print(f'Error reading M4A tags from {file_path}: {e}')
         return None
 
 
@@ -92,7 +99,7 @@ def apply_mp3_tags(file_path, tags):
         audio.save(file_path)
         return True
     except Exception as e:
-        print(f"Error writing MP3 tags to {file_path}: {e}")
+        print(f'Error writing MP3 tags to {file_path}: {e}')
         return False
 
 
@@ -126,25 +133,25 @@ def apply_m4a_tags(file_path, tags):
         audio.save(file_path)
         return True
     except Exception as e:
-        print(f"Error writing M4A tags to {file_path}: {e}")
+        print(f'Error writing M4A tags to {file_path}: {e}')
         return False
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Copy audio tags between MP3 and M4A staging directories")
+    parser = argparse.ArgumentParser(description='Copy audio tags between MP3 and M4A staging directories')
     parser.add_argument(
-        "--source",
+        '--source',
         required=True,
-        choices=["mp3", "m4a"],
-        help="Source audio format to read tags from (mp3 or m4a)"
+        choices=['mp3', 'm4a'],
+        help='Source audio format to read tags from (mp3 or m4a)'
     )
 
     args = parser.parse_args()
 
     # Define directories
-    source_dir = Path(f"staging-{args.source}")
-    target_format = "m4a" if args.source == "mp3" else "mp3"
-    target_dir = Path(f"staging-{target_format}")
+    source_dir = Path(f'staging-{args.source}')
+    target_format = 'm4a' if args.source == 'mp3' else 'mp3'
+    target_dir = Path(f'staging-{target_format}')
 
     # Check if directories exist
     if not source_dir.exists():
@@ -155,12 +162,12 @@ def main():
         print(f"Error: Target directory '{target_dir}' does not exist")
         sys.exit(1)
 
-    print(f"Copying tags from {args.source.upper()} files to {target_format.upper()} files...")
+    print(f'Copying tags from {args.source.upper()} files to {target_format.upper()} files...')
 
     # Get source files
-    source_files = list(source_dir.glob(f"*.{args.source}"))
+    source_files = list(source_dir.glob(f'*.{args.source}'))
     if not source_files:
-        print(f"No {args.source.upper()} files found in {source_dir}")
+        print(f'No {args.source.upper()} files found in {source_dir}')
         return
 
     processed_count = 0
@@ -168,7 +175,7 @@ def main():
 
     for source_file in source_files:
         # Generate target file path with different extension
-        target_file = target_dir / (source_file.stem + f".{target_format}")
+        target_file = target_dir / (source_file.stem + f'.{target_format}')
 
         # Check if target file exists
         if not target_file.exists():
@@ -177,7 +184,7 @@ def main():
             continue
 
         # Extract tags from source file
-        if args.source == "mp3":
+        if args.source == 'mp3':
             tags = extract_mp3_tags(source_file)
         else:
             tags = extract_m4a_tags(source_file)
@@ -186,17 +193,17 @@ def main():
             continue
 
         # Apply tags to target file
-        if target_format == "mp3":
+        if target_format == 'mp3':
             success = apply_mp3_tags(target_file, tags)
         else:
             success = apply_m4a_tags(target_file, tags)
 
         if success:
             processed_count += 1
-            print(f"Copied tags: {source_file.name} -> {target_file.name}")
+            print(f'Copied tags: {source_file.name} -> {target_file.name}')
 
-    print(f"\nCompleted: {processed_count} files processed, {warning_count} warnings")
+    print(f'\nCompleted: {processed_count} files processed, {warning_count} warnings')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

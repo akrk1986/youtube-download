@@ -11,7 +11,7 @@ from funcs_process_mp4_tags import set_artists_in_m4a_files, set_tags_in_chapter
 from funcs_utils import (organize_media_files, get_video_info, is_playlist, get_chapter_count,
                          sanitize_filenames_in_folder)
 
-greek_to_dl_playlist_url = "https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE"
+greek_to_dl_playlist_url = 'https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE'
 yt_dlp_write_json_flag = '--write-info-json'
 yt_dlp_split_chapters_flag = '--split-chapters'
 yt_dlp_is_playlist_flag = '--yes-playlist'
@@ -40,7 +40,7 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: 
             '--sub-lang', 'el,en,he',
             '--convert-subs', 'srt'
         ]
-    print("Downloading videos with yt-dlp...")
+    print('Downloading videos with yt-dlp...')
     print(f'========\n{yt_dlp_cmd}\n========')
     # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
@@ -78,7 +78,7 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
     if split_chapters and has_chapters:
         yt_dlp_cmd[1:1] = [yt_dlp_split_chapters_flag]
 
-    print(f"==== Downloading and extracting {format_type.upper()} audio with yt-dlp ====")
+    print(f'==== Downloading and extracting {format_type.upper()} audio with yt-dlp ====')
     print(f"CMD: '{yt_dlp_cmd}'")
     print('='*54)
     # Ignore errors (most common error is when playlist contains unavailable videos)
@@ -127,7 +127,7 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Download YouTube playlist/video, optionally with subtitles.")
+        description='Download YouTube playlist/video, optionally with subtitles.')
     parser.add_argument('playlist_url', nargs='?', help='YouTube playlist/video URL')
     parser.add_argument('--with-audio', action='store_true', help='Also extract audio (format specified by --audio-format)')
     parser.add_argument('--audio-format', choices=['mp3', 'm4a', 'both'], default='mp3', help='Audio format for extraction: mp3, m4a, or both (default: mp3)')
@@ -142,32 +142,32 @@ def main() -> None:
     # Detect platform and set appropriate executable paths
     system_platform = platform.system().lower()
 
-    if system_platform == "windows":
+    if system_platform == 'windows':
         # Windows paths
         home_dir = Path.home()
-        yt_dlp_dir = home_dir / "Apps" / "yt-dlp"
-        yt_dlp_exe = yt_dlp_dir / "yt-dlp.exe"
+        yt_dlp_dir = home_dir / 'Apps' / 'yt-dlp'
+        yt_dlp_exe = yt_dlp_dir / 'yt-dlp.exe'
     else:
         # Linux/Mac - use system-wide installations
-        yt_dlp_exe = "yt-dlp"  # Should be in PATH
+        yt_dlp_exe = 'yt-dlp'  # Should be in PATH
 
     # Handle artists.json path relative to script location, not current working directory
     script_dir = Path(__file__).parent
     artists_json = script_dir / 'Data' / 'artists.json'
 
     # Verify executables exist
-    if system_platform == "windows":
+    if system_platform == 'windows':
         assert Path(yt_dlp_exe).exists(), f"YT-DLP executable not found at '{yt_dlp_exe}'"
     else:
         # For Linux/Mac, check if commands are available in PATH
         try:
-            subprocess.run([yt_dlp_exe, "--version"], capture_output=True, check=True)
+            subprocess.run([yt_dlp_exe, '--version'], capture_output=True, check=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
-            raise AssertionError(f"YT-DLP not found in PATH. Install with: pip install yt-dlp")
+            raise AssertionError(f'YT-DLP not found in PATH. Install with: pip install yt-dlp')
 
     # Prompt for playlist/video URL if not provided
     if not args.playlist_url:
-        args.playlist_url = input("Enter the URL: ").strip()
+        args.playlist_url = input('Enter the URL: ').strip()
 
     video_folder = os.path.abspath('yt-videos')
     audio_folder = os.path.abspath('yt-audio')
@@ -218,16 +218,16 @@ def main() -> None:
 
         # Check move results
         if result['mp3'] or result['m4a'] or result['mp4']:
-            print("\nFiles organized successfully!")
+            print('\nFiles organized successfully!')
         else:
-            print("\nNo MP3/M4A"
-                  ""
-                  " or MP4 files found in current directory.")
+            print('\nNo MP3/M4A'
+                  ''
+                  ' or MP4 files found in current directory.')
 
         if result['errors']:
-            print("\nErrors encountered:")
+            print('\nErrors encountered:')
             for error in result['errors']:
-                print(f"- {error}")
+                print(f'- {error}')
 
     # Sanitize downloaded video file names
     if not args.only_audio:
@@ -268,13 +268,13 @@ def main() -> None:
                 _ = set_tags_in_chapter_m4a_files(m4a_folder=m4a_subfolder, uploader=uploader_name, video_title=video_title)
         elif args.audio_format == 'both':
             # Process both MP3 and M4A files
-            print("Processing MP3 files...")
+            print('Processing MP3 files...')
             mp3_subfolder = Path(audio_folder) / 'mp3'
             set_artists_in_mp3_files(mp3_folder=mp3_subfolder, artists_json=artists_json)
             if has_chapters:
                 _ = set_tags_in_chapter_mp3_files(mp3_folder=mp3_subfolder, uploader=uploader_name, video_title=video_title)
 
-            print("Processing M4A files...")
+            print('Processing M4A files...')
             m4a_subfolder = Path(audio_folder) / 'm4a'
             set_artists_in_m4a_files(m4a_folder=m4a_subfolder, artists_json=artists_json)
             if has_chapters:

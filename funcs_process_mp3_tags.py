@@ -13,15 +13,15 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
        If found, set the ID3 tags 'artist' and 'album artist' to the artist name(s).
     """
     artists = load_artists(artists_json_path=artists_json)
-    for mp3_file in mp3_folder.glob("*.mp3"):
+    for mp3_file in mp3_folder.glob('*.mp3'):
         try:
             audio = EasyID3(mp3_file)
         except ID3NoHeaderError:
             # If no ID3 tag exists, create one
             audio = EasyID3()
-        title = audio.get("title", [""])[0]
+        title = audio.get('title', [''])[0]
         if not title:
-            print(f"Skipping {mp3_file.name}: No Title tag found.")
+            print(f'Skipping {mp3_file.name}: No Title tag found.')
             continue
         # Sanitize the title
         clean_title = sanitize_string(dirty_string=title)
@@ -29,8 +29,8 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
         # Look for known artists in title
         count, artist_string = find_artists_in_string(title, artists)
         if count > 0:
-            audio["artist"] = [artist_string]
-            audio["albumartist"] = [artist_string]
+            audio['artist'] = [artist_string]
+            audio['albumartist'] = [artist_string]
         else:
             art = audio.get('artist')
             alb_art = audio.get('albumartist')
@@ -48,7 +48,7 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
             audio.save(mp3_file)
             print(f"Updated {mp3_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
         else:
-            print(f"No artist found in title for {mp3_file.name}")
+            print(f'No artist found in title for {mp3_file.name}')
 
 def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_title: str = None) -> int:
     """
@@ -62,7 +62,7 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_
     :return: # of files whose title was modified
     """
     ctr = 0
-    for mp3_file in mp3_folder.glob("*.mp3"):
+    for mp3_file in mp3_folder.glob('*.mp3'):
         try:
             audio = EasyID3(mp3_file)
         except ID3NoHeaderError:
@@ -103,6 +103,6 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_
             ctr += 1
         except Exception as e:
             # no chapter file, ignore
-            print(f"ERR: {e}")
+            print(f'ERR: {e}')
 
     return ctr

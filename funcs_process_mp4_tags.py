@@ -12,18 +12,18 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
        If found, set the MP4 tags 'artist' and 'album artist' to the artist name(s).
     """
     artists = load_artists(artists_json_path=artists_json)
-    for m4a_file in m4a_folder.glob("*.m4a"):
+    for m4a_file in m4a_folder.glob('*.m4a'):
         try:
             audio = MP4(m4a_file)
         except Exception:
             # If file cannot be read as MP4, skip it
-            print(f"Skipping {m4a_file.name}: Cannot read as MP4 file.")
+            print(f'Skipping {m4a_file.name}: Cannot read as MP4 file.')
             continue
 
-        title_list = audio.get("\xa9nam", [])
-        title = title_list[0] if title_list else ""
+        title_list = audio.get('\xa9nam', [])
+        title = title_list[0] if title_list else ''
         if not title:
-            print(f"Skipping {m4a_file.name}: No Title tag found.")
+            print(f'Skipping {m4a_file.name}: No Title tag found.')
             continue
 
         # Sanitize the title
@@ -31,22 +31,22 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
         upd_title = clean_title != title
 
         # Fix year format: convert YYYYMMDD to YYYY if needed
-        date_list = audio.get("\xa9day", [])
+        date_list = audio.get('\xa9day', [])
         upd_date = False
         if date_list:
             date_str = str(date_list[0])
             # If date is in YYYYMMDD format (8 digits), extract just the year (first 4 digits)
             if len(date_str) == 8 and date_str.isdigit():
                 year = date_str[:4]
-                audio["\xa9day"] = [year]
+                audio['\xa9day'] = [year]
                 upd_date = True
-                print(f"Fixed date format: {date_str} -> {year}")
+                print(f'Fixed date format: {date_str} -> {year}')
 
         # Look for known artists in title
         count, artist_string = find_artists_in_string(title, artists)
         if count > 0:
-            audio["\xa9ART"] = [artist_string]
-            audio["aART"] = [artist_string]
+            audio['\xa9ART'] = [artist_string]
+            audio['aART'] = [artist_string]
         else:
             art = audio.get('\xa9ART', [])
             alb_art = audio.get('aART', [])
@@ -64,7 +64,7 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
             audio.save(m4a_file)
             print(f"Updated {m4a_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
         else:
-            print(f"No artist found in title for {m4a_file.name}")
+            print(f'No artist found in title for {m4a_file.name}')
 
 def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_title: str = None) -> int:
     """
@@ -78,7 +78,7 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_
     :return: # of files whose title was modified
     """
     ctr = 0
-    for m4a_file in m4a_folder.glob("*.m4a"):
+    for m4a_file in m4a_folder.glob('*.m4a'):
         try:
             audio = MP4(m4a_file)
         except Exception:
@@ -95,14 +95,14 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_
                 audio['trkn'] = [(int(song_number), 0)]
 
             # Fix year format: convert YYYYMMDD to YYYY if needed
-            date_list = audio.get("\xa9day", [])
+            date_list = audio.get('\xa9day', [])
             if date_list:
                 date_str = str(date_list[0])
                 # If date is in YYYYMMDD format (8 digits), extract just the year (first 4 digits)
                 if len(date_str) == 8 and date_str.isdigit():
                     year = date_str[:4]
-                    audio["\xa9day"] = [year]
-                    print(f"Fixed date format: {date_str} -> {year}")
+                    audio['\xa9day'] = [year]
+                    print(f'Fixed date format: {date_str} -> {year}')
 
             # If no artist is set and we have an uploader, use uploader as artist
             current_artist = audio.get('\xa9ART', [])
@@ -126,6 +126,6 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_
             ctr += 1
         except Exception as e:
             # no chapter file, ignore
-            print(f"ERR: {e}")
+            print(f'ERR: {e}')
 
     return ctr

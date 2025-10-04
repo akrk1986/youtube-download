@@ -32,7 +32,7 @@ def sanitize_string(dirty_string: str) -> str:
         has_extension = True
     else:
         name_part = dirty_string
-        extension = ""
+        extension = ''
         has_extension = False
 
     # 1. Replace all emojis with spaces
@@ -75,10 +75,10 @@ def sanitize_string(dirty_string: str) -> str:
 
     # Reconstruct filename
     if has_extension and name_part:
-        return f"{name_part}.{extension}"
+        return f'{name_part}.{extension}'
     elif has_extension:
         # If name_part is empty but we had an extension, keep the extension
-        return f"untitled.{extension}"
+        return f'untitled.{extension}'
     else:
         return name_part
 
@@ -151,7 +151,7 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
                 subfolder_name = 'm4a'
             else:
                 # Skip files that are not MP3 or M4A
-                print(f"WARNING: Skipping unsupported audio file type: {audio_file.name} (extension: {audio_file.suffix})")
+                print(f'WARNING: Skipping unsupported audio file type: {audio_file.name} (extension: {audio_file.suffix})')
                 continue
 
             # Create subfolder if it doesn't exist
@@ -159,9 +159,9 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
 
             destination = subfolder / audio_file.name
             shutil.move(str(audio_file), str(destination))
-            print(f"Moved {audio_file.name} -> yt-audio/{subfolder_name}/")
+            print(f'Moved {audio_file.name} -> yt-audio/{subfolder_name}/')
         except Exception as e:
-            error_msg = f"Error moving {audio_file.name}: {str(e)}"
+            error_msg = f'Error moving {audio_file.name}: {str(e)}'
             moved_files['errors'].append(error_msg)
             print(error_msg)
 
@@ -171,19 +171,19 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
             destination = video_dir / mp4_file.name
             shutil.move(str(mp4_file), str(destination))
             moved_files['mp4'].append(mp4_file.name)
-            print(f"Moved {mp4_file.name} -> yt-videos/")
+            print(f'Moved {mp4_file.name} -> yt-videos/')
         except Exception as e:
-            error_msg = f"Error moving {mp4_file.name}: {str(e)}"
+            error_msg = f'Error moving {mp4_file.name}: {str(e)}'
             moved_files['errors'].append(error_msg)
             print(error_msg)
 
     # Print summary
-    print(f"\nSummary:")
-    print(f"MP3 files moved: {len(moved_files['mp3'])}")
-    print(f"M4A files moved: {len(moved_files['m4a'])}")
-    print(f"MP4 files moved: {len(moved_files['mp4'])}")
+    print(f'\nSummary:')
+    print(f'MP3 files moved: {len(moved_files["mp3"])}')
+    print(f'M4A files moved: {len(moved_files["m4a"])}')
+    print(f'MP4 files moved: {len(moved_files["mp4"])}')
     if moved_files['errors']:
-        print(f"Errors: {len(moved_files['errors'])}")
+        print(f'Errors: {len(moved_files["errors"])}')
     return moved_files
 
 def organize_media_files_silent() -> dict:
@@ -213,7 +213,7 @@ def organize_media_files_silent() -> dict:
             else:
                 moved_files['m4a'].append(audio_file.name)
         except Exception as e:
-            moved_files['errors'].append(f"Error moving {audio_file.name}: {str(e)}")
+            moved_files['errors'].append(f'Error moving {audio_file.name}: {str(e)}')
 
     # Move MP4 files
     for mp4_file in current_dir.glob('*.mp4'):
@@ -222,7 +222,7 @@ def organize_media_files_silent() -> dict:
             shutil.move(str(mp4_file), str(destination))
             moved_files['mp4'].append(mp4_file.name)
         except Exception as e:
-            moved_files['errors'].append(f"Error moving {mp4_file.name}: {str(e)}")
+            moved_files['errors'].append(f'Error moving {mp4_file.name}: {str(e)}')
 
     return moved_files
 
@@ -256,7 +256,7 @@ def get_video_info(yt_dlp_path: Path, url: str) -> Dict[str, Any]:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return json.loads(result.stdout)
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"yt-dlp failed: {e.stderr}")
+        raise RuntimeError(f'yt-dlp failed: {e.stderr}')
     except json.JSONDecodeError as e:
         raise RuntimeError(f"Failed to parse yt-dlp output for '{url}': {e}")
 
@@ -274,7 +274,7 @@ def is_playlist(url: str) -> bool:
             info = ydl.extract_info(url=url, download=False)
             return info.get('webpage_url_basename') == 'playlist'
         except Exception as e:
-            print(f"Error: failed to get video info {e}")
+            print(f'Error: failed to get video info {e}')
             return False
 
 def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:

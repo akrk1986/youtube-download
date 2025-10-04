@@ -104,7 +104,7 @@ def sanitize_album_name(title: str) -> str:
         Sanitized title limited to 64 characters, with emojis and special characters removed
     """
     if not title:
-        return ""
+        return ''
 
     # Remove emojis first
     no_emojis = _remove_emojis(title)

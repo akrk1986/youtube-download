@@ -58,15 +58,15 @@ def extract_artists(
         if warning:
             print(f"Warning: Card name '{card['name']}' in list '{list_name}' has only one part.")
         artist = {
-            "Greek name": greek,
-            "English name": english,
-            "List": list_name
+            'Greek name': greek,
+            'English name': english,
+            'List': list_name
         }
         artists.append(artist)
     return artists, len(list_id_to_name), card_count
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Extract artists from Trello JSON export.")
+    parser = argparse.ArgumentParser(description='Extract artists from Trello JSON export.')
     parser.add_argument(
         '--trello-json',
         type=Path,
@@ -85,12 +85,12 @@ def main() -> None:
         trello_data = json.load(f)
 
     artists, num_lists, num_cards = extract_artists(trello_data)
-    output = {"artists": artists}
+    output = {'artists': artists}
 
     with args.artists_json.open('w', encoding='utf-8') as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
 
-    print(f"\nFound {num_lists} lists and {num_cards} cards.")
+    print(f'\nFound {num_lists} lists and {num_cards} cards.')
 
 if __name__ == '__main__':
     main()
