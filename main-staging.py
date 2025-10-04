@@ -1,0 +1,202 @@
+#!/usr/bin/env python3
+"""
+Main staging script for copying audio tags between MP3 and M4A files.
+Accepts --source parameter to specify source audio format (mp3 or m4a).
+"""
+
+import argparse
+import sys
+import os
+from pathlib import Path
+from mutagen.easyid3 import EasyID3
+from mutagen.id3 import ID3NoHeaderError
+from mutagen.mp4 import MP4
+
+
+def normalize_year(year_str):
+    """Normalize year to YYYY format from various formats like YYYYMMDD."""
+    if not year_str:
+        return ''
+
+    year_str = str(year_str).strip()
+
+    # If it's 8 digits (YYYYMMDD), extract first 4
+    if len(year_str) == 8 and year_str.isdigit():
+        return year_str[:4]
+
+    # If it's already 4 digits, return as is
+    if len(year_str) == 4 and year_str.isdigit():
+        return year_str
+
+    # Try to extract first 4 digits from string
+    import re
+    match = re.search(r'\d{4}', year_str)
+    if match:
+        return match.group()
+
+    return ''
+
+
+def extract_mp3_tags(file_path):
+    """Extract relevant tags from MP3 file using EasyID3."""
+    try:
+        audio = EasyID3(file_path)
+        year = normalize_year(audio.get('date', [''])[0])
+        return {
+            'title': audio.get('title', [''])[0],
+            'artist': audio.get('artist', [''])[0],
+            'albumartist': audio.get('albumartist', [''])[0],
+            'date': year,
+            'album': audio.get('album', [''])[0],
+            'tracknumber': audio.get('tracknumber', [''])[0],
+            'comment': audio.get('comment', [''])[0],
+            'composer': audio.get('composer', [''])[0]
+        }
+    except (ID3NoHeaderError, Exception) as e:
+        print(f"Error reading MP3 tags from {file_path}: {e}")
+        return None
+
+
+def extract_m4a_tags(file_path):
+    """Extract relevant tags from M4A file using MP4."""
+    try:
+        audio = MP4(file_path)
+        year = normalize_year(audio.get('\xa9day', [''])[0] if audio.get('\xa9day') else '')
+        return {
+            'title': audio.get('\xa9nam', [''])[0] if audio.get('\xa9nam') else '',
+            'artist': audio.get('\xa9ART', [''])[0] if audio.get('\xa9ART') else '',
+            'albumartist': audio.get('aART', [''])[0] if audio.get('aART') else '',
+            'date': year,
+            'album': audio.get('\xa9alb', [''])[0] if audio.get('\xa9alb') else '',
+            'tracknumber': str(audio.get('trkn', [(0, 0)])[0][0]) if audio.get('trkn') and audio.get('trkn')[0][0] > 0 else '',
+            'comment': audio.get('\xa9cmt', [''])[0] if audio.get('\xa9cmt') else '',
+            'composer': audio.get('\xa9wrt', [''])[0] if audio.get('\xa9wrt') else ''
+        }
+    except Exception as e:
+        print(f"Error reading M4A tags from {file_path}: {e}")
+        return None
+
+
+def apply_mp3_tags(file_path, tags):
+    """Apply tags to MP3 file using EasyID3."""
+    try:
+        try:
+            audio = EasyID3(file_path)
+        except ID3NoHeaderError:
+            audio = EasyID3()
+
+        for key, value in tags.items():
+            if value:  # Only set non-empty values
+                audio[key] = [value]
+
+        audio.save(file_path)
+        return True
+    except Exception as e:
+        print(f"Error writing MP3 tags to {file_path}: {e}")
+        return False
+
+
+def apply_m4a_tags(file_path, tags):
+    """Apply tags to M4A file using MP4."""
+    try:
+        audio = MP4(file_path)
+
+        # Map common tag names to M4A atom names
+        tag_mapping = {
+            'title': '\xa9nam',
+            'artist': '\xa9ART',
+            'albumartist': 'aART',
+            'date': '\xa9day',
+            'album': '\xa9alb',
+            'comment': '\xa9cmt',
+            'composer': '\xa9wrt'
+        }
+
+        for key, value in tags.items():
+            if value:  # Only set non-empty values
+                if key == 'tracknumber':
+                    try:
+                        track_num = int(value)
+                        audio['trkn'] = [(track_num, 0)]
+                    except ValueError:
+                        pass
+                elif key in tag_mapping:
+                    audio[tag_mapping[key]] = [value]
+
+        audio.save(file_path)
+        return True
+    except Exception as e:
+        print(f"Error writing M4A tags to {file_path}: {e}")
+        return False
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Copy audio tags between MP3 and M4A staging directories")
+    parser.add_argument(
+        "--source",
+        required=True,
+        choices=["mp3", "m4a"],
+        help="Source audio format to read tags from (mp3 or m4a)"
+    )
+
+    args = parser.parse_args()
+
+    # Define directories
+    source_dir = Path(f"staging-{args.source}")
+    target_format = "m4a" if args.source == "mp3" else "mp3"
+    target_dir = Path(f"staging-{target_format}")
+
+    # Check if directories exist
+    if not source_dir.exists():
+        print(f"Error: Source directory '{source_dir}' does not exist")
+        sys.exit(1)
+
+    if not target_dir.exists():
+        print(f"Error: Target directory '{target_dir}' does not exist")
+        sys.exit(1)
+
+    print(f"Copying tags from {args.source.upper()} files to {target_format.upper()} files...")
+
+    # Get source files
+    source_files = list(source_dir.glob(f"*.{args.source}"))
+    if not source_files:
+        print(f"No {args.source.upper()} files found in {source_dir}")
+        return
+
+    processed_count = 0
+    warning_count = 0
+
+    for source_file in source_files:
+        # Generate target file path with different extension
+        target_file = target_dir / (source_file.stem + f".{target_format}")
+
+        # Check if target file exists
+        if not target_file.exists():
+            print(f"WARNING: Target file '{target_file.name}' not found for '{source_file.name}'")
+            warning_count += 1
+            continue
+
+        # Extract tags from source file
+        if args.source == "mp3":
+            tags = extract_mp3_tags(source_file)
+        else:
+            tags = extract_m4a_tags(source_file)
+
+        if tags is None:
+            continue
+
+        # Apply tags to target file
+        if target_format == "mp3":
+            success = apply_mp3_tags(target_file, tags)
+        else:
+            success = apply_m4a_tags(target_file, tags)
+
+        if success:
+            processed_count += 1
+            print(f"Copied tags: {source_file.name} -> {target_file.name}")
+
+    print(f"\nCompleted: {processed_count} files processed, {warning_count} warnings")
+
+
+if __name__ == "__main__":
+    main()
