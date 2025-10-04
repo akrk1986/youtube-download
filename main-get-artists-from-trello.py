@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+
 def capitalize_greek_name(name: str) -> str:
     """
     If the name is all uppercase, capitalize each word (first letter uppercase, rest lowercase).
