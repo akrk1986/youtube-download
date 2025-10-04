@@ -6,7 +6,6 @@ Accepts --source parameter to specify source audio format (mp3 or m4a).
 
 import argparse
 import sys
-import os
 from pathlib import Path
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3NoHeaderError
