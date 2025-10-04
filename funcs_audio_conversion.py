@@ -105,6 +105,9 @@ def convert_m4a_to_mp3(m4a_file, mp3_file=None):
             '-c:a', 'libmp3lame',
             '-q:a', '2',  # VBR quality 2 (~190 kbps)
             '-c:v', 'copy',  # Copy album art as-is
+            '-map', '0:a',  # Map audio stream
+            '-map', '0:v?',  # Map video stream (album art) if it exists
+            '-id3v2_version', '3',  # Use ID3v2.3 for MP3
             '-y',  # Overwrite output file if exists
             str(mp3_file)
         ]
