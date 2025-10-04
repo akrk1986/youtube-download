@@ -189,13 +189,24 @@ def main():
         action='store_true',
         help='Convert and create missing target files using ffmpeg before copying tags'
     )
+    parser.add_argument(
+        '--top-level-directory',
+        type=lambda p: Path(p) if Path(p).exists() and Path(p).is_dir() else parser.error(f"Directory '{p}' does not exist"),
+        help='Top-level directory containing MP3 and M4A subfolders'
+    )
 
     args = parser.parse_args()
 
     # Define directories
-    source_dir = Path(f'staging-{args.source}')
-    target_format = 'm4a' if args.source == 'mp3' else 'mp3'
-    target_dir = Path(f'staging-{target_format}')
+    if args.top_level_directory:
+        top_dir = args.top_level_directory
+        source_dir = top_dir / args.source.upper()
+        target_format = 'm4a' if args.source == 'mp3' else 'mp3'
+        target_dir = top_dir / target_format.upper()
+    else:
+        source_dir = Path(f'staging-{args.source}')
+        target_format = 'm4a' if args.source == 'mp3' else 'mp3'
+        target_dir = Path(f'staging-{target_format}')
 
     # Check if directories exist
     if not source_dir.exists():

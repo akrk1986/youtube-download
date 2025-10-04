@@ -383,7 +383,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-staging.py" />
-      <option name="PARAMETERS" value="--source m4a --create" />
+      <option name="PARAMETERS" value="--source m4a --create --top-level &quot;C:\Users\user\Music\Greek\02-Singles-Staging&quot;" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -405,7 +405,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-staging.py" />
-      <option name="PARAMETERS" value="--source mp3 --create" />
+      <option name="PARAMETERS" value="--source mp3 --create --top-level &quot;C:\Users\user\Music\Greek\02-Singles-Staging&quot;" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
