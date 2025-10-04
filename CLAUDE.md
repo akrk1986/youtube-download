@@ -87,7 +87,14 @@ The codebase has specialized handling for Greek text:
 ## Development Notes
 
 - No formal test framework - uses standalone test scripts in `Tests/`
-- Beta features and experiments are in `Beta/` directory
 - Documentation is minimal - mainly workflow guides in `Docs/`
-- The project expects Windows-style executable paths but runs on WSL/Linux
+- Beta features and experiments are in `Beta/` directory
+  - When making global changes, skip all files in the Beta/ directory
+- The project expects Windows-style executable paths but runs on WSL/Linux, so both should be supported
 - any python packages that you install should be added to requirements.txt file. make sure file is in git
+
+- parse date strings with 'arrow' package
+- quoted strings should use single quotes instead of double except for these cases:
+  - the string to be displayed contains single quotes
+  - use double quotes for docstrings
+  - if there is an embedded single quote in a string, do not escape it with a backslash. instead, use double quotes around the whole string
