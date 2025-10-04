@@ -16,7 +16,6 @@ yt_dlp_write_json_flag = '--write-info-json'
 yt_dlp_split_chapters_flag = '--split-chapters'
 yt_dlp_is_playlist_flag = '--yes-playlist'
 
-
 def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: bool,
                write_json: bool, has_chapters: bool, split_chapters: bool, is_it_playlist: bool) -> None:
     """Extract videos from YouTube playlist/video with yt-dlp. Include subtitles if requested."""
@@ -45,7 +44,6 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: 
     # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
 
-
 def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
                           has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
                           format_type: str, artist_pat: str = None, album_artist_pat: str = None) -> None:
@@ -63,8 +61,6 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
         '--embed-metadata',
         '--add-metadata',
         '--embed-thumbnail',
-        #'--parse-metadata', 'track:',        # Clear the track #, as per Claude AI
-        #'--parse-metadata', 'tracknumber:',  # Clear the track #, as per Claude AI
         '-o', os.path.join(format_folder, '%(title)s.%(ext)s'),
         playlist_url
     ]
@@ -83,8 +79,6 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
     print('='*54)
     # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
-
-
 
 def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
                              has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_format: str = 'mp3') -> None:
@@ -249,7 +243,6 @@ def main() -> None:
                 sanitize_filenames_in_folder(folder_path=mp3_subfolder)
             if m4a_subfolder.exists():
                 sanitize_filenames_in_folder(folder_path=m4a_subfolder)
-
 
         # Process audio tags based on format
         if args.audio_format == 'mp3':

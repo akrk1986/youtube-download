@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import List, Dict, Tuple, Set
 from funcs_utils import remove_diacritics
 
-
 def load_artists(artists_json_path: Path) -> List[Dict[str, str]]:
     """Load artists from a JSON file."""
     with artists_json_path.open('r', encoding='utf-8') as f:

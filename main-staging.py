@@ -3,7 +3,6 @@
 Main staging script for copying audio tags between MP3 and M4A files.
 Accepts --source parameter to specify source audio format (mp3 or m4a).
 """
-
 import argparse
 import sys
 from pathlib import Path
@@ -12,7 +11,6 @@ from mutagen.id3 import ID3NoHeaderError, ID3, COMM
 from mutagen.mp4 import MP4
 import arrow
 from funcs_audio_conversion import convert_mp3_to_m4a, convert_m4a_to_mp3
-
 
 def normalize_year(year_str):
     """Normalize year to YYYY format using arrow for date parsing."""
@@ -42,7 +40,6 @@ def normalize_year(year_str):
             return match.group()
 
     return ''
-
 
 def extract_mp3_tags(file_path):
     """Extract relevant tags from MP3 file using EasyID3 and ID3."""
@@ -74,7 +71,6 @@ def extract_mp3_tags(file_path):
         print(f'Error reading MP3 tags from {file_path}: {e}')
         return None
 
-
 def extract_m4a_tags(file_path):
     """Extract relevant tags from M4A file using MP4."""
     try:
@@ -93,7 +89,6 @@ def extract_m4a_tags(file_path):
     except Exception as e:
         print(f'Error reading M4A tags from {file_path}: {e}')
         return None
-
 
 def apply_mp3_tags(file_path, tags):
     """Apply tags to MP3 file using EasyID3 and ID3."""
@@ -132,7 +127,6 @@ def apply_mp3_tags(file_path, tags):
     except Exception as e:
         print(f'Error writing MP3 tags to {file_path}: {e}')
         return False
-
 
 def apply_m4a_tags(file_path, tags):
     """Apply tags to M4A file using MP4."""
@@ -174,7 +168,6 @@ def apply_m4a_tags(file_path, tags):
     except Exception as e:
         print(f'Error writing M4A tags to {file_path}: {e}')
         return False
-
 
 def main():
     parser = argparse.ArgumentParser(description='Copy audio tags between MP3 and M4A staging directories')
@@ -274,7 +267,6 @@ def main():
             processed_count += 1
 
     print(f'\nCompleted: {processed_count} files processed, {converted_count} files converted, {warning_count} warnings')
-
 
 if __name__ == '__main__':
     main()

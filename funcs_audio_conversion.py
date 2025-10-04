@@ -3,10 +3,8 @@
 Audio conversion functions using ffmpeg.
 Handles conversion between MP3 and M4A formats.
 """
-
 import subprocess
 from pathlib import Path
-
 
 def get_ffmpeg_path():
     """Get the path to ffmpeg executable."""
@@ -17,7 +15,6 @@ def get_ffmpeg_path():
 
     # Fallback to system ffmpeg
     return 'ffmpeg'
-
 
 def convert_mp3_to_m4a(mp3_file, m4a_file=None):
     """
@@ -70,7 +67,6 @@ def convert_mp3_to_m4a(mp3_file, m4a_file=None):
         error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else 'Unknown error'
         print(f'Error converting {mp3_file.name} to M4A: {error_msg}')
         return None
-
 
 def convert_m4a_to_mp3(m4a_file, mp3_file=None):
     """
