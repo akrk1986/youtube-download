@@ -18,7 +18,6 @@ def _parse_time_to_seconds(time_str: str) -> int:
     else:
         raise ValueError(f'Invalid time format: {time_str}')
 
-
 def _extract_chapters_from_description(description: str) -> List[Dict[str, Any]]:
     """Extract chapters from video description using regex patterns."""
     chapters = []
@@ -56,7 +55,6 @@ def _extract_chapters_from_description(description: str) -> List[Dict[str, Any]]
             chapters[i]['end_time'] = None  # Will be set to video duration
 
     return chapters
-
 
 def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> Optional[str]:
     """

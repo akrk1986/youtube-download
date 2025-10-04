@@ -3,6 +3,7 @@ import re
 import unicodedata
 from typing import Tuple
 
+
 _windows_reserved_names = {
     'CON', 'PRN', 'AUX', 'NUL',
     *(f'COM{i}' for i in range(1, 10)),

@@ -6,6 +6,7 @@ Handles conversion between MP3 and M4A formats.
 import subprocess
 from pathlib import Path
 
+
 def get_ffmpeg_path():
     """Get the path to ffmpeg executable."""
     # Try Windows path first (for WSL environment)

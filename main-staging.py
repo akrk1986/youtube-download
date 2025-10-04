@@ -12,6 +12,7 @@ from mutagen.mp4 import MP4
 import arrow
 from funcs_audio_conversion import convert_mp3_to_m4a, convert_m4a_to_mp3
 
+
 def normalize_year(year_str):
     """Normalize year to YYYY format using arrow for date parsing."""
     if not year_str:
