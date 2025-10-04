@@ -4,18 +4,64 @@ Audio conversion functions using ffmpeg.
 Handles conversion between MP3 and M4A formats.
 """
 import subprocess
+import sys
 from pathlib import Path
+import platform
+
+
+def _get_ffmpeg_tool_path(tool_name):
+    """
+    Generic function to get path to ffmpeg tools (ffmpeg or ffprobe).
+    On Windows: tries system-installed tool first, then falls back to ~/Apps/ffmpeg_bin
+    On other platforms: uses system tool
+    Aborts if tool is not found.
+
+    Args:
+        tool_name (str): Name of the tool ('ffmpeg' or 'ffprobe')
+
+    Returns:
+        str: Path to the tool executable
+    """
+    if platform.system() == 'Windows':
+        # Try system-installed tool first
+        try:
+            subprocess.run(
+                [tool_name, '-version'],
+                capture_output=True,
+                check=True
+            )
+            return tool_name
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            # Fallback to local installation
+            fallback_path = Path.home() / 'Apps' / 'ffmpeg_bin' / f'{tool_name}.exe'
+            if fallback_path.exists():
+                return str(fallback_path)
+
+            # Neither system nor local tool found
+            print(f'Error: {tool_name} not found. Please install ffmpeg system-wide or place it in ~/Apps/ffmpeg_bin/')
+            sys.exit(1)
+
+    # Non-Windows: verify system tool exists
+    try:
+        subprocess.run(
+            [tool_name, '-version'],
+            capture_output=True,
+            check=True
+        )
+        return tool_name
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print(f'Error: {tool_name} not found. Please install ffmpeg.')
+        sys.exit(1)
 
 
 def get_ffmpeg_path():
     """Get the path to ffmpeg executable."""
-    # Try Windows path first (for WSL environment)
-    windows_path = Path.home() / 'Apps' / 'yt-dlp' / 'ffmpeg.exe'
-    if windows_path.exists():
-        return str(windows_path)
+    return _get_ffmpeg_tool_path('ffmpeg')
 
-    # Fallback to system ffmpeg
-    return 'ffmpeg'
+
+def get_ffprobe_path():
+    """Get the path to ffprobe executable."""
+    return _get_ffmpeg_tool_path('ffprobe')
 
 def convert_mp3_to_m4a(mp3_file, m4a_file=None):
     """
