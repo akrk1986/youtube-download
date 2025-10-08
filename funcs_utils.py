@@ -441,7 +441,10 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
         cmd = [ytdlp_exe, '--dump-json', '--no-download', sanitized_url]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=SUBPROCESS_TIMEOUT_SECONDS)
         video_info = json.loads(result.stdout)
-        chapters = video_info.get('chapters', [])
+        chapters = video_info.get('chapters')
+        # Handle cases where chapters is None or not a list
+        if not chapters:
+            return 0
         return len(chapters)
     except subprocess.TimeoutExpired:
         logger.warning(f"yt-dlp timed out after {SUBPROCESS_TIMEOUT_SECONDS} seconds for URL '{playlist_url}'")
