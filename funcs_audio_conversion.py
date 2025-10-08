@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 import platform
 
+from project_defs import FFMPEG_TIMEOUT_SECONDS
+
 
 def _get_ffmpeg_tool_path(tool_name: str) -> str:
     """
@@ -104,12 +106,16 @@ def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None)
         result = subprocess.run(
             cmd,
             capture_output=True,
-            check=True
+            check=True,
+            timeout=FFMPEG_TIMEOUT_SECONDS
         )
 
         print(f'  Converted MP3 to M4A: {m4a_file.name}')
         return m4a_file
 
+    except subprocess.TimeoutExpired:
+        print(f'Error: Conversion timed out after {FFMPEG_TIMEOUT_SECONDS} seconds for {mp3_file.name}')
+        return None
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else 'Unknown error'
         print(f'Error converting {mp3_file.name} to M4A: {error_msg}')
@@ -158,12 +164,16 @@ def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None)
         result = subprocess.run(
             cmd,
             capture_output=True,
-            check=True
+            check=True,
+            timeout=FFMPEG_TIMEOUT_SECONDS
         )
 
         print(f'  Converted M4A to MP3: {mp3_file.name}')
         return mp3_file
 
+    except subprocess.TimeoutExpired:
+        print(f'Error: Conversion timed out after {FFMPEG_TIMEOUT_SECONDS} seconds for {m4a_file.name}')
+        return None
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else 'Unknown error'
         print(f'Error converting {m4a_file.name} to MP3: {error_msg}')

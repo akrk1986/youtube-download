@@ -19,6 +19,10 @@ AUDIO_OUTPUT_DIR = 'yt-audio'
 # Logging constants
 MAX_LOG_FILES = 5  # Maximum number of log files to keep
 
+# Subprocess timeout constants (in seconds)
+SUBPROCESS_TIMEOUT_SECONDS = 300  # 5 minutes for yt-dlp operations
+FFMPEG_TIMEOUT_SECONDS = 600  # 10 minutes for audio/video conversion
+
 # Regex patterns
 CHAPTER_FILENAME_PATTERN = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]\.(?:mp3|m4a|MP3|M4A)$'
 LEADING_NONALNUM_PATTERN = r'^[^a-zA-Z0-9\u0370-\u03FF\u05d0-\u05ea]+'

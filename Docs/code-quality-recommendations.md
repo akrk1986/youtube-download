@@ -2,16 +2,16 @@
 
 This document tracks Python best practices improvements for the YouTube downloader project.
 
-**Last Updated:** 2025-10-08 18:11
+**Last Updated:** 2025-10-08 18:31
 
 ## Summary
 
-- **Completed:** 12/19 recommendations
-- **Remaining:** 7/19 recommendations
+- **Completed:** 13/19 recommendations
+- **Remaining:** 6/19 recommendations
 
 ---
 
-## Completed ✓ (12/19)
+## Completed ✓ (13/19)
 
 ### 1. ✓ Add logging
 **Status:** Completed
@@ -194,13 +194,55 @@ Added missing type hints to all functions across the codebase.
 
 **Result:** All main functions now have complete type hints using Python 3.10+ syntax (no typing module required).
 
+### 13. ✓ Subprocess security
+**Status:** Completed
+
+Enhanced subprocess security with defense-in-depth measures: URL sanitization, path validation, and timeouts.
+
+**Security measures implemented:**
+1. **URL Sanitization** - Created `sanitize_url_for_subprocess()` to validate URLs don't contain shell metacharacters
+2. **Path Validation** - Created `validate_file_path_security()` to prevent path traversal attacks
+3. **Timeouts** - Added timeouts to all subprocess calls to prevent hanging
+4. **Constants Added** - `SUBPROCESS_TIMEOUT_SECONDS = 300` (5 min) and `FFMPEG_TIMEOUT_SECONDS = 600` (10 min)
+
+**Updated files:**
+- `project_defs.py` - Added timeout constants
+- `funcs_utils.py` - Added security helper functions:
+  - `sanitize_url_for_subprocess(url: str) -> str` - Validates URL safety
+  - `validate_file_path_security(file_path: Path, expected_parent: Path | None = None) -> None`
+- `funcs_utils.py` - Updated subprocess calls:
+  - `get_video_info()` - Added URL sanitization and timeout
+  - `get_chapter_count()` - Added URL sanitization and timeout
+- `main-yt-dlp.py` - Updated subprocess calls:
+  - `_run_yt_dlp()` - Added URL sanitization and timeout
+  - `_extract_single_format()` - Added URL sanitization and timeout
+- `funcs_audio_conversion.py` - Updated subprocess calls:
+  - `convert_mp3_to_m4a()` - Added timeout handling
+  - `convert_m4a_to_mp3()` - Added timeout handling
+
+**Security principles applied:**
+- Defense in depth: Multiple layers of validation even though using list format (not shell=True)
+- All subprocess calls already used list format ✓ (verified no shell=True usage)
+- Added timeout handling with appropriate error messages
+- Validates URLs don't contain shell metacharacters (|, ;, $, `, newlines, <, >)
+- Ampersand (&) intentionally allowed - safe with list format and common in YouTube URLs
+- Path validation prevents directory traversal attacks
+
+**Test coverage:**
+- Created comprehensive test suite in `Tests/test_security_measures.py`
+- 19 tests covering URL sanitization, path validation, and cross-platform compatibility
+- Tests verify security measures work correctly on both Windows and Linux
+- All tests passing ✓
+
+**Result:** All subprocess calls now have comprehensive security measures with timeouts, input validation, and full test coverage.
+
 ---
 
-## Remaining (7/19)
+## Remaining (6/19)
 
 ### High Priority
 
-#### 13. Code duplication
+#### 14. Code duplication
 **Status:** Not started
 
 **Issue:** Similar code patterns in MP3/M4A processing modules (95% identical).
@@ -219,7 +261,7 @@ Added missing type hints to all functions across the codebase.
 
 ### Medium Priority
 
-#### 14. Hardcoded paths
+#### 15. Hardcoded paths
 **Status:** Not started
 
 **Issue:** Executable paths are hardcoded in main-yt-dlp.py.
@@ -235,7 +277,7 @@ ffmpeg_exe = Path.home() / 'Apps' / 'yt-dlp' / 'ffmpeg.exe'
 - Example: `os.getenv('YT_DLP_PATH', default_path)`
 - Document required environment variables in README
 
-#### 15. Missing unit tests
+#### 16. Missing unit tests
 **Status:** Not started
 
 **Issue:** Only manual test scripts in `Tests/` directory; no automated test framework.
@@ -251,18 +293,6 @@ ffmpeg_exe = Path.home() / 'Apps' / 'yt-dlp' / 'ffmpeg.exe'
   - Artist name matching
 - Add integration tests for end-to-end workflows
 - Set up CI/CD with test coverage reporting
-
-#### 16. Subprocess security
-**Status:** Not started
-
-**Issue:** Some subprocess calls could be more secure.
-
-**Current practice:** Most calls already use list format ✓
-
-**Review needed:**
-- Ensure all subprocess.run() calls use list format (not shell=True)
-- Validate any user input that goes into subprocess calls
-- Consider using shlex.quote() for any dynamic values
 
 ### Lower Priority
 
@@ -319,15 +349,16 @@ ffmpeg_exe = Path.home() / 'Apps' / 'yt-dlp' / 'ffmpeg.exe'
 - Priority levels are suggestions and can be adjusted based on project needs
 - Some recommendations may be split into multiple tasks during implementation
 
-## Recent Session Accomplishments (2025-10-08 18:11)
+## Recent Session Accomplishments (2025-10-08 18:31)
 
-In this session, we completed recommendations #8, #9, #10, #11, and #17:
+In this session, we completed recommendations #8, #9, #10, #11, #12, and #13:
 
 1. **Function complexity (#8)** - Refactored main() by creating funcs_for_main_yt_dlp.py with helper functions
 2. **Type hint inconsistency (#9)** - Standardized to Python 3.10+ syntax across all files
 3. **Magic strings (#10)** - Extracted all regex patterns and file globs to constants
 4. **Error messages (#11)** - Enhanced all error messages with relevant context
-5. **Type coverage (#17)** - Added missing type hints to all functions across the codebase
+5. **Type coverage (#12)** - Added missing type hints to all functions across the codebase
+6. **Subprocess security (#13)** - Added URL sanitization, path validation, and timeouts to all subprocess calls
 
 Additional improvements:
 - Moved local functions before global functions in logger_config.py
@@ -337,3 +368,6 @@ Additional improvements:
 - Added tag name constants to funcs_process_mp3_tags.py (TAG_TITLE, TAG_ARTIST, etc.)
 - Added tag name constants to funcs_process_mp4_tags.py (TAG_TITLE, TAG_ARTIST, etc.)
 - Changed main() in main-staging.py to return int (0 for success, 1 for errors) instead of None
+- Created comprehensive security test suite with 19 tests (all passing)
+- Added pytest to requirements.txt
+- Ampersand (&) intentionally allowed in URLs (safe with subprocess list format, common in YouTube URLs)

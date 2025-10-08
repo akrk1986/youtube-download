@@ -3,3 +3,4 @@ mutagen
 arrow
 yt-dlp
 mypy
+pytest

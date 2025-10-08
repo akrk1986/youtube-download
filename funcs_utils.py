@@ -11,10 +11,69 @@ import emoji
 
 from project_defs import (
     VALID_YOUTUBE_DOMAINS, LEADING_NONALNUM_PATTERN, MULTIPLE_SPACES_PATTERN,
-    GLOB_MP3_FILES, GLOB_M4A_FILES, GLOB_MP3_FILES_UPPER, GLOB_M4A_FILES_UPPER, GLOB_MP4_FILES
+    GLOB_MP3_FILES, GLOB_M4A_FILES, GLOB_MP3_FILES_UPPER, GLOB_M4A_FILES_UPPER, GLOB_MP4_FILES,
+    SUBPROCESS_TIMEOUT_SECONDS
 )
 
 logger = logging.getLogger(__name__)
+
+
+# Security helper functions for subprocess calls
+
+def sanitize_url_for_subprocess(url: str) -> str:
+    """
+    Sanitize URL before passing to subprocess (defense in depth).
+    Even though we use list format (not shell=True), we validate
+    that URLs don't contain shell metacharacters as an extra safety measure.
+
+    Note: Ampersand (&) is NOT blocked because:
+    - It's commonly used in YouTube URLs for query parameters (?v=xxx&t=10s)
+    - With subprocess list format (not shell=True), & is just a regular character
+    - It does NOT enable command chaining when using subprocess.run([cmd, arg1, arg2])
+
+    Args:
+        url: The URL to sanitize
+
+    Returns:
+        The original URL if safe
+
+    Raises:
+        ValueError: If URL contains suspicious characters
+    """
+    # Shell metacharacters that should never appear in a URL
+    # Note: & is intentionally excluded - it's safe with list format and common in URLs
+    shell_metacharacters = {'|', ';', '$', '`', '\n', '\r', '<', '>'}
+
+    if any(char in url for char in shell_metacharacters):
+        raise ValueError(f'URL contains suspicious shell metacharacters: {url}')
+
+    return url
+
+
+def validate_file_path_security(file_path: Path, expected_parent: Path | None = None) -> None:
+    """
+    Validate that a file path is safe to use in subprocess calls.
+    Checks for path traversal attempts and ensures path is within expected directory.
+
+    Args:
+        file_path: Path to validate
+        expected_parent: Optional parent directory that file_path should be within
+
+    Raises:
+        ValueError: If path is suspicious or outside expected parent
+    """
+    try:
+        # Resolve to absolute path to detect '..' traversal
+        resolved_path = file_path.resolve()
+
+        # If expected parent provided, ensure file is within it
+        if expected_parent:
+            expected_parent_resolved = expected_parent.resolve()
+            if not str(resolved_path).startswith(str(expected_parent_resolved)):
+                raise ValueError(f'Path {file_path} is outside expected directory {expected_parent}')
+
+    except (OSError, RuntimeError) as e:
+        raise ValueError(f'Invalid or suspicious file path {file_path}: {e}')
 
 # Greek strings handling, for file names and MP3 titles
 
@@ -286,15 +345,20 @@ def validate_youtube_url(url: str) -> tuple[bool, str]:
 
 def get_video_info(yt_dlp_path: Path, url: str) -> dict[str, any]:
     """Get video information using yt-dlp by requesting the meta-data as JSON, w/o download of the video."""
+    # Security: Validate URL before passing to subprocess
+    sanitized_url = sanitize_url_for_subprocess(url)
+
     cmd = [
         str(yt_dlp_path),
         '--dump-json',
         '--no-download',
-        url
+        sanitized_url
     ]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=SUBPROCESS_TIMEOUT_SECONDS)
         return json.loads(result.stdout)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"yt-dlp timed out after {SUBPROCESS_TIMEOUT_SECONDS} seconds for URL '{url}'")
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f'yt-dlp failed: {e.stderr}')
     except json.JSONDecodeError as e:
@@ -329,11 +393,17 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
         int: Number of chapters (0 if none or error)
     """
     try:
-        cmd = [ytdlp_exe, '--dump-json', '--no-download', playlist_url]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        # Security: Validate URL before passing to subprocess
+        sanitized_url = sanitize_url_for_subprocess(playlist_url)
+
+        cmd = [ytdlp_exe, '--dump-json', '--no-download', sanitized_url]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=SUBPROCESS_TIMEOUT_SECONDS)
         video_info = json.loads(result.stdout)
         chapters = video_info.get('chapters', [])
         return len(chapters)
+    except subprocess.TimeoutExpired:
+        logger.warning(f"yt-dlp timed out after {SUBPROCESS_TIMEOUT_SECONDS} seconds for URL '{playlist_url}'")
+        return 0
     except subprocess.CalledProcessError as e:
         logger.warning(f"Failed to get chapter count for URL '{playlist_url}': {e.stderr}")
         return 0
