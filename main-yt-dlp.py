@@ -14,7 +14,7 @@ from funcs_utils import get_video_info, is_playlist, get_chapter_count
 from project_defs import (
     DEFAULT_AUDIO_QUALITY, DEFAULT_AUDIO_FORMAT, AUDIO_FORMATS,
     YT_DLP_WRITE_JSON_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
-    YT_DLP_IS_PLAYLIST_FLAG
+    YT_DLP_IS_PLAYLIST_FLAG, VIDEO_OUTPUT_DIR, AUDIO_OUTPUT_DIR
 )
 
 logger = logging.getLogger(__name__)
@@ -197,7 +197,7 @@ def main() -> None:
     if system_platform == 'windows':
         if not Path(yt_dlp_exe).exists():
             logger.error(f"YT-DLP executable not found at path '{yt_dlp_exe}'")
-            logger.error("Please ensure yt-dlp is installed in ~/Apps/yt-dlp/")
+            logger.error(f"Please ensure yt-dlp is installed in '{yt_dlp_dir}'")
             sys.exit(1)
     else:
         # For Linux/Mac, check if commands are available in PATH
@@ -212,8 +212,8 @@ def main() -> None:
     args.playlist_url = validate_and_get_url(args.playlist_url)
     logger.info(f'Processing URL: {args.playlist_url}')
 
-    video_folder = os.path.abspath('yt-videos')
-    audio_folder = os.path.abspath('yt-audio')
+    video_folder = os.path.abspath(VIDEO_OUTPUT_DIR)
+    audio_folder = os.path.abspath(AUDIO_OUTPUT_DIR)
     if not args.only_audio:
         os.makedirs(video_folder, exist_ok=True)
     if need_audio:

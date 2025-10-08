@@ -12,6 +12,10 @@ VALID_YOUTUBE_DOMAINS = ('youtube.com', 'www.youtube.com', 'm.youtube.com', 'you
 # File processing constants
 MAX_ALBUM_NAME_LENGTH = 64
 
+# Output directories
+VIDEO_OUTPUT_DIR = 'yt-videos'
+AUDIO_OUTPUT_DIR = 'yt-audio'
+
 # Logging constants
 MAX_LOG_FILES = 5  # Maximum number of log files to keep
 

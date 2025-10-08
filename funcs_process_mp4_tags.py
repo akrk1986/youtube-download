@@ -6,6 +6,7 @@ from mutagen import MutagenError
 from funcs_process_audio_tags_common import extract_chapter_info, sanitize_album_name
 from funcs_artist_search import load_artists, find_artists_in_string
 from funcs_utils import sanitize_string
+from project_defs import GLOB_M4A_FILES
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
        If found, set the MP4 tags 'artist' and 'album artist' to the artist name(s).
     """
     artists = load_artists(artists_json_path=artists_json)
-    for m4a_file in m4a_folder.glob('*.m4a'):
+    for m4a_file in m4a_folder.glob(GLOB_M4A_FILES):
         try:
             audio = MP4(m4a_file)
         except MutagenError as e:
@@ -86,7 +87,7 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_
     :return: # of files whose title was modified
     """
     ctr = 0
-    for m4a_file in m4a_folder.glob('*.m4a'):
+    for m4a_file in m4a_folder.glob(GLOB_M4A_FILES):
         try:
             audio = MP4(m4a_file)
         except MutagenError as e:

@@ -7,6 +7,7 @@ from mutagen import MutagenError
 from funcs_process_audio_tags_common import extract_chapter_info, sanitize_album_name
 from funcs_artist_search import load_artists, find_artists_in_string
 from funcs_utils import sanitize_string
+from project_defs import GLOB_MP3_FILES
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
        If found, set the ID3 tags 'artist' and 'album artist' to the artist name(s).
     """
     artists = load_artists(artists_json_path=artists_json)
-    for mp3_file in mp3_folder.glob('*.mp3'):
+    for mp3_file in mp3_folder.glob(GLOB_MP3_FILES):
         try:
             audio = EasyID3(mp3_file)
         except ID3NoHeaderError:
@@ -66,7 +67,7 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_
     :return: # of files whose title was modified
     """
     ctr = 0
-    for mp3_file in mp3_folder.glob('*.mp3'):
+    for mp3_file in mp3_folder.glob(GLOB_MP3_FILES):
         try:
             audio = EasyID3(mp3_file)
         except ID3NoHeaderError:
