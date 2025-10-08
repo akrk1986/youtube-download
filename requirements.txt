@@ -2,3 +2,4 @@ emoji
 mutagen
 arrow
 yt-dlp
+mypy
