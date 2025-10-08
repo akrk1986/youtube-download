@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-from project_defs import MAX_LOG_FILES
+from project_defs import MAX_LOG_FILES, GLOB_LOG_FILES
 
 
 def _cleanup_old_logs(log_dir: Path) -> None:
@@ -15,7 +15,7 @@ def _cleanup_old_logs(log_dir: Path) -> None:
         log_dir: Directory containing log files
     """
     # Get all log files matching our pattern
-    log_files = sorted(log_dir.glob('yt-dlp_*.log'), key=lambda p: p.stat().st_mtime, reverse=True)
+    log_files = sorted(log_dir.glob(GLOB_LOG_FILES), key=lambda p: p.stat().st_mtime, reverse=True)
 
     # Keep only the most recent MAX_LOG_FILES - 1 (to make room for the new one)
     files_to_keep = MAX_LOG_FILES - 1

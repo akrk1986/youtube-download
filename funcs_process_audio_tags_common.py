@@ -3,7 +3,7 @@ import re
 import logging
 import unicodedata
 
-from project_defs import MAX_ALBUM_NAME_LENGTH
+from project_defs import MAX_ALBUM_NAME_LENGTH, CHAPTER_FILENAME_PATTERN
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +79,7 @@ def extract_chapter_info(file_name: str) -> tuple[str | None, str | None, str | 
     - song number
     - song name.
     """
-    pattern = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]\.(?:mp3|m4a|MP3|M4A)$'
-    match = re.match(pattern, file_name)
+    match = re.match(CHAPTER_FILENAME_PATTERN, file_name)
     if not match:
         logger.debug(f"File name '{file_name}' does not match the chapter pattern, skipped")
         return None, None, None

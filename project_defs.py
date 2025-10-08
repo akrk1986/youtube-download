@@ -15,6 +15,26 @@ MAX_ALBUM_NAME_LENGTH = 64
 # Logging constants
 MAX_LOG_FILES = 5  # Maximum number of log files to keep
 
+# Regex patterns
+CHAPTER_FILENAME_PATTERN = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]\.(?:mp3|m4a|MP3|M4A)$'
+LEADING_NONALNUM_PATTERN = r'^[^a-zA-Z0-9\u0370-\u03FF\u05d0-\u05ea]+'
+MULTIPLE_SPACES_PATTERN = r'\s+'
+CHAPTER_TIMESTAMP_PATTERNS = (
+    r'(\d{1,2}:\d{2}(?::\d{2})?)\s*[-–—]\s*(.+?)(?=\n|$)',  # 12:34 - Chapter Name
+    r'(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+?)(?=\n|$)',  # 12:34 Chapter Name
+    r'(\d{1,2}:\d{2}(?::\d{2})?)\s*[:\-–—]\s*(.+?)(?=\n|$)',  # 12:34: Chapter Name
+)
+SAFE_FILENAME_PATTERN = r'[^\w\s-]'
+WHITESPACE_TO_UNDERSCORE_PATTERN = r'[-\s]+'
+
+# File glob patterns
+GLOB_MP3_FILES = '*.mp3'
+GLOB_M4A_FILES = '*.m4a'
+GLOB_MP3_FILES_UPPER = '*.MP3'
+GLOB_M4A_FILES_UPPER = '*.M4A'
+GLOB_MP4_FILES = '*.mp4'
+GLOB_LOG_FILES = 'yt-dlp_*.log'
+
 # yt-dlp command-line flags
 YT_DLP_WRITE_JSON_FLAG = '--write-info-json'
 YT_DLP_SPLIT_CHAPTERS_FLAG = '--split-chapters'

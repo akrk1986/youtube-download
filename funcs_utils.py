@@ -9,14 +9,17 @@ import json
 import yt_dlp
 import emoji
 
-from project_defs import VALID_YOUTUBE_DOMAINS
+from project_defs import (
+    VALID_YOUTUBE_DOMAINS, LEADING_NONALNUM_PATTERN, MULTIPLE_SPACES_PATTERN,
+    GLOB_MP3_FILES, GLOB_M4A_FILES, GLOB_MP3_FILES_UPPER, GLOB_M4A_FILES_UPPER, GLOB_MP4_FILES
+)
 
 logger = logging.getLogger(__name__)
 
 # Greek strings handling, for file names and MP3 titles
 
 # Regex: remove leading non-alphanumeric characters (English+Greek+Hebrew), including spaces
-pattern = re.compile(r'^[^a-zA-Z0-9\u0370-\u03FF\u05d0-\u05ea]+')
+pattern = re.compile(LEADING_NONALNUM_PATTERN)
 
 def sanitize_string(dirty_string: str) -> str:
     """
@@ -72,7 +75,7 @@ def sanitize_string(dirty_string: str) -> str:
     name_part = pattern.sub('', name_part)
 
     # 4. Compress multiple spaces into one
-    name_part = re.sub(r'\s+', ' ', name_part)
+    name_part = re.sub(MULTIPLE_SPACES_PATTERN, ' ', name_part)
 
     # 5. Remove leading and trailing spaces
     name_part = name_part.strip()
@@ -137,10 +140,10 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
     moved_files = {'mp3': [], 'mp4': [], 'm4a': [], 'errors': []}
 
     # Get all audio-like files including case variations
-    audio_files = (list(current_dir.glob('*.mp3')) +
-                   list(current_dir.glob('*.m4a')) +
-                   list(current_dir.glob('*.MP3')) +
-                   list(current_dir.glob('*.M4A')))
+    audio_files = (list(current_dir.glob(GLOB_MP3_FILES)) +
+                   list(current_dir.glob(GLOB_M4A_FILES)) +
+                   list(current_dir.glob(GLOB_MP3_FILES_UPPER)) +
+                   list(current_dir.glob(GLOB_M4A_FILES_UPPER)))
 
     # Find and move MP3/M4A files to their respective subfolders
     for audio_file in audio_files:
@@ -170,7 +173,7 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
             logger.error(error_msg)
 
     # Find and move MP4 files
-    for mp4_file in current_dir.glob('*.mp4'):
+    for mp4_file in current_dir.glob(GLOB_MP4_FILES):
         try:
             destination = video_dir / mp4_file.name
             shutil.move(str(mp4_file), str(destination))
@@ -205,7 +208,7 @@ def organize_media_files_silent() -> dict:
 
     moved_files = {'mp3': [], 'mp4': [], 'm4a': [], 'errors': []}
 
-    audio_files = list(current_dir.glob('*.mp3')) + list(current_dir.glob('*.m4a'))
+    audio_files = list(current_dir.glob(GLOB_MP3_FILES)) + list(current_dir.glob(GLOB_M4A_FILES))
 
     # Move MP3 files
     for audio_file in audio_files:
@@ -220,7 +223,7 @@ def organize_media_files_silent() -> dict:
             moved_files['errors'].append(f'Error moving {audio_file.name}: {str(e)}')
 
     # Move MP4 files
-    for mp4_file in current_dir.glob('*.mp4'):
+    for mp4_file in current_dir.glob(GLOB_MP4_FILES):
         try:
             destination = video_dir / mp4_file.name
             shutil.move(str(mp4_file), str(destination))

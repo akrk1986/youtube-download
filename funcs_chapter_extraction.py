@@ -4,6 +4,7 @@ import logging
 import re
 from pathlib import Path
 from funcs_utils import get_video_info
+from project_defs import CHAPTER_TIMESTAMP_PATTERNS, SAFE_FILENAME_PATTERN, WHITESPACE_TO_UNDERSCORE_PATTERN
 
 logger = logging.getLogger(__name__)
 
@@ -24,14 +25,7 @@ def _extract_chapters_from_description(description: str) -> list[dict[str, any]]
     """Extract chapters from video description using regex patterns."""
     chapters = []
 
-    # Common patterns for chapter timestamps in descriptions
-    patterns = [
-        r'(\d{1,2}:\d{2}(?::\d{2})?)\s*[-–—]\s*(.+?)(?=\n|$)',  # 12:34 - Chapter Name
-        r'(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+?)(?=\n|$)',  # 12:34 Chapter Name
-        r'(\d{1,2}:\d{2}(?::\d{2})?)\s*[:\-–—]\s*(.+?)(?=\n|$)',  # 12:34: Chapter Name
-    ]
-
-    for pattern in patterns:
+    for pattern in CHAPTER_TIMESTAMP_PATTERNS:
         matches = re.findall(pattern, description, re.MULTILINE | re.IGNORECASE)
         if matches:
             for i, (time_str, title) in enumerate(matches):
@@ -90,8 +84,8 @@ def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> str | None:
         return None
 
     # Create CSV filename based on video title
-    safe_title = re.sub(r'[^\w\s-]', '', video_title).strip()
-    safe_title = re.sub(r'[-\s]+', '_', safe_title)
+    safe_title = re.sub(SAFE_FILENAME_PATTERN, '', video_title).strip()
+    safe_title = re.sub(WHITESPACE_TO_UNDERSCORE_PATTERN, '_', safe_title)
     csv_filename = f'{safe_title}_chapters.csv'
 
     # Write chapters to CSV
