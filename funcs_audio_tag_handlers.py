@@ -8,7 +8,7 @@ from typing import Any
 import logging
 
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3NoHeaderError
+from mutagen.id3 import ID3, ID3NoHeaderError, TENC
 from mutagen.mp4 import MP4
 from mutagen import MutagenError
 
@@ -68,6 +68,11 @@ class AudioTagHandler(ABC):
         """Check if audio has a non-empty track number."""
         pass
 
+    @abstractmethod
+    def set_original_filename(self, audio: Any, file_path: Path) -> None:
+        """Store the original filename in format-specific tag."""
+        pass
+
 
 class MP3TagHandler(AudioTagHandler):
     """Handler for MP3 files using EasyID3."""
@@ -123,6 +128,21 @@ class MP3TagHandler(AudioTagHandler):
         """Check if MP3 has a non-empty track number."""
         return bool(self.TAG_TRACKNUMBER in audio and audio[self.TAG_TRACKNUMBER])
 
+    def set_original_filename(self, audio: EasyID3, file_path: Path) -> None:
+        """
+        Store the original filename in TENC (Encoded by) tag.
+        Note: This method saves the file because TENC requires direct ID3 access.
+        """
+        # Save EasyID3 first to ensure tags are written
+        audio.save(file_path)
+        # Then use ID3 (not EasyID3) to access TENC frame
+        id3 = ID3(file_path)
+        # TENC frame: encoding, text (the filename)
+        id3.add(TENC(encoding=3, text=file_path.name))
+        id3.save(file_path)
+        # Reload the audio object to reflect the changes
+        audio.load(file_path)
+
 
 class M4ATagHandler(AudioTagHandler):
     """Handler for M4A files using MP4."""
@@ -134,6 +154,7 @@ class M4ATagHandler(AudioTagHandler):
     TAG_ALBUM = '\xa9alb'
     TAG_DATE = '\xa9day'
     TAG_TRACKNUMBER = 'trkn'
+    TAG_LYRICS = '\xa9lyr'
 
     def open_audio_file(self, file_path: Path) -> MP4:
         """Open an M4A file and return the MP4 object."""
@@ -183,3 +204,7 @@ class M4ATagHandler(AudioTagHandler):
     def has_track_number(self, audio: MP4) -> bool:
         """Check if M4A has a non-empty track number."""
         return bool(self.TAG_TRACKNUMBER in audio and audio[self.TAG_TRACKNUMBER])
+
+    def set_original_filename(self, audio: MP4, file_path: Path) -> None:
+        """Store the original filename in ©lyr tag (lyrics)."""
+        audio[self.TAG_LYRICS] = [file_path.name]

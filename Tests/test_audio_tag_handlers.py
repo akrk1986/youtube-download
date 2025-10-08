@@ -63,6 +63,7 @@ def test_handler_interface():
         'get_file_glob',
         'handle_format_specific_tasks',
         'has_track_number',
+        'set_original_filename',
     ]
 
     for method_name in required_methods:

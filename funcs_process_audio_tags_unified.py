@@ -72,6 +72,9 @@ def set_artists_in_audio_files(audio_folder: Path, artists_json: Path, handler: 
             handler.set_tag(audio, handler.TAG_TITLE, clean_title)
 
         if count > 0 or upd_title or upd_format_specific or upd_track:
+            # Save original filename (MP3 saves internally, M4A just sets tag)
+            handler.set_original_filename(audio, audio_file)
+            # Save audio file (for M4A this saves; for MP3 this is redundant but harmless)
             handler.save_audio_file(audio, audio_file)
             logger.info(f"Updated {audio_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
         else:
@@ -145,6 +148,9 @@ def set_tags_in_chapter_audio_files(
                     handler.set_tag(audio, handler.TAG_ALBUM, sanitized_album)
                     logger.info(f"Set album to sanitized video title '{sanitized_album}' for chapter file")
 
+            # Save original filename (MP3 saves internally, M4A just sets tag)
+            handler.set_original_filename(audio, audio_file)
+            # Save audio file (for M4A this saves; for MP3 this is redundant but harmless)
             handler.save_audio_file(audio, audio_file)
             ctr += 1
         except Exception as e:
