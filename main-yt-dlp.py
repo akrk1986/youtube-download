@@ -190,13 +190,18 @@ def main() -> None:
 
     # Verify executables exist
     if system_platform == 'windows':
-        assert Path(yt_dlp_exe).exists(), f"YT-DLP executable not found at '{yt_dlp_exe}'"
+        if not Path(yt_dlp_exe).exists():
+            logger.error(f"YT-DLP executable not found at '{yt_dlp_exe}'")
+            logger.error('Please ensure yt-dlp is installed in ~/Apps/yt-dlp/')
+            sys.exit(1)
     else:
         # For Linux/Mac, check if commands are available in PATH
         try:
             subprocess.run([yt_dlp_exe, '--version'], capture_output=True, check=True)
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            raise AssertionError(f'YT-DLP not found in PATH. Install with: pip install yt-dlp')
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            logger.error(f'YT-DLP not found in PATH: {e}')
+            logger.error('Install with: pip install yt-dlp')
+            sys.exit(1)
 
     # Validate and prompt for playlist/video URL if not provided
     MAX_URL_RETRIES = 3
