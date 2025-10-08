@@ -2,16 +2,16 @@
 
 This document tracks Python best practices improvements for the YouTube downloader project.
 
-**Last Updated:** 2025-10-08 18:31
+**Last Updated:** 2025-10-08 18:59
 
 ## Summary
 
-- **Completed:** 13/19 recommendations
-- **Remaining:** 6/19 recommendations
+- **Completed:** 14/19 recommendations
+- **Remaining:** 5/19 recommendations
 
 ---
 
-## Completed ✓ (13/19)
+## Completed ✓ (14/19)
 
 ### 1. ✓ Add logging
 **Status:** Completed
@@ -236,28 +236,58 @@ Enhanced subprocess security with defense-in-depth measures: URL sanitization, p
 
 **Result:** All subprocess calls now have comprehensive security measures with timeouts, input validation, and full test coverage.
 
+### 14. ✓ Code duplication
+**Status:** Completed
+
+Eliminated ~173 lines of duplicated code between MP3 and M4A processing using strategy pattern.
+
+**Problem:** MP3 and M4A tag processing modules contained 95% identical code with only format-specific differences.
+
+**Solution:** Implemented strategy pattern with handler classes:
+- Created `AudioTagHandler` abstract base class
+- Implemented `MP3TagHandler` for EasyID3 operations
+- Implemented `M4ATagHandler` for MP4 operations
+- Created unified processing functions that work with any handler
+
+**Files created:**
+- `funcs_audio_tag_handlers.py` - Handler base class and implementations (197 lines)
+- `funcs_process_audio_tags_unified.py` - Unified processing logic (164 lines)
+- `Tests/test_audio_tag_handlers.py` - Handler tests (all passing)
+
+**Files refactored:**
+- `funcs_process_mp3_tags.py` - Reduced from 126 to 53 lines (-73 lines, -58%)
+- `funcs_process_mp4_tags.py` - Reduced from 154 to 54 lines (-100 lines, -65%)
+
+**Benefits:**
+- Eliminated ~173 lines of duplicated code
+- Single source of truth for audio tag processing logic
+- Adding new formats now trivial (just create new handler)
+- Zero breaking changes - existing API preserved
+- Better testability - handlers can be tested independently
+- Bug fixes now apply to all formats automatically
+
+**Architecture:**
+```
+AudioTagHandler (abstract)
+├── MP3TagHandler (EasyID3-specific)
+└── M4ATagHandler (MP4-specific)
+
+Unified functions:
+- set_artists_in_audio_files(folder, artists_json, handler)
+- set_tags_in_chapter_audio_files(folder, handler, uploader, video_title)
+
+Public API (unchanged):
+- set_artists_in_mp3_files() → calls unified function with MP3Handler
+- set_tags_in_chapter_mp3_files() → calls unified function with MP3Handler
+- set_artists_in_m4a_files() → calls unified function with M4AHandler
+- set_tags_in_chapter_m4a_files() → calls unified function with M4AHandler
+```
+
+**Result:** Code duplication eliminated, maintainability improved, no breaking changes to existing callers.
+
 ---
 
-## Remaining (6/19)
-
-### High Priority
-
-#### 14. Code duplication
-**Status:** Not started
-
-**Issue:** Similar code patterns in MP3/M4A processing modules (95% identical).
-
-**Duplicated functions:**
-- `set_artists_in_mp3_files()` vs `set_artists_in_m4a_files()`
-- `set_tags_in_chapter_mp3_files()` vs `set_tags_in_chapter_m4a_files()`
-
-**Suggested solution:**
-- Create generic `set_artists_in_audio_files(audio_format)` function
-- Create generic `set_tags_in_chapter_audio_files(audio_format)` function
-- Use polymorphism or strategy pattern for format-specific operations
-- Tag constants already defined locally (TAG_TITLE, TAG_ARTIST, etc.)
-
-**Note:** Tag name constants are now defined in each file, making unification easier.
+## Remaining (5/19)
 
 ### Medium Priority
 
@@ -349,7 +379,43 @@ ffmpeg_exe = Path.home() / 'Apps' / 'yt-dlp' / 'ffmpeg.exe'
 - Priority levels are suggestions and can be adjusted based on project needs
 - Some recommendations may be split into multiple tasks during implementation
 
-## Recent Session Accomplishments (2025-10-08 18:31)
+## Session: 2025-10-08 18:59
+
+Completed recommendation #14 (Code duplication):
+
+**Accomplishment:** Eliminated code duplication between MP3 and M4A processing modules using strategy pattern.
+
+**Changes made:**
+- Created `funcs_audio_tag_handlers.py` with `AudioTagHandler` abstract base class
+- Implemented `MP3TagHandler` and `M4ATagHandler` concrete implementations
+- Created `funcs_process_audio_tags_unified.py` with unified processing functions
+- Refactored `funcs_process_mp3_tags.py` - reduced from 126 to 53 lines (-58%)
+- Refactored `funcs_process_mp4_tags.py` - reduced from 154 to 54 lines (-65%)
+- Created `Tests/test_audio_tag_handlers.py` - all tests passing
+- Total code reduction: ~173 lines of duplicated code eliminated
+
+**Impact:**
+- Single source of truth for audio tag processing logic
+- Zero breaking changes - existing API preserved
+- Adding new audio formats now trivial
+- Better testability and maintainability
+
+---
+
+## Session: 2025-10-08 18:31
+
+Completed security test suite for recommendation #13:
+
+**Changes made:**
+- Created comprehensive test suite `Tests/test_security_measures.py` (19 tests)
+- Removed ampersand (&) from blocked characters (safe with subprocess list format)
+- Updated `funcs_utils.py` to document why & is allowed
+- Added pytest to requirements.txt
+- All tests passing on Linux (cross-platform compatible)
+
+---
+
+## Session: 2025-10-08 18:18
 
 In this session, we completed recommendations #8, #9, #10, #11, #12, and #13:
 
