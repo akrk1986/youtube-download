@@ -11,6 +11,13 @@ from project_defs import GLOB_MP3_FILES
 
 logger = logging.getLogger(__name__)
 
+# ID3 tag name constants
+TAG_TITLE = 'title'
+TAG_ARTIST = 'artist'
+TAG_ALBUMARTIST = 'albumartist'
+TAG_ALBUM = 'album'
+TAG_TRACKNUMBER = 'tracknumber'
+
 
 def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
     """Based on artists list loaded from an external file, scan the MP3 file title,
@@ -24,7 +31,7 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
         except ID3NoHeaderError:
             # If no ID3 tag exists, create one
             audio = EasyID3()
-        title = audio.get('title', [''])[0]
+        title = audio.get(TAG_TITLE, [''])[0]
         if not title:
             logger.warning(f"Skipping MP3 file '{mp3_file.name}' in folder '{mp3_folder}': No Title tag found")
             continue
@@ -34,21 +41,21 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
         # Look for known artists in title
         count, artist_string = find_artists_in_string(title, artists)
         if count > 0:
-            audio['artist'] = [artist_string]
-            audio['albumartist'] = [artist_string]
+            audio[TAG_ARTIST] = [artist_string]
+            audio[TAG_ALBUMARTIST] = [artist_string]
         else:
-            art = audio.get('artist')
-            alb_art = audio.get('albumartist')
+            art = audio.get(TAG_ARTIST)
+            alb_art = audio.get(TAG_ALBUMARTIST)
             logger.debug(f"No known artist in title, a/aa tags='{art}'/'{alb_art}'")
 
         # Clear track number for non-chapter files (single videos and playlists)
         upd_track = False
-        if 'tracknumber' in audio and audio['tracknumber']:
-            audio['tracknumber'] = ['']  # Clear track number
+        if TAG_TRACKNUMBER in audio and audio[TAG_TRACKNUMBER]:
+            audio[TAG_TRACKNUMBER] = ['']  # Clear track number
             upd_track = True
 
         if upd_title:
-            audio['title'] = clean_title
+            audio[TAG_TITLE] = clean_title
         if count > 0 or upd_title or upd_track:
             audio.save(mp3_file)
             logger.info(f"Updated {mp3_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
@@ -87,26 +94,26 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_
         if song_name is None:
             continue
         try:
-            audio['title'] = song_name
+            audio[TAG_TITLE] = song_name
             if song_number:
-                audio['tracknumber'] = str(int(song_number))
+                audio[TAG_TRACKNUMBER] = str(int(song_number))
 
             # If no artist is set and we have an uploader, use uploader as artist
-            current_artist = audio.get('artist', [''])
-            current_albumartist = audio.get('albumartist', [''])
+            current_artist = audio.get(TAG_ARTIST, [''])
+            current_albumartist = audio.get(TAG_ALBUMARTIST, [''])
 
             if (not current_artist or current_artist == [''] or current_artist == ['NA']) and uploader:
-                audio['artist'] = [uploader]
-                audio['albumartist'] = [uploader]
+                audio[TAG_ARTIST] = [uploader]
+                audio[TAG_ALBUMARTIST] = [uploader]
                 logger.info(f"Set artist/albumartist to uploader '{uploader}' for chapter file")
 
             # If no album is set and we have a video title, use sanitized video title as album
-            current_album = audio.get('album', [''])
+            current_album = audio.get(TAG_ALBUM, [''])
 
             if (not current_album or current_album == [''] or current_album == ['NA']) and video_title:
                 sanitized_album = sanitize_album_name(video_title)
                 if sanitized_album:
-                    audio['album'] = [sanitized_album]
+                    audio[TAG_ALBUM] = [sanitized_album]
                     logger.info(f"Set album to sanitized video title '{sanitized_album}' for chapter file")
 
             audio.save(mp3_file)

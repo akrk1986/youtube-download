@@ -10,6 +10,14 @@ from project_defs import GLOB_M4A_FILES
 
 logger = logging.getLogger(__name__)
 
+# M4A/MP4 tag name constants (using Apple's atom names)
+TAG_TITLE = '\xa9nam'
+TAG_ARTIST = '\xa9ART'
+TAG_ALBUMARTIST = 'aART'
+TAG_ALBUM = '\xa9alb'
+TAG_DATE = '\xa9day'
+TAG_TRACKNUMBER = 'trkn'
+
 
 def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
     """Based on artists list loaded from an external file, scan the M4A file title,
@@ -29,7 +37,7 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
             logger.error(f"Unexpected error reading M4A file '{m4a_file.name}' in folder '{m4a_folder}': {e}")
             continue
 
-        title_list = audio.get('\xa9nam', [])
+        title_list = audio.get(TAG_TITLE, [])
         title = title_list[0] if title_list else ''
         if not title:
             logger.warning(f"Skipping M4A file '{m4a_file.name}' in folder '{m4a_folder}': No Title tag found")
@@ -40,35 +48,35 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
         upd_title = clean_title != title
 
         # Fix year format: convert YYYYMMDD to YYYY if needed
-        date_list = audio.get('\xa9day', [])
+        date_list = audio.get(TAG_DATE, [])
         upd_date = False
         if date_list:
             date_str = str(date_list[0])
             # If date is in YYYYMMDD format (8 digits), extract just the year (first 4 digits)
             if len(date_str) == 8 and date_str.isdigit():
                 year = date_str[:4]
-                audio['\xa9day'] = [year]
+                audio[TAG_DATE] = [year]
                 upd_date = True
                 logger.info(f'Fixed date format: {date_str} -> {year}')
 
         # Look for known artists in title
         count, artist_string = find_artists_in_string(title, artists)
         if count > 0:
-            audio['\xa9ART'] = [artist_string]
-            audio['aART'] = [artist_string]
+            audio[TAG_ARTIST] = [artist_string]
+            audio[TAG_ALBUMARTIST] = [artist_string]
         else:
-            art = audio.get('\xa9ART', [])
-            alb_art = audio.get('aART', [])
+            art = audio.get(TAG_ARTIST, [])
+            alb_art = audio.get(TAG_ALBUMARTIST, [])
             logger.debug(f"No known artist in title, a/aa tags='{art}'/'{alb_art}'")
 
         # Clear track number for non-chapter files (single videos and playlists)
         upd_track = False
-        if 'trkn' in audio and audio['trkn']:
-            audio['trkn'] = []  # Clear track number
+        if TAG_TRACKNUMBER in audio and audio[TAG_TRACKNUMBER]:
+            audio[TAG_TRACKNUMBER] = []  # Clear track number
             upd_track = True
 
         if upd_title:
-            audio['\xa9nam'] = [clean_title]
+            audio[TAG_TITLE] = [clean_title]
         if count > 0 or upd_title or upd_date or upd_track:
             audio.save(m4a_file)
             logger.info(f"Updated {m4a_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
@@ -104,36 +112,36 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_
         if song_name is None:
             continue
         try:
-            audio['\xa9nam'] = [song_name]
+            audio[TAG_TITLE] = [song_name]
             if song_number:
-                audio['trkn'] = [(int(song_number), 0)]
+                audio[TAG_TRACKNUMBER] = [(int(song_number), 0)]
 
             # Fix year format: convert YYYYMMDD to YYYY if needed
-            date_list = audio.get('\xa9day', [])
+            date_list = audio.get(TAG_DATE, [])
             if date_list:
                 date_str = str(date_list[0])
                 # If date is in YYYYMMDD format (8 digits), extract just the year (first 4 digits)
                 if len(date_str) == 8 and date_str.isdigit():
                     year = date_str[:4]
-                    audio['\xa9day'] = [year]
+                    audio[TAG_DATE] = [year]
                     logger.info(f'Fixed date format: {date_str} -> {year}')
 
             # If no artist is set and we have an uploader, use uploader as artist
-            current_artist = audio.get('\xa9ART', [])
-            current_albumartist = audio.get('aART', [])
+            current_artist = audio.get(TAG_ARTIST, [])
+            current_albumartist = audio.get(TAG_ALBUMARTIST, [])
 
             if (not current_artist or current_artist == [''] or current_artist == ['NA']) and uploader:
-                audio['\xa9ART'] = [uploader]
-                audio['aART'] = [uploader]
+                audio[TAG_ARTIST] = [uploader]
+                audio[TAG_ALBUMARTIST] = [uploader]
                 logger.info(f"Set artist/albumartist to uploader '{uploader}' for chapter file")
 
             # If no album is set and we have a video title, use sanitized video title as album
-            current_album = audio.get('\xa9alb', [])
+            current_album = audio.get(TAG_ALBUM, [])
 
             if (not current_album or current_album == [''] or current_album == ['NA']) and video_title:
                 sanitized_album = sanitize_album_name(video_title)
                 if sanitized_album:
-                    audio['\xa9alb'] = [sanitized_album]
+                    audio[TAG_ALBUM] = [sanitized_album]
                     logger.info(f"Set album to sanitized video title '{sanitized_album}' for chapter file")
 
             audio.save(m4a_file)
