@@ -10,6 +10,8 @@ from typing import Dict, Any
 import yt_dlp
 import emoji
 
+from project_defs import VALID_YOUTUBE_DOMAINS
+
 logger = logging.getLogger(__name__)
 
 # Greek strings handling, for file names and MP3 titles
@@ -272,8 +274,7 @@ def validate_youtube_url(url: str) -> tuple[bool, str]:
             return False, f"Invalid URL scheme '{parsed.scheme}'. Must be http or https"
 
         # Check domain
-        valid_domains = ('youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be')
-        if not any(domain in parsed.netloc for domain in valid_domains):
+        if not any(domain in parsed.netloc for domain in VALID_YOUTUBE_DOMAINS):
             return False, f"Invalid domain '{parsed.netloc}'. Must be a YouTube URL"
 
         return True, ''

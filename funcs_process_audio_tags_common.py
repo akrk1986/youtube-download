@@ -4,6 +4,8 @@ import logging
 import unicodedata
 from typing import Tuple
 
+from project_defs import MAX_ALBUM_NAME_LENGTH
+
 logger = logging.getLogger(__name__)
 
 
@@ -115,8 +117,8 @@ def sanitize_album_name(title: str) -> str:
     # Apply filename sanitization (removes special chars, etc.)
     sanitized = _sanitize_filename(no_emojis)
 
-    # Limit to 64 characters
-    if len(sanitized) > 64:
-        sanitized = sanitized[:64].rstrip()
+    # Limit to maximum album name length
+    if len(sanitized) > MAX_ALBUM_NAME_LENGTH:
+        sanitized = sanitized[:MAX_ALBUM_NAME_LENGTH].rstrip()
 
     return sanitized

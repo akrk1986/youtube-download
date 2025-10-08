@@ -13,13 +13,13 @@ from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter
 from funcs_process_mp4_tags import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
 from funcs_utils import (organize_media_files, get_video_info, is_playlist, get_chapter_count,
                          sanitize_filenames_in_folder, validate_youtube_url)
+from project_defs import (
+    DEFAULT_AUDIO_QUALITY, DEFAULT_AUDIO_FORMAT, AUDIO_FORMATS, MAX_URL_RETRIES,
+    VALID_YOUTUBE_DOMAINS, YT_DLP_WRITE_JSON_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
+    YT_DLP_IS_PLAYLIST_FLAG, GREEK_PLAYLIST_URL
+)
 
 logger = logging.getLogger(__name__)
-
-greek_to_dl_playlist_url = 'https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE'
-yt_dlp_write_json_flag = '--write-info-json'
-yt_dlp_split_chapters_flag = '--split-chapters'
-yt_dlp_is_playlist_flag = '--yes-playlist'
 
 def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: bool,
                write_json: bool, has_chapters: bool, split_chapters: bool, is_it_playlist: bool) -> None:
@@ -32,11 +32,11 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: 
         playlist_url
     ]
     if is_it_playlist:
-        yt_dlp_cmd[1:1] = [yt_dlp_is_playlist_flag]
+        yt_dlp_cmd[1:1] = [YT_DLP_IS_PLAYLIST_FLAG]
     if write_json:
-        yt_dlp_cmd[1:1] = [yt_dlp_write_json_flag]
+        yt_dlp_cmd[1:1] = [YT_DLP_WRITE_JSON_FLAG]
     if split_chapters and has_chapters:
-        yt_dlp_cmd[1:1] = [yt_dlp_split_chapters_flag]
+        yt_dlp_cmd[1:1] = [YT_DLP_SPLIT_CHAPTERS_FLAG]
     if get_subs:
         # Extract subtitles in Greek, English, Hebrew
         yt_dlp_cmd[1:1] = [
@@ -77,7 +77,7 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
         '-f', 'bestaudio/best',
         '--extract-audio',
         '--audio-format', format_type,
-        '--audio-quality', '192k',
+        '--audio-quality', DEFAULT_AUDIO_QUALITY,
         '--embed-metadata',
         '--add-metadata',
         '--embed-thumbnail',
@@ -86,13 +86,13 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
     ]
 
     if is_it_playlist:
-        yt_dlp_cmd[1:1] = [yt_dlp_is_playlist_flag]
+        yt_dlp_cmd[1:1] = [YT_DLP_IS_PLAYLIST_FLAG]
     if artist_pat and album_artist_pat:
         yt_dlp_cmd[1:1] = ['--parse-metadata', artist_pat,
                            '--parse-metadata', album_artist_pat,
                            ]
     if split_chapters and has_chapters:
-        yt_dlp_cmd[1:1] = [yt_dlp_split_chapters_flag]
+        yt_dlp_cmd[1:1] = [YT_DLP_SPLIT_CHAPTERS_FLAG]
 
     logger.info(f'Downloading and extracting {format_type.upper()} audio with yt-dlp')
     logger.info(f'Command: {yt_dlp_cmd}')
@@ -158,7 +158,7 @@ def main() -> None:
         description='Download YouTube playlist/video, optionally with subtitles.')
     parser.add_argument('playlist_url', nargs='?', help='YouTube playlist/video URL')
     parser.add_argument('--with-audio', action='store_true', help='Also extract audio (format specified by --audio-format)')
-    parser.add_argument('--audio-format', choices=['mp3', 'm4a', 'both'], default='mp3', help='Audio format for extraction: mp3, m4a, or both (default: mp3)')
+    parser.add_argument('--audio-format', choices=AUDIO_FORMATS, default=DEFAULT_AUDIO_FORMAT, help=f'Audio format for extraction: mp3, m4a, or both (default: {DEFAULT_AUDIO_FORMAT})')
     parser.add_argument('--only-audio', action='store_true', help='Delete video files after extraction')
     parser.add_argument('--split-chapters', action='store_true', help='Split to chapters')
     parser.add_argument('--subs', action='store_true', help='Download subtitles')
@@ -188,6 +188,12 @@ def main() -> None:
     script_dir = Path(__file__).parent
     artists_json = script_dir / 'Data' / 'artists.json'
 
+    # Validate artists.json exists
+    if not artists_json.exists():
+        logger.error(f'Artists database not found at {artists_json}')
+        logger.error('Please ensure Data/artists.json exists in the project directory')
+        sys.exit(1)
+
     # Verify executables exist
     if system_platform == 'windows':
         if not Path(yt_dlp_exe).exists():
@@ -204,8 +210,6 @@ def main() -> None:
             sys.exit(1)
 
     # Validate and prompt for playlist/video URL if not provided
-    MAX_URL_RETRIES = 3
-
     if not args.playlist_url:
         # Interactive mode: prompt with retry
         for attempt in range(MAX_URL_RETRIES):
