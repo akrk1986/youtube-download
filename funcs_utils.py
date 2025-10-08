@@ -2,12 +2,15 @@
 import re
 import unicodedata
 import shutil
+import logging
 from pathlib import Path
 import subprocess
 import json
 from typing import Dict, Any
 import yt_dlp
 import emoji
+
+logger = logging.getLogger(__name__)
 
 # Greek strings handling, for file names and MP3 titles
 
@@ -151,7 +154,7 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
                 subfolder_name = 'm4a'
             else:
                 # Skip files that are not MP3 or M4A
-                print(f'WARNING: Skipping unsupported audio file type: {audio_file.name} (extension: {audio_file.suffix})')
+                logger.warning(f'Skipping unsupported audio file type: {audio_file.name} (extension: {audio_file.suffix})')
                 continue
 
             # Create subfolder if it doesn't exist
@@ -159,11 +162,11 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
 
             destination = subfolder / audio_file.name
             shutil.move(str(audio_file), str(destination))
-            print(f'Moved {audio_file.name} -> yt-audio/{subfolder_name}/')
+            logger.info(f'Moved {audio_file.name} -> yt-audio/{subfolder_name}/')
         except Exception as e:
             error_msg = f'Error moving {audio_file.name}: {str(e)}'
             moved_files['errors'].append(error_msg)
-            print(error_msg)
+            logger.error(error_msg)
 
     # Find and move MP4 files
     for mp4_file in current_dir.glob('*.mp4'):
@@ -171,19 +174,19 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
             destination = video_dir / mp4_file.name
             shutil.move(str(mp4_file), str(destination))
             moved_files['mp4'].append(mp4_file.name)
-            print(f'Moved {mp4_file.name} -> yt-videos/')
+            logger.info(f'Moved {mp4_file.name} -> yt-videos/')
         except Exception as e:
             error_msg = f'Error moving {mp4_file.name}: {str(e)}'
             moved_files['errors'].append(error_msg)
-            print(error_msg)
+            logger.error(error_msg)
 
     # Print summary
-    print(f'\nSummary:')
-    print(f'MP3 files moved: {len(moved_files["mp3"])}')
-    print(f'M4A files moved: {len(moved_files["m4a"])}')
-    print(f'MP4 files moved: {len(moved_files["mp4"])}')
+    logger.info('Summary:')
+    logger.info(f'MP3 files moved: {len(moved_files["mp3"])}')
+    logger.info(f'M4A files moved: {len(moved_files["m4a"])}')
+    logger.info(f'MP4 files moved: {len(moved_files["mp4"])}')
     if moved_files['errors']:
-        print(f'Errors: {len(moved_files["errors"])}')
+        logger.warning(f'Errors: {len(moved_files["errors"])}')
     return moved_files
 
 def organize_media_files_silent() -> dict:
@@ -237,12 +240,46 @@ def sanitize_filenames_in_folder(folder_path: Path) -> None:
                 if not new_path.exists():
                     file_path.rename(new_path)
                     ctr += 1
-                    print(f"Renamed: '{file_path.name}' -> '{new_name}'")
+                    logger.info(f"Renamed: '{file_path.name}' -> '{new_name}'")
                 else:
-                    print(f"Skipped (target exists): '{new_name}'")
-    print(f"Renamed {ctr} files in folder '{folder_path}'")
+                    logger.warning(f"Skipped (target exists): '{new_name}'")
+    logger.info(f"Renamed {ctr} files in folder '{folder_path}'")
 
 # Video files utils
+
+def validate_youtube_url(url: str) -> tuple[bool, str]:
+    """
+    Validate that the URL is a valid YouTube URL.
+
+    Args:
+        url: The URL string to validate
+
+    Returns:
+        tuple[bool, str]: (is_valid, error_message)
+            - is_valid: True if URL is valid, False otherwise
+            - error_message: Empty string if valid, error description if invalid
+    """
+    from urllib.parse import urlparse
+
+    if not url or not url.strip():
+        return False, 'URL cannot be empty'
+
+    try:
+        parsed = urlparse(url)
+
+        # Check scheme
+        if parsed.scheme not in ('http', 'https'):
+            return False, f"Invalid URL scheme '{parsed.scheme}'. Must be http or https"
+
+        # Check domain
+        valid_domains = ('youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be')
+        if not any(domain in parsed.netloc for domain in valid_domains):
+            return False, f"Invalid domain '{parsed.netloc}'. Must be a YouTube URL"
+
+        return True, ''
+
+    except Exception as e:
+        return False, f'Invalid URL format: {e}'
 
 def get_video_info(yt_dlp_path: Path, url: str) -> Dict[str, Any]:
     """Get video information using yt-dlp by requesting the meta-data as JSON, w/o download of the video."""
@@ -274,7 +311,7 @@ def is_playlist(url: str) -> bool:
             info = ydl.extract_info(url=url, download=False)
             return info.get('webpage_url_basename') == 'playlist'
         except Exception as e:
-            print(f'Error: failed to get video info {e}')
+            logger.error(f'Error: failed to get video info {e}')
             return False
 
 def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:

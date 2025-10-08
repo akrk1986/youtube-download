@@ -1,9 +1,12 @@
 """ Functions to extract YouTube video chapters using yt-dlp."""
 import csv
+import logging
 import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from funcs_utils import get_video_info
+
+logger = logging.getLogger(__name__)
 
 
 def _parse_time_to_seconds(time_str: str) -> int:
@@ -84,7 +87,7 @@ def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> Optional[str]:
             chapters = extracted_chapters
 
     if not chapters:
-        print(f'No chapters found for video: {video_title}')
+        logger.warning(f'No chapters found for video: {video_title}')
         return None
 
     # Create CSV filename based on video title
@@ -116,7 +119,7 @@ def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> Optional[str]:
 
             writer.writerow([i, start_time, end_time, title])
 
-    print(f'Chapters extracted successfully to: {csv_filename}')
-    print(f'Total chapters: {len(chapters)}')
+    logger.info(f'Chapters extracted successfully to: {csv_filename}')
+    logger.info(f'Total chapters: {len(chapters)}')
 
     return csv_filename

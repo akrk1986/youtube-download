@@ -1,15 +1,20 @@
 """Using yt-dlp, download videos from YouTube URL, and extract the MP3 files."""
 import argparse
 import glob
+import logging
 import os
 import platform
 import subprocess
+import sys
 from pathlib import Path
 
+from logger_config import setup_logging
 from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
 from funcs_process_mp4_tags import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
 from funcs_utils import (organize_media_files, get_video_info, is_playlist, get_chapter_count,
-                         sanitize_filenames_in_folder)
+                         sanitize_filenames_in_folder, validate_youtube_url)
+
+logger = logging.getLogger(__name__)
 
 greek_to_dl_playlist_url = 'https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE'
 yt_dlp_write_json_flag = '--write-info-json'
@@ -39,8 +44,8 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: 
             '--sub-lang', 'el,en,he',
             '--convert-subs', 'srt'
         ]
-    print('Downloading videos with yt-dlp...')
-    print(f'========\n{yt_dlp_cmd}\n========')
+    logger.info('Downloading videos with yt-dlp...')
+    logger.info(f'Command: {yt_dlp_cmd}')
     # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
 
@@ -74,9 +79,8 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
     if split_chapters and has_chapters:
         yt_dlp_cmd[1:1] = [yt_dlp_split_chapters_flag]
 
-    print(f'==== Downloading and extracting {format_type.upper()} audio with yt-dlp ====')
-    print(f"CMD: '{yt_dlp_cmd}'")
-    print('='*54)
+    logger.info(f'Downloading and extracting {format_type.upper()} audio with yt-dlp')
+    logger.info(f'Command: {yt_dlp_cmd}')
     # Ignore errors (most common error is when playlist contains unavailable videos)
     subprocess.run(yt_dlp_cmd, check=False)
 
@@ -90,7 +94,7 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
 
     if is_it_playlist:
         have_artist = have_uploader = False
-        print('URL is a playlist, cannot extract artist/uploader')
+        logger.info('URL is a playlist, cannot extract artist/uploader')
     else:
         video_info = get_video_info(yt_dlp_path=ytdlp_exe, url=playlist_url)
         artist = video_info.get('artist')
@@ -101,11 +105,11 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: s
         if have_artist:
             artist_pat = 'artist:%(artist)s'
             album_artist_pat = 'album_artist:%(artist)s'
-            print(f"Video has artist: '{artist}'")
+            logger.info(f"Video has artist: '{artist}'")
         elif have_uploader:
             artist_pat = 'artist:%(uploader)s'
             album_artist_pat = 'album_artist:%(uploader)s'
-            print(f"Video has uploader: '{uploader}'")
+            logger.info(f"Video has uploader: '{uploader}'")
 
     # Handle different audio format options
     if audio_format == 'both':
@@ -129,7 +133,12 @@ def main() -> None:
     parser.add_argument('--split-chapters', action='store_true', help='Split to chapters')
     parser.add_argument('--subs', action='store_true', help='Download subtitles')
     parser.add_argument('--json', action='store_true', help='Write JSON file')
+    parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose (DEBUG) logging')
+    parser.add_argument('--no-log-file', action='store_true', help='Disable logging to file')
     args = parser.parse_args()
+
+    # Setup logging (must be done early)
+    setup_logging(verbose=args.verbose, log_to_file=not args.no_log_file)
 
     need_audio = args.with_audio or args.only_audio
 
@@ -159,9 +168,32 @@ def main() -> None:
         except (subprocess.CalledProcessError, FileNotFoundError):
             raise AssertionError(f'YT-DLP not found in PATH. Install with: pip install yt-dlp')
 
-    # Prompt for playlist/video URL if not provided
+    # Validate and prompt for playlist/video URL if not provided
+    MAX_URL_RETRIES = 3
+
     if not args.playlist_url:
-        args.playlist_url = input('Enter the URL: ').strip()
+        # Interactive mode: prompt with retry
+        for attempt in range(MAX_URL_RETRIES):
+            args.playlist_url = input('Enter the YouTube URL: ').strip()
+            is_valid, error_msg = validate_youtube_url(args.playlist_url)
+
+            if is_valid:
+                break
+
+            logger.error(f'Invalid URL: {error_msg}')
+            if attempt < MAX_URL_RETRIES - 1:
+                logger.info(f'Please try again ({MAX_URL_RETRIES - attempt - 1} attempts remaining)')
+            else:
+                logger.error('Maximum retry attempts reached. Exiting.')
+                sys.exit(1)
+    else:
+        # CLI mode: validate provided URL
+        is_valid, error_msg = validate_youtube_url(args.playlist_url)
+        if not is_valid:
+            logger.error(f'Invalid URL: {error_msg}')
+            sys.exit(1)
+
+    logger.info(f'Processing URL: {args.playlist_url}')
 
     video_folder = os.path.abspath('yt-videos')
     audio_folder = os.path.abspath('yt-audio')
@@ -177,7 +209,7 @@ def main() -> None:
     if not url_is_playlist:
         chapters_count = get_chapter_count(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url)
         has_chapters = chapters_count > 0
-        print(f'Video has {chapters_count} chapters')
+        logger.info(f'Video has {chapters_count} chapters')
 
         # Get uploader and title information for chapter processing
         if has_chapters:
@@ -185,11 +217,11 @@ def main() -> None:
             uploader_name = video_info.get('uploader')
             video_title = video_info.get('title')
             if uploader_name and uploader_name not in ('NA', ''):
-                print(f"Uploader for chapters: '{uploader_name}'")
+                logger.debug(f"Uploader for chapters: '{uploader_name}'")
             if video_title and video_title not in ('NA', ''):
-                print(f"Video title for chapters: '{video_title}'")
+                logger.debug(f"Video title for chapters: '{video_title}'")
     else:
-        print('URL is a playlist, not extracting chapters')
+        logger.info('URL is a playlist, not extracting chapters')
         has_chapters = False
 
     # Download videos if requested
@@ -212,16 +244,14 @@ def main() -> None:
 
         # Check move results
         if result['mp3'] or result['m4a'] or result['mp4']:
-            print('\nFiles organized successfully!')
+            logger.info('Files organized successfully!')
         else:
-            print('\nNo MP3/M4A'
-                  ''
-                  ' or MP4 files found in current directory.')
+            logger.warning('No MP3/M4A or MP4 files found in current directory.')
 
         if result['errors']:
-            print('\nErrors encountered:')
+            logger.error('Errors encountered:')
             for error in result['errors']:
-                print(f'- {error}')
+                logger.error(f'- {error}')
 
     # Sanitize downloaded video file names
     if not args.only_audio:
@@ -261,13 +291,13 @@ def main() -> None:
                 _ = set_tags_in_chapter_m4a_files(m4a_folder=m4a_subfolder, uploader=uploader_name, video_title=video_title)
         elif args.audio_format == 'both':
             # Process both MP3 and M4A files
-            print('Processing MP3 files...')
+            logger.info('Processing MP3 files...')
             mp3_subfolder = Path(audio_folder) / 'mp3'
             set_artists_in_mp3_files(mp3_folder=mp3_subfolder, artists_json=artists_json)
             if has_chapters:
                 _ = set_tags_in_chapter_mp3_files(mp3_folder=mp3_subfolder, uploader=uploader_name, video_title=video_title)
 
-            print('Processing M4A files...')
+            logger.info('Processing M4A files...')
             m4a_subfolder = Path(audio_folder) / 'm4a'
             set_artists_in_m4a_files(m4a_folder=m4a_subfolder, artists_json=artists_json)
             if has_chapters:

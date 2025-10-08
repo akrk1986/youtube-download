@@ -1,9 +1,12 @@
 """Scan M4A files in a folder, detect artists in Title, and update tags accordingly."""
+import logging
 from pathlib import Path
 from mutagen.mp4 import MP4
 from funcs_process_audio_tags_common import extract_chapter_info, sanitize_album_name
 from funcs_artist_search import load_artists, find_artists_in_string
 from funcs_utils import sanitize_string
+
+logger = logging.getLogger(__name__)
 
 
 def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
@@ -17,13 +20,13 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
             audio = MP4(m4a_file)
         except Exception:
             # If file cannot be read as MP4, skip it
-            print(f'Skipping {m4a_file.name}: Cannot read as MP4 file.')
+            logger.warning(f'Skipping {m4a_file.name}: Cannot read as MP4 file.')
             continue
 
         title_list = audio.get('\xa9nam', [])
         title = title_list[0] if title_list else ''
         if not title:
-            print(f'Skipping {m4a_file.name}: No Title tag found.')
+            logger.warning(f'Skipping {m4a_file.name}: No Title tag found.')
             continue
 
         # Sanitize the title
@@ -40,7 +43,7 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
                 year = date_str[:4]
                 audio['\xa9day'] = [year]
                 upd_date = True
-                print(f'Fixed date format: {date_str} -> {year}')
+                logger.info(f'Fixed date format: {date_str} -> {year}')
 
         # Look for known artists in title
         count, artist_string = find_artists_in_string(title, artists)
@@ -50,7 +53,7 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
         else:
             art = audio.get('\xa9ART', [])
             alb_art = audio.get('aART', [])
-            print(f"No known artist in title, a/aa tags='{art}'/'{alb_art}'")
+            logger.debug(f"No known artist in title, a/aa tags='{art}'/'{alb_art}'")
 
         # Clear track number for non-chapter files (single videos and playlists)
         upd_track = False
@@ -62,9 +65,9 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
             audio['\xa9nam'] = [clean_title]
         if count > 0 or upd_title or upd_date or upd_track:
             audio.save(m4a_file)
-            print(f"Updated {m4a_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
+            logger.info(f"Updated {m4a_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
         else:
-            print(f'No artist found in title for {m4a_file.name}')
+            logger.debug(f'No artist found in title for {m4a_file.name}')
 
 def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_title: str = None) -> int:
     """
@@ -86,7 +89,7 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_
             continue
 
         song_name, file_name, song_number = extract_chapter_info(file_name=m4a_file.name)
-        print(f"title, f_name, song_#: '{song_name}', '{file_name}', '{song_number}'")
+        logger.debug(f"title, f_name, song_#: '{song_name}', '{file_name}', '{song_number}'")
         if song_name is None:
             continue
         try:
@@ -102,7 +105,7 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_
                 if len(date_str) == 8 and date_str.isdigit():
                     year = date_str[:4]
                     audio['\xa9day'] = [year]
-                    print(f'Fixed date format: {date_str} -> {year}')
+                    logger.info(f'Fixed date format: {date_str} -> {year}')
 
             # If no artist is set and we have an uploader, use uploader as artist
             current_artist = audio.get('\xa9ART', [])
@@ -111,7 +114,7 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_
             if (not current_artist or current_artist == [''] or current_artist == ['NA']) and uploader:
                 audio['\xa9ART'] = [uploader]
                 audio['aART'] = [uploader]
-                print(f"Set artist/albumartist to uploader '{uploader}' for chapter file")
+                logger.info(f"Set artist/albumartist to uploader '{uploader}' for chapter file")
 
             # If no album is set and we have a video title, use sanitized video title as album
             current_album = audio.get('\xa9alb', [])
@@ -120,12 +123,12 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_
                 sanitized_album = sanitize_album_name(video_title)
                 if sanitized_album:
                     audio['\xa9alb'] = [sanitized_album]
-                    print(f"Set album to sanitized video title '{sanitized_album}' for chapter file")
+                    logger.info(f"Set album to sanitized video title '{sanitized_album}' for chapter file")
 
             audio.save(m4a_file)
             ctr += 1
         except Exception as e:
             # no chapter file, ignore
-            print(f'ERR: {e}')
+            logger.error(f'ERR: {e}')
 
     return ctr

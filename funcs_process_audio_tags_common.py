@@ -1,7 +1,10 @@
 """Scan MP3/M4A chapter files in a folder, detect details in the file name."""
 import re
+import logging
 import unicodedata
 from typing import Tuple
+
+logger = logging.getLogger(__name__)
 
 
 _windows_reserved_names = {
@@ -78,7 +81,7 @@ def extract_chapter_info(file_name: str) -> Tuple[str | None, str | None, str | 
     pattern = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]\.(?:mp3|m4a|MP3|M4A)$'
     match = re.match(pattern, file_name)
     if not match:
-        print(f"File name '{file_name}' does not match the chapter pattern, skipped")
+        logger.debug(f"File name '{file_name}' does not match the chapter pattern, skipped")
         return None, None, None
 
     extracted_file_name = match.group(1).strip()

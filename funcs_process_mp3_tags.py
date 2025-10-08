@@ -1,10 +1,13 @@
 """Scan MP3 files in a folder, detect artists in Title, and update tags accordingly."""
+import logging
 from pathlib import Path
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3NoHeaderError
 from funcs_process_audio_tags_common import extract_chapter_info, sanitize_album_name
 from funcs_artist_search import load_artists, find_artists_in_string
 from funcs_utils import sanitize_string
+
+logger = logging.getLogger(__name__)
 
 
 def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
@@ -21,7 +24,7 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
             audio = EasyID3()
         title = audio.get('title', [''])[0]
         if not title:
-            print(f'Skipping {mp3_file.name}: No Title tag found.')
+            logger.warning(f'Skipping {mp3_file.name}: No Title tag found.')
             continue
         # Sanitize the title
         clean_title = sanitize_string(dirty_string=title)
@@ -34,7 +37,7 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
         else:
             art = audio.get('artist')
             alb_art = audio.get('albumartist')
-            print(f"No known artist in title, a/aa tags='{art}'/'{alb_art}'")
+            logger.debug(f"No known artist in title, a/aa tags='{art}'/'{alb_art}'")
 
         # Clear track number for non-chapter files (single videos and playlists)
         upd_track = False
@@ -46,9 +49,9 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
             audio['title'] = clean_title
         if count > 0 or upd_title or upd_track:
             audio.save(mp3_file)
-            print(f"Updated {mp3_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
+            logger.info(f"Updated {mp3_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
         else:
-            print(f'No artist found in title for {mp3_file.name}')
+            logger.debug(f'No artist found in title for {mp3_file.name}')
 
 def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_title: str = None) -> int:
     """
@@ -73,7 +76,7 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_
             continue
 
         song_name, file_name, song_number = extract_chapter_info(file_name=mp3_file.name)
-        print(f"title, f_name, song_#: '{song_name}', '{file_name}, '{song_number}'")
+        logger.debug(f"title, f_name, song_#: '{song_name}', '{file_name}, '{song_number}'")
         if song_name is None:
             continue
         try:
@@ -88,7 +91,7 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_
             if (not current_artist or current_artist == [''] or current_artist == ['NA']) and uploader:
                 audio['artist'] = [uploader]
                 audio['albumartist'] = [uploader]
-                print(f"Set artist/albumartist to uploader '{uploader}' for chapter file")
+                logger.info(f"Set artist/albumartist to uploader '{uploader}' for chapter file")
 
             # If no album is set and we have a video title, use sanitized video title as album
             current_album = audio.get('album', [''])
@@ -97,12 +100,12 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_
                 sanitized_album = sanitize_album_name(video_title)
                 if sanitized_album:
                     audio['album'] = [sanitized_album]
-                    print(f"Set album to sanitized video title '{sanitized_album}' for chapter file")
+                    logger.info(f"Set album to sanitized video title '{sanitized_album}' for chapter file")
 
             audio.save(mp3_file)
             ctr += 1
         except Exception as e:
             # no chapter file, ignore
-            print(f'ERR: {e}')
+            logger.error(f'ERR: {e}')
 
     return ctr
