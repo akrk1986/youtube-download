@@ -9,14 +9,12 @@ import sys
 from pathlib import Path
 
 from logger_config import setup_logging
-from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
-from funcs_process_mp4_tags import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
-from funcs_utils import (organize_media_files, get_video_info, is_playlist, get_chapter_count,
-                         sanitize_filenames_in_folder, validate_youtube_url)
+from funcs_for_main_yt_dlp import validate_and_get_url, organize_and_sanitize_files, process_audio_tags
+from funcs_utils import get_video_info, is_playlist, get_chapter_count
 from project_defs import (
-    DEFAULT_AUDIO_QUALITY, DEFAULT_AUDIO_FORMAT, AUDIO_FORMATS, MAX_URL_RETRIES,
-    VALID_YOUTUBE_DOMAINS, YT_DLP_WRITE_JSON_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
-    YT_DLP_IS_PLAYLIST_FLAG, GREEK_PLAYLIST_URL
+    DEFAULT_AUDIO_QUALITY, DEFAULT_AUDIO_FORMAT, AUDIO_FORMATS,
+    YT_DLP_WRITE_JSON_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
+    YT_DLP_IS_PLAYLIST_FLAG
 )
 
 logger = logging.getLogger(__name__)
@@ -209,29 +207,8 @@ def main() -> None:
             logger.error('Install with: pip install yt-dlp')
             sys.exit(1)
 
-    # Validate and prompt for playlist/video URL if not provided
-    if not args.playlist_url:
-        # Interactive mode: prompt with retry
-        for attempt in range(MAX_URL_RETRIES):
-            args.playlist_url = input('Enter the YouTube URL: ').strip()
-            is_valid, error_msg = validate_youtube_url(args.playlist_url)
-
-            if is_valid:
-                break
-
-            logger.error(f'Invalid URL: {error_msg}')
-            if attempt < MAX_URL_RETRIES - 1:
-                logger.info(f'Please try again ({MAX_URL_RETRIES - attempt - 1} attempts remaining)')
-            else:
-                logger.error('Maximum retry attempts reached. Exiting.')
-                sys.exit(1)
-    else:
-        # CLI mode: validate provided URL
-        is_valid, error_msg = validate_youtube_url(args.playlist_url)
-        if not is_valid:
-            logger.error(f'Invalid URL: {error_msg}')
-            sys.exit(1)
-
+    # Validate and get URL
+    args.playlist_url = validate_and_get_url(args.playlist_url)
     logger.info(f'Processing URL: {args.playlist_url}')
 
     video_folder = os.path.abspath('yt-videos')
@@ -276,71 +253,26 @@ def main() -> None:
                                  split_chapters=args.split_chapters, has_chapters=has_chapters,
                                  is_it_playlist=url_is_playlist, audio_format=args.audio_format)
 
-    # If chapters, move chapter files (audio and videos), if any exist, to the corresponding sub-folders.
-    # This is because chapter files are extracted to the current directory.
-    if has_chapters:
-        result = organize_media_files(video_dir=Path(video_folder), audio_dir=Path(audio_folder))
+    # Organize chapter files and sanitize filenames
+    organize_and_sanitize_files(
+        video_folder=Path(video_folder),
+        audio_folder=Path(audio_folder),
+        audio_format=args.audio_format,
+        has_chapters=has_chapters,
+        only_audio=args.only_audio,
+        need_audio=need_audio
+    )
 
-        # Check move results
-        if result['mp3'] or result['m4a'] or result['mp4']:
-            logger.info('Files organized successfully!')
-        else:
-            logger.warning('No MP3/M4A or MP4 files found in current directory.')
-
-        if result['errors']:
-            logger.error('Errors encountered:')
-            for error in result['errors']:
-                logger.error(f'- {error}')
-
-    # Sanitize downloaded video file names
-    if not args.only_audio:
-        sanitize_filenames_in_folder(folder_path=Path(video_folder))
+    # Process audio tags
     if need_audio:
-        # Sanitize downloaded audio file names in both subfolders
-        if args.audio_format == 'mp3':
-            mp3_subfolder = Path(audio_folder) / 'mp3'
-            if mp3_subfolder.exists():
-                sanitize_filenames_in_folder(folder_path=mp3_subfolder)
-        elif args.audio_format == 'm4a':
-            m4a_subfolder = Path(audio_folder) / 'm4a'
-            if m4a_subfolder.exists():
-                sanitize_filenames_in_folder(folder_path=m4a_subfolder)
-        elif args.audio_format == 'both':
-            mp3_subfolder = Path(audio_folder) / 'mp3'
-            m4a_subfolder = Path(audio_folder) / 'm4a'
-            if mp3_subfolder.exists():
-                sanitize_filenames_in_folder(folder_path=mp3_subfolder)
-            if m4a_subfolder.exists():
-                sanitize_filenames_in_folder(folder_path=m4a_subfolder)
-
-        # Process audio tags based on format
-        if args.audio_format == 'mp3':
-            # Modify MP3 tags based on the title
-            mp3_subfolder = Path(audio_folder) / 'mp3'
-            set_artists_in_mp3_files(mp3_folder=mp3_subfolder, artists_json=artists_json)
-            # if the audio files are chapters, clean up the 'title' ID3 tag
-            if has_chapters:
-                _ = set_tags_in_chapter_mp3_files(mp3_folder=mp3_subfolder, uploader=uploader_name, video_title=video_title)
-        elif args.audio_format == 'm4a':
-            # Modify M4A tags based on the title
-            m4a_subfolder = Path(audio_folder) / 'm4a'
-            set_artists_in_m4a_files(m4a_folder=m4a_subfolder, artists_json=artists_json)
-            # if the audio files are chapters, clean up the 'title' MP4 tag
-            if has_chapters:
-                _ = set_tags_in_chapter_m4a_files(m4a_folder=m4a_subfolder, uploader=uploader_name, video_title=video_title)
-        elif args.audio_format == 'both':
-            # Process both MP3 and M4A files
-            logger.info('Processing MP3 files...')
-            mp3_subfolder = Path(audio_folder) / 'mp3'
-            set_artists_in_mp3_files(mp3_folder=mp3_subfolder, artists_json=artists_json)
-            if has_chapters:
-                _ = set_tags_in_chapter_mp3_files(mp3_folder=mp3_subfolder, uploader=uploader_name, video_title=video_title)
-
-            logger.info('Processing M4A files...')
-            m4a_subfolder = Path(audio_folder) / 'm4a'
-            set_artists_in_m4a_files(m4a_folder=m4a_subfolder, artists_json=artists_json)
-            if has_chapters:
-                _ = set_tags_in_chapter_m4a_files(m4a_folder=m4a_subfolder, uploader=uploader_name, video_title=video_title)
+        process_audio_tags(
+            audio_folder=Path(audio_folder),
+            audio_format=args.audio_format,
+            artists_json=artists_json,
+            has_chapters=has_chapters,
+            uploader_name=uploader_name,
+            video_title=video_title
+        )
 
 if __name__ == '__main__':
     main()
