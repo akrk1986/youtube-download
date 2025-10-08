@@ -83,7 +83,7 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
         else:
             logger.debug(f'No artist found in title for {m4a_file.name}')
 
-def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_title: str = None) -> int:
+def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str | None = None, video_title: str | None = None) -> int:
     """
     Set 'title' and 'tracknumber' tags in M4A chapter files in the given folder.
     File name pattern from chapters, as extracted by YT-DLP:

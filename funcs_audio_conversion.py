@@ -9,7 +9,7 @@ from pathlib import Path
 import platform
 
 
-def _get_ffmpeg_tool_path(tool_name):
+def _get_ffmpeg_tool_path(tool_name: str) -> str:
     """
     Generic function to get path to ffmpeg tools (ffmpeg or ffprobe).
     On Windows: tries system-installed tool first, then falls back to ~/Apps/ffmpeg_bin
@@ -54,16 +54,16 @@ def _get_ffmpeg_tool_path(tool_name):
         sys.exit(1)
 
 
-def get_ffmpeg_path():
+def get_ffmpeg_path() -> str:
     """Get the path to ffmpeg executable."""
     return _get_ffmpeg_tool_path('ffmpeg')
 
 
-def get_ffprobe_path():
+def get_ffprobe_path() -> str:
     """Get the path to ffprobe executable."""
     return _get_ffmpeg_tool_path('ffprobe')
 
-def convert_mp3_to_m4a(mp3_file, m4a_file=None):
+def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None) -> Path | None:
     """
     Convert MP3 file to M4A format using ffmpeg.
 
@@ -115,7 +115,7 @@ def convert_mp3_to_m4a(mp3_file, m4a_file=None):
         print(f'Error converting {mp3_file.name} to M4A: {error_msg}')
         return None
 
-def convert_m4a_to_mp3(m4a_file, mp3_file=None):
+def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None) -> Path | None:
     """
     Convert M4A file to MP3 format using ffmpeg.
 

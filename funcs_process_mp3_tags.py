@@ -62,7 +62,7 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
         else:
             logger.debug(f'No artist found in title for {mp3_file.name}')
 
-def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_title: str = None) -> int:
+def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str | None = None, video_title: str | None = None) -> int:
     """
     Set 'title' and 'tracknumber' tags in MP3 chapter files in the given folder.
     File name pattern from chapters, as extracted by YT-DLP:

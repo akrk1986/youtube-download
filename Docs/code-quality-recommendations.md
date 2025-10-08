@@ -6,12 +6,12 @@ This document tracks Python best practices improvements for the YouTube download
 
 ## Summary
 
-- **Completed:** 11/19 recommendations
-- **Remaining:** 8/19 recommendations
+- **Completed:** 12/19 recommendations
+- **Remaining:** 7/19 recommendations
 
 ---
 
-## Completed ✓ (11/19)
+## Completed ✓ (12/19)
 
 ### 1. ✓ Add logging
 **Status:** Completed
@@ -163,13 +163,44 @@ Enhanced all error messages with relevant context (URLs, filenames, folder paths
 
 **Quoting convention:** All error messages with embedded values use double quotes for outer string and single quotes for inner values (per project requirements).
 
+### 12. ✓ Type coverage
+**Status:** Completed
+
+Added missing type hints to all functions across the codebase.
+
+**Updated files:**
+- `funcs_audio_conversion.py` - Added type hints to all functions:
+  - `_get_ffmpeg_tool_path(tool_name: str) -> str`
+  - `get_ffmpeg_path() -> str`
+  - `get_ffprobe_path() -> str`
+  - `convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None) -> Path | None`
+  - `convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None) -> Path | None`
+- `main-staging.py` - Added type hints to all functions:
+  - `normalize_year(year_str: str | int | None) -> str`
+  - `extract_mp3_tags(file_path: Path) -> dict[str, str] | None`
+  - `extract_m4a_tags(file_path: Path) -> dict[str, str] | None`
+  - `apply_mp3_tags(file_path: Path, tags: dict[str, str]) -> bool`
+  - `apply_m4a_tags(file_path: Path, tags: dict[str, str]) -> bool`
+  - `main() -> int` (changed to return exit code: 0 for success, 1 for errors)
+- `main-yt-dlp.py` - Fixed type hints:
+  - `_extract_single_format()` - Changed `artist_pat: str = None` to `artist_pat: str | None = None`
+  - `_extract_single_format()` - Changed `album_artist_pat: str = None` to `album_artist_pat: str | None = None`
+- `funcs_process_mp3_tags.py` - Fixed type hints:
+  - `set_tags_in_chapter_mp3_files()` - Changed `uploader: str = None` to `uploader: str | None = None`
+  - `set_tags_in_chapter_mp3_files()` - Changed `video_title: str = None` to `video_title: str | None = None`
+- `funcs_process_mp4_tags.py` - Fixed type hints:
+  - `set_tags_in_chapter_m4a_files()` - Changed `uploader: str = None` to `uploader: str | None = None`
+  - `set_tags_in_chapter_m4a_files()` - Changed `video_title: str = None` to `video_title: str | None = None`
+
+**Result:** All main functions now have complete type hints using Python 3.10+ syntax (no typing module required).
+
 ---
 
-## Remaining (8/19)
+## Remaining (7/19)
 
 ### High Priority
 
-#### 12. Code duplication
+#### 13. Code duplication
 **Status:** Not started
 
 **Issue:** Similar code patterns in MP3/M4A processing modules (95% identical).
@@ -188,7 +219,7 @@ Enhanced all error messages with relevant context (URLs, filenames, folder paths
 
 ### Medium Priority
 
-#### 13. Hardcoded paths
+#### 14. Hardcoded paths
 **Status:** Not started
 
 **Issue:** Executable paths are hardcoded in main-yt-dlp.py.
@@ -204,7 +235,7 @@ ffmpeg_exe = Path.home() / 'Apps' / 'yt-dlp' / 'ffmpeg.exe'
 - Example: `os.getenv('YT_DLP_PATH', default_path)`
 - Document required environment variables in README
 
-#### 14. Missing unit tests
+#### 15. Missing unit tests
 **Status:** Not started
 
 **Issue:** Only manual test scripts in `Tests/` directory; no automated test framework.
@@ -221,7 +252,7 @@ ffmpeg_exe = Path.home() / 'Apps' / 'yt-dlp' / 'ffmpeg.exe'
 - Add integration tests for end-to-end workflows
 - Set up CI/CD with test coverage reporting
 
-#### 15. Subprocess security
+#### 16. Subprocess security
 **Status:** Not started
 
 **Issue:** Some subprocess calls could be more secure.
@@ -235,7 +266,7 @@ ffmpeg_exe = Path.home() / 'Apps' / 'yt-dlp' / 'ffmpeg.exe'
 
 ### Lower Priority
 
-#### 16. Documentation
+#### 17. Documentation
 **Status:** Not started
 
 **Issue:** Missing or incomplete module-level docstrings.
@@ -250,21 +281,6 @@ ffmpeg_exe = Path.home() / 'Apps' / 'yt-dlp' / 'ffmpeg.exe'
 - `main-yt-dlp.py` - could explain overall workflow
 - `funcs_artist_search.py` - could explain algorithm
 - Test files - could explain what they test
-
-#### 17. Type coverage
-**Status:** Not started
-
-**Issue:** Not all functions have complete type hints.
-
-**Examples:**
-- Some return types missing in utility functions
-- Some parameter types missing
-- Consider using mypy for type checking
-
-**Suggested approach:**
-- Add `mypy` to requirements.txt
-- Run `mypy --strict` and fix issues incrementally
-- Add type hints to all public functions
 
 #### 18. Function cohesion
 **Status:** Not started
@@ -305,12 +321,13 @@ ffmpeg_exe = Path.home() / 'Apps' / 'yt-dlp' / 'ffmpeg.exe'
 
 ## Recent Session Accomplishments (2025-10-08)
 
-In this session, we completed recommendations #8, #10, #13, and #14:
+In this session, we completed recommendations #8, #9, #10, #11, and #17:
 
 1. **Function complexity (#8)** - Refactored main() by creating funcs_for_main_yt_dlp.py with helper functions
-2. **Type hint inconsistency (#10)** - Standardized to Python 3.10+ syntax across all files
-3. **Magic strings (#13)** - Extracted all regex patterns and file globs to constants
-4. **Error messages (#14)** - Enhanced all error messages with relevant context
+2. **Type hint inconsistency (#9)** - Standardized to Python 3.10+ syntax across all files
+3. **Magic strings (#10)** - Extracted all regex patterns and file globs to constants
+4. **Error messages (#11)** - Enhanced all error messages with relevant context
+5. **Type coverage (#17)** - Added missing type hints to all functions across the codebase
 
 Additional improvements:
 - Moved local functions before global functions in logger_config.py
@@ -319,3 +336,4 @@ Additional improvements:
 - Replaced all hardcoded '*.mp3', '*.m4a' strings with GLOB constants
 - Added tag name constants to funcs_process_mp3_tags.py (TAG_TITLE, TAG_ARTIST, etc.)
 - Added tag name constants to funcs_process_mp4_tags.py (TAG_TITLE, TAG_ARTIST, etc.)
+- Changed main() in main-staging.py to return int (0 for success, 1 for errors) instead of None

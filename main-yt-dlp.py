@@ -65,7 +65,7 @@ def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs:
 
 def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
                           has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
-                          format_type: str, artist_pat: str = None, album_artist_pat: str = None) -> None:
+                          format_type: str, artist_pat: str | None = None, album_artist_pat: str | None = None) -> None:
     """Extract audio in a single format using yt-dlp."""
     # Create format-specific subfolder
     format_folder = os.path.join(audio_folder, format_type)
