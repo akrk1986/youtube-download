@@ -4,6 +4,31 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
+from project_defs import MAX_LOG_FILES
+
+
+def _cleanup_old_logs(log_dir: Path) -> None:
+    """
+    Remove old log files to keep only the most recent MAX_LOG_FILES.
+
+    Args:
+        log_dir: Directory containing log files
+    """
+    # Get all log files matching our pattern
+    log_files = sorted(log_dir.glob('yt-dlp_*.log'), key=lambda p: p.stat().st_mtime, reverse=True)
+
+    # Keep only the most recent MAX_LOG_FILES - 1 (to make room for the new one)
+    files_to_keep = MAX_LOG_FILES - 1
+
+    if len(log_files) >= files_to_keep:
+        # Delete older log files
+        for old_log in log_files[files_to_keep:]:
+            try:
+                old_log.unlink()
+            except Exception:
+                # Silently ignore errors (file might be locked, etc.)
+                pass
+
 
 def setup_logging(verbose: bool = False, log_to_file: bool = True) -> None:
     """
@@ -43,6 +68,9 @@ def setup_logging(verbose: bool = False, log_to_file: bool = True) -> None:
 
     # File handler (if enabled)
     if log_to_file:
+        # Clean up old log files to maintain MAX_LOG_FILES limit
+        _cleanup_old_logs(log_dir)
+
         log_filename = f'yt-dlp_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
         log_path = log_dir / log_filename
 

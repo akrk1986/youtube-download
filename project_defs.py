@@ -12,6 +12,9 @@ VALID_YOUTUBE_DOMAINS = ('youtube.com', 'www.youtube.com', 'm.youtube.com', 'you
 # File processing constants
 MAX_ALBUM_NAME_LENGTH = 64
 
+# Logging constants
+MAX_LOG_FILES = 5  # Maximum number of log files to keep
+
 # yt-dlp command-line flags
 YT_DLP_WRITE_JSON_FLAG = '--write-info-json'
 YT_DLP_SPLIT_CHAPTERS_FLAG = '--split-chapters'

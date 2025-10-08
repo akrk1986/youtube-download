@@ -98,3 +98,4 @@ The codebase has specialized handling for Greek text:
   - the string to be displayed contains single quotes
   - use double quotes for docstrings
   - if there is an embedded single quote in a string, do not escape it with a backslash. instead, use double quotes around the whole string
+- in the logger_config, move local functions (name start with _) before any global function. do the same whenever adding local functions
