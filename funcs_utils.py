@@ -331,5 +331,12 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
         video_info = json.loads(result.stdout)
         chapters = video_info.get('chapters', [])
         return len(chapters)
-    except:
+    except subprocess.CalledProcessError as e:
+        logger.warning(f'Failed to get video info for chapter count: {e.stderr}')
+        return 0
+    except json.JSONDecodeError as e:
+        logger.warning(f'Failed to parse video info JSON: {e}')
+        return 0
+    except (KeyError, TypeError) as e:
+        logger.debug(f'No chapters found in video info: {e}')
         return 0

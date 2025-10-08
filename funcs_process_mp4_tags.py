@@ -2,6 +2,7 @@
 import logging
 from pathlib import Path
 from mutagen.mp4 import MP4
+from mutagen import MutagenError
 from funcs_process_audio_tags_common import extract_chapter_info, sanitize_album_name
 from funcs_artist_search import load_artists, find_artists_in_string
 from funcs_utils import sanitize_string
@@ -18,9 +19,13 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
     for m4a_file in m4a_folder.glob('*.m4a'):
         try:
             audio = MP4(m4a_file)
-        except Exception:
-            # If file cannot be read as MP4, skip it
-            logger.warning(f'Skipping {m4a_file.name}: Cannot read as MP4 file.')
+        except MutagenError as e:
+            # Not a valid M4A/MP4 file or corrupted
+            logger.warning(f'Cannot read M4A file {m4a_file.name}: {e}')
+            continue
+        except Exception as e:
+            # Unexpected error
+            logger.error(f'Unexpected error reading {m4a_file.name}: {e}')
             continue
 
         title_list = audio.get('\xa9nam', [])
@@ -84,8 +89,13 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_
     for m4a_file in m4a_folder.glob('*.m4a'):
         try:
             audio = MP4(m4a_file)
-        except Exception:
-            # probably not a valid M4A file, ignore
+        except MutagenError as e:
+            # Not a valid M4A/MP4 file or corrupted
+            logger.warning(f'Cannot read M4A chapter file {m4a_file.name}: {e}')
+            continue
+        except Exception as e:
+            # Unexpected error
+            logger.error(f'Unexpected error reading chapter file {m4a_file.name}: {e}')
             continue
 
         song_name, file_name, song_number = extract_chapter_info(file_name=m4a_file.name)

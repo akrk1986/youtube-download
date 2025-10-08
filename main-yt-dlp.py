@@ -46,8 +46,23 @@ def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: 
         ]
     logger.info('Downloading videos with yt-dlp...')
     logger.info(f'Command: {yt_dlp_cmd}')
-    # Ignore errors (most common error is when playlist contains unavailable videos)
-    subprocess.run(yt_dlp_cmd, check=False)
+
+    # Run download with error handling
+    # Note: Some videos in playlists may be unavailable, which is expected
+    try:
+        result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True)
+        logger.info('Video download completed successfully')
+        if result.stdout:
+            logger.debug(f'yt-dlp output: {result.stdout}')
+    except subprocess.CalledProcessError as e:
+        logger.error(f'Video download failed (exit code {e.returncode})')
+        if e.stderr:
+            logger.error(f'Error details: {e.stderr}')
+        # For playlists, partial failure is acceptable
+        if is_it_playlist:
+            logger.warning('Some videos in playlist may have failed, continuing...')
+        else:
+            raise RuntimeError(f'Failed to download video: {e.stderr}')
 
 def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
                           has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
@@ -81,8 +96,23 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
 
     logger.info(f'Downloading and extracting {format_type.upper()} audio with yt-dlp')
     logger.info(f'Command: {yt_dlp_cmd}')
-    # Ignore errors (most common error is when playlist contains unavailable videos)
-    subprocess.run(yt_dlp_cmd, check=False)
+
+    # Run download with error handling
+    # Note: Some videos in playlists may be unavailable, which is expected
+    try:
+        result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True)
+        logger.info(f'{format_type.upper()} audio download completed successfully')
+        if result.stdout:
+            logger.debug(f'yt-dlp output: {result.stdout}')
+    except subprocess.CalledProcessError as e:
+        logger.error(f'{format_type.upper()} audio download failed (exit code {e.returncode})')
+        if e.stderr:
+            logger.error(f'Error details: {e.stderr}')
+        # For playlists, partial failure is acceptable
+        if is_it_playlist:
+            logger.warning('Some videos in playlist may have failed, continuing...')
+        else:
+            raise RuntimeError(f'Failed to download audio: {e.stderr}')
 
 def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
                              has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_format: str = 'mp3') -> None:

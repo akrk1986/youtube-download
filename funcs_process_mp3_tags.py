@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3NoHeaderError
+from mutagen import MutagenError
 from funcs_process_audio_tags_common import extract_chapter_info, sanitize_album_name
 from funcs_artist_search import load_artists, find_artists_in_string
 from funcs_utils import sanitize_string
@@ -71,8 +72,13 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_
         except ID3NoHeaderError:
             # If no ID3 tag exists, create one
             audio = EasyID3()
-        except Exception:
-            # probably not a valid MP3 file, ignore
+        except MutagenError as e:
+            # Not a valid MP3 file or corrupted
+            logger.warning(f'Cannot read MP3 file {mp3_file.name}: {e}')
+            continue
+        except Exception as e:
+            # Unexpected error
+            logger.error(f'Unexpected error reading {mp3_file.name}: {e}')
             continue
 
         song_name, file_name, song_number = extract_chapter_info(file_name=mp3_file.name)
