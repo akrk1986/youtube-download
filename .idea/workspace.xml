@@ -7,9 +7,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/funcs_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/funcs_utils.py" afterDir="false" />
-    </list>
+    <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -102,7 +100,7 @@
       <recent name="C:\Users\user\PycharmProjects\youtube-download\Beta" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.dlp-prompt-audio-only">
+  <component name="RunManager" selected="Python.dlp-prompt-audio-only-m4a">
     <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
