@@ -3,7 +3,6 @@ import csv
 import logging
 import re
 from pathlib import Path
-from typing import Optional, List, Dict, Any
 from funcs_utils import get_video_info
 
 logger = logging.getLogger(__name__)
@@ -21,7 +20,7 @@ def _parse_time_to_seconds(time_str: str) -> int:
     else:
         raise ValueError(f'Invalid time format: {time_str}')
 
-def _extract_chapters_from_description(description: str) -> List[Dict[str, Any]]:
+def _extract_chapters_from_description(description: str) -> list[dict[str, any]]:
     """Extract chapters from video description using regex patterns."""
     chapters = []
 
@@ -59,7 +58,7 @@ def _extract_chapters_from_description(description: str) -> List[Dict[str, Any]]
 
     return chapters
 
-def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> Optional[str]:
+def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> str | None:
     """
     Extract chapters from a YouTube video and save to CSV.
 

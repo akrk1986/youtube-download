@@ -19,8 +19,9 @@ from project_defs import (
 
 logger = logging.getLogger(__name__)
 
-def run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: bool,
-               write_json: bool, has_chapters: bool, split_chapters: bool, is_it_playlist: bool) -> None:
+
+def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: bool,
+                write_json: bool, has_chapters: bool, split_chapters: bool, is_it_playlist: bool) -> None:
     """Extract videos from YouTube playlist/video with yt-dlp. Include subtitles if requested."""
     yt_dlp_cmd = [
         ytdlp_exe,
@@ -112,8 +113,8 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
         else:
             raise RuntimeError(f'Failed to download audio: {e.stderr}')
 
-def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
-                             has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_format: str = 'mp3') -> None:
+def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
+                              has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_format: str = 'mp3') -> None:
     """Use yt-dlp to download and extract audio with metadata and thumbnail."""
 
     # For a single video, check if video has 'artist' or 'uploader' tags.
@@ -242,16 +243,16 @@ def main() -> None:
 
     # Download videos if requested
     if not args.only_audio:
-        run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, get_subs=args.subs,
-                   write_json=args.json, split_chapters=args.split_chapters, has_chapters=has_chapters,
-                   is_it_playlist=url_is_playlist)
+        _run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, get_subs=args.subs,
+                    write_json=args.json, split_chapters=args.split_chapters, has_chapters=has_chapters,
+                    is_it_playlist=url_is_playlist)
 
     # Download audios if requested
     if need_audio:
         # Run yt-dlp to download videos, and let yt-dlp extract audio and add tags
-        extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder,
-                                 split_chapters=args.split_chapters, has_chapters=has_chapters,
-                                 is_it_playlist=url_is_playlist, audio_format=args.audio_format)
+        _extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder,
+                                  split_chapters=args.split_chapters, has_chapters=has_chapters,
+                                  is_it_playlist=url_is_playlist, audio_format=args.audio_format)
 
     # Organize chapter files and sanitize filenames
     organize_and_sanitize_files(

@@ -2,7 +2,6 @@
 import re
 import logging
 import unicodedata
-from typing import Tuple
 
 from project_defs import MAX_ALBUM_NAME_LENGTH
 
@@ -74,7 +73,7 @@ def _sanitize_filename(filename: str) -> str:
         sanitized = f'_{sanitized}'
     return sanitized
 
-def extract_chapter_info(file_name: str) -> Tuple[str | None, str | None, str | None]:
+def extract_chapter_info(file_name: str) -> tuple[str | None, str | None, str | None]:
     """Given a file name which is an MP3/MP4 chapter, extract relevant parts:
     - file name
     - song number

@@ -6,7 +6,6 @@ import logging
 from pathlib import Path
 import subprocess
 import json
-from typing import Dict, Any
 import yt_dlp
 import emoji
 
@@ -282,7 +281,7 @@ def validate_youtube_url(url: str) -> tuple[bool, str]:
     except Exception as e:
         return False, f'Invalid URL format: {e}'
 
-def get_video_info(yt_dlp_path: Path, url: str) -> Dict[str, Any]:
+def get_video_info(yt_dlp_path: Path, url: str) -> dict[str, any]:
     """Get video information using yt-dlp by requesting the meta-data as JSON, w/o download of the video."""
     cmd = [
         str(yt_dlp_path),

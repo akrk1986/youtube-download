@@ -2,16 +2,15 @@
 import json
 import re
 from pathlib import Path
-from typing import List, Dict, Tuple, Set
 from funcs_utils import remove_diacritics
 
-def load_artists(artists_json_path: Path) -> List[Dict[str, str]]:
+def load_artists(artists_json_path: Path) -> list[dict[str, str]]:
     """Load artists from a JSON file."""
     with artists_json_path.open('r', encoding='utf-8') as f:
         data = json.load(f)
     return data['artists']
 
-def _artist_search_variants(full_name: str) -> List[str]:
+def _artist_search_variants(full_name: str) -> list[str]:
     """Generate all search variants for a given full name, including last name only."""
     parts = full_name.strip().split()
     variants = set()
@@ -32,7 +31,7 @@ def _artist_search_variants(full_name: str) -> List[str]:
         variants.add(full_name.strip())
     return list(variants)
 
-def find_artists_in_string(text: str, artists: List[Dict[str, str]]) -> Tuple[int, str]:
+def find_artists_in_string(text: str, artists: list[dict[str, str]]) -> tuple[int, str]:
     """
     Return (number of unique artists found, 'A1 + A2 + ...') or (0, '') if none.
     Advanced matching: for each artist, look for:
@@ -42,7 +41,7 @@ def find_artists_in_string(text: str, artists: List[Dict[str, str]]) -> Tuple[in
       4. "Last-name" only
     For both Greek and English names.
     """
-    found: Set[str] = set()
+    found: set[str] = set()
     # normalize Greek strings by replacing diacritics with base letter
     lowered_text_x = text.lower()
     lowered_text = remove_diacritics(lowered_text_x)
