@@ -192,11 +192,12 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
     Creates the subfolders if they don't exist.
 
     Returns:
-        dict: Summary of moved files with counts and any errors
+        dict: Summary with moved files counts, any errors, and original_names mapping.
+              original_names maps final_path -> original_filename_before_move
     """
     current_dir = Path.cwd()
 
-    moved_files = {'mp3': [], 'mp4': [], 'm4a': [], 'errors': []}
+    moved_files = {'mp3': [], 'mp4': [], 'm4a': [], 'errors': [], 'original_names': {}}
 
     # Get all audio-like files including case variations
     audio_files = (list(current_dir.glob(GLOB_MP3_FILES)) +
@@ -223,8 +224,12 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
             # Create subfolder if it doesn't exist
             subfolder.mkdir(parents=True, exist_ok=True)
 
+            # Store original filename before moving
+            original_name = audio_file.name
             destination = subfolder / audio_file.name
             shutil.move(str(audio_file), str(destination))
+            # Map destination path to original name
+            moved_files['original_names'][str(destination)] = original_name
             logger.info(f'Moved {audio_file.name} -> yt-audio/{subfolder_name}/')
         except Exception as e:
             error_msg = f'Error moving {audio_file.name}: {str(e)}'
@@ -292,21 +297,58 @@ def organize_media_files_silent() -> dict:
 
     return moved_files
 
-def sanitize_filenames_in_folder(folder_path: Path) -> None:
-    """Sanitize file names in the folder by removing leading unwanted characters."""
+def sanitize_filenames_in_folder(folder_path: Path, original_names: dict[str, str] | None = None) -> dict[str, str]:
+    """
+    Sanitize file names in the folder by removing leading unwanted characters.
+
+    Args:
+        folder_path: Path to folder containing files to sanitize
+        original_names: Optional mapping of current_path -> original_filename to preserve through renames
+
+    Returns:
+        dict mapping final_path -> original_ytdlp_filename (before any renames)
+    """
     ctr = 0
+    result_mapping = {}
+
+    # Start with incoming mapping if provided
+    if original_names:
+        result_mapping.update(original_names)
+
     for file_path in folder_path.iterdir():
         if file_path.is_file():
             new_name = sanitize_string(dirty_string=file_path.name)
             if new_name and new_name != file_path.name:
                 new_path = file_path.with_name(new_name)
                 if not new_path.exists():
+                    # Get the original filename for this file
+                    old_path_str = str(file_path)
+                    original_filename = result_mapping.get(old_path_str, file_path.name)
+
+                    # Rename the file
                     file_path.rename(new_path)
+
+                    # Update mapping: remove old path, add new path
+                    if old_path_str in result_mapping:
+                        del result_mapping[old_path_str]
+                    result_mapping[str(new_path)] = original_filename
+
                     ctr += 1
                     logger.info(f"Renamed: '{file_path.name}' -> '{new_name}'")
                 else:
                     logger.warning(f"Skipped (target exists): '{new_name}'")
+                    # Keep the existing mapping for this file
+                    old_path_str = str(file_path)
+                    if old_path_str in result_mapping:
+                        result_mapping[old_path_str] = result_mapping[old_path_str]
+            else:
+                # No rename needed, but preserve mapping if it exists
+                file_path_str = str(file_path)
+                if file_path_str not in result_mapping:
+                    result_mapping[file_path_str] = file_path.name
+
     logger.info(f"Renamed {ctr} files in folder '{folder_path}'")
+    return result_mapping
 
 # Video files utils
 

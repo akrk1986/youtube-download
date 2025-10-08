@@ -270,7 +270,7 @@ def main() -> None:
                                   is_it_playlist=url_is_playlist, audio_format=args.audio_format)
 
     # Organize chapter files and sanitize filenames
-    organize_and_sanitize_files(
+    original_names = organize_and_sanitize_files(
         video_folder=Path(video_folder),
         audio_folder=Path(audio_folder),
         audio_format=args.audio_format,
@@ -287,7 +287,8 @@ def main() -> None:
             artists_json=artists_json,
             has_chapters=has_chapters,
             uploader_name=uploader_name,
-            video_title=video_title
+            video_title=video_title,
+            original_names=original_names
         )
 
 if __name__ == '__main__':

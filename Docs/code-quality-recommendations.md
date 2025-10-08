@@ -2,7 +2,7 @@
 
 This document tracks Python best practices improvements for the YouTube downloader project.
 
-**Last Updated:** 2025-10-08 18:59
+**Last Updated:** 2025-10-08 19:15
 
 ## Summary
 
@@ -378,6 +378,49 @@ ffmpeg_exe = Path.home() / 'Apps' / 'yt-dlp' / 'ffmpeg.exe'
 - This document should be updated as recommendations are implemented
 - Priority levels are suggestions and can be adjusted based on project needs
 - Some recommendations may be split into multiple tasks during implementation
+
+## Session: 2025-10-08 19:15
+
+**Feature Enhancement:** Implemented original filename tracking from yt-dlp
+
+**Problem:** The TENC (MP3) and lyrics (M4A) tags were saving the sanitized/renamed filenames instead of the original filenames from yt-dlp.
+
+**Solution:** Implemented filename tracking through the entire processing pipeline:
+
+**Changes made:**
+1. **`funcs_utils.py`**:
+   - Updated `organize_media_files()` to return mapping of `final_path -> original_filename`
+   - Updated `sanitize_filenames_in_folder()` to accept and update filename mappings through renames
+
+2. **`funcs_for_main_yt_dlp.py`**:
+   - Updated `organize_and_sanitize_files()` to collect and return filename mappings
+   - Updated `process_audio_tags()` to accept and pass through `original_names` parameter
+
+3. **`main-yt-dlp.py`**:
+   - Wired pipeline to capture filename mappings and pass to tag processing
+
+4. **`funcs_process_mp3_tags.py` and `funcs_process_mp4_tags.py`**:
+   - Added `original_names` parameter to all wrapper functions
+
+5. **`funcs_process_audio_tags_unified.py`**:
+   - Updated unified functions to accept and use `original_names` mapping
+   - Modified to look up original filename and pass to handlers
+
+6. **`funcs_audio_tag_handlers.py`**:
+   - Updated `set_original_filename()` abstract method to accept `original_filename` parameter
+   - Updated `MP3TagHandler.set_original_filename()` to save original filename in TENC tag (without .mp3 extension)
+   - Updated `M4ATagHandler.set_original_filename()` to save original filename in lyrics tag
+
+**How it works:**
+1. yt-dlp downloads files with original filenames based on `%(title)s.%(ext)s`
+2. `organize_media_files()` captures original names before moving to subfolders
+3. `sanitize_filenames_in_folder()` tracks renames and updates the mapping
+4. Tag processing functions use the mapping to retrieve each file's original yt-dlp filename
+5. Original filename (without extension for MP3) is saved in TENC/lyrics tags
+
+**Result:** TENC and lyrics tags now correctly store the original yt-dlp filename before any sanitization or renaming. All changes are backward-compatible with optional parameters.
+
+---
 
 ## Session: 2025-10-08 18:59
 

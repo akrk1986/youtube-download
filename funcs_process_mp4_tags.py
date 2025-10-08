@@ -19,19 +19,24 @@ TAG_DATE = '\xa9day'
 TAG_TRACKNUMBER = 'trkn'
 
 
-def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
+def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path, original_names: dict[str, str] | None = None) -> None:
     """
     Based on artists list loaded from an external file, scan the M4A file title,
     and check if it contains any artist names from the artists list.
     If found, set the MP4 tags 'artist' and 'album artist' to the artist name(s).
 
     This function now uses the unified audio processing with M4ATagHandler.
+
+    Args:
+        m4a_folder: Path to audio files folder
+        artists_json: Path to artists database JSON file
+        original_names: Optional mapping of final_path -> original_ytdlp_filename
     """
     handler = M4ATagHandler()
-    set_artists_in_audio_files(m4a_folder, artists_json, handler)
+    set_artists_in_audio_files(m4a_folder, artists_json, handler, original_names)
 
 
-def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str | None = None, video_title: str | None = None) -> int:
+def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str | None = None, video_title: str | None = None, original_names: dict[str, str] | None = None) -> int:
     """
     Set 'title' and 'tracknumber' tags in M4A chapter files in the given folder.
     File name pattern from chapters, as extracted by YT-DLP:
@@ -45,9 +50,10 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str | None = None,
         m4a_folder: Path to audio files folder
         uploader: Video uploader name (used as artist if no artist is set)
         video_title: Video title (used as album if no album is set)
+        original_names: Optional mapping of final_path -> original_ytdlp_filename
 
     Returns:
         Number of files whose title was modified
     """
     handler = M4ATagHandler()
-    return set_tags_in_chapter_audio_files(m4a_folder, handler, uploader, video_title)
+    return set_tags_in_chapter_audio_files(m4a_folder, handler, uploader, video_title, original_names)

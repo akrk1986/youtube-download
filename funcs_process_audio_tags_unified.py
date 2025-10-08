@@ -14,7 +14,7 @@ from funcs_utils import sanitize_string
 logger = logging.getLogger(__name__)
 
 
-def set_artists_in_audio_files(audio_folder: Path, artists_json: Path, handler: AudioTagHandler) -> None:
+def set_artists_in_audio_files(audio_folder: Path, artists_json: Path, handler: AudioTagHandler, original_names: dict[str, str] | None = None) -> None:
     """
     Unified function to set artists in audio files (works for MP3, M4A, or any format).
     Based on artists list loaded from an external file, scan the audio file title,
@@ -25,8 +25,12 @@ def set_artists_in_audio_files(audio_folder: Path, artists_json: Path, handler: 
         audio_folder: Path to folder containing audio files
         artists_json: Path to artists JSON file
         handler: AudioTagHandler instance for the specific format
+        original_names: Optional mapping of final_path -> original_ytdlp_filename
     """
     artists = load_artists(artists_json_path=artists_json)
+
+    if original_names is None:
+        original_names = {}
 
     for audio_file in audio_folder.glob(handler.get_file_glob()):
         try:
@@ -72,8 +76,9 @@ def set_artists_in_audio_files(audio_folder: Path, artists_json: Path, handler: 
             handler.set_tag(audio, handler.TAG_TITLE, clean_title)
 
         if count > 0 or upd_title or upd_format_specific or upd_track:
-            # Save original filename (MP3 saves internally, M4A just sets tag)
-            handler.set_original_filename(audio, audio_file)
+            # Save original filename from yt-dlp (before sanitization/moving)
+            original_filename = original_names.get(str(audio_file), audio_file.name)
+            handler.set_original_filename(audio, audio_file, original_filename)
             # Save audio file (for M4A this saves; for MP3 this is redundant but harmless)
             handler.save_audio_file(audio, audio_file)
             logger.info(f"Updated {audio_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
@@ -85,7 +90,8 @@ def set_tags_in_chapter_audio_files(
     audio_folder: Path,
     handler: AudioTagHandler,
     uploader: str | None = None,
-    video_title: str | None = None
+    video_title: str | None = None,
+    original_names: dict[str, str] | None = None
 ) -> int:
     """
     Unified function to set tags in chapter audio files (works for MP3, M4A, or any format).
@@ -99,11 +105,15 @@ def set_tags_in_chapter_audio_files(
         handler: AudioTagHandler instance for the specific format
         uploader: Video uploader name (used as artist if no artist is set)
         video_title: Video title (used as album if no album is set)
+        original_names: Optional mapping of final_path -> original_ytdlp_filename
 
     Returns:
         Number of files whose title was modified
     """
     ctr = 0
+
+    if original_names is None:
+        original_names = {}
 
     for audio_file in audio_folder.glob(handler.get_file_glob()):
         try:
@@ -148,8 +158,9 @@ def set_tags_in_chapter_audio_files(
                     handler.set_tag(audio, handler.TAG_ALBUM, sanitized_album)
                     logger.info(f"Set album to sanitized video title '{sanitized_album}' for chapter file")
 
-            # Save original filename (MP3 saves internally, M4A just sets tag)
-            handler.set_original_filename(audio, audio_file)
+            # Save original filename from yt-dlp (before sanitization/moving)
+            original_filename = original_names.get(str(audio_file), audio_file.name)
+            handler.set_original_filename(audio, audio_file, original_filename)
             # Save audio file (for M4A this saves; for MP3 this is redundant but harmless)
             handler.save_audio_file(audio, audio_file)
             ctr += 1

@@ -69,8 +69,15 @@ class AudioTagHandler(ABC):
         pass
 
     @abstractmethod
-    def set_original_filename(self, audio: Any, file_path: Path) -> None:
-        """Store the original filename in format-specific tag."""
+    def set_original_filename(self, audio: Any, file_path: Path, original_filename: str | None = None) -> None:
+        """
+        Store the original filename in format-specific tag.
+
+        Args:
+            audio: The audio object
+            file_path: Current file path
+            original_filename: Original filename from yt-dlp (before sanitization/moving), defaults to file_path.name
+        """
         pass
 
 
@@ -128,17 +135,29 @@ class MP3TagHandler(AudioTagHandler):
         """Check if MP3 has a non-empty track number."""
         return bool(self.TAG_TRACKNUMBER in audio and audio[self.TAG_TRACKNUMBER])
 
-    def set_original_filename(self, audio: EasyID3, file_path: Path) -> None:
+    def set_original_filename(self, audio: EasyID3, file_path: Path, original_filename: str | None = None) -> None:
         """
         Store the original filename in TENC (Encoded by) tag.
         Note: This method saves the file because TENC requires direct ID3 access.
+
+        Args:
+            audio: The EasyID3 audio object
+            file_path: Current file path
+            original_filename: Original filename from yt-dlp (before sanitization/moving), defaults to file_path.name
         """
+        if original_filename is None:
+            original_filename = file_path.name
+
+        # Remove file extension from original filename
+        if original_filename.lower().endswith('.mp3'):
+            original_filename = original_filename[:-4]
+
         # Save EasyID3 first to ensure tags are written
         audio.save(file_path)
         # Then use ID3 (not EasyID3) to access TENC frame
         id3 = ID3(file_path)
-        # TENC frame: encoding, text (the filename)
-        id3.add(TENC(encoding=3, text=file_path.name))
+        # TENC frame: encoding, text (the original filename from yt-dlp without extension)
+        id3.add(TENC(encoding=3, text=original_filename))
         id3.save(file_path)
         # Reload the audio object to reflect the changes
         audio.load(file_path)
@@ -205,6 +224,16 @@ class M4ATagHandler(AudioTagHandler):
         """Check if M4A has a non-empty track number."""
         return bool(self.TAG_TRACKNUMBER in audio and audio[self.TAG_TRACKNUMBER])
 
-    def set_original_filename(self, audio: MP4, file_path: Path) -> None:
-        """Store the original filename in ©lyr tag (lyrics)."""
-        audio[self.TAG_LYRICS] = [file_path.name]
+    def set_original_filename(self, audio: MP4, file_path: Path, original_filename: str | None = None) -> None:
+        """
+        Store the original filename in ©lyr tag (lyrics).
+
+        Args:
+            audio: The MP4 audio object
+            file_path: Current file path
+            original_filename: Original filename from yt-dlp (before sanitization/moving), defaults to file_path.name
+        """
+        if original_filename is None:
+            original_filename = file_path.name
+
+        audio[self.TAG_LYRICS] = [original_filename]
