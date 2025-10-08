@@ -54,14 +54,14 @@ def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs:
         if result.stdout:
             logger.debug(f'yt-dlp output: {result.stdout}')
     except subprocess.CalledProcessError as e:
-        logger.error(f'Video download failed (exit code {e.returncode})')
+        logger.error(f"Video download failed for URL '{playlist_url}' (exit code {e.returncode})")
         if e.stderr:
             logger.error(f'Error details: {e.stderr}')
         # For playlists, partial failure is acceptable
         if is_it_playlist:
-            logger.warning('Some videos in playlist may have failed, continuing...')
+            logger.warning(f"Some videos in playlist '{playlist_url}' may have failed, continuing...")
         else:
-            raise RuntimeError(f'Failed to download video: {e.stderr}')
+            raise RuntimeError(f"Failed to download video from '{playlist_url}': {e.stderr}")
 
 def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
                           has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
@@ -104,14 +104,14 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
         if result.stdout:
             logger.debug(f'yt-dlp output: {result.stdout}')
     except subprocess.CalledProcessError as e:
-        logger.error(f'{format_type.upper()} audio download failed (exit code {e.returncode})')
+        logger.error(f"{format_type.upper()} audio download failed for URL '{playlist_url}' (exit code {e.returncode})")
         if e.stderr:
             logger.error(f'Error details: {e.stderr}')
         # For playlists, partial failure is acceptable
         if is_it_playlist:
-            logger.warning('Some videos in playlist may have failed, continuing...')
+            logger.warning(f"Some videos in playlist '{playlist_url}' may have failed, continuing...")
         else:
-            raise RuntimeError(f'Failed to download audio: {e.stderr}')
+            raise RuntimeError(f"Failed to download {format_type.upper()} audio from '{playlist_url}': {e.stderr}")
 
 def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
                               has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_format: str = 'mp3') -> None:
@@ -196,8 +196,8 @@ def main() -> None:
     # Verify executables exist
     if system_platform == 'windows':
         if not Path(yt_dlp_exe).exists():
-            logger.error(f"YT-DLP executable not found at '{yt_dlp_exe}'")
-            logger.error('Please ensure yt-dlp is installed in ~/Apps/yt-dlp/')
+            logger.error(f"YT-DLP executable not found at path '{yt_dlp_exe}'")
+            logger.error("Please ensure yt-dlp is installed in ~/Apps/yt-dlp/")
             sys.exit(1)
     else:
         # For Linux/Mac, check if commands are available in PATH

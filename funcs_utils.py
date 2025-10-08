@@ -158,7 +158,7 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
                 subfolder_name = 'm4a'
             else:
                 # Skip files that are not MP3 or M4A
-                logger.warning(f'Skipping unsupported audio file type: {audio_file.name} (extension: {audio_file.suffix})')
+                logger.warning(f"Skipping unsupported audio file '{audio_file.name}' with extension '{audio_file.suffix}'")
                 continue
 
             # Create subfolder if it doesn't exist
@@ -314,7 +314,7 @@ def is_playlist(url: str) -> bool:
             info = ydl.extract_info(url=url, download=False)
             return info.get('webpage_url_basename') == 'playlist'
         except Exception as e:
-            logger.error(f'Error: failed to get video info {e}')
+            logger.error(f"Failed to get video info for URL '{url}': {e}")
             return False
 
 def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
@@ -335,10 +335,10 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
         chapters = video_info.get('chapters', [])
         return len(chapters)
     except subprocess.CalledProcessError as e:
-        logger.warning(f'Failed to get video info for chapter count: {e.stderr}')
+        logger.warning(f"Failed to get chapter count for URL '{playlist_url}': {e.stderr}")
         return 0
     except json.JSONDecodeError as e:
-        logger.warning(f'Failed to parse video info JSON: {e}')
+        logger.warning(f"Failed to parse video info JSON for URL '{playlist_url}': {e}")
         return 0
     except (KeyError, TypeError) as e:
         logger.debug(f'No chapters found in video info: {e}')

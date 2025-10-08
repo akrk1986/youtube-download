@@ -21,17 +21,17 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path) -> None:
             audio = MP4(m4a_file)
         except MutagenError as e:
             # Not a valid M4A/MP4 file or corrupted
-            logger.warning(f'Cannot read M4A file {m4a_file.name}: {e}')
+            logger.warning(f"Cannot read M4A file '{m4a_file.name}' in folder '{m4a_folder}': {e}")
             continue
         except Exception as e:
             # Unexpected error
-            logger.error(f'Unexpected error reading {m4a_file.name}: {e}')
+            logger.error(f"Unexpected error reading M4A file '{m4a_file.name}' in folder '{m4a_folder}': {e}")
             continue
 
         title_list = audio.get('\xa9nam', [])
         title = title_list[0] if title_list else ''
         if not title:
-            logger.warning(f'Skipping {m4a_file.name}: No Title tag found.')
+            logger.warning(f"Skipping M4A file '{m4a_file.name}' in folder '{m4a_folder}': No Title tag found")
             continue
 
         # Sanitize the title
@@ -91,11 +91,11 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_
             audio = MP4(m4a_file)
         except MutagenError as e:
             # Not a valid M4A/MP4 file or corrupted
-            logger.warning(f'Cannot read M4A chapter file {m4a_file.name}: {e}')
+            logger.warning(f"Cannot read M4A chapter file '{m4a_file.name}' in folder '{m4a_folder}': {e}")
             continue
         except Exception as e:
             # Unexpected error
-            logger.error(f'Unexpected error reading chapter file {m4a_file.name}: {e}')
+            logger.error(f"Unexpected error reading M4A chapter file '{m4a_file.name}' in folder '{m4a_folder}': {e}")
             continue
 
         song_name, file_name, song_number = extract_chapter_info(file_name=m4a_file.name)
@@ -139,6 +139,6 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str = None, video_
             ctr += 1
         except Exception as e:
             # no chapter file, ignore
-            logger.error(f'ERR: {e}')
+            logger.error(f"Failed to save M4A tags for file '{m4a_file.name}': {e}")
 
     return ctr

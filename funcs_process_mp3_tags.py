@@ -25,7 +25,7 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path) -> None:
             audio = EasyID3()
         title = audio.get('title', [''])[0]
         if not title:
-            logger.warning(f'Skipping {mp3_file.name}: No Title tag found.')
+            logger.warning(f"Skipping MP3 file '{mp3_file.name}' in folder '{mp3_folder}': No Title tag found")
             continue
         # Sanitize the title
         clean_title = sanitize_string(dirty_string=title)
@@ -74,11 +74,11 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_
             audio = EasyID3()
         except MutagenError as e:
             # Not a valid MP3 file or corrupted
-            logger.warning(f'Cannot read MP3 file {mp3_file.name}: {e}')
+            logger.warning(f"Cannot read MP3 file '{mp3_file.name}' in folder '{mp3_folder}': {e}")
             continue
         except Exception as e:
             # Unexpected error
-            logger.error(f'Unexpected error reading {mp3_file.name}: {e}')
+            logger.error(f"Unexpected error reading MP3 file '{mp3_file.name}' in folder '{mp3_folder}': {e}")
             continue
 
         song_name, file_name, song_number = extract_chapter_info(file_name=mp3_file.name)
@@ -112,6 +112,6 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str = None, video_
             ctr += 1
         except Exception as e:
             # no chapter file, ignore
-            logger.error(f'ERR: {e}')
+            logger.error(f"Failed to save MP3 tags for file '{mp3_file.name}': {e}")
 
     return ctr
