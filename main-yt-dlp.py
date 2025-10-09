@@ -8,6 +8,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Version corresponds to the latest changelog entry timestamp
+VERSION = '2025-10-09 17:25:00'
+
 from logger_config import setup_logging
 from funcs_for_main_yt_dlp import validate_and_get_url, organize_and_sanitize_files, process_audio_tags
 from funcs_utils import get_video_info, is_playlist, get_chapter_count, sanitize_url_for_subprocess
@@ -175,6 +178,7 @@ def main() -> None:
     parser.add_argument('--json', action='store_true', help='Write JSON file')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose (DEBUG) logging')
     parser.add_argument('--no-log-file', action='store_true', help='Disable logging to file')
+    parser.add_argument('--version', action='version', version=f'%(prog)s {VERSION}')
     args = parser.parse_args()
 
     # Setup logging (must be done early)
