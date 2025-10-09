@@ -82,12 +82,15 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
     format_folder = os.path.join(audio_folder, format_type)
     os.makedirs(format_folder, exist_ok=True)
 
+    # For FLAC (lossless), use best quality (0); for lossy formats use default quality
+    audio_quality = '0' if format_type == 'flac' else DEFAULT_AUDIO_QUALITY
+
     yt_dlp_cmd = [
         ytdlp_exe,
         '-f', 'bestaudio/best',
         '--extract-audio',
         '--audio-format', format_type,
-        '--audio-quality', DEFAULT_AUDIO_QUALITY,
+        '--audio-quality', audio_quality,
         '--embed-metadata',
         '--add-metadata',
         '--embed-thumbnail',
