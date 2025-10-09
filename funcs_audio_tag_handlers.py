@@ -292,7 +292,13 @@ class FLACTagHandler(AudioTagHandler):
         return GLOB_FLAC_FILES
 
     def handle_format_specific_tasks(self, audio: FLAC) -> bool:
-        """Fix year format: convert YYYYMMDD to YYYY if needed."""
+        """
+        Fix year format: convert YYYYMMDD to YYYY if needed.
+        Copy PURL (video URL) to COMMENT field if COMMENT is empty.
+        """
+        modified = False
+
+        # Fix date format
         date_list = audio.get(self.TAG_DATE, [])
         if date_list:
             date_str = str(date_list[0])
@@ -301,8 +307,18 @@ class FLACTagHandler(AudioTagHandler):
                 year = date_str[:4]
                 audio[self.TAG_DATE] = [year]
                 logger.info(f'Fixed date format: {date_str} -> {year}')
-                return True
-        return False
+                modified = True
+
+        # Copy PURL to COMMENT if COMMENT is empty (for consistency with MP3/M4A)
+        comment_list = audio.get(self.TAG_COMMENT, [])
+        if not comment_list or not comment_list[0]:
+            purl_list = audio.get('purl', [])
+            if purl_list and purl_list[0]:
+                audio[self.TAG_COMMENT] = [purl_list[0]]
+                logger.info(f'Copied PURL to COMMENT: {purl_list[0]}')
+                modified = True
+
+        return modified
 
     def has_track_number(self, audio: FLAC) -> bool:
         """Check if FLAC has a non-empty track number."""
