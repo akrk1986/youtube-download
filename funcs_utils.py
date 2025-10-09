@@ -11,7 +11,8 @@ import emoji
 
 from project_defs import (
     VALID_YOUTUBE_DOMAINS, LEADING_NONALNUM_PATTERN, MULTIPLE_SPACES_PATTERN,
-    GLOB_MP3_FILES, GLOB_M4A_FILES, GLOB_MP3_FILES_UPPER, GLOB_M4A_FILES_UPPER, GLOB_MP4_FILES,
+    GLOB_MP3_FILES, GLOB_M4A_FILES, GLOB_FLAC_FILES,
+    GLOB_MP3_FILES_UPPER, GLOB_M4A_FILES_UPPER, GLOB_FLAC_FILES_UPPER, GLOB_MP4_FILES,
     SUBPROCESS_TIMEOUT_SECONDS
 )
 
@@ -188,7 +189,7 @@ def greek_search(big_string: str, sub_string: str) -> bool:
 
 def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
     """
-    Move all MP3/M4A files to 'yt-audio' subfolder and all MP4 files to 'yt-videos' subfolder.
+    Move all MP3/M4A/FLAC files to 'yt-audio' subfolder and all MP4 files to 'yt-videos' subfolder.
     Creates the subfolders if they don't exist.
 
     Returns:
@@ -197,15 +198,17 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
     """
     current_dir = Path.cwd()
 
-    moved_files = {'mp3': [], 'mp4': [], 'm4a': [], 'errors': [], 'original_names': {}}
+    moved_files = {'mp3': [], 'mp4': [], 'm4a': [], 'flac': [], 'errors': [], 'original_names': {}}
 
     # Get all audio-like files including case variations
     audio_files = (list(current_dir.glob(GLOB_MP3_FILES)) +
                    list(current_dir.glob(GLOB_M4A_FILES)) +
+                   list(current_dir.glob(GLOB_FLAC_FILES)) +
                    list(current_dir.glob(GLOB_MP3_FILES_UPPER)) +
-                   list(current_dir.glob(GLOB_M4A_FILES_UPPER)))
+                   list(current_dir.glob(GLOB_M4A_FILES_UPPER)) +
+                   list(current_dir.glob(GLOB_FLAC_FILES_UPPER)))
 
-    # Find and move MP3/M4A files to their respective subfolders
+    # Find and move MP3/M4A/FLAC files to their respective subfolders
     for audio_file in audio_files:
         try:
             if audio_file.suffix.lower() == '.mp3':
@@ -216,8 +219,12 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
                 subfolder = audio_dir / 'm4a'
                 moved_files['m4a'].append(audio_file.name)
                 subfolder_name = 'm4a'
+            elif audio_file.suffix.lower() == '.flac':
+                subfolder = audio_dir / 'flac'
+                moved_files['flac'].append(audio_file.name)
+                subfolder_name = 'flac'
             else:
-                # Skip files that are not MP3 or M4A
+                # Skip files that are not MP3, M4A, or FLAC
                 logger.warning(f"Skipping unsupported audio file '{audio_file.name}' with extension '{audio_file.suffix}'")
                 continue
 
@@ -252,6 +259,7 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
     logger.info('Summary:')
     logger.info(f'MP3 files moved: {len(moved_files["mp3"])}')
     logger.info(f'M4A files moved: {len(moved_files["m4a"])}')
+    logger.info(f'FLAC files moved: {len(moved_files["flac"])}')
     logger.info(f'MP4 files moved: {len(moved_files["mp4"])}')
     if moved_files['errors']:
         logger.warning(f'Errors: {len(moved_files["errors"])}')

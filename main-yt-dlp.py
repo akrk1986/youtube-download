@@ -12,7 +12,7 @@ from logger_config import setup_logging
 from funcs_for_main_yt_dlp import validate_and_get_url, organize_and_sanitize_files, process_audio_tags
 from funcs_utils import get_video_info, is_playlist, get_chapter_count, sanitize_url_for_subprocess
 from project_defs import (
-    DEFAULT_AUDIO_QUALITY, DEFAULT_AUDIO_FORMAT, AUDIO_FORMATS,
+    DEFAULT_AUDIO_QUALITY, DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
     YT_DLP_WRITE_JSON_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
     YT_DLP_IS_PLAYLIST_FLAG, VIDEO_OUTPUT_DIR, AUDIO_OUTPUT_DIR,
     SUBPROCESS_TIMEOUT_SECONDS
@@ -129,7 +129,7 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
             raise RuntimeError(f"Failed to download {format_type.upper()} audio from '{playlist_url}': {e.stderr}")
 
 def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
-                              has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_format: str = 'mp3') -> None:
+                              has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_formats: list[str]) -> None:
     """Use yt-dlp to download and extract audio with metadata and thumbnail."""
 
     # For a single video, check if video has 'artist' or 'uploader' tags.
@@ -155,15 +155,8 @@ def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: 
             album_artist_pat = 'album_artist:%(uploader)s'
             logger.info(f"Video has uploader: '{uploader}'")
 
-    # Handle different audio format options
-    if audio_format == 'both':
-        # Extract both MP3 and M4A formats directly (will download twice)
-        _extract_single_format(ytdlp_exe, playlist_url, audio_folder, has_chapters,
-                              split_chapters, is_it_playlist, 'mp3', artist_pat, album_artist_pat)
-        _extract_single_format(ytdlp_exe, playlist_url, audio_folder, has_chapters,
-                              split_chapters, is_it_playlist, 'm4a', artist_pat, album_artist_pat)
-    else:
-        # Extract single format
+    # Extract each requested audio format
+    for audio_format in audio_formats:
         _extract_single_format(ytdlp_exe, playlist_url, audio_folder, has_chapters,
                               split_chapters, is_it_playlist, audio_format, artist_pat, album_artist_pat)
 
@@ -172,7 +165,7 @@ def main() -> None:
         description='Download YouTube playlist/video, optionally with subtitles.')
     parser.add_argument('playlist_url', nargs='?', help='YouTube playlist/video URL')
     parser.add_argument('--with-audio', action='store_true', help='Also extract audio (format specified by --audio-format)')
-    parser.add_argument('--audio-format', choices=AUDIO_FORMATS, default=DEFAULT_AUDIO_FORMAT, help=f'Audio format for extraction: mp3, m4a, or both (default: {DEFAULT_AUDIO_FORMAT})')
+    parser.add_argument('--audio-format', default=DEFAULT_AUDIO_FORMAT, help=f'Audio format for extraction: mp3, m4a, flac, or comma-separated (e.g., mp3,m4a) (default: {DEFAULT_AUDIO_FORMAT})')
     parser.add_argument('--only-audio', action='store_true', help='Delete video files after extraction')
     parser.add_argument('--split-chapters', action='store_true', help='Split to chapters')
     parser.add_argument('--subs', action='store_true', help='Download subtitles')
@@ -183,6 +176,23 @@ def main() -> None:
 
     # Setup logging (must be done early)
     setup_logging(verbose=args.verbose, log_to_file=not args.no_log_file)
+
+    # Parse and validate audio formats
+    audio_formats_str = args.audio_format
+    audio_formats = [fmt.strip() for fmt in audio_formats_str.split(',')]
+
+    # Validate each format
+    invalid_formats = [fmt for fmt in audio_formats if fmt not in VALID_AUDIO_FORMATS]
+    if invalid_formats:
+        logger.error(f"Invalid audio format(s): {', '.join(invalid_formats)}")
+        logger.error(f"Valid formats are: {', '.join(sorted(VALID_AUDIO_FORMATS))}")
+        sys.exit(1)
+
+    # Remove duplicates while preserving order
+    seen = set()
+    audio_formats = [fmt for fmt in audio_formats if not (fmt in seen or seen.add(fmt))]
+
+    logger.info(f'Audio formats: {", ".join(audio_formats)}')
 
     need_audio = args.with_audio or args.only_audio
 
@@ -267,13 +277,13 @@ def main() -> None:
         # Run yt-dlp to download videos, and let yt-dlp extract audio and add tags
         _extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder,
                                   split_chapters=args.split_chapters, has_chapters=has_chapters,
-                                  is_it_playlist=url_is_playlist, audio_format=args.audio_format)
+                                  is_it_playlist=url_is_playlist, audio_formats=audio_formats)
 
     # Organize chapter files and sanitize filenames
     original_names = organize_and_sanitize_files(
         video_folder=Path(video_folder),
         audio_folder=Path(audio_folder),
-        audio_format=args.audio_format,
+        audio_formats=audio_formats,
         has_chapters=has_chapters,
         only_audio=args.only_audio,
         need_audio=need_audio
@@ -283,7 +293,7 @@ def main() -> None:
     if need_audio:
         process_audio_tags(
             audio_folder=Path(audio_folder),
-            audio_format=args.audio_format,
+            audio_formats=audio_formats,
             artists_json=artists_json,
             has_chapters=has_chapters,
             uploader_name=uploader_name,

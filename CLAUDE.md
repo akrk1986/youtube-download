@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a Python-based YouTube downloader and media processing tool that uses `yt-dlp` for downloading videos/audio and processes metadata with special focus on Greek music. The tool can:
 
 - Download YouTube videos/playlists as MP4 files
-- Extract audio as MP3 with embedded metadata and thumbnails
+- Extract audio as MP3, M4A, and/or FLAC with embedded metadata and thumbnails
 - Split videos by chapters automatically
-- Process MP3 tags to identify and set Greek artists
+- Process audio tags to identify and set Greek artists
 - Handle subtitle downloads in multiple languages (Greek, English, Hebrew)
 - Sanitize filenames for Greek, English, and Hebrew text
 
@@ -23,9 +23,11 @@ The codebase follows a modular function-based architecture:
 
 ### Core Function Modules
 - `funcs_utils.py` - General utilities (file operations, Greek text handling, yt-dlp integration)
-- `funcs_process_mp3_tags.py` - MP3 ID3 tag processing and artist detection
+- `funcs_process_mp3_tags.py` - MP3 ID3v2 tag processing and artist detection
+- `funcs_process_mp4_tags.py` - M4A MP4/iTunes metadata processing
+- `funcs_process_flac_tags.py` - FLAC Vorbis Comments processing
 - `funcs_process_audio_tags_common.py` - Common audio tag processing functions
-- `funcs_process_mp4_tags.py` - MP4 metadata processing (new, for M4A support)
+- `funcs_audio_tag_handlers.py` - Audio tag handler classes (MP3TagHandler, M4ATagHandler, FLACTagHandler)
 - `funcs_artist_search.py` - Greek artist name matching and search variants
 - `funcs_chapter_extraction.py` - Video chapter detection and processing
 
@@ -36,9 +38,13 @@ The codebase follows a modular function-based architecture:
 ## Key Dependencies
 
 The project requires:
-- `yt-dlp` executable (expected at `~/Apps/yt-dlp/yt-dlp.exe`)
-- `ffmpeg` executable (expected at `~/Apps/yt-dlp/ffmpeg.exe`)
-- Python packages: `mutagen`, `yt-dlp` (imported as module)
+- `yt-dlp` executable
+  - **Windows**: Expected at `~/Apps/yt-dlp/yt-dlp.exe`
+  - **Linux**: Must be in `$PATH`
+- `ffmpeg` executable
+  - **Windows**: Expected at `~/Apps/yt-dlp/ffmpeg.exe`
+  - **Linux**: Must be in `$PATH`
+- Python packages: `mutagen`, `yt-dlp` (imported as module), `arrow`, `emoji`
 
 ## Common Commands
 
@@ -47,10 +53,16 @@ The project requires:
 # Download video only
 python main-yt-dlp.py "https://youtube.com/watch?v=..."
 
-# Download with audio extraction
+# Download with audio extraction (default: MP3)
 python main-yt-dlp.py --with-audio "https://youtube.com/playlist?list=..."
 
-# Audio only (delete videos after extraction)
+# Download with specific audio format (mp3, m4a, or flac)
+python main-yt-dlp.py --only-audio --audio-format m4a "URL"
+
+# Download with multiple audio formats (comma-separated)
+python main-yt-dlp.py --only-audio --audio-format mp3,m4a,flac "URL"
+
+# Audio only with chapters (delete videos after extraction)
 python main-yt-dlp.py --only-audio --split-chapters "https://youtube.com/watch?v=..."
 
 # With subtitles and JSON metadata
@@ -74,8 +86,39 @@ python main-get-artists-from-trello.py
 ## Output Structure
 
 - `yt-videos/` - Downloaded MP4 video files
-- `yt-audio/` - Downloaded MP3 audio files
+- `yt-audio/` - Downloaded audio files organized by format:
+  - `yt-audio/mp3/` - MP3 files (lossy, ID3v2 tags)
+  - `yt-audio/m4a/` - M4A files (lossy, MP4/iTunes atoms)
+  - `yt-audio/flac/` - FLAC files (lossless, Vorbis Comments)
 - Chapter files are automatically organized into subdirectories when `--split-chapters` is used
+
+## Audio Tagging System
+
+The project uses a strategy pattern for handling different audio formats:
+
+### Tag Handler Classes
+- **MP3TagHandler**: Uses `mutagen.id3` for ID3v2 tags
+  - Original filename stored in TENC (Encoded by) tag
+  - Standard tags: TIT2, TPE1, TALB, TPE2, TDRC, TCON, COMM, APIC
+
+- **M4ATagHandler**: Uses `mutagen.mp4` for MP4/iTunes atoms
+  - Original filename stored in ©lyr (Lyrics) tag
+  - Standard tags: ©nam, ©ART, ©alb, aART, ©day, trkn, covr
+  - Auto-converts YYYYMMDD date format to YYYY
+
+- **FLACTagHandler**: Uses `mutagen.flac` for Vorbis Comments
+  - Original filename stored in ENCODEDBY tag
+  - Standard tags: TITLE, ARTIST, ALBUM, ALBUMARTIST, DATE, GENRE, COMMENT, TRACKNUMBER, ENCODEDBY
+  - Picture block for album art
+  - Auto-converts YYYYMMDD date format to YYYY
+
+### Processing Pipeline
+1. Download audio with yt-dlp (basic metadata embedded)
+2. Organize files by format into subdirectories
+3. Sanitize filenames for Greek/English/Hebrew text
+4. Detect Greek artists from database (~100 artists)
+5. Update audio tags with detected artists and original filename
+6. For chapter files: Set track numbers and album tags
 
 ## Greek Text Processing
 
@@ -83,6 +126,7 @@ The codebase has specialized handling for Greek text:
 - Diacritic removal for search matching
 - Filename sanitization for Greek, English, Hebrew characters
 - Artist name variants generation (supports different name orders and abbreviations)
+- Artist database maintained in Trello, exported to `Data/artists.json`
 
 ## Development Notes
 

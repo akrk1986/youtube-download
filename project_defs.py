@@ -3,7 +3,7 @@
 # Audio processing constants
 DEFAULT_AUDIO_QUALITY = '192k'
 DEFAULT_AUDIO_FORMAT = 'mp3'
-AUDIO_FORMATS = ('mp3', 'm4a', 'both')
+VALID_AUDIO_FORMATS = {'mp3', 'm4a', 'flac'}
 
 # YouTube URL validation
 MAX_URL_RETRIES = 3
@@ -24,7 +24,7 @@ SUBPROCESS_TIMEOUT_SECONDS = 300  # 5 minutes for yt-dlp operations
 FFMPEG_TIMEOUT_SECONDS = 600  # 10 minutes for audio/video conversion
 
 # Regex patterns
-CHAPTER_FILENAME_PATTERN = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]\.(?:mp3|m4a|MP3|M4A)$'
+CHAPTER_FILENAME_PATTERN = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]\.(?:mp3|m4a|flac|MP3|M4A|FLAC)$'
 LEADING_NONALNUM_PATTERN = r'^[^a-zA-Z0-9\u0370-\u03FF\u05d0-\u05ea]+'
 MULTIPLE_SPACES_PATTERN = r'\s+'
 CHAPTER_TIMESTAMP_PATTERNS = (
@@ -38,8 +38,10 @@ WHITESPACE_TO_UNDERSCORE_PATTERN = r'[-\s]+'
 # File glob patterns
 GLOB_MP3_FILES = '*.mp3'
 GLOB_M4A_FILES = '*.m4a'
+GLOB_FLAC_FILES = '*.flac'
 GLOB_MP3_FILES_UPPER = '*.MP3'
 GLOB_M4A_FILES_UPPER = '*.M4A'
+GLOB_FLAC_FILES_UPPER = '*.FLAC'
 GLOB_MP4_FILES = '*.mp4'
 GLOB_LOG_FILES = 'yt-dlp_*.log'
 
