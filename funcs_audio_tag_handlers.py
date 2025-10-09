@@ -254,7 +254,6 @@ class FLACTagHandler(AudioTagHandler):
     TAG_ALBUM = 'album'
     TAG_DATE = 'date'
     TAG_TRACKNUMBER = 'tracknumber'
-    TAG_GENRE = 'genre'
     TAG_COMMENT = 'comment'
     TAG_ENCODEDBY = 'encodedby'
 

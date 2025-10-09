@@ -108,9 +108,10 @@ The project uses a strategy pattern for handling different audio formats:
 
 - **FLACTagHandler**: Uses `mutagen.flac` for Vorbis Comments
   - Original filename stored in ENCODEDBY tag
-  - Standard tags: TITLE, ARTIST, ALBUM, ALBUMARTIST, DATE, GENRE, COMMENT, TRACKNUMBER, ENCODEDBY
+  - Standard tags: TITLE, ARTIST, ALBUM, ALBUMARTIST, DATE, COMMENT, TRACKNUMBER, ENCODEDBY
   - Picture block for album art
   - Auto-converts YYYYMMDD date format to YYYY
+  - Copies PURL to COMMENT field for consistency with MP3/M4A
 
 ### Processing Pipeline
 1. Download audio with yt-dlp (basic metadata embedded)
