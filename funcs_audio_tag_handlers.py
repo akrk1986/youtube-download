@@ -236,4 +236,8 @@ class M4ATagHandler(AudioTagHandler):
         if original_filename is None:
             original_filename = file_path.name
 
+        # Remove file extension from original filename
+        if original_filename.lower().endswith('.m4a'):
+            original_filename = original_filename[:-4]
+
         audio[self.TAG_LYRICS] = [original_filename]

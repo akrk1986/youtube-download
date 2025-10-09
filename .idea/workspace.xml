@@ -7,7 +7,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="" />
+    <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/funcs_audio_tag_handlers.py" beforeDir="false" afterPath="$PROJECT_DIR$/funcs_audio_tag_handlers.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -203,7 +206,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
-      <option name="PARAMETERS" value="--only-audio --subs --audio-format m4a" />
+      <option name="PARAMETERS" value="--only-audio --subs --audio-format m4a --verbose" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
