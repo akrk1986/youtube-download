@@ -4,13 +4,14 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 
 ## Features
 
-- Download YouTube videos and playlists as MP4 files
+- Download YouTube videos and playlists as MP4 files with embedded URL metadata
 - Extract audio as MP3, M4A, and/or FLAC with embedded metadata and thumbnails
 - Split videos by chapters automatically
 - Process audio tags to identify and set Greek artists
 - Handle subtitle downloads in multiple languages (Greek, English, Hebrew)
 - Sanitize filenames for Greek, English, and Hebrew text
 - Automatic artist detection from a curated database of Greek musicians
+- Store source YouTube URL in both video and audio file metadata
 
 ## Usage
 

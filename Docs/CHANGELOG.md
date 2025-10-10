@@ -4,6 +4,21 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2025-10-09 18:45:00
+
+**Feature Enhancement:** Store video URL in MP4 video metadata
+
+**Summary:** Added URL embedding in video file metadata for consistency with audio files.
+
+**Changes made:**
+- **`main-yt-dlp.py`**: Updated `_run_yt_dlp()` function to embed YouTube URL in video metadata
+  - Added `--embed-metadata` and `--add-metadata` flags
+  - Added `--parse-metadata 'webpage_url:%(meta_comment)s'` to store URL in comment field
+
+**Result:** Downloaded MP4 video files now contain the source YouTube URL in their metadata comment field, making it easy to identify the source of any video file. This matches the behavior of audio files where the URL is stored in the COMMENT tag.
+
+---
+
 ## 2025-10-09 17:25:00
 
 **Feature Enhancement:** Added FLAC audio format support
