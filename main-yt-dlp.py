@@ -34,6 +34,9 @@ def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs:
         ytdlp_exe,
         '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
         '--merge-output-format', 'mp4',
+        '--embed-metadata',
+        '--add-metadata',
+        '--parse-metadata', 'webpage_url:%(meta_comment)s',  # Store URL in comment metadata
         '-o', os.path.join(video_folder, '%(title)s.%(ext)s'),
         sanitized_url
     ]
