@@ -7,7 +7,7 @@ import argparse
 import sys
 from pathlib import Path
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3NoHeaderError, ID3, COMM
+from mutagen.id3 import ID3NoHeaderError, ID3, COMM, TENC
 from mutagen.mp4 import MP4
 import arrow
 from funcs_audio_conversion import convert_mp3_to_m4a, convert_m4a_to_mp3
@@ -49,7 +49,7 @@ def extract_mp3_tags(file_path: Path) -> dict[str, str] | None:
         audio = EasyID3(file_path)
         year = normalize_year(audio.get('date', [''])[0])
 
-        # Use raw ID3 for comment tag
+        # Use raw ID3 for comment and TENC tags
         id3_audio = ID3(file_path)
         comment = ''
         if 'COMM::eng' in id3_audio:
@@ -57,6 +57,11 @@ def extract_mp3_tags(file_path: Path) -> dict[str, str] | None:
         elif id3_audio.getall('COMM'):
             # Get first comment if no English comment found
             comment = str(id3_audio.getall('COMM')[0].text[0])
+
+        # Extract TENC (encoded by) tag
+        encodedby = ''
+        if 'TENC' in id3_audio:
+            encodedby = str(id3_audio['TENC'].text[0]) if id3_audio['TENC'].text else ''
 
         return {
             'title': audio.get('title', [''])[0],
@@ -66,7 +71,8 @@ def extract_mp3_tags(file_path: Path) -> dict[str, str] | None:
             'album': audio.get('album', [''])[0],
             'tracknumber': audio.get('tracknumber', [''])[0],
             'comment': comment,
-            'composer': audio.get('composer', [''])[0]
+            'composer': audio.get('composer', [''])[0],
+            'encodedby': encodedby
         }
     except (ID3NoHeaderError, Exception) as e:
         print(f'Error reading MP3 tags from {file_path}: {e}')
@@ -77,6 +83,8 @@ def extract_m4a_tags(file_path: Path) -> dict[str, str] | None:
     try:
         audio = MP4(file_path)
         year = normalize_year(audio.get('\xa9day', [''])[0] if audio.get('\xa9day') else '')
+        # Extract ©lyr (unsynced lyrics) tag - used to store original filename
+        unsyncedlyrics = audio.get('\xa9lyr', [''])[0] if audio.get('\xa9lyr') else ''
         return {
             'title': audio.get('\xa9nam', [''])[0] if audio.get('\xa9nam') else '',
             'artist': audio.get('\xa9ART', [''])[0] if audio.get('\xa9ART') else '',
@@ -85,7 +93,8 @@ def extract_m4a_tags(file_path: Path) -> dict[str, str] | None:
             'album': audio.get('\xa9alb', [''])[0] if audio.get('\xa9alb') else '',
             'tracknumber': str(audio.get('trkn', [(0, 0)])[0][0]) if audio.get('trkn') and audio.get('trkn')[0][0] > 0 else '',
             'comment': audio.get('\xa9cmt', [''])[0] if audio.get('\xa9cmt') else '',
-            'composer': audio.get('\xa9wrt', [''])[0] if audio.get('\xa9wrt') else ''
+            'composer': audio.get('\xa9wrt', [''])[0] if audio.get('\xa9wrt') else '',
+            'encodedby': unsyncedlyrics
         }
     except Exception as e:
         print(f'Error reading M4A tags from {file_path}: {e}')
@@ -100,11 +109,11 @@ def apply_mp3_tags(file_path: Path, tags: dict[str, str]) -> bool:
         except ID3NoHeaderError:
             audio = EasyID3()
 
-        # Handle comment separately with raw ID3
+        # Handle comment and encodedby separately with raw ID3
         id3_audio = ID3(file_path)
 
         written_tags = []
-        comment_written = False
+        special_tags_written = False
 
         for key, value in tags.items():
             if value:  # Only set non-empty values
@@ -112,13 +121,18 @@ def apply_mp3_tags(file_path: Path, tags: dict[str, str]) -> bool:
                     # Set comment using raw ID3
                     id3_audio.add(COMM(encoding=3, lang='eng', desc='', text=[value]))
                     written_tags.append('comment')
-                    comment_written = True
+                    special_tags_written = True
+                elif key == 'encodedby':
+                    # Set TENC (encoded by) using raw ID3
+                    id3_audio.add(TENC(encoding=3, text=value))
+                    written_tags.append('encodedby')
+                    special_tags_written = True
                 else:
                     audio[key] = [value]
                     written_tags.append(key)
 
         audio.save(file_path)
-        if comment_written:
+        if special_tags_written:
             id3_audio.save(file_path)
 
         if written_tags:
@@ -142,7 +156,8 @@ def apply_m4a_tags(file_path: Path, tags: dict[str, str]) -> bool:
             'date': '\xa9day',
             'album': '\xa9alb',
             'comment': '\xa9cmt',
-            'composer': '\xa9wrt'
+            'composer': '\xa9wrt',
+            'encodedby': '\xa9lyr'  # Map encodedby to ©lyr (unsynced lyrics)
         }
 
         written_tags = []
