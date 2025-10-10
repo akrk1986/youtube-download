@@ -9,6 +9,7 @@
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main-staging.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -103,7 +104,7 @@
       <recent name="C:\Users\user\PycharmProjects\youtube-download\Beta" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main-staging-m4a-to-mp3">
+  <component name="RunManager" selected="Python.dlp-DL-Singles-both">
     <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -523,8 +524,8 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.main-staging-m4a-to-mp3" />
         <item itemvalue="Python.dlp-DL-Singles-both" />
+        <item itemvalue="Python.main-staging-m4a-to-mp3" />
         <item itemvalue="Python.yt-dlp-v2" />
         <item itemvalue="Python.test_chapter_regex" />
         <item itemvalue="Python.main-get-artists-from-trello" />
