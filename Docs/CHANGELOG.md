@@ -4,6 +4,43 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2025-10-16
+
+**Feature Enhancement:** Implemented URL-based timeout configuration for yt-dlp operations
+
+**Summary:** Added dynamic timeout selection based on URL domain to accommodate slower video streaming sites while maintaining reasonable timeouts for YouTube.
+
+**Changes made:**
+
+1. **`project_defs.py`**:
+   - Split `VALID_YOUTUBE_DOMAINS` into two separate constants:
+     - `VALID_YOUTUBE_DOMAINS` - YouTube domains only (youtube.com, www.youtube.com, m.youtube.com, youtu.be)
+     - `VALID_OTHER_DOMAINS` - Other supported sites (www.ertflix.gr, ertflix.gr)
+   - Replaced single `SUBPROCESS_TIMEOUT_SECONDS` constant with two:
+     - `SUBPROCESS_TIMEOUT_YOUTUBE = 300` (5 minutes for YouTube)
+     - `SUBPROCESS_TIMEOUT_OTHER_SITES = 3600` (1 hour for slower sites)
+
+2. **`funcs_utils.py`**:
+   - Added `get_timeout_for_url()` function that determines appropriate timeout based on URL domain
+     - Returns 300 seconds for YouTube URLs
+     - Returns 3600 seconds for other supported sites
+     - Defaults to 300 seconds for unknown domains
+   - Renamed `validate_youtube_url()` to `validate_video_url()` and updated it to accept both YouTube and other supported video sites
+   - Updated `get_video_info()` to use `get_timeout_for_url()` for dynamic timeout
+   - Updated `get_chapter_count()` to use `get_timeout_for_url()` for dynamic timeout
+
+3. **`funcs_for_main_yt_dlp.py`**:
+   - Updated imports and function calls to use `validate_video_url` instead of `validate_youtube_url`
+
+4. **`main-yt-dlp.py`**:
+   - Updated `_run_yt_dlp()` to use dynamic timeout via `get_timeout_for_url()`
+   - Updated `_extract_single_format()` to use dynamic timeout via `get_timeout_for_url()`
+   - Updated imports to include `get_timeout_for_url` and removed `SUBPROCESS_TIMEOUT_SECONDS`
+
+**Result:** YouTube downloads timeout after 5 minutes while other sites like ertflix.gr have 1 hour before timeout. This accommodates slow streaming sites while preventing excessive waits for fast sites. The timeout is automatically selected based on the URL domain.
+
+---
+
 ## 2025-10-09 18:45:00
 
 **Feature Enhancement:** Store video URL in MP4 video metadata

@@ -13,12 +13,11 @@ VERSION = '2025-10-09 18:45:00'
 
 from logger_config import setup_logging
 from funcs_for_main_yt_dlp import validate_and_get_url, organize_and_sanitize_files, process_audio_tags
-from funcs_utils import get_video_info, is_playlist, get_chapter_count, sanitize_url_for_subprocess
+from funcs_utils import get_video_info, is_playlist, get_chapter_count, sanitize_url_for_subprocess, get_timeout_for_url
 from project_defs import (
     DEFAULT_AUDIO_QUALITY, DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
     YT_DLP_WRITE_JSON_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
-    YT_DLP_IS_PLAYLIST_FLAG, VIDEO_OUTPUT_DIR, AUDIO_OUTPUT_DIR,
-    SUBPROCESS_TIMEOUT_SECONDS
+    YT_DLP_IS_PLAYLIST_FLAG, VIDEO_OUTPUT_DIR, AUDIO_OUTPUT_DIR
 )
 
 logger = logging.getLogger(__name__)
@@ -29,6 +28,9 @@ def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs:
     """Extract videos from YouTube playlist/video with yt-dlp. Include subtitles if requested."""
     # Security: Validate URL before passing to subprocess
     sanitized_url = sanitize_url_for_subprocess(playlist_url)
+
+    # Get appropriate timeout based on URL domain
+    timeout = get_timeout_for_url(playlist_url)
 
     yt_dlp_cmd = [
         ytdlp_exe,
@@ -59,12 +61,12 @@ def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs:
     # Run download with error handling
     # Note: Some videos in playlists may be unavailable, which is expected
     try:
-        result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=SUBPROCESS_TIMEOUT_SECONDS)
+        result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=timeout)
         logger.info('Video download completed successfully')
         if result.stdout:
             logger.debug(f'yt-dlp output: {result.stdout}')
     except subprocess.TimeoutExpired:
-        logger.error(f"Video download timed out after {SUBPROCESS_TIMEOUT_SECONDS} seconds for URL '{playlist_url}'")
+        logger.error(f"Video download timed out after {timeout} seconds for URL '{playlist_url}'")
         if not is_it_playlist:
             raise RuntimeError(f"Download timed out for '{playlist_url}'")
     except subprocess.CalledProcessError as e:
@@ -83,6 +85,9 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
     """Extract audio in a single format using yt-dlp."""
     # Security: Validate URL before passing to subprocess
     sanitized_url = sanitize_url_for_subprocess(playlist_url)
+
+    # Get appropriate timeout based on URL domain
+    timeout = get_timeout_for_url(playlist_url)
 
     # Create format-specific subfolder
     format_folder = os.path.join(audio_folder, format_type)
@@ -119,12 +124,12 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
     # Run download with error handling
     # Note: Some videos in playlists may be unavailable, which is expected
     try:
-        result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=SUBPROCESS_TIMEOUT_SECONDS)
+        result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=timeout)
         logger.info(f'{format_type.upper()} audio download completed successfully')
         if result.stdout:
             logger.debug(f'yt-dlp output: {result.stdout}')
     except subprocess.TimeoutExpired:
-        logger.error(f"{format_type.upper()} audio download timed out after {SUBPROCESS_TIMEOUT_SECONDS} seconds for URL '{playlist_url}'")
+        logger.error(f"{format_type.upper()} audio download timed out after {timeout} seconds for URL '{playlist_url}'")
         if not is_it_playlist:
             raise RuntimeError(f"Audio download timed out for '{playlist_url}'")
     except subprocess.CalledProcessError as e:

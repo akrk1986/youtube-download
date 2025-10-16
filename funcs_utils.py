@@ -10,10 +10,10 @@ import yt_dlp
 import emoji
 
 from project_defs import (
-    VALID_YOUTUBE_DOMAINS, LEADING_NONALNUM_PATTERN, MULTIPLE_SPACES_PATTERN,
+    VALID_YOUTUBE_DOMAINS, VALID_OTHER_DOMAINS, LEADING_NONALNUM_PATTERN, MULTIPLE_SPACES_PATTERN,
     GLOB_MP3_FILES, GLOB_M4A_FILES, GLOB_FLAC_FILES,
     GLOB_MP3_FILES_UPPER, GLOB_M4A_FILES_UPPER, GLOB_FLAC_FILES_UPPER, GLOB_MP4_FILES,
-    SUBPROCESS_TIMEOUT_SECONDS
+    SUBPROCESS_TIMEOUT_YOUTUBE, SUBPROCESS_TIMEOUT_OTHER_SITES
 )
 
 logger = logging.getLogger(__name__)
@@ -360,9 +360,39 @@ def sanitize_filenames_in_folder(folder_path: Path, original_names: dict[str, st
 
 # Video files utils
 
-def validate_youtube_url(url: str) -> tuple[bool, str]:
+def get_timeout_for_url(url: str) -> int:
     """
-    Validate that the URL is a valid YouTube URL.
+    Determine the appropriate subprocess timeout based on the URL domain.
+
+    Args:
+        url: The URL to check
+
+    Returns:
+        int: Timeout in seconds (300 for YouTube, 3600 for other sites)
+    """
+    from urllib.parse import urlparse
+
+    try:
+        parsed = urlparse(url)
+
+        # Check if it's a YouTube domain
+        if any(domain in parsed.netloc for domain in VALID_YOUTUBE_DOMAINS):
+            return SUBPROCESS_TIMEOUT_YOUTUBE
+
+        # Check if it's another valid domain
+        if any(domain in parsed.netloc for domain in VALID_OTHER_DOMAINS):
+            return SUBPROCESS_TIMEOUT_OTHER_SITES
+
+        # Default to YouTube timeout for unknown domains
+        return SUBPROCESS_TIMEOUT_YOUTUBE
+
+    except Exception:
+        # If parsing fails, use YouTube timeout as safe default
+        return SUBPROCESS_TIMEOUT_YOUTUBE
+
+def validate_video_url(url: str) -> tuple[bool, str]:
+    """
+    Validate that the URL is a valid video streaming URL (YouTube or other supported sites).
 
     Args:
         url: The URL string to validate
@@ -384,9 +414,10 @@ def validate_youtube_url(url: str) -> tuple[bool, str]:
         if parsed.scheme not in ('http', 'https'):
             return False, f"Invalid URL scheme '{parsed.scheme}'. Must be http or https"
 
-        # Check domain
-        if not any(domain in parsed.netloc for domain in VALID_YOUTUBE_DOMAINS):
-            return False, f"Invalid domain '{parsed.netloc}'. Must be a YouTube URL"
+        # Check domain - accept both YouTube and other valid domains
+        all_valid_domains = VALID_YOUTUBE_DOMAINS + VALID_OTHER_DOMAINS
+        if not any(domain in parsed.netloc for domain in all_valid_domains):
+            return False, f"Invalid domain '{parsed.netloc}'. Must be a YouTube or other supported video site URL"
 
         return True, ''
 
@@ -398,6 +429,9 @@ def get_video_info(yt_dlp_path: Path, url: str) -> dict[str, any]:
     # Security: Validate URL before passing to subprocess
     sanitized_url = sanitize_url_for_subprocess(url)
 
+    # Get appropriate timeout based on URL domain
+    timeout = get_timeout_for_url(url)
+
     cmd = [
         str(yt_dlp_path),
         '--dump-json',
@@ -405,10 +439,10 @@ def get_video_info(yt_dlp_path: Path, url: str) -> dict[str, any]:
         sanitized_url
     ]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=SUBPROCESS_TIMEOUT_SECONDS)
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)
         return json.loads(result.stdout)
     except subprocess.TimeoutExpired:
-        raise RuntimeError(f"yt-dlp timed out after {SUBPROCESS_TIMEOUT_SECONDS} seconds for URL '{url}'")
+        raise RuntimeError(f"yt-dlp timed out after {timeout} seconds for URL '{url}'")
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f'yt-dlp failed: {e.stderr}')
     except json.JSONDecodeError as e:
@@ -446,8 +480,11 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
         # Security: Validate URL before passing to subprocess
         sanitized_url = sanitize_url_for_subprocess(playlist_url)
 
+        # Get appropriate timeout based on URL domain
+        timeout = get_timeout_for_url(playlist_url)
+
         cmd = [ytdlp_exe, '--dump-json', '--no-download', sanitized_url]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=SUBPROCESS_TIMEOUT_SECONDS)
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)
         video_info = json.loads(result.stdout)
         chapters = video_info.get('chapters')
         # Handle cases where chapters is None or not a list
@@ -455,7 +492,7 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
             return 0
         return len(chapters)
     except subprocess.TimeoutExpired:
-        logger.warning(f"yt-dlp timed out after {SUBPROCESS_TIMEOUT_SECONDS} seconds for URL '{playlist_url}'")
+        logger.warning(f"yt-dlp timed out after {timeout} seconds for URL '{playlist_url}'")
         return 0
     except subprocess.CalledProcessError as e:
         logger.warning(f"Failed to get chapter count for URL '{playlist_url}': {e.stderr}")

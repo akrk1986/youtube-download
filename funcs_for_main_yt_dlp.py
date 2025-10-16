@@ -6,7 +6,7 @@ from pathlib import Path
 from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
 from funcs_process_mp4_tags import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
 from funcs_process_flac_tags import set_artists_in_flac_files, set_tags_in_chapter_flac_files
-from funcs_utils import organize_media_files, sanitize_filenames_in_folder, validate_youtube_url
+from funcs_utils import organize_media_files, sanitize_filenames_in_folder, validate_video_url
 from project_defs import MAX_URL_RETRIES
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ def validate_and_get_url(provided_url: str | None) -> str:
         # Interactive mode: prompt with retry
         for attempt in range(MAX_URL_RETRIES):
             url = input('Enter the YouTube URL: ').strip()
-            is_valid, error_msg = validate_youtube_url(url)
+            is_valid, error_msg = validate_video_url(url)
 
             if is_valid:
                 return url
@@ -42,7 +42,7 @@ def validate_and_get_url(provided_url: str | None) -> str:
                 sys.exit(1)
     else:
         # CLI mode: validate provided URL
-        is_valid, error_msg = validate_youtube_url(provided_url)
+        is_valid, error_msg = validate_video_url(provided_url)
         if not is_valid:
             logger.error(f'Invalid URL: {error_msg}')
             sys.exit(1)
