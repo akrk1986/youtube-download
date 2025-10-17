@@ -103,6 +103,7 @@ def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None)
             str(m4a_file)
         ]
 
+        print(f'  Converting MP3 to M4A with timeout of {FFMPEG_TIMEOUT_SECONDS} seconds')
         result = subprocess.run(
             cmd,
             capture_output=True,
@@ -161,6 +162,7 @@ def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None)
             str(mp3_file)
         ]
 
+        print(f'  Converting M4A to MP3 with timeout of {FFMPEG_TIMEOUT_SECONDS} seconds')
         result = subprocess.run(
             cmd,
             capture_output=True,

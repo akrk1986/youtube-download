@@ -442,6 +442,7 @@ def get_video_info(yt_dlp_path: Path, url: str) -> dict:
         '--no-download',
         sanitized_url
     ]
+    logger.debug(f'Getting video info with timeout of {timeout} seconds')
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)
         return json.loads(result.stdout)
@@ -488,6 +489,7 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
         timeout = get_timeout_for_url(playlist_url)
 
         cmd = [ytdlp_exe, '--dump-json', '--no-download', sanitized_url]
+        logger.debug(f'Getting chapter count with timeout of {timeout} seconds')
         result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)
         video_info = json.loads(result.stdout)
         chapters = video_info.get('chapters')

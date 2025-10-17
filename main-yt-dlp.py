@@ -56,6 +56,7 @@ def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs:
             '--convert-subs', 'srt'
         ]
     logger.info('Downloading videos with yt-dlp...')
+    logger.info(f'Using timeout of {timeout} seconds for video download')
     logger.info(f'Command: {yt_dlp_cmd}')
 
     # Run download with error handling
@@ -119,6 +120,7 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
         yt_dlp_cmd[1:1] = [YT_DLP_SPLIT_CHAPTERS_FLAG]
 
     logger.info(f'Downloading and extracting {format_type.upper()} audio with yt-dlp')
+    logger.info(f'Using timeout of {timeout} seconds for {format_type.upper()} audio download')
     logger.info(f'Command: {yt_dlp_cmd}')
 
     # Run download with error handling
@@ -170,6 +172,8 @@ def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: 
             logger.info(f"Video has uploader: '{uploader}'")
 
     # Extract each requested audio format
+    timeout = get_timeout_for_url(playlist_url)
+    logger.info(f'Using timeout of {timeout} seconds for audio extraction')
     for audio_format in audio_formats:
         _extract_single_format(ytdlp_exe, playlist_url, audio_folder, has_chapters,
                               split_chapters, is_it_playlist, audio_format, artist_pat, album_artist_pat)
