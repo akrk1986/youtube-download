@@ -10,11 +10,12 @@
 *.ogg
 *.flac
 *.wav
-*.txt
+#*.txt
 !requirements.txt
 *.pyc
 .venv/
 .venv-linux/
+.venv-3.14/
 Tests/Data/
 Tests/yt-audio/
 Tests/yt-videos/
