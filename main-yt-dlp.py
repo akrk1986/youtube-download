@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: bool,
-                write_json: bool, has_chapters: bool, split_chapters: bool, is_it_playlist: bool) -> None:
+                write_json: bool, has_chapters: bool, split_chapters: bool, is_it_playlist: bool, show_progress: bool = False) -> None:
     """Extract videos from YouTube playlist/video with yt-dlp. Include subtitles if requested."""
     # Security: Validate URL before passing to subprocess
     sanitized_url = sanitize_url_for_subprocess(playlist_url)
@@ -55,6 +55,8 @@ def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs:
             '--sub-lang', 'el,en,he',
             '--convert-subs', 'srt'
         ]
+    if show_progress:
+        yt_dlp_cmd[1:1] = ['--progress']
     logger.info('Downloading videos with yt-dlp...')
     logger.info(f'Using timeout of {timeout} seconds for video download')
     logger.info(f'Command: {yt_dlp_cmd}')
@@ -62,10 +64,20 @@ def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs:
     # Run download with error handling
     # Note: Some videos in playlists may be unavailable, which is expected
     try:
-        result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=timeout)
-        logger.info('Video download completed successfully')
-        if result.stdout:
-            logger.debug(f'yt-dlp output: {result.stdout}')
+        if show_progress:
+            # Create Logs directory if it doesn't exist
+            log_dir = Path('Logs')
+            log_dir.mkdir(exist_ok=True)
+            log_file = log_dir / 'yt-dlp.log'
+
+            with open(log_file, 'a') as f:
+                result = subprocess.run(yt_dlp_cmd, check=True, stdout=f, stderr=subprocess.STDOUT, text=True, timeout=timeout)
+            logger.info(f'Video download completed successfully. Progress logged to {log_file}')
+        else:
+            result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=timeout)
+            logger.info('Video download completed successfully')
+            if result.stdout:
+                logger.debug(f'yt-dlp output: {result.stdout}')
     except subprocess.TimeoutExpired:
         logger.error(f"Video download timed out after {timeout} seconds for URL '{playlist_url}'")
         if not is_it_playlist:
@@ -82,7 +94,7 @@ def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs:
 
 def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
                           has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
-                          format_type: str, artist_pat: str | None = None, album_artist_pat: str | None = None) -> None:
+                          format_type: str, artist_pat: str | None = None, album_artist_pat: str | None = None, show_progress: bool = False) -> None:
     """Extract audio in a single format using yt-dlp."""
     # Security: Validate URL before passing to subprocess
     sanitized_url = sanitize_url_for_subprocess(playlist_url)
@@ -118,6 +130,8 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
                            ]
     if split_chapters and has_chapters:
         yt_dlp_cmd[1:1] = [YT_DLP_SPLIT_CHAPTERS_FLAG]
+    if show_progress:
+        yt_dlp_cmd[1:1] = ['--progress']
 
     logger.info(f'Downloading and extracting {format_type.upper()} audio with yt-dlp')
     logger.info(f'Using timeout of {timeout} seconds for {format_type.upper()} audio download')
@@ -126,10 +140,20 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
     # Run download with error handling
     # Note: Some videos in playlists may be unavailable, which is expected
     try:
-        result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=timeout)
-        logger.info(f'{format_type.upper()} audio download completed successfully')
-        if result.stdout:
-            logger.debug(f'yt-dlp output: {result.stdout}')
+        if show_progress:
+            # Create Logs directory if it doesn't exist
+            log_dir = Path('Logs')
+            log_dir.mkdir(exist_ok=True)
+            log_file = log_dir / 'yt-dlp.log'
+
+            with open(log_file, 'a') as f:
+                result = subprocess.run(yt_dlp_cmd, check=True, stdout=f, stderr=subprocess.STDOUT, text=True, timeout=timeout)
+            logger.info(f'{format_type.upper()} audio download completed successfully. Progress logged to {log_file}')
+        else:
+            result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=timeout)
+            logger.info(f'{format_type.upper()} audio download completed successfully')
+            if result.stdout:
+                logger.debug(f'yt-dlp output: {result.stdout}')
     except subprocess.TimeoutExpired:
         logger.error(f"{format_type.upper()} audio download timed out after {timeout} seconds for URL '{playlist_url}'")
         if not is_it_playlist:
@@ -145,7 +169,7 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
             raise RuntimeError(f"Failed to download {format_type.upper()} audio from '{playlist_url}': {e.stderr}")
 
 def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
-                              has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_formats: list[str]) -> None:
+                              has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_formats: list[str], show_progress: bool = False) -> None:
     """Use yt-dlp to download and extract audio with metadata and thumbnail."""
 
     # For a single video, check if video has 'artist' or 'uploader' tags.
@@ -175,8 +199,9 @@ def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: 
     timeout = get_timeout_for_url(playlist_url)
     logger.info(f'Using timeout of {timeout} seconds for audio extraction')
     for audio_format in audio_formats:
-        _extract_single_format(ytdlp_exe, playlist_url, audio_folder, has_chapters,
-                              split_chapters, is_it_playlist, audio_format, artist_pat, album_artist_pat)
+        _extract_single_format(ytdlp_exe=ytdlp_exe, playlist_url=playlist_url, audio_folder=audio_folder, has_chapters=has_chapters,
+                              split_chapters=split_chapters, is_it_playlist=is_it_playlist, format_type=audio_format,
+                              artist_pat=artist_pat, album_artist_pat=album_artist_pat, show_progress=show_progress)
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -188,6 +213,7 @@ def main() -> None:
     parser.add_argument('--split-chapters', action='store_true', help='Split to chapters')
     parser.add_argument('--subs', action='store_true', help='Download subtitles')
     parser.add_argument('--json', action='store_true', help='Write JSON file')
+    parser.add_argument('--progress', action='store_true', help='Show yt-dlp progress bar and log output to Logs/yt-dlp.log')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose (DEBUG) logging')
     parser.add_argument('--no-log-file', action='store_true', help='Disable logging to file')
     parser.add_argument('--version', action='version', version=f'%(prog)s {VERSION}')
@@ -289,14 +315,14 @@ def main() -> None:
     if not args.only_audio:
         _run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, get_subs=args.subs,
                     write_json=args.json, split_chapters=args.split_chapters, has_chapters=has_chapters,
-                    is_it_playlist=url_is_playlist)
+                    is_it_playlist=url_is_playlist, show_progress=args.progress)
 
     # Download audios if requested
     if need_audio:
         # Run yt-dlp to download videos, and let yt-dlp extract audio and add tags
         _extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder,
                                   split_chapters=args.split_chapters, has_chapters=has_chapters,
-                                  is_it_playlist=url_is_playlist, audio_formats=audio_formats)
+                                  is_it_playlist=url_is_playlist, audio_formats=audio_formats, show_progress=args.progress)
 
     # Organize chapter files and sanitize filenames
     original_names = organize_and_sanitize_files(
