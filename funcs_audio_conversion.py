@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Audio conversion functions using ffmpeg.
 Handles conversion between MP3 and M4A formats.
@@ -55,11 +54,9 @@ def _get_ffmpeg_tool_path(tool_name: str) -> str:
         print(f'Error: {tool_name} not found. Please install ffmpeg.')
         sys.exit(1)
 
-
 def get_ffmpeg_path() -> str:
     """Get the path to ffmpeg executable."""
     return _get_ffmpeg_tool_path('ffmpeg')
-
 
 def get_ffprobe_path() -> str:
     """Get the path to ffprobe executable."""

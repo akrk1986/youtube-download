@@ -81,7 +81,6 @@ class AudioTagHandler(ABC):
         """
         pass
 
-
 class MP3TagHandler(AudioTagHandler):
     """Handler for MP3 files using EasyID3."""
 
@@ -163,7 +162,6 @@ class MP3TagHandler(AudioTagHandler):
         # Reload the audio object to reflect the changes
         audio.load(file_path)
 
-
 class M4ATagHandler(AudioTagHandler):
     """Handler for M4A files using MP4."""
 
@@ -242,7 +240,6 @@ class M4ATagHandler(AudioTagHandler):
             original_filename = original_filename[:-4]
 
         audio[self.TAG_LYRICS] = [original_filename]
-
 
 class FLACTagHandler(AudioTagHandler):
     """Handler for FLAC files using Vorbis Comments."""

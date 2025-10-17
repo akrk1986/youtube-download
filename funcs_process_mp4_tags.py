@@ -35,7 +35,6 @@ def set_artists_in_m4a_files(m4a_folder: Path, artists_json: Path, original_name
     handler = M4ATagHandler()
     set_artists_in_audio_files(m4a_folder, artists_json, handler, original_names)
 
-
 def set_tags_in_chapter_m4a_files(m4a_folder: Path, uploader: str | None = None, video_title: str | None = None, original_names: dict[str, str] | None = None) -> int:
     """
     Set 'title' and 'tracknumber' tags in M4A chapter files in the given folder.

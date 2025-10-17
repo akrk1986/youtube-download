@@ -34,7 +34,6 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path, original_name
     handler = MP3TagHandler()
     set_artists_in_audio_files(mp3_folder, artists_json, handler, original_names)
 
-
 def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str | None = None, video_title: str | None = None, original_names: dict[str, str] | None = None) -> int:
     """
     Set 'title' and 'tracknumber' tags in MP3 chapter files in the given folder.

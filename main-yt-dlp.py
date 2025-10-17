@@ -1,4 +1,4 @@
-"""Using yt-dlp, download videos from YouTube URL, and extract the MP3 files."""
+"""Using yt-dlp, download videos from URL, and extract the MP3 files."""
 import argparse
 import glob
 import logging
@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2025-10-09 18:45:00'
+VERSION = '2025-10-17 21:40:00'
 
 from logger_config import setup_logging
 from funcs_for_main_yt_dlp import validate_and_get_url, organize_and_sanitize_files, process_audio_tags
@@ -68,7 +68,7 @@ def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs:
             # Create Logs directory if it doesn't exist
             log_dir = Path('Logs')
             log_dir.mkdir(exist_ok=True)
-            log_file = log_dir / 'yt-dlp.log'
+            log_file = log_dir / 'yt-dlp-downloads.log'
 
             with open(log_file, 'a') as f:
                 result = subprocess.run(yt_dlp_cmd, check=True, stdout=f, stderr=subprocess.STDOUT, text=True, timeout=timeout)
@@ -144,7 +144,7 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
             # Create Logs directory if it doesn't exist
             log_dir = Path('Logs')
             log_dir.mkdir(exist_ok=True)
-            log_file = log_dir / 'yt-dlp.log'
+            log_file = log_dir / 'yt-dlp-downloads.log'
 
             with open(log_file, 'a') as f:
                 result = subprocess.run(yt_dlp_cmd, check=True, stdout=f, stderr=subprocess.STDOUT, text=True, timeout=timeout)
@@ -250,7 +250,7 @@ def main() -> None:
         yt_dlp_dir = home_dir / 'Apps' / 'yt-dlp'
         yt_dlp_exe = yt_dlp_dir / 'yt-dlp.exe'
     else:
-        # Linux/Mac - use system-wide installations
+        # Linux/WSL/Mac - use system-wide installations
         yt_dlp_exe = 'yt-dlp'  # Should be in PATH
 
     # Handle artists.json path relative to script location, not current working directory
@@ -270,7 +270,7 @@ def main() -> None:
             logger.error(f"Please ensure yt-dlp is installed in '{yt_dlp_dir}'")
             sys.exit(1)
     else:
-        # For Linux/Mac, check if commands are available in PATH
+        # For Linux/WSL/Mac, check if commands are available in PATH
         try:
             subprocess.run([yt_dlp_exe, '--version'], capture_output=True, check=True)
         except (subprocess.CalledProcessError, FileNotFoundError) as e:

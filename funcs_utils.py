@@ -51,7 +51,6 @@ def sanitize_url_for_subprocess(url: str) -> str:
 
     return url
 
-
 def validate_file_path_security(file_path: Path, expected_parent: Path | None = None) -> None:
     """
     Validate that a file path is safe to use in subprocess calls.

@@ -85,7 +85,6 @@ def set_artists_in_audio_files(audio_folder: Path, artists_json: Path, handler: 
         else:
             logger.debug(f'No artist found in title for {audio_file.name}')
 
-
 def set_tags_in_chapter_audio_files(
     audio_folder: Path,
     handler: AudioTagHandler,

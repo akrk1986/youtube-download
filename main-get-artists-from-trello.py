@@ -33,9 +33,7 @@ def parse_card_name(card_name: str) -> tuple[str, str, bool]:
     greek = capitalize_greek_name(greek.strip())
     return greek, english.strip(), warning
 
-def extract_artists(
-    trello_data: dict[str, any]
-) -> tuple[list[dict[str, str]], int, int]:
+def extract_artists(trello_data: dict) -> tuple[list[dict[str, str]], int, int]:
     """
     Extracts artists from Trello JSON export.
     Returns the list of artists, number of lists, and number of cards.

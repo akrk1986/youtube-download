@@ -30,7 +30,6 @@ def validate_and_get_url(provided_url: str | None) -> str:
         for attempt in range(MAX_URL_RETRIES):
             url = input('Enter the YouTube URL: ').strip()
             is_valid, error_msg = validate_video_url(url)
-
             if is_valid:
                 return url
 
@@ -47,7 +46,6 @@ def validate_and_get_url(provided_url: str | None) -> str:
             logger.error(f'Invalid URL: {error_msg}')
             sys.exit(1)
         return provided_url
-
 
 def organize_and_sanitize_files(video_folder: Path, audio_folder: Path, audio_formats: list[str],
                                  has_chapters: bool, only_audio: bool, need_audio: bool) -> dict[str, dict[str, str]]:
@@ -110,7 +108,6 @@ def organize_and_sanitize_files(video_folder: Path, audio_folder: Path, audio_fo
                     original_names_flac = sanitize_filenames_in_folder(folder_path=subfolder, original_names=original_names_flac)
 
     return {'mp3': original_names_mp3, 'm4a': original_names_m4a, 'flac': original_names_flac}
-
 
 def process_audio_tags(audio_folder: Path, audio_formats: list[str], artists_json: Path,
                        has_chapters: bool, uploader_name: str | None, video_title: str | None,

@@ -5,8 +5,8 @@ import unicodedata
 
 from project_defs import MAX_ALBUM_NAME_LENGTH, CHAPTER_FILENAME_PATTERN
 
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 
 _windows_reserved_names = {
     'CON', 'PRN', 'AUX', 'NUL',
