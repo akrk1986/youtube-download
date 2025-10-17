@@ -2,8 +2,6 @@
 /yt-audio
 /yt-videos-old
 /yt-audio-old
-/Data
-!Data/artists.json
 *.mp3
 *.webm
 *.mp4

@@ -1,0 +1,595 @@
+{
+  "artists": [
+    {
+      "Greek name": "Ανατολή Μαργιόλα",
+      "English name": "Anatoli Margiola",
+      "List": "Favorites"
+    },
+
+    {
+      "Greek name": "Άννα Ψυχογιού",
+      "English name": "Anna Psichogiou",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Αρετή Κετιμέ",
+      "English name": "Areti Ketime",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Αφροδίτη Χατζημηνά",
+      "English name": "Afroditi Hatzimina",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Βασιλική Νταντά",
+      "English name": "Vasiliki Nanta",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Βασιλική Στεφάνου",
+      "English name": "Vasiliki Stefanou",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Βιολέτα Ίκαρη",
+      "English name": "Violeta Ikari",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Γεράσιμος Ανδρεατοσ",
+      "English name": "Gerasimos Andreatos",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Γιάννης Κότσιρας",
+      "English name": "Giannis Kotsiras",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Γιώργος Νταλάρας",
+      "English name": "Giorgos Dalaras",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Γλυκερία",
+      "English name": "Glikeria",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Δημητρα Σταθοπουλου",
+      "English name": "Dimitra Stathopoulou",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Ειρήνη Τουμπάκη",
+      "English name": "Eirini Toubaki",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Ελεάνα Παπαϊωάννου",
+      "English name": "Eliana Papaioannou",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Ευρυδίκη Νικολάου",
+      "English name": "Evridiki Nikolaou",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Ευτυχία Μητρίτσα",
+      "English name": "Eftychia Mitritsa",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Κώστας Καραφώτης",
+      "English name": "Kostas Karafotis",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Μαρία Ιωαννίδου",
+      "English name": "Maria Yoannidou",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Μαριάννα Παπαμακαρίου",
+      "English name": "Marianna Papamakariou",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Μελίνα Ασλανίδου",
+      "English name": "Melina Aslanidou",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Μιχάλης Δημητριάδης",
+      "English name": "Michalis Dimitriadis",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Σαββέρια Μαργιολά",
+      "English name": "Saveria Margiola",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Σοφία Παπάζογλου",
+      "English name": "Sofia Papazoglou",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Χριστιάνα Γαλιάτσου",
+      "English name": "Christiana Galiatsu",
+      "List": "Favorites"
+    },
+    {
+      "Greek name": "Βασίλης Λέκκας",
+      "English name": "Vasilis Lekkas",
+      "List": "Male Singers - Tier 1"
+    },
+    {
+      "Greek name": "Βασίλης Προδρόμου",
+      "English name": "Vasilis Prodromou",
+      "List": "Male Singers - Tier 1"
+    },
+    {
+      "Greek name": "Δημήτρης Μπάσης",
+      "English name": "Dimitris Basis",
+      "List": "Male Singers - Tier 1"
+    },
+    {
+      "Greek name": "Θέμης Αδαμαντιδης",
+      "English name": "Themis Adamantidis",
+      "List": "Male Singers - Tier 1"
+    },
+    {
+      "Greek name": "Θοδωρής Μέρμηγκας",
+      "English name": "Thodoris Mermikas",
+      "List": "Male Singers - Tier 1"
+    },
+    {
+      "Greek name": "Κώστας Μακεδόνας",
+      "English name": "Kostas Makedonas",
+      "List": "Male Singers - Tier 1"
+    },
+    {
+      "Greek name": "Μπάμπης Τσέρτος",
+      "English name": "Babis Tsertos",
+      "List": "Male Singers - Tier 1"
+    },
+    {
+      "Greek name": "Σπύρος Πατράς",
+      "English name": "Spyros Patras",
+      "List": "Male Singers - Tier 1"
+    },
+    {
+      "Greek name": "Σωτήρης Παπατραγιάννης",
+      "English name": "Sotiris Papatragiannis",
+      "List": "Male Singers - Tier 1"
+    },
+    {
+      "Greek name": "Αντώνης Αινιτης",
+      "English name": "Adonis Ainitis",
+      "List": "Male Singers - Tier 2"
+    },
+    {
+      "Greek name": "Βαγγέλης Κορακάκης",
+      "English name": "Vaggelis Korakakis",
+      "List": "Male Singers - Tier 2"
+    },
+    {
+      "Greek name": "Γιάννης Διονυσίου",
+      "English name": "Giannis Dionisiou",
+      "List": "Male Singers - Tier 2"
+    },
+    {
+      "Greek name": "Γρηγόρης Βασιλας",
+      "English name": "Grigoris Vasilas",
+      "List": "Male Singers - Tier 2"
+    },
+    {
+      "Greek name": "Στέλιος Διονυσίου",
+      "English name": "Stelios Dionysiou",
+      "List": "Male Singers - Tier 2"
+    },
+    {
+      "Greek name": "Χρήστος Δάντης",
+      "English name": "Christos Dantis",
+      "List": "Male Singers - Tier 2"
+    },
+    {
+      "Greek name": "Χρήστος Μενιδιάτης",
+      "English name": "Christos Menidiatis",
+      "List": "Male Singers - Tier 2"
+    },
+    {
+      "Greek name": "Μαρία Σεϊτανίδου",
+      "English name": "Maria Seitanidou",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Ασπασία Στρατηγού",
+      "English name": "Aspasia Stratigou",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Βάσω Αθανασάκη",
+      "English name": "Vaso Athanasaki",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Βερόνικα Δαβάκη",
+      "English name": "Veronika Davaki",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Γιώτα Νέγκα",
+      "English name": "Yota Negka",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Δέσποινα Ραφαήλ",
+      "English name": "Despina Rafail",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Ελευθερία Πάτση",
+      "English name": "Elefteria Patsi",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Ζωή Παπαδοπούλου",
+      "English name": "Zoe Papadopoulou",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Ηρώ Σαΐα",
+      "English name": "Iro Saya",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Ιουλία Καραπατάκη",
+      "English name": "Yulia Karapataki",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Κωνσταντίνα",
+      "English name": "Κonstantina",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Μαριάννα Λούμα",
+      "English name": "Marianna Louma",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Πέγκυ Ζήνα",
+      "English name": "Peggy Zina",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Πέννυ Μπαλτατζή",
+      "English name": "Penny Baltatzi",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Πίτσα Παπαδόπουλου",
+      "English name": "Pitsa Papadopulu",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Σουσάνα Τρυφιάτη",
+      "English name": "Sousana Trifiati",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Σταυρούλα Εσαμπαλίδη",
+      "English name": "Stavroula Esabalidi",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Χριστίνα Μαραγκόζη",
+      "English name": "Christina Maragozi",
+      "List": "Female Singers - Tier 1"
+    },
+    {
+      "Greek name": "Μαριάννα Πολυχρονίδη",
+      "English name": "Marianna Polychronidi",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Αγνή Καλουμένου",
+      "English name": "Agni Kaloumenou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Αθηνά Λαμπίρη",
+      "English name": "Athina Labiri",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Βάλια Σωμαράκη",
+      "English name": "Valia Somaraki",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Βίκυ Καρατζόγλου",
+      "English name": "Vicki Karatzoglou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Γιώτα Γρίβα",
+      "English name": "Giota Griva",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Δήμητρα Μπουλούζου",
+      "English name": "Dimitra Boulouzou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Δήμητρα Τσατσού",
+      "English name": "Dimtra Tsatsou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Ειρήνη Παπαδοπούλου",
+      "English name": "Eirini Papadopoulou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Ειρήνη Χαρίδου",
+      "English name": "Eirini Haridou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Έλενα Παναγιωτίδου",
+      "English name": "Elena Panagiotidou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Ευδοκία Καδή",
+      "English name": "Evdokia Kadi",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Ιουλία καλλιμάνη",
+      "English name": "Ioulia Kallimani",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Ιφιγένεια Ιωάννου",
+      "English name": "Ifigeneia Ioannou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Ιωάννα Σαατσάκη",
+      "English name": "Yoanna Saatsaki",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Κατερίνα Ευγενικού",
+      "English name": "Katerina Evgenikou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Κατερίνα Κούκα",
+      "English name": "Katerina Kouka",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Κατερίνα Παπουτσάκη",
+      "English name": "Katerina Papoutsaki",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Κατερινα Τσιριδου",
+      "English name": "Katerina Tsiridou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Κέλλυ Βουδούρη",
+      "English name": "Kelly Voudouri",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Μάιρα Βεργένη",
+      "English name": "Maira Vergeni",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Μαίρη Δούτση",
+      "English name": "Mary Doutsi",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Μαρία Σεϊτανίδου",
+      "English name": "Maria Seitanidou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Μαριαλένα Ροζάκη",
+      "English name": "Marialena Rozaki",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Μόρφω Τσαϊρέλη",
+      "English name": "Morfo Tsaireli",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Μυρτώ Καμβυσίδη",
+      "English name": "Myrto Kamvisidi",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Νάντια Μπουλέ",
+      "English name": "Nadia Boulé",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Νατάσα Θεοδωρίδου",
+      "English name": "Natasa Theodoridou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Νατάσσα Μποφίλιου",
+      "English name": "Natassa Bofiliou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Νεφέλη Φασούλη",
+      "English name": "Nefeli Fasouli",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Παμπίνα Κοντέα",
+      "English name": "Pampina Kontea",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Ρία Ελληνίδου",
+      "English name": "Ria Ellinidou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Σταυρούλα Μανωλοπούλου",
+      "English name": "Stavroula Manolopoulou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Χαριτίνη Πανοπούλου",
+      "English name": "Haritini Panopoulou",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Χρυσούλα Στεφανακη",
+      "English name": "Chrysula Stefanaki",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Μελίνα Κανά",
+      "English name": "Melina Kana",
+      "List": "Female Singers - Tier 3"
+    },
+    {
+      "Greek name": "Αποστολία Ζώη",
+      "English name": "Apostolia Zoi",
+      "List": "Female Singers - Tier 3"
+    },
+    {
+      "Greek name": "Ελένη Καρακάση",
+      "English name": "Eleni Karakasi",
+      "List": "Female Singers - Tier 3"
+    },
+    {
+      "Greek name": "Ιώ Νικολάου",
+      "English name": "Iyo Nikolau",
+      "List": "Female Singers - Tier 3"
+    },
+    {
+      "Greek name": "Ιωάννα Γιαννοπούλου",
+      "English name": "Ioanna Giannopoulou",
+      "List": "Female Singers - Tier 3"
+    },
+    {
+      "Greek name": "Λένα Αλκαίου",
+      "English name": "Lena Alkaiou",
+      "List": "Female Singers - Tier 3"
+    },
+    {
+      "Greek name": "Λυδια Μαυρου",
+      "English name": "Lydia Mavrou",
+      "List": "Female Singers - Tier 3"
+    },
+    {
+      "Greek name": "Πολυξένη Καράκογλου",
+      "English name": "Polyxeni Karakoglou",
+      "List": "Female Singers - Tier 3"
+    },
+    {
+      "Greek name": "Ρίτα Αντωνοπούλου",
+      "English name": "Rita Antonopoulou",
+      "List": "Female Singers - Tier 3"
+    },
+    {
+      "Greek name": "Ανδρέας Καραντινός",
+      "English name": "Andreas Karantinis",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Ανδρέας Τραπαλησ",
+      "English name": "Andreas Trapalis",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Άρης Κούκος",
+      "English name": "Aris Koukus",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Βαγγέλης Μαχαίρας",
+      "English name": "Vaggelis Machairas",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Γιαννης Σινανης",
+      "English name": "Yannis Sinanis",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Γιάννης Σταματογιάννης",
+      "English name": "Yannis Stamatouyannis",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Δημήτρης Γκίνης",
+      "English name": "Dimitris Ginis",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Δημήτρης Ρέππας",
+      "English name": "Dimitris Reppas",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Δημήτρης Σαββαΐδης",
+      "English name": "Dimitris Savaidis",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Θοδωρής Στούγιος",
+      "English name": "Thodoris Stougios",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Κυριάκος Γκουβέντας",
+      "English name": "Kiryakos Guventas",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Κώστας Μήτσιος",
+      "English name": "Kostas Mitsios",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Μανος Γρυσμπολακης",
+      "English name": "Manos Grisbolakis",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Μανωλης Καραντινης",
+      "English name": "Manolis Karantinis",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Τάσος Αθανασιάς",
+      "English name": "Tasos Athanasias",
+      "List": "Musicians"
+    },
+    {
+      "Greek name": "Χρήστος Νικολόπουλος",
+      "English name": "Christos Nikolopoulos",
+      "List": "Musicians"
+    }
+  ]
+}
