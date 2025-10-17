@@ -8,6 +8,7 @@ VALID_AUDIO_FORMATS = {'mp3', 'm4a', 'flac'}
 # YouTube URL validation
 MAX_URL_RETRIES = 3
 VALID_YOUTUBE_DOMAINS = ('youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be')
+VALID_FACEBOOK_DOMAINS = ('facebook.com', 'www.facebook.com', 'fbcdn.net', 'fb.com', 'fb.me')
 VALID_OTHER_DOMAINS = ('www.ertflix.gr', 'ertflix.gr')
 
 # File processing constants
@@ -22,6 +23,7 @@ MAX_LOG_FILES = 5  # Maximum number of log files to keep
 
 # Subprocess timeout constants (in seconds)
 SUBPROCESS_TIMEOUT_YOUTUBE = 300  # 5 minutes for YouTube yt-dlp operations
+SUBPROCESS_TIMEOUT_FACEBOOK = 300
 SUBPROCESS_TIMEOUT_OTHER_SITES = 3600  # 1 hour for other sites (some are very slow)
 FFMPEG_TIMEOUT_SECONDS = 600  # 10 minutes for audio/video conversion
 

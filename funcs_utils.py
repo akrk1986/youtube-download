@@ -10,10 +10,11 @@ import yt_dlp
 import emoji
 
 from project_defs import (
-    VALID_YOUTUBE_DOMAINS, VALID_OTHER_DOMAINS, LEADING_NONALNUM_PATTERN, MULTIPLE_SPACES_PATTERN,
+    VALID_YOUTUBE_DOMAINS, VALID_FACEBOOK_DOMAINS, VALID_OTHER_DOMAINS,
+    LEADING_NONALNUM_PATTERN, MULTIPLE_SPACES_PATTERN,
     GLOB_MP3_FILES, GLOB_M4A_FILES, GLOB_FLAC_FILES,
     GLOB_MP3_FILES_UPPER, GLOB_M4A_FILES_UPPER, GLOB_FLAC_FILES_UPPER, GLOB_MP4_FILES,
-    SUBPROCESS_TIMEOUT_YOUTUBE, SUBPROCESS_TIMEOUT_OTHER_SITES
+    SUBPROCESS_TIMEOUT_YOUTUBE, SUBPROCESS_TIMEOUT_FACEBOOK, SUBPROCESS_TIMEOUT_OTHER_SITES
 )
 
 logger = logging.getLogger(__name__)
@@ -144,7 +145,7 @@ def sanitize_string(dirty_string: str) -> str:
     if has_extension and name_part:
         return f'{name_part}.{extension}'
     elif has_extension:
-        # If name_part is empty but we had an extension, keep the extension
+        # If name_part is empty, but we had an extension, keep the extension
         return f'untitled.{extension}'
     else:
         return name_part
@@ -375,9 +376,12 @@ def get_timeout_for_url(url: str) -> int:
     try:
         parsed = urlparse(url)
 
-        # Check if it's a YouTube domain
+        # Check if it's a YouTube or Facebook domain
         if any(domain in parsed.netloc for domain in VALID_YOUTUBE_DOMAINS):
             return SUBPROCESS_TIMEOUT_YOUTUBE
+
+        if any(domain in parsed.netloc for domain in VALID_FACEBOOK_DOMAINS):
+            return SUBPROCESS_TIMEOUT_FACEBOOK
 
         # Check if it's another valid domain
         if any(domain in parsed.netloc for domain in VALID_OTHER_DOMAINS):
@@ -415,16 +419,16 @@ def validate_video_url(url: str) -> tuple[bool, str]:
             return False, f"Invalid URL scheme '{parsed.scheme}'. Must be http or https"
 
         # Check domain - accept both YouTube and other valid domains
-        all_valid_domains = VALID_YOUTUBE_DOMAINS + VALID_OTHER_DOMAINS
+        all_valid_domains = VALID_YOUTUBE_DOMAINS + VALID_FACEBOOK_DOMAINS + VALID_OTHER_DOMAINS
         if not any(domain in parsed.netloc for domain in all_valid_domains):
-            return False, f"Invalid domain '{parsed.netloc}'. Must be a YouTube or other supported video site URL"
-
+            return (False,
+                    f"Invalid domain '{parsed.netloc}'. Must be a YouTube, Facebook or other supported video site URL")
         return True, ''
 
     except Exception as e:
         return False, f'Invalid URL format: {e}'
 
-def get_video_info(yt_dlp_path: Path, url: str) -> dict[str, any]:
+def get_video_info(yt_dlp_path: Path, url: str) -> dict:
     """Get video information using yt-dlp by requesting the meta-data as JSON, w/o download of the video."""
     # Security: Validate URL before passing to subprocess
     sanitized_url = sanitize_url_for_subprocess(url)
