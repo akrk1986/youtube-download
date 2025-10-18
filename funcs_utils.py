@@ -8,6 +8,7 @@ import subprocess
 import json
 import yt_dlp
 import emoji
+import urllib.error
 
 from project_defs import (
     VALID_YOUTUBE_DOMAINS, VALID_FACEBOOK_DOMAINS, VALID_OTHER_DOMAINS,
@@ -360,17 +361,23 @@ def sanitize_filenames_in_folder(folder_path: Path, original_names: dict[str, st
 
 # Video files utils
 
-def get_timeout_for_url(url: str) -> int:
+def get_timeout_for_url(url: str, other_sites_timeout: int | None = None) -> int:
     """
     Determine the appropriate subprocess timeout based on the URL domain.
 
     Args:
         url: The URL to check
+        other_sites_timeout: Optional timeout in seconds for other sites (non-YouTube/Facebook).
+                           If None, uses SUBPROCESS_TIMEOUT_OTHER_SITES default.
 
     Returns:
-        int: Timeout in seconds (300 for YouTube, 3600 for other sites)
+        int: Timeout in seconds (300 for YouTube & Facebook, 3600 for other sites by default)
     """
     from urllib.parse import urlparse
+
+    # Use default if not provided
+    if other_sites_timeout is None:
+        other_sites_timeout = SUBPROCESS_TIMEOUT_OTHER_SITES
 
     try:
         parsed = urlparse(url)
@@ -384,14 +391,15 @@ def get_timeout_for_url(url: str) -> int:
 
         # Check if it's another valid domain
         if any(domain in parsed.netloc for domain in VALID_OTHER_DOMAINS):
-            return SUBPROCESS_TIMEOUT_OTHER_SITES
+            return other_sites_timeout
 
         # Default to YouTube timeout for unknown domains
         return SUBPROCESS_TIMEOUT_YOUTUBE
 
-    except Exception:
-        # If parsing fails, use YouTube timeout as safe default
-        return SUBPROCESS_TIMEOUT_YOUTUBE
+    except urllib.error.URLError:
+        # If parsing fails, abort
+        raise ValueError(f"URL '{url}' cannot be parsed, aborting")
+    # abort on any other exception
 
 def validate_video_url(url: str) -> tuple[bool, str]:
     """
