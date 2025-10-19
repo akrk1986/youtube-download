@@ -51,7 +51,7 @@ def _get_ffmpeg_tool_path(tool_name: str) -> str:
         )
         return tool_name
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print(f'Error: {tool_name} not found. Please install ffmpeg.')
+        print(f'Error: {tool_name} not found. Please install it (as root).')
         sys.exit(1)
 
 def get_ffmpeg_path() -> str:
@@ -101,16 +101,14 @@ def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None)
         ]
 
         print(f'  Converting MP3 to M4A with timeout of {FFMPEG_TIMEOUT_SECONDS} seconds')
-        result = subprocess.run(
+        _ = subprocess.run(
             cmd,
             capture_output=True,
             check=True,
             timeout=FFMPEG_TIMEOUT_SECONDS
         )
-
         print(f'  Converted MP3 to M4A: {m4a_file.name}')
         return m4a_file
-
     except subprocess.TimeoutExpired:
         print(f'Error: Conversion timed out after {FFMPEG_TIMEOUT_SECONDS} seconds for {mp3_file.name}')
         return None
@@ -160,7 +158,7 @@ def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None)
         ]
 
         print(f'  Converting M4A to MP3 with timeout of {FFMPEG_TIMEOUT_SECONDS} seconds')
-        result = subprocess.run(
+        _ = subprocess.run(
             cmd,
             capture_output=True,
             check=True,
@@ -171,9 +169,9 @@ def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None)
         return mp3_file
 
     except subprocess.TimeoutExpired:
-        print(f'Error: Conversion timed out after {FFMPEG_TIMEOUT_SECONDS} seconds for {m4a_file.name}')
+        print(f"Error: Conversion timed out after {FFMPEG_TIMEOUT_SECONDS} seconds for '{m4a_file.name}'")
         return None
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else 'Unknown error'
-        print(f'Error converting {m4a_file.name} to MP3: {error_msg}')
+        print(f"Error converting '{m4a_file.name}' to MP3: '{error_msg}'")
         return None

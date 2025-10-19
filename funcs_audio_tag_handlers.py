@@ -11,7 +11,6 @@ from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3, ID3NoHeaderError, TENC
 from mutagen.mp4 import MP4
 from mutagen.flac import FLAC
-from mutagen import MutagenError
 
 from project_defs import GLOB_MP3_FILES, GLOB_M4A_FILES, GLOB_FLAC_FILES
 
@@ -82,7 +81,7 @@ class AudioTagHandler(ABC):
         pass
 
 class MP3TagHandler(AudioTagHandler):
-    """Handler for MP3 files using EasyID3."""
+    """Handler for MP3 files and tags using EasyID3."""
 
     # ID3 tag name constants
     TAG_TITLE = 'title'
@@ -163,7 +162,7 @@ class MP3TagHandler(AudioTagHandler):
         audio.load(file_path)
 
 class M4ATagHandler(AudioTagHandler):
-    """Handler for M4A files using MP4."""
+    """Handler for M4A files and tags using MP4."""
 
     # M4A/MP4 tag name constants (using Apple's atom names)
     TAG_TITLE = '\xa9nam'
@@ -242,7 +241,7 @@ class M4ATagHandler(AudioTagHandler):
         audio[self.TAG_LYRICS] = [original_filename]
 
 class FLACTagHandler(AudioTagHandler):
-    """Handler for FLAC files using Vorbis Comments."""
+    """Handler for FLAC files and tags using Vorbis Comments."""
 
     # FLAC/Vorbis comment tag name constants
     TAG_TITLE = 'title'
@@ -289,8 +288,8 @@ class FLACTagHandler(AudioTagHandler):
 
     def handle_format_specific_tasks(self, audio: FLAC) -> bool:
         """
-        Fix year format: convert YYYYMMDD to YYYY if needed.
-        Copy PURL (video URL) to COMMENT field if COMMENT is empty.
+        1. Fix year format: convert YYYYMMDD to YYYY if needed.
+        2. Copy PURL (video URL) to COMMENT field, but only if COMMENT is empty.
         """
         modified = False
 

@@ -14,7 +14,10 @@ from funcs_utils import sanitize_string
 logger = logging.getLogger(__name__)
 
 
-def set_artists_in_audio_files(audio_folder: Path, artists_json: Path, handler: AudioTagHandler, original_names: dict[str, str] | None = None) -> None:
+def set_artists_in_audio_files(audio_folder: Path,
+                               artists_json: Path,
+                               handler: AudioTagHandler,
+                               original_names: dict[str, str] | None = None) -> None:
     """
     Unified function to set artists in audio files (works for MP3, M4A, or any format).
     Based on artists list loaded from an external file, scan the audio file title,

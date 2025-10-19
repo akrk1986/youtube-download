@@ -21,7 +21,7 @@ def _parse_time_to_seconds(time_str: str) -> int:
     else:
         raise ValueError(f'Invalid time format: {time_str}')
 
-def _extract_chapters_from_description(description: str) -> list[dict[str, any]]:
+def _extract_chapters_from_description(description: str) -> list[dict]:
     """Extract chapters from video description using regex patterns."""
     chapters = []
 
@@ -103,7 +103,6 @@ def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> str | None:
                 # If end_time is None (last chapter), use video duration
                 if end_time is None:
                     end_time = video_duration
-
             else:
                 # Fallback for unexpected chapter format
                 start_time = 0
@@ -112,7 +111,7 @@ def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> str | None:
 
             writer.writerow([i, start_time, end_time, title])
 
-    logger.info(f'Chapters extracted successfully to: {csv_filename}')
+    logger.info(f"Chapters extracted successfully to CSV: '{csv_filename}'")
     logger.info(f'Total chapters: {len(chapters)}')
 
     return csv_filename

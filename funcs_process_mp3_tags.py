@@ -18,7 +18,9 @@ TAG_ALBUM = 'album'
 TAG_TRACKNUMBER = 'tracknumber'
 
 
-def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path, original_names: dict[str, str] | None = None) -> None:
+def set_artists_in_mp3_files(mp3_folder: Path,
+                             artists_json: Path,
+                             original_names: dict[str, str] | None = None) -> None:
     """
     Based on artists list loaded from an external file, scan the MP3 file title,
     and check if it contains any artist names from the artists list.
@@ -34,7 +36,10 @@ def set_artists_in_mp3_files(mp3_folder: Path, artists_json: Path, original_name
     handler = MP3TagHandler()
     set_artists_in_audio_files(mp3_folder, artists_json, handler, original_names)
 
-def set_tags_in_chapter_mp3_files(mp3_folder: Path, uploader: str | None = None, video_title: str | None = None, original_names: dict[str, str] | None = None) -> int:
+def set_tags_in_chapter_mp3_files(mp3_folder: Path,
+                                  uploader: str | None = None,
+                                  video_title: str | None = None,
+                                  original_names: dict[str, str] | None = None) -> int:
     """
     Set 'title' and 'tracknumber' tags in MP3 chapter files in the given folder.
     File name pattern from chapters, as extracted by YT-DLP:

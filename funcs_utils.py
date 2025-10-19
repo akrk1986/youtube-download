@@ -226,7 +226,8 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
                 subfolder_name = 'flac'
             else:
                 # Skip files that are not MP3, M4A, or FLAC
-                logger.warning(f"Skipping unsupported audio file '{audio_file.name}' with extension '{audio_file.suffix}'")
+                logger.warning(
+                    f"Skipping unsupported audio file '{audio_file.name}' with extension '{audio_file.suffix}'")
                 continue
 
             # Create subfolder if it doesn't exist
@@ -306,7 +307,8 @@ def organize_media_files_silent() -> dict:
 
     return moved_files
 
-def sanitize_filenames_in_folder(folder_path: Path, original_names: dict[str, str] | None = None) -> dict[str, str]:
+def sanitize_filenames_in_folder(folder_path: Path,
+                                 original_names: dict[str, str] | None = None) -> dict[str, str]:
     """
     Sanitize file names in the folder by removing leading unwanted characters.
 

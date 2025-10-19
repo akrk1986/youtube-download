@@ -11,7 +11,9 @@ from funcs_process_audio_tags_unified import (
 logger = logging.getLogger(__name__)
 
 
-def set_artists_in_flac_files(flac_folder: Path, artists_json: Path, original_names: dict[str, str] | None = None) -> None:
+def set_artists_in_flac_files(flac_folder: Path,
+                              artists_json: Path,
+                              original_names: dict[str, str] | None = None) -> None:
     """
     Based on artists list loaded from an external file, scan the FLAC file title,
     and check if it contains any artist names from the artists list.
@@ -27,7 +29,10 @@ def set_artists_in_flac_files(flac_folder: Path, artists_json: Path, original_na
     handler = FLACTagHandler()
     set_artists_in_audio_files(flac_folder, artists_json, handler, original_names)
 
-def set_tags_in_chapter_flac_files(flac_folder: Path, uploader: str | None = None, video_title: str | None = None, original_names: dict[str, str] | None = None) -> int:
+def set_tags_in_chapter_flac_files(flac_folder: Path,
+                                   uploader: str | None = None,
+                                   video_title: str | None = None,
+                                   original_names: dict[str, str] | None = None) -> int:
     """
     Set 'title' and 'tracknumber' tags in FLAC chapter files in the given folder.
     File name pattern from chapters, as extracted by YT-DLP:

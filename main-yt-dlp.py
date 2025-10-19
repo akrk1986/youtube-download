@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2025-10-17 21:40:00'
+VERSION = '2025-10-19 11:40:00'
 
 from logger_config import setup_logging
 from funcs_for_main_yt_dlp import validate_and_get_url, organize_and_sanitize_files, process_audio_tags
@@ -23,14 +23,15 @@ from project_defs import (
 logger = logging.getLogger(__name__)
 
 
-def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs: bool,
-                write_json: bool, has_chapters: bool, split_chapters: bool, is_it_playlist: bool, show_progress: bool = False, other_sites_timeout: int | None = None) -> None:
-    """Extract videos from YouTube playlist/video with yt-dlp. Include subtitles if requested."""
+def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bool,
+                write_json: bool, has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
+                show_progress: bool = False, other_sites_timeout: int | None = None) -> None:
+    """Extract videos from video URL with yt-dlp. Include subtitles if requested."""
     # Security: Validate URL before passing to subprocess
-    sanitized_url = sanitize_url_for_subprocess(playlist_url)
+    sanitized_url = sanitize_url_for_subprocess(video_url)
 
     # Get appropriate timeout based on URL domain
-    timeout = get_timeout_for_url(playlist_url, other_sites_timeout=other_sites_timeout)
+    timeout = get_timeout_for_url(video_url, other_sites_timeout=other_sites_timeout)
 
     yt_dlp_cmd = [
         ytdlp_exe,
@@ -57,21 +58,22 @@ def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs:
         ]
     if show_progress:
         yt_dlp_cmd[1:1] = ['--progress']
-    logger.info('Downloading videos with yt-dlp...')
-    logger.info(f'Using timeout of {timeout} seconds for video download')
+
+    logger.info(f'Downloading media, using timeout of {timeout} seconds for video download')
     logger.info(f'Command: {yt_dlp_cmd}')
 
     # Run download with error handling
     # Note: Some videos in playlists may be unavailable, which is expected
     try:
         if show_progress:
-            # Create Logs directory if it doesn't exist
-            log_dir = Path('Logs')
-            log_dir.mkdir(exist_ok=True)
-            log_file = log_dir / 'yt-dlp-downloads.log'
+            # Create Logs directory if it doesn't exist, set up log file for download progress (very verbose)
+            logs_dir = Path('Logs')
+            logs_dir.mkdir(exist_ok=True)
+            log_file = logs_dir / 'downloads.log'
 
             with open(log_file, 'a') as f:
-                result = subprocess.run(yt_dlp_cmd, check=True, stdout=f, stderr=subprocess.STDOUT, text=True, timeout=timeout)
+                result = subprocess.run(yt_dlp_cmd, check=True, stdout=f, stderr=subprocess.STDOUT,
+                                        text=True, timeout=timeout)
             logger.info(f'Video download completed successfully. Progress logged to {log_file}')
         else:
             result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=timeout)
@@ -79,28 +81,30 @@ def _run_yt_dlp(ytdlp_exe: Path, playlist_url: str, video_folder: str, get_subs:
             if result.stdout:
                 logger.debug(f'yt-dlp output: {result.stdout}')
     except subprocess.TimeoutExpired:
-        logger.error(f"Video download timed out after {timeout} seconds for URL '{playlist_url}'")
+        logger.error(f"Video download timed out after {timeout} seconds for URL '{video_url}'")
         if not is_it_playlist:
-            raise RuntimeError(f"Download timed out for '{playlist_url}'")
+            raise RuntimeError(f"Download timed out for '{video_url}'")
     except subprocess.CalledProcessError as e:
-        logger.error(f"Video download failed for URL '{playlist_url}' (exit code {e.returncode})")
+        logger.error(f"Video download failed for URL '{video_url}' (exit code {e.returncode})")
         if e.stderr:
             logger.error(f'Error details: {e.stderr}')
         # For playlists, partial failure is acceptable
         if is_it_playlist:
-            logger.warning(f"Some videos in playlist '{playlist_url}' may have failed, continuing...")
+            logger.warning(f"Some videos in playlist '{video_url}' may have failed, continuing...")
         else:
-            raise RuntimeError(f"Failed to download video from '{playlist_url}': {e.stderr}")
+            raise RuntimeError(f"Failed to download video from '{video_url}': {e.stderr}")
 
-def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
-                          has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
-                          format_type: str, artist_pat: str | None = None, album_artist_pat: str | None = None, show_progress: bool = False, other_sites_timeout: int | None = None) -> None:
+def _extract_single_format(ytdlp_exe: Path, video_url: str, audio_folder: str,
+                           has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
+                           format_type: str, artist_pat: str | None = None,
+                           album_artist_pat: str | None = None,
+                           show_progress: bool = False, other_sites_timeout: int | None = None) -> None:
     """Extract audio in a single format using yt-dlp."""
     # Security: Validate URL before passing to subprocess
-    sanitized_url = sanitize_url_for_subprocess(playlist_url)
+    sanitized_url = sanitize_url_for_subprocess(video_url)
 
     # Get appropriate timeout based on URL domain
-    timeout = get_timeout_for_url(playlist_url, other_sites_timeout=other_sites_timeout)
+    timeout = get_timeout_for_url(video_url, other_sites_timeout=other_sites_timeout)
 
     # Create format-specific subfolder
     format_folder = os.path.join(audio_folder, format_type)
@@ -138,7 +142,7 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
     logger.info(f'Command: {yt_dlp_cmd}')
 
     # Run download with error handling
-    # Note: Some videos in playlists may be unavailable, which is expected
+    # Note: In playlists, some videos may be unavailable, which is not considered an error
     try:
         if show_progress:
             # Create Logs directory if it doesn't exist
@@ -155,21 +159,23 @@ def _extract_single_format(ytdlp_exe: Path, playlist_url: str, audio_folder: str
             if result.stdout:
                 logger.debug(f'yt-dlp output: {result.stdout}')
     except subprocess.TimeoutExpired:
-        logger.error(f"{format_type.upper()} audio download timed out after {timeout} seconds for URL '{playlist_url}'")
+        logger.error(f"{format_type.upper()} audio download timed out after {timeout} seconds for URL '{video_url}'")
         if not is_it_playlist:
-            raise RuntimeError(f"Audio download timed out for '{playlist_url}'")
+            raise RuntimeError(f"Audio download timed out for '{video_url}'")
     except subprocess.CalledProcessError as e:
-        logger.error(f"{format_type.upper()} audio download failed for URL '{playlist_url}' (exit code {e.returncode})")
+        logger.error(f"{format_type.upper()} audio download failed for URL '{video_url}' (exit code {e.returncode})")
         if e.stderr:
             logger.error(f'Error details: {e.stderr}')
         # For playlists, partial failure is acceptable
         if is_it_playlist:
-            logger.warning(f"Some videos in playlist '{playlist_url}' may have failed, continuing...")
+            logger.warning(f"Some videos in playlist '{video_url}' may have failed, continuing...")
         else:
-            raise RuntimeError(f"Failed to download {format_type.upper()} audio from '{playlist_url}': {e.stderr}")
+            raise RuntimeError(f"Failed to download {format_type.upper()} audio from '{video_url}': {e.stderr}")
 
 def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
-                              has_chapters: bool, split_chapters: bool, is_it_playlist: bool, audio_formats: list[str], show_progress: bool = False, other_sites_timeout: int | None = None) -> None:
+                              has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
+                              audio_formats: list[str], show_progress: bool = False,
+                              other_sites_timeout: int | None = None) -> None:
     """Use yt-dlp to download and extract audio with metadata and thumbnail."""
 
     # For a single video, check if video has 'artist' or 'uploader' tags.
@@ -199,25 +205,36 @@ def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: 
     timeout = get_timeout_for_url(playlist_url, other_sites_timeout=other_sites_timeout)
     logger.info(f'Using timeout of {timeout} seconds for audio extraction')
     for audio_format in audio_formats:
-        _extract_single_format(ytdlp_exe=ytdlp_exe, playlist_url=playlist_url, audio_folder=audio_folder, has_chapters=has_chapters,
-                              split_chapters=split_chapters, is_it_playlist=is_it_playlist, format_type=audio_format,
-                              artist_pat=artist_pat, album_artist_pat=album_artist_pat, show_progress=show_progress, other_sites_timeout=other_sites_timeout)
+        _extract_single_format(ytdlp_exe=ytdlp_exe, video_url=playlist_url, audio_folder=audio_folder,
+                               has_chapters=has_chapters,
+                               split_chapters=split_chapters, is_it_playlist=is_it_playlist, format_type=audio_format,
+                               artist_pat=artist_pat, album_artist_pat=album_artist_pat,
+                               show_progress=show_progress, other_sites_timeout=other_sites_timeout)
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description='Download YouTube playlist/video, optionally with subtitles.')
-    parser.add_argument('playlist_url', nargs='?', help='YouTube playlist/video URL')
-    parser.add_argument('--with-audio', action='store_true', help='Also extract audio (format specified by --audio-format)')
-    parser.add_argument('--audio-format', default=DEFAULT_AUDIO_FORMAT, help=f'Audio format for extraction: mp3, m4a, flac, or comma-separated (e.g., mp3,m4a) (default: {DEFAULT_AUDIO_FORMAT})')
-    parser.add_argument('--only-audio', action='store_true', help='Delete video files after extraction')
+    parser.add_argument('video_url', nargs='?', help='Playlist/video URL')
+    parser.add_argument('--audio-format', default=DEFAULT_AUDIO_FORMAT,
+                        help='Audio format for extraction: mp3, m4a, flac, or comma-separated list (e.g., mp3,m4a).' +
+                             f'(default: {DEFAULT_AUDIO_FORMAT})')
     parser.add_argument('--split-chapters', action='store_true', help='Split to chapters')
+    parser.add_argument('--other-sites-timeout', type=int, default=3600,
+                        help='Timeout in seconds for non-YouTube/Facebook sites (default: 3600)')
     parser.add_argument('--subs', action='store_true', help='Download subtitles')
     parser.add_argument('--json', action='store_true', help='Write JSON file')
-    parser.add_argument('--progress', action='store_true', help='Show yt-dlp progress bar and log output to Logs/yt-dlp.log')
-    parser.add_argument('--other-sites-timeout', type=int, default=3600, help='Timeout in seconds for non-YouTube/Facebook sites (default: 3600)')
-    parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose (DEBUG) logging')
     parser.add_argument('--no-log-file', action='store_true', help='Disable logging to file')
+    parser.add_argument('--progress', action='store_true',
+                        help='Show yt-dlp progress bar and log output to Logs/yt-dlp.log')
+    parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose (DEBUG) logging')
     parser.add_argument('--version', action='version', version=f'%(prog)s {VERSION}')
+
+    audio_group = parser.add_mutually_exclusive_group()
+    audio_group.add_argument('--with-audio', action='store_true',
+                             help='Also extract audio (format specified by --audio-format)')
+    audio_group.add_argument('--only-audio', action='store_true', 
+                             help='Delete video files after extraction')
+
     args = parser.parse_args()
 
     # Setup logging (must be done early)
@@ -238,7 +255,7 @@ def main() -> None:
     seen = set()
     audio_formats = [fmt for fmt in audio_formats if not (fmt in seen or seen.add(fmt))]
 
-    logger.info(f'Audio formats: {", ".join(audio_formats)}')
+    logger.info(f'Requested audio formats: {", ".join(audio_formats)}')
 
     need_audio = args.with_audio or args.only_audio
 
@@ -260,8 +277,8 @@ def main() -> None:
 
     # Validate artists.json exists
     if not artists_json.exists():
-        logger.error(f'Artists database not found at {artists_json}')
-        logger.error('Please ensure Data/artists.json exists in the project directory')
+        logger.error(f"Artists database not found at '{artists_json}'")
+        logger.error('Please ensure file exists in the project directory')
         sys.exit(1)
 
     # Verify executables exist
@@ -280,8 +297,8 @@ def main() -> None:
             sys.exit(1)
 
     # Validate and get URL
-    args.playlist_url = validate_and_get_url(args.playlist_url)
-    logger.info(f'Processing URL: {args.playlist_url}')
+    args.video_url = validate_and_get_url(args.video_url)
+    logger.info(f'Processing URL: {args.video_url}')
 
     video_folder = os.path.abspath(VIDEO_OUTPUT_DIR)
     audio_folder = os.path.abspath(AUDIO_OUTPUT_DIR)
@@ -290,18 +307,18 @@ def main() -> None:
     if need_audio:
         os.makedirs(audio_folder, exist_ok=True)
 
-    url_is_playlist = is_playlist(url=args.playlist_url)
+    url_is_playlist = is_playlist(url=args.video_url)
     uploader_name = None  # Initialize uploader name for chapter processing
     video_title = None  # Initialize video title for chapter processing
 
     if not url_is_playlist:
-        chapters_count = get_chapter_count(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url)
+        chapters_count = get_chapter_count(ytdlp_exe=yt_dlp_exe, playlist_url=args.video_url)
         has_chapters = chapters_count > 0
-        logger.info(f'Video has {chapters_count} chapters')
 
         # Get uploader and title information for chapter processing
         if has_chapters:
-            video_info = get_video_info(yt_dlp_path=yt_dlp_exe, url=args.playlist_url)
+            logger.info(f'Video has {chapters_count} chapters')
+            video_info = get_video_info(yt_dlp_path=yt_dlp_exe, url=args.video_url)
             uploader_name = video_info.get('uploader')
             video_title = video_info.get('title')
             if uploader_name and uploader_name not in ('NA', ''):
@@ -314,16 +331,18 @@ def main() -> None:
 
     # Download videos if requested
     if not args.only_audio:
-        _run_yt_dlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, video_folder=video_folder, get_subs=args.subs,
+        _run_yt_dlp(ytdlp_exe=yt_dlp_exe, video_url=args.video_url, video_folder=video_folder, get_subs=args.subs,
                     write_json=args.json, split_chapters=args.split_chapters, has_chapters=has_chapters,
-                    is_it_playlist=url_is_playlist, show_progress=args.progress, other_sites_timeout=args.other_sites_timeout)
+                    is_it_playlist=url_is_playlist, show_progress=args.progress,
+                    other_sites_timeout=args.other_sites_timeout)
 
     # Download audios if requested
     if need_audio:
         # Run yt-dlp to download videos, and let yt-dlp extract audio and add tags
-        _extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.playlist_url, audio_folder=audio_folder,
+        _extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.video_url, audio_folder=audio_folder,
                                   split_chapters=args.split_chapters, has_chapters=has_chapters,
-                                  is_it_playlist=url_is_playlist, audio_formats=audio_formats, show_progress=args.progress, other_sites_timeout=args.other_sites_timeout)
+                                  is_it_playlist=url_is_playlist, audio_formats=audio_formats, 
+                                  show_progress=args.progress, other_sites_timeout=args.other_sites_timeout)
 
     # Organize chapter files and sanitize filenames
     original_names = organize_and_sanitize_files(

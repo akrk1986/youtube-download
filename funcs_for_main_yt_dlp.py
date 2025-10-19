@@ -12,7 +12,7 @@ from project_defs import MAX_URL_RETRIES
 logger = logging.getLogger(__name__)
 
 
-def validate_and_get_url(provided_url: str | None) -> str:
+def validate_and_get_url(provided_url: str) -> str | None:
     """
     Validate YouTube URL or prompt user for one if not provided.
 
@@ -101,11 +101,14 @@ def organize_and_sanitize_files(video_folder: Path, audio_folder: Path, audio_fo
             subfolder = audio_folder / audio_format
             if subfolder.exists():
                 if audio_format == 'mp3':
-                    original_names_mp3 = sanitize_filenames_in_folder(folder_path=subfolder, original_names=original_names_mp3)
+                    original_names_mp3 = sanitize_filenames_in_folder(folder_path=subfolder,
+                                                                      original_names=original_names_mp3)
                 elif audio_format == 'm4a':
-                    original_names_m4a = sanitize_filenames_in_folder(folder_path=subfolder, original_names=original_names_m4a)
+                    original_names_m4a = sanitize_filenames_in_folder(folder_path=subfolder,
+                                                                      original_names=original_names_m4a)
                 elif audio_format == 'flac':
-                    original_names_flac = sanitize_filenames_in_folder(folder_path=subfolder, original_names=original_names_flac)
+                    original_names_flac = sanitize_filenames_in_folder(folder_path=subfolder,
+                                                                       original_names=original_names_flac)
 
     return {'mp3': original_names_mp3, 'm4a': original_names_m4a, 'flac': original_names_flac}
 
@@ -122,7 +125,8 @@ def process_audio_tags(audio_folder: Path, audio_formats: list[str], artists_jso
         has_chapters: Whether video has chapters
         uploader_name: Video uploader name (for chapter processing)
         video_title: Video title (for chapter processing)
-        original_names: Optional dict with 'mp3', 'm4a', and 'flac' keys containing mappings of final_path -> original_ytdlp_filename
+        original_names: Optional dict with 'mp3', 'm4a', and 'flac' keys containing mappings of
+                        final_path -> original_ytdlp_filename
     """
     if original_names is None:
         original_names = {'mp3': {}, 'm4a': {}, 'flac': {}}
@@ -135,14 +139,20 @@ def process_audio_tags(audio_folder: Path, audio_formats: list[str], artists_jso
         subfolder = audio_folder / audio_format
 
         if audio_format == 'mp3':
-            set_artists_in_mp3_files(mp3_folder=subfolder, artists_json=artists_json, original_names=original_names.get('mp3', {}))
+            set_artists_in_mp3_files(mp3_folder=subfolder, artists_json=artists_json,
+                                     original_names=original_names.get('mp3', {}))
             if has_chapters:
-                _ = set_tags_in_chapter_mp3_files(mp3_folder=subfolder, uploader=uploader_name, video_title=video_title, original_names=original_names.get('mp3', {}))
+                _ = set_tags_in_chapter_mp3_files(mp3_folder=subfolder, uploader=uploader_name,
+                                                  video_title=video_title, original_names=original_names.get('mp3', {}))
         elif audio_format == 'm4a':
-            set_artists_in_m4a_files(m4a_folder=subfolder, artists_json=artists_json, original_names=original_names.get('m4a', {}))
+            set_artists_in_m4a_files(m4a_folder=subfolder, artists_json=artists_json,
+                                     original_names=original_names.get('m4a', {}))
             if has_chapters:
-                _ = set_tags_in_chapter_m4a_files(m4a_folder=subfolder, uploader=uploader_name, video_title=video_title, original_names=original_names.get('m4a', {}))
+                _ = set_tags_in_chapter_m4a_files(m4a_folder=subfolder, uploader=uploader_name,
+                                                  video_title=video_title, original_names=original_names.get('m4a', {}))
         elif audio_format == 'flac':
-            set_artists_in_flac_files(flac_folder=subfolder, artists_json=artists_json, original_names=original_names.get('flac', {}))
+            set_artists_in_flac_files(flac_folder=subfolder, artists_json=artists_json,
+                                      original_names=original_names.get('flac', {}))
             if has_chapters:
-                _ = set_tags_in_chapter_flac_files(flac_folder=subfolder, uploader=uploader_name, video_title=video_title, original_names=original_names.get('flac', {}))
+                _ = set_tags_in_chapter_flac_files(flac_folder=subfolder, uploader=uploader_name,
+                                                   video_title=video_title, original_names=original_names.get('flac', {}))

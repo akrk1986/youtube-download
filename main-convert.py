@@ -200,7 +200,8 @@ def main() -> int:
     )
     parser.add_argument(
         '--top-level-directory',
-        type=lambda p: Path(p) if Path(p).exists() and Path(p).is_dir() else parser.error(f"Directory '{p}' does not exist"),
+        type=lambda p: Path(p) if Path(p).exists() and Path(p).is_dir() else
+                    parser.error(f"Directory '{p}' does not exist"),
         help='Top-level directory containing MP3 and M4A subfolders'
     )
 
@@ -282,7 +283,8 @@ def main() -> int:
         if success:
             processed_count += 1
 
-    print(f'\nCompleted: {processed_count} files processed, {converted_count} files converted, {warning_count} warnings')
+    print(
+        f'\nCompleted: {processed_count} files processed, {converted_count} files converted, {warning_count} warnings')
 
     # Return 1 if there were warnings (missing files, conversion failures, etc.)
     return 1 if warning_count > 0 else 0
