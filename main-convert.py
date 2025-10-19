@@ -5,11 +5,13 @@ Accepts --source parameter to specify source audio format (mp3 or m4a).
 """
 import argparse
 import sys
+import re
 from pathlib import Path
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3NoHeaderError, ID3, COMM, TENC
 from mutagen.mp4 import MP4
 import arrow
+
 from funcs_audio_conversion import convert_mp3_to_m4a, convert_m4a_to_mp3
 
 
@@ -24,18 +26,17 @@ def normalize_year(year_str: str | int | None) -> str:
         # Try parsing with arrow
         if len(year_str) == 8 and year_str.isdigit():
             # YYYYMMDD format
-            parsed_date = arrow.get(obj=year_str, arg='YYYYMMDD')
+            parsed_date = arrow.get(year_str, 'YYYYMMDD')
             return str(parsed_date.year)
         elif len(year_str) == 4 and year_str.isdigit():
             # Already YYYY format
             return year_str
         else:
             # Try to parse as date
-            parsed_date = arrow.get(obj=year_str)
+            parsed_date = arrow.get(year_str)
             return str(parsed_date.year)
-    except:
+    except (arrow.parser.ParserMatchError, arrow.parser.ParserError):
         # Fallback to regex extraction
-        import re
         match = re.search(r'\d{4}', year_str)
         if match:
             return match.group()
@@ -176,10 +177,8 @@ def apply_m4a_tags(file_path: Path, tags: dict[str, str]) -> bool:
                     written_tags.append(key)
 
         audio.save(file_path)
-
         if written_tags:
             print(f'  Written tags: {", ".join(written_tags)}')
-
         return True
     except Exception as e:
         print(f'Error writing M4A tags to {file_path}: {e}')

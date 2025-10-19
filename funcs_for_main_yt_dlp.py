@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
-from funcs_process_mp4_tags import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
+from funcs_process_m4a_tags import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
 from funcs_process_flac_tags import set_artists_in_flac_files, set_tags_in_chapter_flac_files
 from funcs_utils import organize_media_files, sanitize_filenames_in_folder, validate_video_url
 from project_defs import MAX_URL_RETRIES
