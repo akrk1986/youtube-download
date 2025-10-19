@@ -37,7 +37,7 @@ def set_artists_in_audio_files(audio_folder: Path,
 
     for audio_file in audio_folder.glob(handler.get_file_glob()):
         try:
-            audio = handler.open_audio_file(audio_file)
+            audio = handler.open_audio_file(file_path=audio_file)
         except MutagenError as e:
             # Not a valid audio file or corrupted
             logger.warning(f"Cannot read audio file '{audio_file.name}' in folder '{audio_folder}': {e}")
@@ -47,7 +47,7 @@ def set_artists_in_audio_files(audio_folder: Path,
             logger.error(f"Unexpected error reading audio file '{audio_file.name}' in folder '{audio_folder}': {e}")
             continue
 
-        title = handler.get_tag(audio, handler.TAG_TITLE)
+        title = handler.get_tag(audio=audio, tag_name=handler.TAG_TITLE)
         if not title:
             logger.warning(f"Skipping audio file '{audio_file.name}' in folder '{audio_folder}': No Title tag found")
             continue
@@ -57,33 +57,33 @@ def set_artists_in_audio_files(audio_folder: Path,
         upd_title = clean_title != title
 
         # Handle format-specific tasks (e.g., date fixing for M4A)
-        upd_format_specific = handler.handle_format_specific_tasks(audio)
+        upd_format_specific = handler.handle_format_specific_tasks(audio=audio)
 
         # Look for known artists in title
-        count, artist_string = find_artists_in_string(title, artists)
+        count, artist_string = find_artists_in_string(text=title, artists=artists)
         if count > 0:
-            handler.set_tag(audio, handler.TAG_ARTIST, artist_string)
-            handler.set_tag(audio, handler.TAG_ALBUMARTIST, artist_string)
+            handler.set_tag(audio=audio, tag_name=handler.TAG_ARTIST, value=artist_string)
+            handler.set_tag(audio=audio, tag_name=handler.TAG_ALBUMARTIST, value=artist_string)
         else:
-            art = handler.get_tag(audio, handler.TAG_ARTIST)
-            alb_art = handler.get_tag(audio, handler.TAG_ALBUMARTIST)
+            art = handler.get_tag(audio=audio, tag_name=handler.TAG_ARTIST)
+            alb_art = handler.get_tag(audio=audio, tag_name=handler.TAG_ALBUMARTIST)
             logger.debug(f"No known artist in title, a/aa tags='{art}'/'{alb_art}'")
 
         # Clear track number for non-chapter files (single videos and playlists)
         upd_track = False
-        if handler.has_track_number(audio):
-            handler.clear_track_number(audio)
+        if handler.has_track_number(audio=audio):
+            handler.clear_track_number(audio=audio)
             upd_track = True
 
         if upd_title:
-            handler.set_tag(audio, handler.TAG_TITLE, clean_title)
+            handler.set_tag(audio=audio, tag_name=handler.TAG_TITLE, value=clean_title)
 
         if count > 0 or upd_title or upd_format_specific or upd_track:
             # Save original filename from yt-dlp (before sanitization/moving)
             original_filename = original_names.get(str(audio_file), audio_file.name)
-            handler.set_original_filename(audio, audio_file, original_filename)
+            handler.set_original_filename(audio=audio, file_path=audio_file, original_filename=original_filename)
             # Save audio file (for M4A this saves; for MP3 this is redundant but harmless)
-            handler.save_audio_file(audio, audio_file)
+            handler.save_audio_file(audio=audio, file_path=audio_file)
             logger.info(f"Updated {audio_file.name}: title may have been modified, artist/album artist set to '{artist_string}'")
         else:
             logger.debug(f'No artist found in title for {audio_file.name}')
@@ -119,7 +119,7 @@ def set_tags_in_chapter_audio_files(
 
     for audio_file in audio_folder.glob(handler.get_file_glob()):
         try:
-            audio = handler.open_audio_file(audio_file)
+            audio = handler.open_audio_file(file_path=audio_file)
         except MutagenError as e:
             # Not a valid audio file or corrupted
             logger.warning(f"Cannot read audio chapter file '{audio_file.name}' in folder '{audio_folder}': {e}")
@@ -135,36 +135,36 @@ def set_tags_in_chapter_audio_files(
             continue
 
         try:
-            handler.set_tag(audio, handler.TAG_TITLE, song_name)
+            handler.set_tag(audio=audio, tag_name=handler.TAG_TITLE, value=song_name)
             if song_number:
-                handler.set_track_number(audio, int(song_number))
+                handler.set_track_number(audio=audio, track_number=int(song_number))
 
             # Handle format-specific tasks (e.g., date fixing for M4A)
-            handler.handle_format_specific_tasks(audio)
+            handler.handle_format_specific_tasks(audio=audio)
 
             # If no artist is set and we have an uploader, use uploader as artist
-            current_artist = handler.get_tag(audio, handler.TAG_ARTIST)
-            current_albumartist = handler.get_tag(audio, handler.TAG_ALBUMARTIST)
+            current_artist = handler.get_tag(audio=audio, tag_name=handler.TAG_ARTIST)
+            current_albumartist = handler.get_tag(audio=audio, tag_name=handler.TAG_ALBUMARTIST)
 
             if (not current_artist or current_artist == '' or current_artist == 'NA') and uploader:
-                handler.set_tag(audio, handler.TAG_ARTIST, uploader)
-                handler.set_tag(audio, handler.TAG_ALBUMARTIST, uploader)
+                handler.set_tag(audio=audio, tag_name=handler.TAG_ARTIST, value=uploader)
+                handler.set_tag(audio=audio, tag_name=handler.TAG_ALBUMARTIST, value=uploader)
                 logger.info(f"Set artist/albumartist to uploader '{uploader}' for chapter file")
 
             # If no album is set and we have a video title, use sanitized video title as album
-            current_album = handler.get_tag(audio, handler.TAG_ALBUM)
+            current_album = handler.get_tag(audio=audio, tag_name=handler.TAG_ALBUM)
 
             if (not current_album or current_album == '' or current_album == 'NA') and video_title:
-                sanitized_album = sanitize_album_name(video_title)
+                sanitized_album = sanitize_album_name(title=video_title)
                 if sanitized_album:
-                    handler.set_tag(audio, handler.TAG_ALBUM, sanitized_album)
+                    handler.set_tag(audio=audio, tag_name=handler.TAG_ALBUM, value=sanitized_album)
                     logger.info(f"Set album to sanitized video title '{sanitized_album}' for chapter file")
 
             # Save original filename from yt-dlp (before sanitization/moving)
             original_filename = original_names.get(str(audio_file), audio_file.name)
-            handler.set_original_filename(audio, audio_file, original_filename)
+            handler.set_original_filename(audio=audio, file_path=audio_file, original_filename=original_filename)
             # Save audio file (for M4A this saves; for MP3 this is redundant but harmless)
-            handler.save_audio_file(audio, audio_file)
+            handler.save_audio_file(audio=audio, file_path=audio_file)
             ctr += 1
         except Exception as e:
             # no chapter file, ignore

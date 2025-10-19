@@ -30,7 +30,7 @@ def _extract_chapters_from_description(description: str) -> list[dict]:
         if matches:
             for i, (time_str, title) in enumerate(matches):
                 try:
-                    start_seconds = _parse_time_to_seconds(time_str)
+                    start_seconds = _parse_time_to_seconds(time_str=time_str)
                     chapters.append({
                         'start_time': start_seconds,
                         'title': title.strip(),
@@ -64,7 +64,7 @@ def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> str | None:
         Path to the created CSV file if successful, None if no chapters found
     """
     # Get video information
-    video_info = get_video_info(yt_dlp_path, url)
+    video_info = get_video_info(yt_dlp_path=yt_dlp_path, url=url)
 
     video_title = video_info.get('title', 'Unknown')
     video_duration = video_info.get('duration', 0)
@@ -75,7 +75,7 @@ def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> str | None:
 
     # If no native chapters, try to extract from description
     if not chapters and description:
-        extracted_chapters = _extract_chapters_from_description(description)
+        extracted_chapters = _extract_chapters_from_description(description=description)
         if extracted_chapters:
             chapters = extracted_chapters
 

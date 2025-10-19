@@ -16,29 +16,79 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 ## Usage
 
 ```
-usage: main-yt-dlp.py [-h] [--with-audio] [--audio-format AUDIO_FORMAT]
-                      [--only-audio] [--split-chapters] [--subs] [--json]
-                      [--verbose] [--no-log-file]
-                      [playlist_url]
+usage: main-yt-dlp.py [-h] [--audio-format AUDIO_FORMAT] [--split-chapters]
+                      [--other-sites-timeout OTHER_SITES_TIMEOUT] [--subs]
+                      [--json] [--no-log-file] [--progress] [--verbose]
+                      [--version] [--with-audio | --only-audio]
+                      [video_url]
 
 Download YouTube playlist/video, optionally with subtitles.
 
 positional arguments:
-  playlist_url          YouTube playlist/video URL
+  video_url             Playlist/video URL (optional - will prompt if not provided)
 
 options:
-  -h, --help            show this help message and exit
-  --with-audio          Also extract audio (format specified by --audio-format)
+  -h, --help            Show this help message and exit
+
   --audio-format AUDIO_FORMAT
-                        Audio format for extraction: mp3, m4a, flac, or comma-
-                        separated (e.g., mp3,m4a) (default: mp3)
-  --only-audio          Delete video files after extraction
-  --split-chapters      Split to chapters
-  --subs                Download subtitles
-  --json                Write JSON file
-  --verbose, -v         Enable verbose (DEBUG) logging
-  --no-log-file         Disable logging to file
+                        Audio format for extraction: mp3, m4a, flac, or comma-separated
+                        list (e.g., mp3,m4a). (default: mp3)
+
+  --split-chapters      Split videos with chapters into separate files per chapter
+
+  --other-sites-timeout OTHER_SITES_TIMEOUT
+                        Timeout in seconds for non-YouTube/Facebook sites (default: 3600)
+                        YouTube and Facebook use 300 seconds (5 minutes) automatically
+
+  --subs                Download subtitles in Greek, English, and Hebrew (converted to SRT)
+
+  --json                Write video metadata to JSON file using yt-dlp's --write-info-json
+
+  --no-log-file         Disable logging to file (logs only to console)
+                        By default, logs are written to Logs/yt-dlp_YYYYMMDD_HHMMSS.log
+
+  --progress            Show yt-dlp progress bar and log detailed output to Logs/downloads.log
+
+  --verbose, -v         Enable verbose (DEBUG) logging for detailed troubleshooting
+
+  --version             Show program's version number and exit
+
+audio extraction mode (mutually exclusive):
+  --with-audio          Download videos AND extract audio (format specified by --audio-format)
+
+  --only-audio          Extract ONLY audio, delete video files after extraction
+                        (audio format specified by --audio-format)
 ```
+
+### Parameter Details
+
+**Positional Arguments:**
+- `video_url` - YouTube or supported video site URL. If not provided, the script will prompt interactively.
+
+**Audio Options:**
+- `--audio-format` - Specify one or more formats: `mp3` (default), `m4a`, `flac`, or comma-separated (e.g., `mp3,m4a,flac`)
+- `--with-audio` - Downloads both video (MP4) and audio in specified format(s)
+- `--only-audio` - Downloads only audio, videos are deleted after extraction
+
+**Video Processing:**
+- `--split-chapters` - For videos with chapters, splits into separate files with track numbers
+- `--subs` - Downloads subtitles in Greek (el), English (en), and Hebrew (he), converted to SRT format
+- `--json` - Saves complete video metadata in JSON format alongside the downloaded file
+
+**Performance & Timeout:**
+- `--other-sites-timeout` - Timeout for non-YouTube/Facebook sites (default: 3600 seconds = 1 hour)
+  - YouTube/Facebook automatically use 300 seconds (5 minutes)
+  - Useful for slow streaming sites like ertflix.gr
+
+**Logging & Debugging:**
+- `--no-log-file` - Logs only to console, doesn't create log files in Logs/ directory
+- `--progress` - Shows yt-dlp's progress bar and writes verbose download logs
+- `--verbose` / `-v` - Enables DEBUG level logging for troubleshooting
+- By default, logs are written to `Logs/yt-dlp_YYYYMMDD_HHMMSS.log` (keeps last 5 log files)
+
+**Other:**
+- `--version` - Displays the program version (matches CHANGELOG timestamp)
+- `-h` / `--help` - Shows help message with all options
 
 ## Input URL Types
 

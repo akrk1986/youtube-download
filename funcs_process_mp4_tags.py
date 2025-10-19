@@ -35,7 +35,7 @@ def set_artists_in_m4a_files(m4a_folder: Path,
         original_names: Optional mapping of final_path -> original_ytdlp_filename
     """
     handler = M4ATagHandler()
-    set_artists_in_audio_files(m4a_folder, artists_json, handler, original_names)
+    set_artists_in_audio_files(audio_folder=m4a_folder, artists_json=artists_json, handler=handler, original_names=original_names)
 
 def set_tags_in_chapter_m4a_files(m4a_folder: Path,
                                   uploader: str | None = None,
@@ -60,4 +60,4 @@ def set_tags_in_chapter_m4a_files(m4a_folder: Path,
         Number of files whose title was modified
     """
     handler = M4ATagHandler()
-    return set_tags_in_chapter_audio_files(m4a_folder, handler, uploader, video_title, original_names)
+    return set_tags_in_chapter_audio_files(audio_folder=m4a_folder, handler=handler, uploader=uploader, video_title=video_title, original_names=original_names)

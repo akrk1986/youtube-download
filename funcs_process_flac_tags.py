@@ -27,7 +27,7 @@ def set_artists_in_flac_files(flac_folder: Path,
         original_names: Optional mapping of final_path -> original_ytdlp_filename
     """
     handler = FLACTagHandler()
-    set_artists_in_audio_files(flac_folder, artists_json, handler, original_names)
+    set_artists_in_audio_files(audio_folder=flac_folder, artists_json=artists_json, handler=handler, original_names=original_names)
 
 def set_tags_in_chapter_flac_files(flac_folder: Path,
                                    uploader: str | None = None,
@@ -52,4 +52,4 @@ def set_tags_in_chapter_flac_files(flac_folder: Path,
         Number of files whose title was modified
     """
     handler = FLACTagHandler()
-    return set_tags_in_chapter_audio_files(flac_folder, handler, uploader, video_title, original_names)
+    return set_tags_in_chapter_audio_files(audio_folder=flac_folder, handler=handler, uploader=uploader, video_title=video_title, original_names=original_names)

@@ -30,7 +30,7 @@ def parse_card_name(card_name: str) -> tuple[str, str, bool]:
         greek = parts[0]
         english = ''
         warning = True
-    greek = capitalize_greek_name(greek.strip())
+    greek = capitalize_greek_name(name=greek.strip())
     return greek, english.strip(), warning
 
 def extract_artists(trello_data: dict) -> tuple[list[dict[str, str]], int, int]:
@@ -52,7 +52,7 @@ def extract_artists(trello_data: dict) -> tuple[list[dict[str, str]], int, int]:
             continue
         card_count += 1
         list_name = list_id_to_name.get(card['idList'], '')
-        greek, english, warning = parse_card_name(card['name'])
+        greek, english, warning = parse_card_name(card_name=card['name'])
         if warning:
             print(f"Warning: Card name '{card['name']}' in list '{list_name}' has only one part.")
         artist = {
@@ -82,7 +82,7 @@ def main() -> None:
     with args.trello_json.open('r', encoding='utf-8') as f:
         trello_data = json.load(f)
 
-    artists, num_lists, num_cards = extract_artists(trello_data)
+    artists, num_lists, num_cards = extract_artists(trello_data=trello_data)
     output = {'artists': artists}
 
     with args.artists_json.open('w', encoding='utf-8') as f:

@@ -4,6 +4,78 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2025-10-19 12:00:00
+
+**Code Quality:** Standardized function calls to use named parameters
+
+**Summary:** Updated all function calls to local project functions to use named parameters, improving code readability and maintainability.
+
+**Changes made:**
+
+All Python files in the project (excluding Tests/ and Beta/ directories) were updated to ensure function calls with type-hinted parameters use named arguments:
+
+1. **`funcs_artist_search.py`**:
+   - Updated `remove_diacritics()` calls to use `text=` parameter
+
+2. **`funcs_process_audio_tags_common.py`**:
+   - Updated `_remove_emojis()` calls to use `text=` parameter
+   - Updated `_sanitize_filename()` calls to use `filename=` parameter
+   - Updated `re.match()` calls to use `pattern=` and `string=` parameters
+
+3. **`main-get-artists-from-trello.py`**:
+   - Updated `capitalize_greek_name()` calls to use `name=` parameter
+   - Updated `parse_card_name()` calls to use `card_name=` parameter
+   - Updated `extract_artists()` calls to use `trello_data=` parameter
+
+4. **`funcs_chapter_extraction.py`**:
+   - Updated `get_video_info()` calls to use `yt_dlp_path=` and `url=` parameters
+   - Updated `_extract_chapters_from_description()` calls to use `description=` parameter
+   - Updated `_parse_time_to_seconds()` calls to use `time_str=` parameter
+
+5. **`funcs_process_mp3_tags.py`**, **`funcs_process_mp4_tags.py`**, **`funcs_process_flac_tags.py`**:
+   - Updated `set_artists_in_audio_files()` calls to use all named parameters
+   - Updated `set_tags_in_chapter_audio_files()` calls to use all named parameters
+
+6. **`funcs_process_audio_tags_unified.py`**:
+   - Updated all `AudioTagHandler` method calls to use named parameters:
+     - `open_audio_file(file_path=...)`
+     - `get_tag(audio=..., tag_name=...)`
+     - `set_tag(audio=..., tag_name=..., value=...)`
+     - `handle_format_specific_tasks(audio=...)`
+     - `has_track_number(audio=...)`
+     - `clear_track_number(audio=...)`
+     - `set_track_number(audio=..., track_number=...)`
+     - `set_original_filename(audio=..., file_path=..., original_filename=...)`
+     - `save_audio_file(audio=..., file_path=...)`
+   - Updated helper function calls:
+     - `find_artists_in_string(text=..., artists=...)`
+     - `sanitize_album_name(title=...)`
+     - `extract_chapter_info(file_name=...)`
+
+7. **`main-yt-dlp.py`**:
+   - Updated `sanitize_url_for_subprocess()` calls to use `url=` parameter
+   - Updated `get_timeout_for_url()` calls to use `url=` parameter
+   - Updated `validate_and_get_url()` calls to use `provided_url=` parameter
+
+8. **`main-convert.py`**:
+   - Updated `arrow.get()` calls to use `obj=` and `arg=` parameters
+   - Updated `normalize_year()` calls to use `year_str=` parameter
+   - Updated `extract_mp3_tags()` and `extract_m4a_tags()` calls to use `file_path=` parameter
+   - Updated `apply_mp3_tags()` and `apply_m4a_tags()` calls to use `file_path=` and `tags=` parameters
+   - Updated `convert_mp3_to_m4a()` and `convert_m4a_to_mp3()` calls to use named parameters
+
+9. **`funcs_utils.py`**:
+   - Updated `sanitize_url_for_subprocess()` calls to use `url=` parameter
+   - Updated `get_timeout_for_url()` calls to use `url=` parameter
+   - Updated `urlparse()` calls to use `url=` parameter
+
+10. **`funcs_for_main_yt_dlp.py`**:
+    - Updated `validate_video_url()` calls to use `url=` parameter
+
+**Result:** All function calls now explicitly name their parameters, making the code more self-documenting and reducing the chance of parameter order errors. This aligns with the project's coding standards specified in CLAUDE.md requiring named parameters for functions with type hints.
+
+---
+
 ## 2025-10-16
 
 **Feature Enhancement:** Implemented URL-based timeout configuration for yt-dlp operations

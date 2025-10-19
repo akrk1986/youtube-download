@@ -79,7 +79,7 @@ def extract_chapter_info(file_name: str) -> tuple[str | None, str | None, str | 
     - song number
     - song name.
     """
-    match = re.match(CHAPTER_FILENAME_PATTERN, file_name)
+    match = re.match(pattern=CHAPTER_FILENAME_PATTERN, string=file_name)
     if not match:
         logger.debug(f"File name '{file_name}' does not match the chapter pattern, skipped")
         return None, None, None
@@ -89,11 +89,11 @@ def extract_chapter_info(file_name: str) -> tuple[str | None, str | None, str | 
     song_name = match.group(3).strip()
     _youtube_id = match.group(4).strip()
 
-    extracted_file_name = _remove_emojis(extracted_file_name).strip()
-    song_name = _remove_emojis(song_name).strip()
+    extracted_file_name = _remove_emojis(text=extracted_file_name).strip()
+    song_name = _remove_emojis(text=song_name).strip()
 
     # Sanitize file name for both Windows and Linux
-    extracted_file_name = _sanitize_filename(extracted_file_name)
+    extracted_file_name = _sanitize_filename(filename=extracted_file_name)
 
     return song_name, extracted_file_name, song_number
 
@@ -110,10 +110,10 @@ def sanitize_album_name(title: str) -> str:
         return ''
 
     # Remove emojis first
-    no_emojis = _remove_emojis(title)
+    no_emojis = _remove_emojis(text=title)
 
     # Apply filename sanitization (removes special chars, etc.)
-    sanitized = _sanitize_filename(no_emojis)
+    sanitized = _sanitize_filename(filename=no_emojis)
 
     # Limit to maximum album name length
     if len(sanitized) > MAX_ALBUM_NAME_LENGTH:

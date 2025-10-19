@@ -421,7 +421,7 @@ def validate_video_url(url: str) -> tuple[bool, str]:
         return False, 'URL cannot be empty'
 
     try:
-        parsed = urlparse(url)
+        parsed = urlparse(url=url)
 
         # Check scheme
         if parsed.scheme not in ('http', 'https'):
@@ -440,10 +440,10 @@ def validate_video_url(url: str) -> tuple[bool, str]:
 def get_video_info(yt_dlp_path: Path, url: str) -> dict:
     """Get video information using yt-dlp by requesting the meta-data as JSON, w/o download of the video."""
     # Security: Validate URL before passing to subprocess
-    sanitized_url = sanitize_url_for_subprocess(url)
+    sanitized_url = sanitize_url_for_subprocess(url=url)
 
     # Get appropriate timeout based on URL domain
-    timeout = get_timeout_for_url(url)
+    timeout = get_timeout_for_url(url=url)
 
     cmd = [
         str(yt_dlp_path),
@@ -492,10 +492,10 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
     """
     try:
         # Security: Validate URL before passing to subprocess
-        sanitized_url = sanitize_url_for_subprocess(playlist_url)
+        sanitized_url = sanitize_url_for_subprocess(url=playlist_url)
 
         # Get appropriate timeout based on URL domain
-        timeout = get_timeout_for_url(playlist_url)
+        timeout = get_timeout_for_url(url=playlist_url)
 
         cmd = [ytdlp_exe, '--dump-json', '--no-download', sanitized_url]
         logger.debug(f'Getting chapter count with timeout of {timeout} seconds')

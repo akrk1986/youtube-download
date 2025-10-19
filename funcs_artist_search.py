@@ -44,10 +44,10 @@ def find_artists_in_string(text: str, artists: list[dict[str, str]]) -> tuple[in
     found: set[str] = set()
     # normalize Greek strings by replacing diacritics with base letter
     lowered_text_x = text.lower()
-    lowered_text = remove_diacritics(lowered_text_x)
+    lowered_text = remove_diacritics(text=lowered_text_x)
     for artist in artists:
         greek_x = artist['Greek name']
-        greek = remove_diacritics(greek_x)
+        greek = remove_diacritics(text=greek_x)
         english = artist['English name']
         # For both Greek and English names, generate all search variants
         for name in filter(None, [greek, english]):

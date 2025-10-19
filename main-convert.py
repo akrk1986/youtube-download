@@ -24,14 +24,14 @@ def normalize_year(year_str: str | int | None) -> str:
         # Try parsing with arrow
         if len(year_str) == 8 and year_str.isdigit():
             # YYYYMMDD format
-            parsed_date = arrow.get(year_str, 'YYYYMMDD')
+            parsed_date = arrow.get(obj=year_str, arg='YYYYMMDD')
             return str(parsed_date.year)
         elif len(year_str) == 4 and year_str.isdigit():
             # Already YYYY format
             return year_str
         else:
             # Try to parse as date
-            parsed_date = arrow.get(year_str)
+            parsed_date = arrow.get(obj=year_str)
             return str(parsed_date.year)
     except:
         # Fallback to regex extraction
@@ -47,7 +47,7 @@ def extract_mp3_tags(file_path: Path) -> dict[str, str] | None:
     try:
         # Use EasyID3 for most tags
         audio = EasyID3(file_path)
-        year = normalize_year(audio.get('date', [''])[0])
+        year = normalize_year(year_str=audio.get('date', [''])[0])
 
         # Use raw ID3 for comment and TENC tags
         id3_audio = ID3(file_path)
@@ -82,7 +82,7 @@ def extract_m4a_tags(file_path: Path) -> dict[str, str] | None:
     """Extract relevant tags from M4A file using MP4."""
     try:
         audio = MP4(file_path)
-        year = normalize_year(audio.get('\xa9day', [''])[0] if audio.get('\xa9day') else '')
+        year = normalize_year(year_str=audio.get('\xa9day', [''])[0] if audio.get('\xa9day') else '')
         # Extract ©lyr (unsynced lyrics) tag - used to store original filename
         unsyncedlyrics = audio.get('\xa9lyr', [''])[0] if audio.get('\xa9lyr') else ''
         return {
@@ -251,9 +251,9 @@ def main() -> int:
                 print(f"  Target file '{target_file.name}' does not exist or is empty, converting...")
                 # Convert source file to target format
                 if args.source == 'mp3':
-                    result = convert_mp3_to_m4a(source_file, target_file)
+                    result = convert_mp3_to_m4a(mp3_file=source_file, m4a_file=target_file)
                 else:
-                    result = convert_m4a_to_mp3(source_file, target_file)
+                    result = convert_m4a_to_mp3(m4a_file=source_file, mp3_file=target_file)
 
                 if result is None:
                     print(f'  Failed to convert {source_file.name}')
@@ -267,18 +267,18 @@ def main() -> int:
 
         # Extract tags from source file
         if args.source == 'mp3':
-            tags = extract_mp3_tags(source_file)
+            tags = extract_mp3_tags(file_path=source_file)
         else:
-            tags = extract_m4a_tags(source_file)
+            tags = extract_m4a_tags(file_path=source_file)
 
         if tags is None:
             continue
 
         # Apply tags to target file
         if target_format == 'mp3':
-            success = apply_mp3_tags(target_file, tags)
+            success = apply_mp3_tags(file_path=target_file, tags=tags)
         else:
-            success = apply_m4a_tags(target_file, tags)
+            success = apply_m4a_tags(file_path=target_file, tags=tags)
 
         if success:
             processed_count += 1

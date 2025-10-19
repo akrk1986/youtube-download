@@ -34,7 +34,7 @@ def set_artists_in_mp3_files(mp3_folder: Path,
         original_names: Optional mapping of final_path -> original_ytdlp_filename
     """
     handler = MP3TagHandler()
-    set_artists_in_audio_files(mp3_folder, artists_json, handler, original_names)
+    set_artists_in_audio_files(audio_folder=mp3_folder, artists_json=artists_json, handler=handler, original_names=original_names)
 
 def set_tags_in_chapter_mp3_files(mp3_folder: Path,
                                   uploader: str | None = None,
@@ -59,4 +59,4 @@ def set_tags_in_chapter_mp3_files(mp3_folder: Path,
         Number of files whose title was modified
     """
     handler = MP3TagHandler()
-    return set_tags_in_chapter_audio_files(mp3_folder, handler, uploader, video_title, original_names)
+    return set_tags_in_chapter_audio_files(audio_folder=mp3_folder, handler=handler, uploader=uploader, video_title=video_title, original_names=original_names)

@@ -29,7 +29,7 @@ def validate_and_get_url(provided_url: str) -> str | None:
         # Interactive mode: prompt with retry
         for attempt in range(MAX_URL_RETRIES):
             url = input('Enter the YouTube URL: ').strip()
-            is_valid, error_msg = validate_video_url(url)
+            is_valid, error_msg = validate_video_url(url=url)
             if is_valid:
                 return url
 
@@ -41,7 +41,7 @@ def validate_and_get_url(provided_url: str) -> str | None:
                 sys.exit(1)
     else:
         # CLI mode: validate provided URL
-        is_valid, error_msg = validate_video_url(provided_url)
+        is_valid, error_msg = validate_video_url(url=provided_url)
         if not is_valid:
             logger.error(f'Invalid URL: {error_msg}')
             sys.exit(1)

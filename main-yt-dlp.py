@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2025-10-19 11:40:00'
+VERSION = '2025-10-19 12:00:00'
 
 from logger_config import setup_logging
 from funcs_for_main_yt_dlp import validate_and_get_url, organize_and_sanitize_files, process_audio_tags
@@ -28,10 +28,10 @@ def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bo
                 show_progress: bool = False, other_sites_timeout: int | None = None) -> None:
     """Extract videos from video URL with yt-dlp. Include subtitles if requested."""
     # Security: Validate URL before passing to subprocess
-    sanitized_url = sanitize_url_for_subprocess(video_url)
+    sanitized_url = sanitize_url_for_subprocess(url=video_url)
 
     # Get appropriate timeout based on URL domain
-    timeout = get_timeout_for_url(video_url, other_sites_timeout=other_sites_timeout)
+    timeout = get_timeout_for_url(url=video_url, other_sites_timeout=other_sites_timeout)
 
     yt_dlp_cmd = [
         ytdlp_exe,
@@ -101,10 +101,10 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, audio_folder: str,
                            show_progress: bool = False, other_sites_timeout: int | None = None) -> None:
     """Extract audio in a single format using yt-dlp."""
     # Security: Validate URL before passing to subprocess
-    sanitized_url = sanitize_url_for_subprocess(video_url)
+    sanitized_url = sanitize_url_for_subprocess(url=video_url)
 
     # Get appropriate timeout based on URL domain
-    timeout = get_timeout_for_url(video_url, other_sites_timeout=other_sites_timeout)
+    timeout = get_timeout_for_url(url=video_url, other_sites_timeout=other_sites_timeout)
 
     # Create format-specific subfolder
     format_folder = os.path.join(audio_folder, format_type)
@@ -202,7 +202,7 @@ def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: 
             logger.info(f"Video has uploader: '{uploader}'")
 
     # Extract each requested audio format
-    timeout = get_timeout_for_url(playlist_url, other_sites_timeout=other_sites_timeout)
+    timeout = get_timeout_for_url(url=playlist_url, other_sites_timeout=other_sites_timeout)
     logger.info(f'Using timeout of {timeout} seconds for audio extraction')
     for audio_format in audio_formats:
         _extract_single_format(ytdlp_exe=ytdlp_exe, video_url=playlist_url, audio_folder=audio_folder,
@@ -297,7 +297,7 @@ def main() -> None:
             sys.exit(1)
 
     # Validate and get URL
-    args.video_url = validate_and_get_url(args.video_url)
+    args.video_url = validate_and_get_url(provided_url=args.video_url)
     logger.info(f'Processing URL: {args.video_url}')
 
     video_folder = os.path.abspath(VIDEO_OUTPUT_DIR)
