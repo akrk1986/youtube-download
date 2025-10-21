@@ -4,6 +4,135 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2025-10-21 16:19:50
+
+**Bug Fix:** Removed `--force-keyframes-at-cuts` flag causing video corruption
+
+**Problem:** Video chapter files were experiencing corruption issues:
+- Incorrect durations displayed in video players (VLC)
+- Timeline seeking caused video to disappear or freeze
+- Playback issues due to re-encoding at chapter boundaries
+
+**Root Cause:** The `--force-keyframes-at-cuts` flag added in version 2025-10-21 14:50:42 forces ffmpeg to re-encode video at chapter cut points, which:
+- Is slow and CPU-intensive
+- Can cause audio/video sync issues
+- Creates corrupted frames at boundaries
+- Results in malformed MP4 files
+
+**Solution:** Removed `--force-keyframes-at-cuts` flag from video chapter splitting command. yt-dlp now uses the default behavior of cutting at the nearest natural keyframe without re-encoding.
+
+**Changes made:**
+
+1. **`main-yt-dlp.py`**:
+   - Removed `--force-keyframes-at-cuts` from `_run_yt_dlp()` when splitting chapters
+   - Video chapters now split cleanly using stream copy (no re-encoding)
+
+2. **`funcs_utils.py`**:
+   - Updated warning message in `display_chapters_and_confirm()` to explain that:
+     - Videos are cut at nearest keyframe for clean, fast splits
+     - Video durations may be slightly longer than metadata shows
+     - Audio chapters match exact times
+
+**Trade-offs:**
+
+**Before (with --force-keyframes-at-cuts):**
+- ✗ Slow processing (requires re-encoding)
+- ✗ Corrupted video files
+- ✗ VLC playback issues
+- ✓ Exact chapter boundaries (in theory)
+
+**After (without flag, default behavior):**
+- ✓ Fast processing (stream copy, no re-encoding)
+- ✓ Clean, playable video files
+- ✓ Perfect VLC playback
+- ✓ Slightly longer durations (extends to next keyframe, typically 2-10 seconds)
+
+**Result:** Video chapter files are now clean, playable, and seekable in all players. The slight duration imprecision (extending to next keyframe) is a worthwhile trade-off for stable, corruption-free video files. Audio chapters continue to have exact timing since audio doesn't have keyframe constraints.
+
+---
+
+## 2025-10-21 14:50:42
+
+**Feature Enhancement:** Chapter display and confirmation prompt
+
+**Summary:** When using `--split-chapters`, the tool now displays a formatted chapter list with timing information and prompts for user confirmation before downloading.
+
+**Changes made:**
+
+1. **`funcs_utils.py`**:
+   - Added `_format_duration()` helper function to convert seconds to HH:MM:SS or MM:SS format
+   - Added `display_chapters_and_confirm()` function that:
+     - Displays formatted table with chapter numbers, names, start/end times, and durations
+     - Shows warning about video chapter duration differences due to keyframe alignment
+     - Prompts user to continue (y/n) or abort download
+     - Returns boolean indicating user's choice
+
+2. **`main-yt-dlp.py`**:
+   - Added `display_chapters_and_confirm` to imports
+   - Integrated chapter confirmation prompt before download when `--split-chapters` is used
+   - Exits cleanly (status 0) if user chooses to abort
+
+3. **`README.md`**:
+   - Updated `--split-chapters` description to mention chapter display and confirmation
+   - Updated usage examples
+
+4. **`Tests/test_chapter_display.py`** (NEW):
+   - Created test suite for chapter display functionality
+   - Tests duration formatting and chapter display with mock data
+
+**Result:** Users can now review the complete chapter list with timing information before committing to a download. This helps verify chapter structure and avoid unwanted downloads.
+
+---
+
+## 2025-10-21 14:50:00
+
+**Parameter Rename:** `--other-sites-timeout` → `--video-download-timeout` with enhanced functionality
+
+**Summary:** Renamed timeout parameter and changed behavior to apply custom timeout to all sites when specified, not just non-YouTube/Facebook sites.
+
+**Changes made:**
+
+1. **`funcs_utils.py`**:
+   - Renamed parameter in `get_timeout_for_url()` from `other_sites_timeout` to `video_download_timeout`
+   - Changed logic: when `video_download_timeout` is specified, it now applies to ALL sites uniformly
+   - Updated documentation to clarify new behavior
+
+2. **`main-yt-dlp.py`**:
+   - Renamed `--other-sites-timeout` to `--video-download-timeout`
+   - Removed default value (was 3600)
+   - Updated help text to explain new behavior:
+     - When specified: applies to all sites (YouTube, Facebook, and others)
+     - When not specified: uses domain-specific defaults (300s for YouTube/Facebook, 3600s for others)
+   - Updated all function signatures and calls:
+     - `_run_yt_dlp()`
+     - `_extract_single_format()`
+     - `_extract_audio_with_ytdlp()`
+
+3. **`README.md`**:
+   - Updated usage syntax and parameter descriptions
+   - Rewrote Performance & Timeout section with clear explanation of behavior
+   - Added new usage examples showing custom timeout for different scenarios
+
+4. **`Tests/test_timeout_parameter.py`** (NEW):
+   - Created comprehensive test suite (7 tests)
+   - Tests default timeouts for YouTube, Facebook, and other sites
+   - Tests custom timeout override for all sites
+   - All tests passing
+
+**Behavioral Changes:**
+
+**Before:**
+- `--other-sites-timeout 1200` would set 1200s timeout only for non-YouTube/Facebook sites
+- YouTube/Facebook always used 300s regardless of parameter
+
+**After:**
+- `--video-download-timeout 1200` sets 1200s timeout for ALL sites (YouTube, Facebook, others)
+- Without parameter: uses smart defaults (300s for YouTube/Facebook, 3600s for others)
+
+**Result:** More intuitive and flexible timeout control. Users can now override timeouts for YouTube/Facebook if needed (e.g., slow connections), while still benefiting from sensible defaults when the parameter is omitted.
+
+---
+
 ## 2025-10-19 12:00:00
 
 **Code Quality:** Standardized function calls to use named parameters

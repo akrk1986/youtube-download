@@ -363,23 +363,24 @@ def sanitize_filenames_in_folder(folder_path: Path,
 
 # Video files utils
 
-def get_timeout_for_url(url: str, other_sites_timeout: int | None = None) -> int:
+def get_timeout_for_url(url: str, video_download_timeout: int | None = None) -> int:
     """
     Determine the appropriate subprocess timeout based on the URL domain.
 
     Args:
         url: The URL to check
-        other_sites_timeout: Optional timeout in seconds for other sites (non-YouTube/Facebook).
-                           If None, uses SUBPROCESS_TIMEOUT_OTHER_SITES default.
+        video_download_timeout: Optional timeout in seconds for video downloads.
+                               If specified, this timeout is used for all sites.
+                               If None, uses domain-specific defaults (300s for YouTube/Facebook, 3600s for others).
 
     Returns:
-        int: Timeout in seconds (300 for YouTube & Facebook, 3600 for other sites by default)
+        int: Timeout in seconds
     """
     from urllib.parse import urlparse
 
-    # Use default if not provided
-    if other_sites_timeout is None:
-        other_sites_timeout = SUBPROCESS_TIMEOUT_OTHER_SITES
+    # If user specified a timeout, use it for all sites
+    if video_download_timeout is not None:
+        return video_download_timeout
 
     try:
         parsed = urlparse(url)
@@ -393,7 +394,7 @@ def get_timeout_for_url(url: str, other_sites_timeout: int | None = None) -> int
 
         # Check if it's another valid domain
         if any(domain in parsed.netloc for domain in VALID_OTHER_DOMAINS):
-            return other_sites_timeout
+            return SUBPROCESS_TIMEOUT_OTHER_SITES
 
         # Default to YouTube timeout for unknown domains
         return SUBPROCESS_TIMEOUT_YOUTUBE
@@ -518,3 +519,73 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
     except (KeyError, TypeError) as e:
         logger.debug(f'No chapters found in video info: {e}')
         return 0
+
+def _format_duration(seconds: float) -> str:
+    """Format duration in seconds to HH:MM:SS or MM:SS format."""
+    total_seconds = int(seconds)
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    secs = total_seconds % 60
+
+    if hours > 0:
+        return f'{hours:02d}:{minutes:02d}:{secs:02d}'
+    return f'{minutes:02d}:{secs:02d}'
+
+def display_chapters_and_confirm(video_info: dict) -> bool:
+    """
+    Display chapter list with timing information and prompt user for confirmation.
+
+    Args:
+        video_info: Video information dictionary from yt-dlp
+
+    Returns:
+        bool: True to continue, False to abort
+    """
+    chapters = video_info.get('chapters', [])
+    if not chapters:
+        return True  # No chapters to display, continue
+
+    video_title = video_info.get('title', 'Unknown')
+    video_duration = video_info.get('duration', 0)
+
+    print('\n' + '='*80)
+    print(f"Video: {video_title}")
+    print(f'Total duration: {_format_duration(seconds=video_duration)}')
+    print(f'Found {len(chapters)} chapters:')
+    print('='*80)
+    print('NOTE: Video chapters are cut at the nearest keyframe (I-frame) for clean splits.')
+    print('      This may result in slightly longer durations than shown below.')
+    print('      Audio chapters will match the exact times shown.')
+    print('='*80)
+    print(f"{'#':<4} {'Chapter Name':<50} {'Start':<10} {'End':<10} {'Duration':<10}")
+    print('-'*80)
+
+    for i, chapter in enumerate(chapters, 1):
+        title = chapter.get('title', f'Chapter {i}')
+        start_time = chapter.get('start_time', 0)
+        end_time = chapter.get('end_time', video_duration)
+
+        # Calculate duration
+        duration = end_time - start_time
+
+        # Format times
+        start_str = _format_duration(seconds=start_time)
+        end_str = _format_duration(seconds=end_time)
+        duration_str = _format_duration(seconds=duration)
+
+        # Truncate title if too long
+        display_title = title[:47] + '...' if len(title) > 50 else title
+
+        print(f'{i:<4} {display_title:<50} {start_str:<10} {end_str:<10} {duration_str:<10}')
+
+    print('='*80)
+
+    # Prompt for confirmation
+    while True:
+        response = input('\nContinue with download? (y/n): ').strip().lower()
+        if response in ('y', 'yes'):
+            return True
+        if response in ('n', 'no'):
+            logger.info('Download aborted by user')
+            return False
+        print("Please enter 'y' for yes or 'n' for no")

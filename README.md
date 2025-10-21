@@ -17,9 +17,9 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 
 ```
 usage: main-yt-dlp.py [-h] [--audio-format AUDIO_FORMAT] [--split-chapters]
-                      [--other-sites-timeout OTHER_SITES_TIMEOUT] [--subs]
-                      [--json] [--no-log-file] [--progress] [--verbose]
-                      [--version] [--with-audio | --only-audio]
+                      [--video-download-timeout VIDEO_DOWNLOAD_TIMEOUT]
+                      [--subs] [--json] [--no-log-file] [--progress]
+                      [--verbose] [--version] [--with-audio | --only-audio]
                       [video_url]
 
 Download YouTube playlist/video, optionally with subtitles.
@@ -35,10 +35,11 @@ options:
                         list (e.g., mp3,m4a). (default: mp3)
 
   --split-chapters      Split videos with chapters into separate files per chapter
+                        Shows chapter list and prompts for confirmation before download
 
-  --other-sites-timeout OTHER_SITES_TIMEOUT
-                        Timeout in seconds for non-YouTube/Facebook sites (default: 3600)
-                        YouTube and Facebook use 300 seconds (5 minutes) automatically
+  --video-download-timeout VIDEO_DOWNLOAD_TIMEOUT
+                        Timeout in seconds for video downloads. If specified, applies to all sites.
+                        If not specified, uses defaults: 300s for YouTube/Facebook, 3600s for other sites
 
   --subs                Download subtitles in Greek, English, and Hebrew (converted to SRT)
 
@@ -72,13 +73,18 @@ audio extraction mode (mutually exclusive):
 
 **Video Processing:**
 - `--split-chapters` - For videos with chapters, splits into separate files with track numbers
+  - Displays chapter list with names, start/end times, and durations
+  - Prompts for confirmation before downloading
 - `--subs` - Downloads subtitles in Greek (el), English (en), and Hebrew (he), converted to SRT format
 - `--json` - Saves complete video metadata in JSON format alongside the downloaded file
 
 **Performance & Timeout:**
-- `--other-sites-timeout` - Timeout for non-YouTube/Facebook sites (default: 3600 seconds = 1 hour)
-  - YouTube/Facebook automatically use 300 seconds (5 minutes)
-  - Useful for slow streaming sites like ertflix.gr
+- `--video-download-timeout` - Override default timeout for video downloads (in seconds)
+  - When specified: applies to all sites (YouTube, Facebook, and others)
+  - When not specified: uses automatic defaults based on site
+    - YouTube/Facebook: 300 seconds (5 minutes)
+    - Other sites (e.g., ertflix.gr): 3600 seconds (1 hour)
+  - Useful for slow connections or large files
 
 **Logging & Debugging:**
 - `--no-log-file` - Logs only to console, doesn't create log files in Logs/ directory
@@ -177,6 +183,15 @@ python main-yt-dlp.py --with-audio --subs --json "https://youtube.com/watch?v=VI
 ### Download playlist with multiple audio formats
 ```bash
 python main-yt-dlp.py --only-audio --audio-format mp3,m4a "https://youtube.com/playlist?list=PLxxxxxxxx"
+```
+
+### Download with custom timeout (useful for slow connections)
+```bash
+# Set 10-minute timeout for all sites
+python main-yt-dlp.py --only-audio --video-download-timeout 600 "https://youtube.com/watch?v=VIDEO_ID"
+
+# Set 30-minute timeout for slow sites
+python main-yt-dlp.py --with-audio --video-download-timeout 1800 "https://www.ertflix.gr/video/VIDEO_ID"
 ```
 
 ## Output Structure
