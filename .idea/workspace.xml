@@ -11,6 +11,7 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Docs/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/Docs/CHANGELOG.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Tests/test_cookie_args.py" beforeDir="false" afterPath="$PROJECT_DIR$/Tests/test_cookie_args.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/funcs_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/funcs_utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main-yt-dlp.py" beforeDir="false" afterPath="$PROJECT_DIR$/main-yt-dlp.py" afterDir="false" />
     </list>

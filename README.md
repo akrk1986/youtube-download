@@ -19,7 +19,8 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 usage: main-yt-dlp.py [-h] [--audio-format AUDIO_FORMAT] [--split-chapters]
                       [--video-download-timeout VIDEO_DOWNLOAD_TIMEOUT]
                       [--subs] [--json] [--no-log-file] [--progress]
-                      [--verbose] [--version] [--with-audio | --only-audio]
+                      [--verbose] [--rerun] [--version]
+                      [--with-audio | --only-audio]
                       [video_url]
 
 Download YouTube playlist/video, optionally with subtitles.
@@ -51,6 +52,9 @@ options:
   --progress            Show yt-dlp progress bar and log detailed output to Logs/yt-dlp-progress.log
 
   --verbose, -v         Enable verbose (DEBUG) logging for detailed troubleshooting
+
+  --rerun               Reuse URL from previous run (stored in Tests/last_url.txt)
+                        Ignored if video_url is provided
 
   --version             Show program's version number and exit
 
@@ -93,6 +97,11 @@ audio extraction mode (mutually exclusive):
 - By default, application logs are written to `Logs/yt-dlp_YYYYMMDD_HHMMSS.log` (keeps last 5 log files)
 
 **Other:**
+- `--rerun` - Reuse URL from previous run without having to paste it again
+  - Every run saves the validated URL to `Tests/last_url.txt`
+  - Use `--rerun` without providing a URL to reuse the last URL
+  - Ignored if a URL is provided on the command line
+  - Useful for repeated testing/downloading of the same URL
 - `--version` - Displays the program version (matches CHANGELOG timestamp)
 - `-h` / `--help` - Shows help message with all options
 
@@ -185,6 +194,19 @@ python main-yt-dlp.py --with-audio --subs --json "https://youtube.com/watch?v=VI
 python main-yt-dlp.py --only-audio --audio-format mp3,m4a "https://youtube.com/playlist?list=PLxxxxxxxx"
 ```
 
+### Rerun with same URL (convenient for testing)
+```bash
+# First run - saves URL to Tests/last_url.txt
+python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
+
+# Subsequent runs - reuse the saved URL
+python main-yt-dlp.py --rerun --only-audio
+
+# Try different options with same URL
+python main-yt-dlp.py --rerun --with-audio --audio-format m4a
+python main-yt-dlp.py --rerun --split-chapters
+```
+
 ### Download with custom timeout (useful for slow connections)
 ```bash
 # Set 10-minute timeout for all sites
@@ -211,7 +233,11 @@ python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 
 **Note:** Browser cookies allow downloading videos that require authentication or age verification. The tool will use your logged-in browser session to access the video. Supported browsers: Chrome and Firefox.
 
-**Important:** When using cookies, the tool automatically disables yt-dlp's cache (`--no-cache-dir`) to ensure fresh authentication for each operation. This prevents 403 errors that can occur when cached authentication expires between video and audio downloads, especially when using `--split-chapters`.
+**Important:** When using cookies, the tool automatically:
+- Disables yt-dlp's cache (`--no-cache-dir`) to ensure fresh authentication for each operation
+- Adds 1-second delay between requests (`--sleep-requests 1`) to avoid YouTube rate limiting
+- This prevents 403 errors and makes downloads more reliable, especially with `--split-chapters`
+- Downloads will be slower but much more stable for authenticated content
 
 ## Output Structure
 

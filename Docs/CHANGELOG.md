@@ -4,6 +4,175 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2025-10-21 19:07:29
+
+**Feature:** Added `--rerun` flag to reuse URL from previous run
+
+**Purpose:** Convenient way to run the script multiple times on the same URL without having to paste it each time. Particularly useful for testing different options on the same video/playlist.
+
+**How it works:**
+- Every run saves the validated URL to `Tests/last_url.txt`
+- Using `--rerun` without providing a URL loads the saved URL
+- If a URL is provided on the command line, `--rerun` is ignored
+- If `--rerun` is used but no previous URL exists, shows clear error message
+
+**Changes made:**
+
+1. **`main-yt-dlp.py`**:
+   - Added `--rerun` argument to argparse (line ~255)
+   - Added logic to load URL from `Tests/last_url.txt` when `--rerun` is used (lines 329-337)
+   - Added logic to save validated URL to `Tests/last_url.txt` after validation (lines 343-345)
+
+2. **`Tests/test_rerun.py`**:
+   - Created test script to verify URL save/load functionality
+   - Tests file creation, reading, and error handling
+
+3. **`README.md`**:
+   - Updated usage syntax to include `--rerun` flag
+   - Added `--rerun` to parameter documentation
+   - Added workflow example showing repeated runs with different options
+
+**Usage examples:**
+```bash
+# First run - saves URL
+python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
+
+# Subsequent runs - reuse saved URL
+python main-yt-dlp.py --rerun --only-audio
+python main-yt-dlp.py --rerun --with-audio --audio-format m4a
+python main-yt-dlp.py --rerun --split-chapters
+```
+
+---
+
+## 2025-10-21 18:43:46
+
+**Bug Fix:** Added `--sleep-requests 1` to prevent YouTube rate limiting when using cookies
+
+**Problem:** Even with `--no-cache-dir` flag, 403 errors were still occurring when using browser cookies, especially when downloading videos with chapters (multiple sequential operations: video download, audio extraction, chapter splitting).
+
+**Root Cause:** YouTube implements rate limiting to detect and block automated/bot-like behavior. When multiple yt-dlp requests occur in rapid succession (downloading video, extracting audio, fetching metadata), YouTube's anti-bot systems flag the activity and return 403 (Forbidden) errors, even with valid authentication.
+
+**Solution:** Added `--sleep-requests 1` flag to cookie arguments, which introduces a 1-second delay between HTTP requests to YouTube. This makes the download pattern appear more human-like and avoids triggering rate limiting.
+
+**Changes made:**
+
+1. **`funcs_utils.py:57`**:
+   - Updated `get_cookie_args()` to return:
+     ```python
+     ['--cookies-from-browser', browser, '--no-cache-dir', '--sleep-requests', '1']
+     ```
+   - Adds 1-second sleep between requests when cookies are used
+   - Comment added explaining rate limiting mitigation
+
+2. **`Tests/test_cookie_args.py`**:
+   - Updated all test assertions to expect `--sleep-requests` and `1` in output
+   - All 7 tests passing
+
+**Behavior:**
+
+**Before:**
+- Request 1 → Immediate
+- Request 2 → Immediate
+- Request 3 → Immediate → 403 Forbidden (rate limited)
+
+**After:**
+- Request 1 → Wait 1s
+- Request 2 → Wait 1s
+- Request 3 → ✓ Success (appears human-like)
+
+**Trade-offs:**
+- Slower downloads (1 second between requests)
+- Acceptable for authenticated content
+- Prevents 403 errors and failed downloads
+- More reliable than fast-but-broken downloads
+
+**Technical Details:**
+
+The `--sleep-requests` flag tells yt-dlp to wait between HTTP requests. This:
+- Mimics human browsing patterns
+- Avoids YouTube's rate limiting heuristics
+- Works in combination with `--no-cache-dir` and `--cookies-from-browser`
+- Applies to all requests: metadata, video segments, audio extraction
+
+**Combined Cookie Arguments:**
+```bash
+--cookies-from-browser chrome \
+--no-cache-dir \              # Fresh auth every time
+--sleep-requests 1            # 1s delay between requests
+```
+
+**Result:** Reliable downloads of authenticated content without 403 errors. The 1-second delay per request is a small price for consistent, successful downloads of age-restricted and private videos.
+
+---
+
+## 2025-10-21 17:49:04
+
+**Bug Fix:** Added `--remux-video mp4` to fix corrupted video chapter files
+
+**Problem:** Video chapter files created with `--split-chapters` had serious playback issues:
+- Incorrect duration displayed in media players (VLC, Windows Media Player)
+- Seeking/fast-forwarding failed, causing video to freeze or close
+- Timeline navigation was broken
+- Files appeared corrupted despite playing from the start
+
+**Root Cause:** When yt-dlp uses `--split-chapters` without re-encoding (default behavior for speed), it cuts the video at keyframes using stream copy. However, this can leave the MP4 container metadata incorrect:
+- Duration metadata (`mvhd` atom) may not be updated properly
+- Seeking tables (`stts`, `stss` atoms) may be incomplete
+- The `moov` atom (container metadata) may reference frames outside the split range
+- No proper re-indexing of the MP4 structure after the cut
+
+**Solution:** Added `--remux-video mp4` flag when splitting video chapters. This forces ffmpeg to remux (re-containerize) the split video files, which:
+- Rebuilds the MP4 container structure from scratch
+- Recalculates all duration metadata
+- Regenerates proper seeking tables
+- Ensures the `moov` atom is consistent with the actual video data
+
+**Changes made:**
+
+1. **`main-yt-dlp.py:62-63`**:
+   - Added `--remux-video mp4` flag when `split_chapters and has_chapters` is true
+   - This happens after `--split-chapters` flag is added
+   - Only applies to video downloads (not audio)
+
+**Technical Details:**
+
+**Before:**
+```bash
+yt-dlp --split-chapters URL
+# Cuts at keyframes → Malformed MP4 container → Broken seeking
+```
+
+**After:**
+```bash
+yt-dlp --split-chapters --remux-video mp4 URL
+# Cuts at keyframes → Remuxes to fix container → Perfect MP4 files
+```
+
+**What `--remux-video mp4` does:**
+- Takes the split video streams
+- Re-containerizes them into proper MP4 files
+- Rebuilds metadata (duration, seeking tables, timestamps)
+- No re-encoding (still fast, lossless)
+- Just fixes the container structure
+
+**Trade-offs:**
+- Slightly slower (remuxing takes a few seconds per chapter)
+- Still much faster than re-encoding with `--force-keyframes-at-cuts`
+- No quality loss (lossless remuxing)
+- Perfectly playable, seekable video files
+
+**Result:** Video chapter files now have:
+- ✅ Correct duration in all players
+- ✅ Working seek/fast-forward/rewind
+- ✅ Proper timeline navigation
+- ✅ No corruption or playback issues
+- ✅ Compatible with VLC, Windows Media Player, and all standard players
+
+Audio chapter files are unaffected (they don't have the container issues that videos have).
+
+---
+
 ## 2025-10-21 17:35:58
 
 **Bug Fix:** Added `--no-cache-dir` flag to cookie authentication to prevent 403 errors

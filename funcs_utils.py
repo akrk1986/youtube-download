@@ -53,7 +53,8 @@ def get_cookie_args() -> list[str]:
 
     logger.info(f"Using cookies from {browser} browser (YTDLP_USE_COOKIES={cookie_env})")
     # Include --no-cache-dir to force fresh authentication and avoid 403 errors
-    return ['--cookies-from-browser', browser, '--no-cache-dir']
+    # Add --sleep-requests to avoid rate limiting by YouTube
+    return ['--cookies-from-browser', browser, '--no-cache-dir', '--sleep-requests', '1']
 
 
 # Security helper functions for subprocess calls

@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2025-10-21 17:35:58'
+VERSION = '2025-10-21 19:07:29'
 
 from logger_config import setup_logging
 from funcs_for_main_yt_dlp import validate_and_get_url, organize_and_sanitize_files, process_audio_tags
@@ -59,6 +59,8 @@ def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bo
         yt_dlp_cmd[1:1] = [YT_DLP_WRITE_JSON_FLAG]
     if split_chapters and has_chapters:
         yt_dlp_cmd[1:1] = [YT_DLP_SPLIT_CHAPTERS_FLAG]
+        # Remux to MP4 after splitting to fix container metadata and ensure proper seeking
+        yt_dlp_cmd[1:1] = ['--remux-video', 'mp4']
     if get_subs:
         # Extract subtitles in Greek, English, Hebrew
         yt_dlp_cmd[1:1] = [
@@ -253,6 +255,8 @@ def main() -> None:
     parser.add_argument('--progress', action='store_true',
                         help='Show yt-dlp progress bar and log output to Logs/yt-dlp.log')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose (DEBUG) logging')
+    parser.add_argument('--rerun', action='store_true',
+                        help='Reuse URL from previous run (stored in Tests/last_url.txt). Ignored if video_url is provided.')
     parser.add_argument('--version', action='version', version=f'%(prog)s {VERSION}')
 
     audio_group = parser.add_mutually_exclusive_group()
@@ -322,9 +326,23 @@ def main() -> None:
             logger.error('Install with: pip install yt-dlp')
             sys.exit(1)
 
+    # Handle --rerun flag: load URL from previous run if requested
+    last_url_file = Path('Tests') / 'last_url.txt'
+    if args.rerun and not args.video_url:
+        if last_url_file.exists():
+            args.video_url = last_url_file.read_text().strip()
+            logger.info(f'Reusing URL from previous run: {args.video_url}')
+        else:
+            logger.error('No previous URL found in Tests/last_url.txt')
+            sys.exit(1)
+
     # Validate and get URL
     args.video_url = validate_and_get_url(provided_url=args.video_url)
     logger.info(f'Processing URL: {args.video_url}')
+
+    # Save URL for future --rerun
+    last_url_file.parent.mkdir(exist_ok=True)
+    last_url_file.write_text(args.video_url)
 
     video_folder = os.path.abspath(VIDEO_OUTPUT_DIR)
     audio_folder = os.path.abspath(AUDIO_OUTPUT_DIR)
