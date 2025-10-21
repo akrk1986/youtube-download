@@ -9,12 +9,12 @@ import sys
 from pathlib import Path
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2025-10-21 16:19:50'
+VERSION = '2025-10-21 17:35:58'
 
 from logger_config import setup_logging
 from funcs_for_main_yt_dlp import validate_and_get_url, organize_and_sanitize_files, process_audio_tags
 from funcs_utils import (get_video_info, is_playlist, get_chapter_count, sanitize_url_for_subprocess,
-                         get_timeout_for_url, display_chapters_and_confirm)
+                         get_timeout_for_url, display_chapters_and_confirm, get_cookie_args)
 from project_defs import (
     DEFAULT_AUDIO_QUALITY, DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
     YT_DLP_WRITE_JSON_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
@@ -22,6 +22,9 @@ from project_defs import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Track if progress log file has been initialized (for --progress flag)
+_progress_log_initialized = False
 
 
 def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bool,
@@ -44,6 +47,12 @@ def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bo
         '-o', os.path.join(video_folder, '%(title)s.%(ext)s'),
         sanitized_url
     ]
+
+    # Add cookie arguments if configured via environment variable
+    cookie_args = get_cookie_args()
+    if cookie_args:
+        yt_dlp_cmd[1:1] = cookie_args
+
     if is_it_playlist:
         yt_dlp_cmd[1:1] = [YT_DLP_IS_PLAYLIST_FLAG]
     if write_json:
@@ -68,11 +77,16 @@ def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bo
     try:
         if show_progress:
             # Create Logs directory if it doesn't exist, set up log file for download progress (very verbose)
+            global _progress_log_initialized
             logs_dir = Path('Logs')
             logs_dir.mkdir(exist_ok=True)
-            log_file = logs_dir / 'downloads.log'
+            log_file = logs_dir / 'yt-dlp-progress.log'
 
-            with open(log_file, 'a') as f:
+            # First write overwrites, subsequent writes append
+            mode = 'w' if not _progress_log_initialized else 'a'
+            _progress_log_initialized = True
+
+            with open(log_file, mode) as f:
                 result = subprocess.run(yt_dlp_cmd, check=True, stdout=f, stderr=subprocess.STDOUT,
                                         text=True, timeout=timeout)
             logger.info(f'Video download completed successfully. Progress logged to {log_file}')
@@ -127,6 +141,11 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, audio_folder: str,
         sanitized_url
     ]
 
+    # Add cookie arguments if configured via environment variable
+    cookie_args = get_cookie_args()
+    if cookie_args:
+        yt_dlp_cmd[1:1] = cookie_args
+
     if is_it_playlist:
         yt_dlp_cmd[1:1] = [YT_DLP_IS_PLAYLIST_FLAG]
     if artist_pat and album_artist_pat:
@@ -147,11 +166,16 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, audio_folder: str,
     try:
         if show_progress:
             # Create Logs directory if it doesn't exist
+            global _progress_log_initialized
             log_dir = Path('Logs')
             log_dir.mkdir(exist_ok=True)
-            log_file = log_dir / 'yt-dlp-downloads.log'
+            log_file = log_dir / 'yt-dlp-progress.log'
 
-            with open(log_file, 'a') as f:
+            # First write overwrites, subsequent writes append
+            mode = 'w' if not _progress_log_initialized else 'a'
+            _progress_log_initialized = True
+
+            with open(log_file, mode) as f:
                 result = subprocess.run(yt_dlp_cmd, check=True, stdout=f, stderr=subprocess.STDOUT, text=True, timeout=timeout)
             logger.info(f'{format_type.upper()} audio download completed successfully. Progress logged to {log_file}')
         else:

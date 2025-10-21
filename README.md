@@ -48,7 +48,7 @@ options:
   --no-log-file         Disable logging to file (logs only to console)
                         By default, logs are written to Logs/yt-dlp_YYYYMMDD_HHMMSS.log
 
-  --progress            Show yt-dlp progress bar and log detailed output to Logs/downloads.log
+  --progress            Show yt-dlp progress bar and log detailed output to Logs/yt-dlp-progress.log
 
   --verbose, -v         Enable verbose (DEBUG) logging for detailed troubleshooting
 
@@ -88,9 +88,9 @@ audio extraction mode (mutually exclusive):
 
 **Logging & Debugging:**
 - `--no-log-file` - Logs only to console, doesn't create log files in Logs/ directory
-- `--progress` - Shows yt-dlp's progress bar and writes verbose download logs
+- `--progress` - Shows yt-dlp's progress bar and writes verbose download logs to `Logs/yt-dlp-progress.log`
 - `--verbose` / `-v` - Enables DEBUG level logging for troubleshooting
-- By default, logs are written to `Logs/yt-dlp_YYYYMMDD_HHMMSS.log` (keeps last 5 log files)
+- By default, application logs are written to `Logs/yt-dlp_YYYYMMDD_HHMMSS.log` (keeps last 5 log files)
 
 **Other:**
 - `--version` - Displays the program version (matches CHANGELOG timestamp)
@@ -193,6 +193,25 @@ python main-yt-dlp.py --only-audio --video-download-timeout 600 "https://youtube
 # Set 30-minute timeout for slow sites
 python main-yt-dlp.py --with-audio --video-download-timeout 1800 "https://www.ertflix.gr/video/VIDEO_ID"
 ```
+
+### Download age-restricted or private videos using browser cookies
+```bash
+# Use cookies from Chrome browser (Windows, Linux, WSL)
+export YTDLP_USE_COOKIES=chrome
+python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
+
+# Use cookies from Firefox browser
+export YTDLP_USE_COOKIES=firefox
+python main-yt-dlp.py --with-audio "https://youtube.com/watch?v=VIDEO_ID"
+
+# On Windows (PowerShell):
+$env:YTDLP_USE_COOKIES="chrome"
+python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
+```
+
+**Note:** Browser cookies allow downloading videos that require authentication or age verification. The tool will use your logged-in browser session to access the video. Supported browsers: Chrome and Firefox.
+
+**Important:** When using cookies, the tool automatically disables yt-dlp's cache (`--no-cache-dir`) to ensure fresh authentication for each operation. This prevents 403 errors that can occur when cached authentication expires between video and audio downloads, especially when using `--split-chapters`.
 
 ## Output Structure
 

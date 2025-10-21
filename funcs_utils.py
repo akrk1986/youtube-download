@@ -1,4 +1,5 @@
 """Misc. utility functions for yt-dlp scripts."""
+import os
 import re
 import unicodedata
 import shutil
@@ -19,6 +20,40 @@ from project_defs import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# Cookie handling for yt-dlp
+
+def get_cookie_args() -> list[str]:
+    """
+    Get yt-dlp cookie arguments based on YTDLP_USE_COOKIES environment variable.
+
+    Environment variable usage:
+    - YTDLP_USE_COOKIES=chrome    -> Use cookies from Chrome browser
+    - YTDLP_USE_COOKIES=firefox   -> Use cookies from Firefox browser
+    - YTDLP_USE_COOKIES=<any>     -> Use cookies from Firefox browser (default)
+    - YTDLP_USE_COOKIES not set   -> No cookies (empty list)
+
+    Works on Windows, Linux, and WSL.
+
+    Returns:
+        list[str]: Cookie arguments for yt-dlp command, or empty list if not configured
+    """
+    cookie_env = os.getenv('YTDLP_USE_COOKIES', '').strip()
+
+    if not cookie_env:
+        return []
+
+    # Determine browser based on environment variable value
+    if cookie_env.lower() == 'chrome':
+        browser = 'chrome'
+    else:
+        # Default to Firefox for any other non-empty value
+        browser = 'firefox'
+
+    logger.info(f"Using cookies from {browser} browser (YTDLP_USE_COOKIES={cookie_env})")
+    # Include --no-cache-dir to force fresh authentication and avoid 403 errors
+    return ['--cookies-from-browser', browser, '--no-cache-dir']
 
 
 # Security helper functions for subprocess calls
@@ -452,6 +487,12 @@ def get_video_info(yt_dlp_path: Path, url: str) -> dict:
         '--no-download',
         sanitized_url
     ]
+
+    # Add cookie arguments if configured via environment variable
+    cookie_args = get_cookie_args()
+    if cookie_args:
+        cmd[1:1] = cookie_args
+
     logger.debug(f'Getting video info with timeout of {timeout} seconds')
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)
@@ -471,6 +512,12 @@ def is_playlist(url: str) -> bool:
         'no_warnings': True,
         'extract_flat': True,
     }
+
+    # Add cookie configuration if environment variable is set
+    cookie_env = os.getenv('YTDLP_USE_COOKIES', '').strip()
+    if cookie_env:
+        browser = 'chrome' if cookie_env.lower() == 'chrome' else 'firefox'
+        ydl_opts['cookiesfrombrowser'] = (browser,)
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
@@ -499,6 +546,12 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
         timeout = get_timeout_for_url(url=playlist_url)
 
         cmd = [ytdlp_exe, '--dump-json', '--no-download', sanitized_url]
+
+        # Add cookie arguments if configured via environment variable
+        cookie_args = get_cookie_args()
+        if cookie_args:
+            cmd[1:1] = cookie_args
+
         logger.debug(f'Getting chapter count with timeout of {timeout} seconds')
         result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)
         video_info = json.loads(result.stdout)

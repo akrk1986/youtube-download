@@ -4,6 +4,201 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2025-10-21 17:35:58
+
+**Bug Fix:** Added `--no-cache-dir` flag to cookie authentication to prevent 403 errors
+
+**Problem:** When downloading videos with chapters using browser cookies, the video download would succeed but audio extraction would fail with HTTP 403 (Forbidden) errors. This occurred because yt-dlp was caching authentication data, which could become stale between the video and audio download operations.
+
+**Root Cause:** yt-dlp's cache directory stores authentication tokens and signatures. When multiple operations occur (video download, then audio extraction), the cached authentication can expire or become invalid, causing subsequent requests to fail with 403 errors even though fresh cookies are available.
+
+**Solution:** Added `--no-cache-dir` flag to all cookie-based operations, forcing yt-dlp to use fresh authentication from browser cookies for every request.
+
+**Changes made:**
+
+1. **`funcs_utils.py:56`**:
+   - Updated `get_cookie_args()` to return `['--cookies-from-browser', browser, '--no-cache-dir']`
+   - This forces yt-dlp to bypass its cache and use fresh cookies for every operation
+   - Comment added explaining the purpose
+
+2. **`Tests/test_cookie_args.py`**:
+   - Updated all test assertions to expect `--no-cache-dir` flag in output
+   - All 7 tests passing with updated expectations
+
+**Behavior:**
+
+**Before:**
+- Video download with cookies: ✓ Success
+- Audio extraction with cookies: ✗ 403 Forbidden (cached auth expired)
+- Required manual cache clearing or retries
+
+**After:**
+- Video download with cookies: ✓ Success (fresh auth)
+- Audio extraction with cookies: ✓ Success (fresh auth)
+- Each operation uses fresh cookies from browser
+
+**Trade-offs:**
+- Slightly slower (no cache reuse) - acceptable for authenticated content
+- More reliable authentication
+- No manual cache management needed
+
+**Technical Details:**
+When `YTDLP_USE_COOKIES` is set, yt-dlp now runs with:
+```bash
+--cookies-from-browser chrome --no-cache-dir
+```
+
+This ensures every yt-dlp invocation (video metadata, chapter info, video download, audio extraction) reads fresh cookies from the browser and doesn't rely on potentially stale cached authentication.
+
+**Result:** Audio extraction with chapters now works reliably when using browser cookies. The 403 errors are eliminated by ensuring fresh authentication for each operation.
+
+---
+
+## 2025-10-21 17:24:54
+
+**Bug Fix:** Progress log file now created fresh on each run
+
+**Problem:** The `Logs/yt-dlp-progress.log` file was appending across multiple runs, causing it to grow indefinitely and contain output from previous downloads.
+
+**Solution:** Implemented a module-level flag to track if the progress log has been initialized. The first write in each program run now overwrites the file, while subsequent writes (within the same run) append.
+
+**Changes made:**
+
+1. **`main-yt-dlp.py`**:
+   - Added module-level variable `_progress_log_initialized = False` (line 27)
+   - Updated `_run_yt_dlp()` to use `'w'` mode on first write, `'a'` on subsequent writes (lines 85-87)
+   - Updated `_extract_single_format()` to use `'w'` mode on first write, `'a'` on subsequent writes (lines 174-176)
+   - Flag is set to `True` after first write to enable append mode for rest of the run
+
+2. **`CHANGELOG.md`**:
+   - Updated previous entry to reflect correct behavior
+
+**Behavior:**
+
+**Before:**
+- `Logs/yt-dlp-progress.log` kept growing across runs
+- Old download output mixed with new downloads
+- File needed manual cleanup
+
+**After:**
+- Each program run creates fresh `Logs/yt-dlp-progress.log` (overwrites on first write)
+- Multiple downloads within same run append to same file
+- Clean, predictable output for each session
+
+**Example within single run:**
+```bash
+python main-yt-dlp.py --progress --with-audio URL1  # Creates fresh log
+# Downloads video → writes to log (overwrite mode)
+# Downloads audio → appends to same log
+```
+
+**Result:** The progress log file is now clean and relevant for each program run, containing only the output from the current session.
+
+---
+
+## 2025-10-21 17:22:07
+
+**Bug Fix:** Consolidated progress log files to single consistent name
+
+**Problem:** When using `--progress` flag, the tool was creating multiple log files with inconsistent names:
+- `Logs/downloads.log` for video downloads
+- `Logs/yt-dlp-downloads.log` for audio downloads
+- This resulted in 3 total log files (including the main application log)
+
+**Solution:** Unified all yt-dlp progress output to a single log file: `Logs/yt-dlp-progress.log`
+
+**Changes made:**
+
+1. **`main-yt-dlp.py`**:
+   - Changed `downloads.log` → `yt-dlp-progress.log` in `_run_yt_dlp()` (line 79)
+   - Changed `yt-dlp-downloads.log` → `yt-dlp-progress.log` in `_extract_single_format()` (line 163)
+   - Both video and audio download progress now append to the same file
+
+2. **`README.md`**:
+   - Updated `--progress` parameter description to reference correct log file name
+   - Updated Logging & Debugging section with clearer explanation of log files
+
+**Log Files Summary:**
+
+After this fix, there are now **2 log files** (when enabled):
+1. **`Logs/yt-dlp_YYYYMMDD_HHMMSS.log`** - Main application log
+   - Created by default (unless `--no-log-file` is used)
+   - Contains all application logging output
+   - Rotated automatically (keeps last 5 files)
+
+2. **`Logs/yt-dlp-progress.log`** - yt-dlp progress output (optional)
+   - Only created when `--progress` flag is used
+   - Contains very verbose yt-dlp download progress
+   - Created fresh on each run (overwrites previous content)
+
+**Result:** Cleaner logging with consistent, predictable log file names. All yt-dlp progress output is now consolidated in a single file for easier review.
+
+---
+
+## 2025-10-21 17:00:08
+
+**Feature Enhancement:** Browser cookie support via environment variable
+
+**Summary:** Added support for downloading age-restricted and private videos by extracting cookies from Chrome or Firefox browsers using the `YTDLP_USE_COOKIES` environment variable.
+
+**Use Cases:**
+- Download age-restricted videos that require authentication
+- Access videos from private/unlisted playlists you have access to
+- Download videos that require being logged in
+
+**Changes made:**
+
+1. **`funcs_utils.py`**:
+   - Added `os` import for environment variable access
+   - Created `get_cookie_args()` function that:
+     - Reads `YTDLP_USE_COOKIES` environment variable
+     - Returns `['--cookies-from-browser', 'chrome']` if value is 'chrome'
+     - Returns `['--cookies-from-browser', 'firefox']` for any other non-empty value
+     - Returns empty list if variable is not set or empty
+   - Updated `get_video_info()` to add cookie args to yt-dlp command
+   - Updated `get_chapter_count()` to add cookie args to yt-dlp command
+   - Updated `is_playlist()` to add `cookiesfrombrowser` option to yt_dlp Python library
+
+2. **`main-yt-dlp.py`**:
+   - Added `get_cookie_args` to imports
+   - Updated `_run_yt_dlp()` to add cookie args when downloading videos
+   - Updated `_extract_single_format()` to add cookie args when extracting audio
+
+3. **`README.md`**:
+   - Added new section "Download age-restricted or private videos using browser cookies"
+   - Provided examples for Linux/WSL (export) and Windows (PowerShell $env:)
+   - Documented supported browsers and use cases
+
+4. **`Tests/test_cookie_args.py`** (NEW):
+   - Created comprehensive test suite (7 tests)
+   - Tests all environment variable scenarios
+   - All tests passing on Linux/WSL
+
+**Environment Variable Usage:**
+
+```bash
+# Linux/WSL/Mac
+export YTDLP_USE_COOKIES=chrome     # Use Chrome cookies
+export YTDLP_USE_COOKIES=firefox    # Use Firefox cookies
+export YTDLP_USE_COOKIES=yes        # Use Firefox (default)
+unset YTDLP_USE_COOKIES             # Don't use cookies
+
+# Windows PowerShell
+$env:YTDLP_USE_COOKIES="chrome"
+$env:YTDLP_USE_COOKIES="firefox"
+Remove-Item Env:\YTDLP_USE_COOKIES
+```
+
+**Cross-Platform Support:**
+- ✅ Linux - Fully tested
+- ✅ WSL - Fully tested
+- ✅ Windows - Environment variable syntax provided
+- ✅ macOS - Should work (same as Linux)
+
+**Result:** Users can now download age-restricted and private videos by leveraging their browser's logged-in session. The feature works transparently across all yt-dlp invocations (video downloads, audio extraction, metadata fetching, chapter detection). No command-line changes needed - just set the environment variable once.
+
+---
+
 ## 2025-10-21 16:19:50
 
 **Bug Fix:** Removed `--force-keyframes-at-cuts` flag causing video corruption
