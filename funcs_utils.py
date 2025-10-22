@@ -635,11 +635,106 @@ def display_chapters_and_confirm(video_info: dict) -> bool:
     print('='*80)
 
     # Prompt for confirmation
-    while True:
-        response = input('\nContinue with download? (y/n): ').strip().lower()
-        if response in ('y', 'yes'):
-            return True
-        if response in ('n', 'no'):
-            logger.info('Download aborted by user')
-            return False
-        print("Please enter 'y' for yes or 'n' for no")
+    # while True:
+    #     response = input('\nContinue with download? (y/n): ').strip().lower()
+    #     if response in ('y', 'yes'):
+    #         return True
+    #     if response in ('n', 'no'):
+    #         logger.info('Download aborted by user')
+    #         return False
+    #     print("Please enter 'y' for yes or 'n' for no")
+
+    # Auto-continue without prompting
+    return True
+
+
+def create_chapters_csv(video_info: dict, output_dir: str, video_title: str) -> None:
+    """
+    Create a CSV file with chapter information instead of downloading video chapters.
+
+    Args:
+        video_info: Dictionary containing video metadata including chapters
+        output_dir: Directory where CSV file should be saved
+        video_title: Video title to use in CSV filename
+    """
+    import csv
+
+    chapters = video_info.get('chapters', [])
+    if not chapters:
+        logger.warning('No chapters found in video info')
+        return
+
+    # Use fixed filename
+    csv_filename = 'segments-hms-full.txt'
+    csv_path = Path(output_dir) / csv_filename
+
+    # Ensure output directory exists
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    logger.info(f'Creating chapters CSV file: {csv_path}')
+
+    with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+
+        # Write header with new column format
+        writer.writerow([
+            'start time',
+            'end time',
+            'song name',
+            'original song name',
+            'artist name',
+            'album name',
+            'year',
+            'composer',
+            'comments'
+        ])
+
+        # Write comment lines with video metadata
+        uploader = video_info.get('uploader', '')
+        video_url = video_info.get('webpage_url', '')
+
+        writer.writerow([f"# Title: '{video_title}'"])
+        writer.writerow([f"# Artist/Uploader: '{uploader}'"])
+        writer.writerow([f'# URL: {video_url}'])
+
+        # Extract year from video date if available
+        year = ''
+        upload_date = video_info.get('upload_date', '')
+        if upload_date:
+            # upload_date is typically in YYYYMMDD format
+            year = upload_date[:4] if len(upload_date) >= 4 else ''
+
+        # Write chapter data
+        for chapter in chapters:
+            start_seconds = chapter.get('start_time', 0)
+            end_seconds = chapter.get('end_time', 0)
+            title = chapter.get('title', '')
+
+            # Convert seconds to HHMMSS format
+            start_time = _seconds_to_hhmmss(seconds=start_seconds)
+            end_time = _seconds_to_hhmmss(seconds=end_seconds)
+
+            # Write row with empty fields for user to fill in later
+            writer.writerow([
+                start_time,                # start time
+                end_time,                  # end time
+                title,                     # song name
+                '',                        # original song name (empty for user to fill)
+                '',                        # artist name (empty for user to fill)
+                '',                        # album name (empty for user to fill)
+                year,                      # year (from video upload date if available)
+                '',                        # composer (empty for user to fill)
+                ''                         # comments (empty for user to fill)
+            ])
+
+    logger.info(f'Chapters CSV created successfully: {csv_path}')
+    print(f'\nChapters CSV file created: {csv_path}')
+
+
+def _seconds_to_hhmmss(seconds: float) -> str:
+    """Convert seconds to HHMMSS format."""
+    total_seconds = int(seconds)
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    secs = total_seconds % 60
+    return f'{hours:02d}{minutes:02d}{secs:02d}'

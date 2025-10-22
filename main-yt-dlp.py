@@ -14,7 +14,8 @@ VERSION = '2025-10-21 19:07:29'
 from logger_config import setup_logging
 from funcs_for_main_yt_dlp import validate_and_get_url, organize_and_sanitize_files, process_audio_tags
 from funcs_utils import (get_video_info, is_playlist, get_chapter_count, sanitize_url_for_subprocess,
-                         get_timeout_for_url, display_chapters_and_confirm, get_cookie_args)
+                         get_timeout_for_url, display_chapters_and_confirm, get_cookie_args,
+                         create_chapters_csv)
 from project_defs import (
     DEFAULT_AUDIO_QUALITY, DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
     YT_DLP_WRITE_JSON_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
@@ -381,10 +382,20 @@ def main() -> None:
 
     # Download videos if requested
     if not args.only_audio:
-        _run_yt_dlp(ytdlp_exe=yt_dlp_exe, video_url=args.video_url, video_folder=video_folder, get_subs=args.subs,
-                    write_json=args.json, split_chapters=args.split_chapters, has_chapters=has_chapters,
-                    is_it_playlist=url_is_playlist, show_progress=args.progress,
-                    video_download_timeout=args.video_download_timeout)
+        # If split-chapters is requested with chapters, create CSV instead of downloading video chapters
+        if args.split_chapters and has_chapters:
+            logger.info('Creating chapters CSV file instead of downloading video chapters')
+            create_chapters_csv(video_info=video_info, output_dir=video_folder, video_title=video_title)
+            # Still download the full video without chapter splitting
+            _run_yt_dlp(ytdlp_exe=yt_dlp_exe, video_url=args.video_url, video_folder=video_folder, get_subs=args.subs,
+                        write_json=args.json, split_chapters=False, has_chapters=has_chapters,
+                        is_it_playlist=url_is_playlist, show_progress=args.progress,
+                        video_download_timeout=args.video_download_timeout)
+        else:
+            _run_yt_dlp(ytdlp_exe=yt_dlp_exe, video_url=args.video_url, video_folder=video_folder, get_subs=args.subs,
+                        write_json=args.json, split_chapters=args.split_chapters, has_chapters=has_chapters,
+                        is_it_playlist=url_is_playlist, show_progress=args.progress,
+                        video_download_timeout=args.video_download_timeout)
 
     # Download audios if requested
     if need_audio:
