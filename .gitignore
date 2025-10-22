@@ -2,6 +2,7 @@
 /yt-audio
 /yt-videos-old
 /yt-audio-old
+.idea/workspace.xml
 *.mp3
 *.webm
 *.mp4
@@ -11,7 +12,7 @@
 *.flac
 *.wav
 #*.txt
-!requirements.txt
+#!requirements.txt
 *.pyc
 .venv/
 .venv-linux/
