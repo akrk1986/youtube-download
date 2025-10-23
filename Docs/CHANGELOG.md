@@ -4,6 +4,87 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2025-10-22
+
+**Feature Enhancement:** Chapter CSV generation and video chapter splitting behavior change
+
+**Summary:** Changed `--split-chapters` behavior to create a CSV file with chapter metadata instead of splitting video files by chapters. Audio files continue to be split by chapters as before.
+
+**Changes made:**
+
+1. **`funcs_utils.py`**:
+   - Created `create_chapters_csv()` function (lines 648-728) to generate chapter metadata CSV file
+   - CSV filename: `segments-hms-full.txt` (fixed name, not based on video title)
+   - CSV columns: start time, end time, song name, original song name, artist name, album name, year, composer, comments
+   - Pre-fills chapter titles in 'song name' column
+   - Extracts year from `upload_date` field (YYYYMMDD format) and populates year column
+   - Adds three comment lines after header with video metadata:
+     - `# Title: 'video_title'` (with single quotes)
+     - `# Artist/Uploader: 'uploader'` (with single quotes)
+     - `# URL: video_url` (no quotes)
+   - Time format: HHMMSS (e.g., 000300 for 3 minutes, 010205 for 1 hour 2 minutes 5 seconds)
+   - Updated `display_chapters_and_confirm()` to auto-continue without user prompt (lines 637-648)
+     - Commented out the `input()` prompt loop
+     - Now returns `True` automatically for non-interactive processing
+
+2. **`main-yt-dlp.py`**:
+   - Added `create_chapters_csv` to imports (line 18)
+   - When `--split-chapters` is used with videos that have chapters (lines 385-393):
+     - Calls `create_chapters_csv()` to generate metadata file
+     - Downloads full video WITHOUT chapter splitting (`split_chapters=False`)
+     - Audio extraction continues to split by chapters as before
+
+3. **`Tests/test_csv_generation.py`**:
+   - Created comprehensive test suite for CSV generation
+   - Tests both scenarios: with upload_date and without upload_date
+   - Verifies CSV format, header, comment lines, and chapter data rows
+   - All tests passing
+
+4. **`README.md`**:
+   - Updated `--split-chapters` parameter description (lines 38-42)
+   - Rewrote "Single Video With Chapters" section (lines 122-163) with:
+     - Detailed explanation of CSV file generation
+     - Clarified behavior differences: videos download in full, audio splits by chapters
+     - Added CSV file output example showing exact format
+   - Updated "Parameter Details" section (lines 81-86)
+   - Updated "Common Workflows" section (lines 216-220)
+
+**Behavioral Changes:**
+
+**Before:**
+- Videos with chapters: split into separate video files per chapter
+- Audio with chapters: split into separate audio files per chapter
+
+**After:**
+- Videos with chapters: download as single full file + CSV created
+- Audio with chapters: split into separate audio files per chapter + CSV created
+- CSV file provides chapter metadata for manual editing
+
+**CSV File Example:**
+```csv
+start time,end time,song name,original song name,artist name,album name,year,composer,comments
+# Title: 'Video Title Here'
+# Artist/Uploader: 'Channel Name'
+# URL: https://youtube.com/watch?v=VIDEO_ID
+000000,000300,Chapter 1 Title,,,,2023,,
+000300,000700,Chapter 2 Title,,,,2023,,
+```
+
+**Note on Video Chapter Splitting Code:**
+Previous enhancements for video chapter splitting (timeout handling, `--remux-video mp4` flag, `--force-keyframes-at-cuts` removal, `--no-cache-dir` and `--sleep-requests` flags) remain in the codebase but are **not currently used** since video chapter splitting is now disabled. The code passes `split_chapters=False` when downloading videos with chapters. These features may be useful if video chapter splitting is re-enabled in the future, but for now:
+- Videos are always downloaded as complete files (no chapter splits)
+- Only audio files are split by chapters
+- CSV file provides chapter reference information
+
+**Rationale:**
+This change provides better flexibility by:
+- Preserving complete video files (easier to manage and play)
+- Generating editable CSV with chapter metadata for manual refinement
+- Continuing to split audio by chapters for music/podcast use cases
+- Avoiding video chapter splitting issues (corruption, seeking problems, remuxing overhead)
+
+---
+
 ## 2025-10-21 19:07:29
 
 **Feature:** Added `--rerun` flag to reuse URL from previous run

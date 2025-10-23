@@ -35,8 +35,11 @@ options:
                         Audio format for extraction: mp3, m4a, flac, or comma-separated
                         list (e.g., mp3,m4a). (default: mp3)
 
-  --split-chapters      Split videos with chapters into separate files per chapter
-                        Shows chapter list and prompts for confirmation before download
+  --split-chapters      Process videos with chapters:
+                        - Displays chapter list with timing information
+                        - Creates CSV file (segments-hms-full.txt) with chapter metadata
+                        - For audio: splits into separate files per chapter
+                        - For video: downloads full video (no chapter splitting)
 
   --video-download-timeout VIDEO_DOWNLOAD_TIMEOUT
                         Timeout in seconds for video downloads. If specified, applies to all sites.
@@ -76,9 +79,11 @@ audio extraction mode (mutually exclusive):
 - `--only-audio` - Downloads only audio, videos are deleted after extraction
 
 **Video Processing:**
-- `--split-chapters` - For videos with chapters, splits into separate files with track numbers
+- `--split-chapters` - Process videos with chapters:
   - Displays chapter list with names, start/end times, and durations
-  - Prompts for confirmation before downloading
+  - Creates `segments-hms-full.txt` CSV file with chapter metadata (includes video title, uploader, URL, and pre-filled year)
+  - For audio: splits into separate files per chapter with track numbers
+  - For video: downloads full video without splitting (CSV provides chapter reference)
 - `--subs` - Downloads subtitles in Greek (el), English (en), and Hebrew (he), converted to SRT format
 - `--json` - Saves complete video metadata in JSON format alongside the downloaded file
 
@@ -124,14 +129,43 @@ python main-yt-dlp.py --with-audio "https://youtube.com/watch?v=dQw4w9WgXcQ"
 
 When combined with `--split-chapters`, the tool:
 - Detects chapter timestamps in the video description
-- Splits the video/audio into separate files per chapter
-- Automatically sets track numbers and titles based on chapter names
-- Organizes files into a subdirectory
+- Displays chapter list with timing information (start time, end time, duration)
+- **Creates a CSV file** (`segments-hms-full.txt`) with chapter metadata for manual editing:
+  - Columns: start time, end time, song name, original song name, artist name, album name, year, composer, comments
+  - Includes comment lines with video title, artist/uploader, and URL
+  - Pre-fills chapter titles and year (from video upload date if available)
+- **For videos** (without `--only-audio`):
+  - Downloads the full video without chapter splitting
+  - CSV file provides chapter information for reference
+- **For audio** (`--only-audio` or `--with-audio`):
+  - Splits audio into separate files per chapter
+  - Automatically sets track numbers and titles based on chapter names
+  - Organizes files into a subdirectory
+  - Each audio format gets its own chapter files
 
 **Example:**
 ```bash
+# Audio only - splits audio by chapters + creates CSV
 python main-yt-dlp.py --only-audio --split-chapters --audio-format m4a "https://youtube.com/watch?v=VIDEO_ID"
+
+# Video + Audio - downloads full video, splits audio by chapters + creates CSV
+python main-yt-dlp.py --with-audio --split-chapters "https://youtube.com/watch?v=VIDEO_ID"
+
+# Video only - downloads full video + creates CSV (no audio splitting)
+python main-yt-dlp.py --split-chapters "https://youtube.com/watch?v=VIDEO_ID"
 ```
+
+**CSV File Output:**
+The generated `segments-hms-full.txt` file contains:
+```csv
+start time,end time,song name,original song name,artist name,album name,year,composer,comments
+# Title: 'Video Title Here'
+# Artist/Uploader: 'Channel Name'
+# URL: https://youtube.com/watch?v=VIDEO_ID
+000000,000300,Chapter 1 Title,,,,2023,,
+000300,000700,Chapter 2 Title,,,,2023,,
+```
+This CSV can be manually edited to add missing metadata (original song names, artists, composers, etc.) before importing into other tools.
 
 ### Playlist
 **URL format:** `https://youtube.com/playlist?list=PLAYLIST_ID`
@@ -179,9 +213,10 @@ python main-yt-dlp.py "https://youtube.com/watch?v=VIDEO_ID"
 python main-yt-dlp.py --with-audio "https://youtube.com/playlist?list=PLxxxxxxxx"
 ```
 
-### Audio only, delete videos after extraction
+### Audio only with chapter splitting and CSV generation
 ```bash
 python main-yt-dlp.py --only-audio --split-chapters "https://youtube.com/watch?v=VIDEO_ID"
+# Creates: individual chapter audio files + segments-hms-full.txt
 ```
 
 ### Download with subtitles and JSON metadata
