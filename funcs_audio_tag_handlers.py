@@ -119,8 +119,8 @@ class MP3TagHandler(AudioTagHandler):
         audio[self.TAG_TRACKNUMBER] = ['']
 
     def save_audio_file(self, audio: EasyID3, file_path: Path) -> None:
-        """Save the MP3 file with updated tags."""
-        audio.save(file_path)
+        """Save the MP3 file with updated tags using ID3v2.3 for better mobile compatibility."""
+        audio.save(file_path, v2_version=3)
 
     def get_file_glob(self) -> str:
         """Get the glob pattern for MP3 files."""
@@ -151,13 +151,13 @@ class MP3TagHandler(AudioTagHandler):
         if original_filename.lower().endswith('.mp3'):
             original_filename = original_filename[:-4]
 
-        # Save EasyID3 first to ensure tags are written
-        audio.save(file_path)
+        # Save EasyID3 first to ensure tags are written (using ID3v2.3 for compatibility)
+        audio.save(file_path, v2_version=3)
         # Then use ID3 (not EasyID3) to access TENC frame
         id3 = ID3(file_path)
-        # TENC frame: encoding, text (the original filename from yt-dlp without extension)
-        id3.add(TENC(encoding=3, text=original_filename))
-        id3.save(file_path)
+        # TENC frame: encoding=1 is UTF-16 with BOM for better mobile device compatibility
+        id3.add(TENC(encoding=1, text=original_filename))
+        id3.save(file_path, v2_version=3)
         # Reload the audio object to reflect the changes
         audio.load(file_path)
 
