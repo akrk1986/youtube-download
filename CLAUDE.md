@@ -11,7 +11,7 @@ This is a Python-based YouTube downloader and media processing tool that uses `y
 - Split videos by chapters automatically
 - Process audio tags to identify and set Greek artists
 - Handle subtitle downloads in multiple languages (Greek, English, Hebrew)
-- Sanitize filenames for Greek, English, and Hebrew text
+- Sanitize filenames for multiple languages (English, French, Turkish, Greek, Hebrew)
 
 ## Core Architecture
 

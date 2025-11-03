@@ -8,13 +8,46 @@ from typing import Any
 import logging
 
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3, ID3NoHeaderError, TENC
+from mutagen.id3 import ID3, ID3NoHeaderError, TENC, TIT2, TPE1, TPE2, TALB, TDRC, TRCK, COMM
 from mutagen.mp4 import MP4
 from mutagen.flac import FLAC
 
 from project_defs import GLOB_MP3_FILES, GLOB_M4A_FILES, GLOB_FLAC_FILES
 
 logger = logging.getLogger(__name__)
+
+
+def _force_utf16_encoding(file_path: Path) -> None:
+    """
+    Force UTF-16 encoding (encoding=1) for all text frames in an MP3 file.
+    This ensures maximum compatibility with mobile devices and players that have
+    poor UTF-8 support, especially for non-Latin scripts (Turkish, Greek, Hebrew, etc.).
+
+    Args:
+        file_path: Path to the MP3 file to fix
+    """
+    try:
+        id3 = ID3(file_path)
+
+        # List of text frame types that need UTF-16 encoding
+        # These are the frames that EasyID3 creates
+        text_frame_ids = ['TIT2', 'TPE1', 'TPE2', 'TALB', 'TDRC', 'TRCK', 'TENC', 'COMM']
+
+        modified = False
+        for frame_id in text_frame_ids:
+            if frame_id in id3:
+                frame = id3[frame_id]
+                # Check if frame has text attribute and is not already UTF-16
+                if hasattr(frame, 'encoding') and frame.encoding != 1:
+                    frame.encoding = 1  # Force UTF-16 with BOM
+                    modified = True
+                    logger.debug(f'Forced UTF-16 encoding for {frame_id} frame')
+
+        if modified:
+            id3.save(file_path, v2_version=3)
+            logger.debug(f'Saved MP3 with UTF-16 encoding: {file_path.name}')
+    except Exception as e:
+        logger.warning(f'Failed to force UTF-16 encoding for {file_path.name}: {e}')
 
 
 class AudioTagHandler(ABC):
@@ -119,8 +152,10 @@ class MP3TagHandler(AudioTagHandler):
         audio[self.TAG_TRACKNUMBER] = ['']
 
     def save_audio_file(self, audio: EasyID3, file_path: Path) -> None:
-        """Save the MP3 file with updated tags using ID3v2.3 for better mobile compatibility."""
+        """Save the MP3 file with updated tags using ID3v2.3 and UTF-16 encoding for maximum mobile compatibility."""
         audio.save(file_path, v2_version=3)
+        # Force UTF-16 encoding for all text frames to ensure Turkish/Greek/Hebrew display correctly on all devices
+        _force_utf16_encoding(file_path=file_path)
 
     def get_file_glob(self) -> str:
         """Get the glob pattern for MP3 files."""
@@ -158,6 +193,8 @@ class MP3TagHandler(AudioTagHandler):
         # TENC frame: encoding=1 is UTF-16 with BOM for better mobile device compatibility
         id3.add(TENC(encoding=1, text=original_filename))
         id3.save(file_path, v2_version=3)
+        # Force UTF-16 encoding for all text frames to ensure Turkish/Greek/Hebrew display correctly on all devices
+        _force_utf16_encoding(file_path=file_path)
         # Reload the audio object to reflect the changes
         audio.load(file_path)
 

@@ -113,16 +113,16 @@ def validate_file_path_security(file_path: Path, expected_parent: Path | None = 
     except (OSError, RuntimeError) as e:
         raise ValueError(f'Invalid or suspicious file path {file_path}: {e}')
 
-# Greek strings handling, for file names and MP3 titles
+# Multilingual strings handling, for file names and MP3 titles
 
-# Regex: remove leading non-alphanumeric characters (English+Greek+Hebrew), including spaces
+# Regex: remove leading non-alphanumeric characters (English+Greek+Hebrew+French+Turkish), including spaces
 pattern = re.compile(LEADING_NONALNUM_PATTERN)
 
 def sanitize_string(dirty_string: str) -> str:
     """
     Sanitize filename by:
     1. Replacing emojis with spaces
-    2. Replacing foreign characters (not English/French/Greek/Hebrew) with spaces
+    2. Replacing foreign characters (not English/French/Greek/Hebrew/Turkish) with spaces
     3. Removing leading unwanted characters and spaces
     4. Compressing multiple spaces into one
     5. Removing trailing spaces before file extension
@@ -144,7 +144,8 @@ def sanitize_string(dirty_string: str) -> str:
 
     # 2. Replace foreign characters with spaces
     # Keep: English (a-z, A-Z), French (àáâãäåæçèéêëìíîïðñòóôõöøùúûüýÿ),
-    #       Greek (α-ω, Α-Ω), Hebrew (א-ת), numbers (0-9), and common punctuation
+    #       Turkish (çğıöşüÇĞİÖŞÜ), Greek (α-ω, Α-Ω), Hebrew (א-ת),
+    #       numbers (0-9), and common punctuation
     allowed_chars = []
     for char in name_part:
         # English letters and numbers
@@ -156,10 +157,12 @@ def sanitize_string(dirty_string: str) -> str:
         # Hebrew letters
         elif '\u05d0' <= char <= '\u05ea':
             allowed_chars.append(char)
-        # French accented characters (Latin-1 Supplement)
+        # French and Turkish characters (Latin-1 Supplement)
+        # Includes: French accented letters and Turkish Ö, Ü, Ç (both cases)
         elif '\u00c0' <= char <= '\u00ff':
             allowed_chars.append(char)
-        # Additional French characters in Latin Extended-A
+        # Additional French and Turkish characters in Latin Extended-A
+        # Includes: French ligatures, Turkish İ, ı, Ğ, ğ, Ş, ş
         elif char in 'ĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž':
             allowed_chars.append(char)
         else:

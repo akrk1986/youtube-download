@@ -9,7 +9,7 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 - Split videos by chapters automatically
 - Process audio tags to identify and set Greek artists
 - Handle subtitle downloads in multiple languages (Greek, English, Hebrew)
-- Sanitize filenames for Greek, English, and Hebrew text
+- Sanitize filenames for multiple languages (English, French, Turkish, Greek, Hebrew)
 - Automatic artist detection from a curated database of Greek musicians
 - Store source YouTube URL in both video and audio file metadata
 
@@ -345,7 +345,7 @@ The tool includes specialized functionality for Greek music:
 - **Artist Detection**: Automatically detects Greek artist names in video titles
 - **Artist Database**: Curated list of ~100 Greek musicians maintained in Trello and exported to `Data/artists.json`
 - **Name Variants**: Handles different name orders and Greek text variations
-- **Filename Sanitization**: Properly handles Greek, English, and Hebrew characters in filenames
+- **Filename Sanitization**: Properly handles English, French, Turkish, Greek, and Hebrew characters in filenames
 - **Metadata Tagging**: Sets artist and album artist tags automatically for detected Greek artists
 
 ## Project Structure

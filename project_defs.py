@@ -29,7 +29,9 @@ FFMPEG_TIMEOUT_SECONDS = 600  # 10 minutes for audio/video conversion
 
 # Regex patterns
 CHAPTER_FILENAME_PATTERN = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]\.(?:mp3|m4a|flac|MP3|M4A|FLAC)$'
-LEADING_NONALNUM_PATTERN = r'^[^a-zA-Z0-9\u0370-\u03FF\u05d0-\u05ea]+'
+# Remove leading non-alphanumeric characters (supports English, French, Turkish, Greek, Hebrew)
+# Includes: Latin-1 Supplement (\u00c0-\u00ff) and Latin Extended-A (\u0100-\u017f) for French/Turkish
+LEADING_NONALNUM_PATTERN = r'^[^a-zA-Z0-9\u00c0-\u00ff\u0100-\u017f\u0370-\u03FF\u05d0-\u05ea]+'
 MULTIPLE_SPACES_PATTERN = r'\s+'
 CHAPTER_TIMESTAMP_PATTERNS = (
     r'(\d{1,2}:\d{2}(?::\d{2})?)\s*[-–—]\s*(.+?)(?=\n|$)',  # 12:34 - Chapter Name
