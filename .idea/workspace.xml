@@ -9,6 +9,7 @@
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Data/Nykhta Stasou Programs.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Data/Nykhta Stasou Programs.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Tests/last_url.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Tests/last_url.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -106,7 +107,7 @@
       <recent name="C:\Users\user\PycharmProjects\youtube-download\Beta" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.dlp-DL-Singles-audio-only">
+  <component name="RunManager" selected="Python.dlp-prompt-both-no-chapters">
     <configuration name="dlp-DL-Singles-audio-only" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -563,7 +564,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-1f77c24022e5-d902c0275401-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-252.26830.99" />
+        <option value="bundled-python-sdk-f69e5c277ee4-cbfc7b97e6b2-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-252.27397.106" />
       </set>
     </attachedChunks>
   </component>
