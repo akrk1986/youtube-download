@@ -66,6 +66,7 @@
     "Python.find-artists-main.executor": "Debug",
     "Python.fix-mp3-encoding-agg.executor": "Run",
     "Python.fix-mp3-encoding.executor": "Run",
+    "Python.fix-mp3-trans.executor": "Run",
     "Python.get-artists-from-trello.executor": "Run",
     "Python.greek_search_comprehensive.executor": "Run",
     "Python.main-check-if-playlist.executor": "Run",
@@ -111,7 +112,7 @@
       <recent name="C:\Users\user\PycharmProjects\youtube-download\Beta" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.compare-mp3-files">
+  <component name="RunManager" selected="Python.fix-mp3-trans">
     <configuration name="check-mp3-encoding" type="PythonConfigurationType" factoryName="Python">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -489,6 +490,28 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="fix-mp3-trans" type="PythonConfigurationType" factoryName="Python">
+      <module name="youtube-download" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Tests/clone-with-transliteration.py" />
+      <option name="PARAMETERS" value="../Tests-UTF/before.mp3 ../Tests-UTF/after-agg.mp3 ../Tests-UTF/transliterated.mp3" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="main-get-artists-from-trello" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -687,6 +710,7 @@
       <item itemvalue="Python.main-staging-m4a-to-mp3" />
       <item itemvalue="Python.fix-mp3-encoding" />
       <item itemvalue="Python.fix-mp3-encoding-agg" />
+      <item itemvalue="Python.fix-mp3-trans" />
       <item itemvalue="Python.check-mp3-encoding" />
       <item itemvalue="Python.dump-mp3-encoding" />
       <item itemvalue="Python.compare-mp3-files" />
