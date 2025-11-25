@@ -3,16 +3,16 @@ import argparse
 import glob
 import logging
 import os
-import platform
 import subprocess
 import sys
 from pathlib import Path
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2025-10-21 19:07:29'
+VERSION = '2025-111-25 14:30:11'
 
 from logger_config import setup_logging
-from funcs_for_main_yt_dlp import validate_and_get_url, organize_and_sanitize_files, process_audio_tags
+from funcs_for_main_yt_dlp import (validate_and_get_url, organize_and_sanitize_files,
+                                   process_audio_tags, get_ffmpeg_path, get_ytdlp_path)
 from funcs_utils import (get_video_info, is_playlist, get_chapter_count, sanitize_url_for_subprocess,
                          get_timeout_for_url, display_chapters_and_confirm, get_cookie_args,
                          create_chapters_csv)
@@ -290,17 +290,9 @@ def main() -> None:
 
     need_audio = args.with_audio or args.only_audio
 
-    # Detect platform and set appropriate executable paths
-    system_platform = platform.system().lower()
+    # Detect platform and set appropriate executable path
 
-    if system_platform == 'windows':
-        # Windows paths
-        home_dir = Path.home()
-        yt_dlp_dir = home_dir / 'Apps' / 'yt-dlp'
-        yt_dlp_exe = yt_dlp_dir / 'yt-dlp.exe'
-    else:
-        # Linux/WSL/Mac - use system-wide installations
-        yt_dlp_exe = 'yt-dlp'  # Should be in PATH
+    yt_dlp_exe = get_ytdlp_path()
 
     # Handle artists.json path relative to script location, not current working directory
     script_dir = Path(__file__).parent
@@ -311,21 +303,6 @@ def main() -> None:
         logger.error(f"Artists database not found at '{artists_json}'")
         logger.error('Please ensure file exists in the project directory')
         sys.exit(1)
-
-    # Verify executables exist
-    if system_platform == 'windows':
-        if not Path(yt_dlp_exe).exists():
-            logger.error(f"YT-DLP executable not found at path '{yt_dlp_exe}'")
-            logger.error(f"Please ensure yt-dlp is installed in '{yt_dlp_dir}'")
-            sys.exit(1)
-    else:
-        # For Linux/WSL/Mac, check if commands are available in PATH
-        try:
-            subprocess.run([yt_dlp_exe, '--version'], capture_output=True, check=True)
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            logger.error(f'YT-DLP not found in PATH: {e}')
-            logger.error('Install with: pip install yt-dlp')
-            sys.exit(1)
 
     # Handle --rerun flag: load URL from previous run if requested
     last_url_file = Path('Tests') / 'last_url.txt'

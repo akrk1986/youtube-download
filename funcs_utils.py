@@ -21,7 +21,6 @@ from project_defs import (
 
 logger = logging.getLogger(__name__)
 
-
 # Cookie handling for yt-dlp
 
 def get_cookie_args() -> list[str]:
@@ -55,7 +54,6 @@ def get_cookie_args() -> list[str]:
     # Include --no-cache-dir to force fresh authentication and avoid 403 errors
     # Add --sleep-requests to avoid rate limiting by YouTube
     return ['--cookies-from-browser', browser, '--no-cache-dir', '--sleep-requests', '1']
-
 
 # Security helper functions for subprocess calls
 
@@ -650,6 +648,13 @@ def display_chapters_and_confirm(video_info: dict) -> bool:
     # Auto-continue without prompting
     return True
 
+def _seconds_to_hhmmss(seconds: float) -> str:
+    """Convert seconds to HHMMSS format."""
+    total_seconds = int(seconds)
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    secs = total_seconds % 60
+    return f'{hours:02d}{minutes:02d}{secs:02d}'
 
 def create_chapters_csv(video_info: dict, output_dir: str, video_title: str) -> None:
     """
@@ -733,11 +738,3 @@ def create_chapters_csv(video_info: dict, output_dir: str, video_title: str) -> 
     logger.info(f'Chapters CSV created successfully: {csv_path}')
     print(f'\nChapters CSV file created: {csv_path}')
 
-
-def _seconds_to_hhmmss(seconds: float) -> str:
-    """Convert seconds to HHMMSS format."""
-    total_seconds = int(seconds)
-    hours = total_seconds // 3600
-    minutes = (total_seconds % 3600) // 60
-    secs = total_seconds % 60
-    return f'{hours:02d}{minutes:02d}{secs:02d}'

@@ -1,7 +1,9 @@
 """Helper functions for main-yt-dlp.py to reduce main() complexity."""
 import logging
 import sys
+import platform
 from pathlib import Path
+import subprocess
 
 from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
 from funcs_process_m4a_tags import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
@@ -156,3 +158,71 @@ def process_audio_tags(audio_folder: Path, audio_formats: list[str], artists_jso
             if has_chapters:
                 _ = set_tags_in_chapter_flac_files(flac_folder=subfolder, uploader=uploader_name,
                                                    video_title=video_title, original_names=original_names.get('flac', {}))
+
+def _get_external_paths() -> tuple[str, str, str]:
+    """
+    Determine yt-dlp, ffmpeg and ffprobe paths based on the operating system.
+
+    Returns:
+        tuple: Tuple of (yt_dlp_path, ffmpeg_path, ffprobe_path).
+    """
+    system = platform.system()
+
+    if system == 'Windows':
+        # Windows: use specific directory
+        yt_dlp_dir = Path('C:/Users/user/Apps/yt-dlp')
+        return str(yt_dlp_dir / 'ffmpeg.exe'), str(yt_dlp_dir / 'ffprobe.exe'), str(yt_dlp_dir / 'yt-dlp.exe')
+    # Linux/WSL/macOS: assume ffmpeg/ffprobe are in PATH
+    return 'ffmpeg', 'ffprobe', 'yt-dlp'
+
+def get_ffmpeg_path() -> str:
+    """
+    Determine ffmpeg path based on the operating system.
+
+    Returns:
+        str: Path to ffmpeg executable.
+    """
+    ffmpeg_path, _, _ = _get_external_paths()
+
+    # Windows
+    if platform.system() == 'Windows':
+        if Path(ffmpeg_path).exists():
+            return ffmpeg_path
+        logger.error(f"ffmpeg executable not found at path '{ffmpeg_path}'")
+        logger.error(f"Please ensure ffmpeg is installed in '{ffmpeg_path}'")
+        sys.exit(1)
+
+    # Linux/WSL
+    try:
+        subprocess.run([ffmpeg_path, '--version'], capture_output=True, check=True)
+        return ffmpeg_path
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        logger.error(f'ffmpeg not found in PATH: {e}')
+        logger.error("Install with: 'sudo apt install ffmpeg'")
+        sys.exit(1)
+
+def get_ytdlp_path() -> str:
+    """
+    Determine yt-dlp path based on the operating system.
+
+    Returns:
+        str: Path to yt-dlp executable.
+    """
+    _, _, yt_dlp_path = _get_external_paths()
+
+    # Windows
+    if platform.system() == 'Windows':
+        if Path(yt_dlp_path).exists():
+            return yt_dlp_path
+        logger.error(f"yt-dlp executable not found at path '{yt_dlp_path}'")
+        logger.error(f"Please ensure yt-dlp is installed in '{yt_dlp_path}'")
+        sys.exit(1)
+
+    # Linux/WSL
+    try:
+        subprocess.run([yt_dlp_path, '--version'], capture_output=True, check=True)
+        return yt_dlp_path
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        logger.error(f'yt-dlp not found in PATH: {e}')
+        logger.error('Install with: pip install yt-dlp')
+        sys.exit(1)
