@@ -194,7 +194,7 @@ def get_ffmpeg_path() -> str:
 
     # Linux/WSL
     try:
-        subprocess.run([ffmpeg_path, '--version'], capture_output=True, check=True)
+        subprocess.run([ffmpeg_path, '-version'], capture_output=True, check=True)
         return ffmpeg_path
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         logger.error(f'ffmpeg not found in PATH: {e}')
