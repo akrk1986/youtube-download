@@ -1,180 +1,17 @@
 #!/usr/bin/env python3
 """A main script to boost volume of MP4/MP3 files using ffmpeg loudnorm filter."""
 import argparse
-import re
-import subprocess
 import sys
 from pathlib import Path
 
-# Add parent directory to path to import shared utilities
-# sys.path.insert(0, str(Path(__file__).parent.parent))
-from funcs_for_main_yt_dlp import get_ffmpeg_path
+from funcs_audio_boost import (
+    MP3Booster,
+    MP4Booster,
+    TARGET_PEAK_DB,
+    calculate_boost_value,
+    detect_audio_levels,
+)
 
-
-FFMPEG_EXE = get_ffmpeg_path()
-TARGET_PEAK_DB = -0.5  # Target peak level (with safety margin to avoid clipping)
-
-
-def detect_audio_levels(input_file: Path) -> tuple[float, float]:
-    """
-    Detect audio levels using ffmpeg volumedetect filter.
-
-    Args:
-        input_file: Path to the input audio/video file.
-
-    Returns:
-        tuple: (mean_volume_db, max_volume_db)
-
-    Raises:
-        RuntimeError: If unable to detect audio levels.
-    """
-    cmd = [
-        FFMPEG_EXE,
-        '-i', str(input_file),
-        '-af', 'volumedetect',
-        '-f', 'null',
-        '/dev/null' if sys.platform != 'win32' else 'NUL'
-    ]
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        output = result.stderr
-
-        # Parse mean_volume and max_volume from output
-        mean_match = re.search(r'mean_volume:\s*([-\d.]+)\s*dB', output)
-        max_match = re.search(r'max_volume:\s*([-\d.]+)\s*dB', output)
-
-        if not mean_match or not max_match:
-            raise RuntimeError('Failed to parse volume information')
-
-        mean_volume = float(mean_match.group(1))
-        max_volume = float(max_match.group(1))
-
-        return mean_volume, max_volume
-
-    except Exception as e:
-        raise RuntimeError(f'Error detecting audio levels: {e}')
-
-
-def calculate_boost_value(max_volume_db: float, target_db: float = TARGET_PEAK_DB) -> float:
-    """
-    Calculate the boost value needed to reach target peak level.
-
-    Args:
-        max_volume_db: Current maximum volume in dB.
-        target_db: Target peak level in dB (default: TARGET_PEAK_DB).
-
-    Returns:
-        float: Linear gain multiplier needed.
-    """
-    # Calculate the dB difference
-    gain_db = target_db - max_volume_db
-
-    # Convert dB to linear gain: gain = 10^(dB/20)
-    linear_gain = 10 ** (gain_db / 20)
-
-    return linear_gain
-
-
-def boost_mp3_volume(input_file: Path, use_loudnorm: bool = False, boost_value: float = 3.0) -> Path:
-    """
-    Boost MP3 volume using ffmpeg loudnorm filter or volume multiplier.
-
-    Args:
-        input_file: Path to the input MP3 file.
-        use_loudnorm: If True, use loudnorm filter. If False, use volume multiplier.
-        boost_value: Volume multiplier value (only used when use_loudnorm is False).
-
-    Returns:
-        Path: Path to the output file with boosted volume.
-
-    Raises:
-        subprocess.CalledProcessError: If ffmpeg command fails.
-        FileNotFoundError: If input file does not exist.
-    """
-    if not input_file.exists():
-        raise FileNotFoundError(f'Input file {input_file!r} does not exist')
-
-    # Create output filename with '-boost' suffix
-    output_file = input_file.parent / f'{input_file.stem}-boost{input_file.suffix}'
-
-    # Build audio filter based on mode
-    if use_loudnorm:
-        audio_filter = 'loudnorm=I=-16:TP=-1.5:LRA=11'
-    else:
-        audio_filter = f'volume={boost_value}'
-
-    cmd = [
-        FFMPEG_EXE,
-        '-y',
-        '-i', str(input_file),
-        '-af', audio_filter,
-        str(output_file)
-    ]
-
-    print(f'Running ffmpeg command: {cmd}')
-    print(f'Input: {input_file}')
-    print(f'Output: {output_file}')
-    print(f'Mode: {"loudnorm" if use_loudnorm else f"volume boost ({boost_value}x)"}')
-
-    try:
-        subprocess.run(cmd, check=True)
-        print(f'Successfully created {output_file}')
-        return output_file
-    except subprocess.CalledProcessError as e:
-        print(f'Error running ffmpeg: {e}')
-        raise
-
-
-def boost_mp4_volume(input_file: Path, use_loudnorm: bool = False, boost_value: float = 3.0) -> Path:
-    """
-    Boost MP4 volume using ffmpeg loudnorm filter or volume multiplier.
-
-    Args:
-        input_file: Path to the input MP4 file.
-        use_loudnorm: If True, use loudnorm filter. If False, use volume multiplier.
-        boost_value: Volume multiplier value (only used when use_loudnorm is False).
-
-    Returns:
-        Path: Path to the output file with boosted volume.
-
-    Raises:
-        subprocess.CalledProcessError: If ffmpeg command fails.
-        FileNotFoundError: If input file does not exist.
-    """
-    if not input_file.exists():
-        raise FileNotFoundError(f'Input file {input_file!r} does not exist')
-
-    # Create output filename with '-boost' suffix
-    output_file = input_file.parent / f'{input_file.stem}-boost{input_file.suffix}'
-
-    # Build audio filter based on mode
-    if use_loudnorm:
-        audio_filter = 'loudnorm=I=-16:TP=-1.5:LRA=11'
-    else:
-        audio_filter = f'volume={boost_value}'
-
-    cmd = [
-        FFMPEG_EXE,
-        '-y',
-        '-i', str(input_file),
-        '-af', audio_filter,
-        '-c:v', 'copy',
-        str(output_file)
-    ]
-
-    print(f'Running ffmpeg command: {cmd}')
-    print(f'Input: {input_file}')
-    print(f'Output: {output_file}')
-    print(f'Mode: {"loudnorm" if use_loudnorm else f"volume boost ({boost_value}x)"}')
-
-    try:
-        subprocess.run(cmd, check=True)
-        print(f'Successfully created {output_file}')
-        return output_file
-    except subprocess.CalledProcessError as e:
-        print(f'Error running ffmpeg: {e}')
-        raise
 
 def main() -> None:
     """Main function to boost volume of all MP3/MP4 files in a directory."""
@@ -210,19 +47,19 @@ def main() -> None:
     # Exclude files already ending with '-boost'
     
     supported_extensions = {'.mp3', '.mp4', '.m4a'}
-    audio_files = [
+    media_files = [
         f for f in args.input_dir.iterdir()
         if f.is_file()
         and f.suffix.lower() in supported_extensions
         and not f.stem.endswith('-boost')
     ]
 
-    if not audio_files:
-        print(f'Error: No MP3/MP4/M4A files found in directory: {args.input_dir}')
+    if not media_files:
+        print(f'Error: No media (MP3/MP4/M4A) files found in directory: {args.input_dir}')
         sys.exit(1)
 
     # Sort files by name for consistent processing order
-    audio_files.sort()
+    media_files.sort()
 
     # Process each file
     mp3_count = 0
@@ -230,16 +67,16 @@ def main() -> None:
     skipped_files = []
     failed_files = []
 
-    print(f'Found {len(audio_files)} candidate file(s) to process')
+    print(f'Found {len(media_files)} candidate file(s) to process')
     if use_loudnorm:
         print(f'Mode: loudnorm')
     else:
         print(f'Mode: auto-calculated volume boost (target: {TARGET_PEAK_DB} dB)')
     print('-' * 60)
 
-    for audio_file in audio_files:
-        file_extension = audio_file.suffix.lower()
-        print(f'\nProcessing: {audio_file.name}')
+    for media_file in media_files:
+        file_extension = media_file.suffix.lower()
+        print(f'\nProcessing: {media_file.name}')
 
         try:
             # If using manual boost value or loudnorm, skip level detection
@@ -250,13 +87,13 @@ def main() -> None:
             else:
                 # Auto-detect levels and calculate boost
                 print(f'  Detecting audio levels...')
-                mean_vol, max_vol = detect_audio_levels(input_file=audio_file)
+                mean_vol, max_vol = detect_audio_levels(input_file=media_file)
                 print(f'  Current levels: mean={mean_vol:.1f} dB, max={max_vol:.1f} dB')
 
                 # Check if boost is needed
                 if max_vol >= TARGET_PEAK_DB:
                     print(f'  Already at target level ({max_vol:.1f} dB >= {TARGET_PEAK_DB} dB) - SKIPPING')
-                    skipped_files.append(audio_file.name)
+                    skipped_files.append(media_file.name)
                     continue
 
                 # Calculate needed boost
@@ -264,24 +101,26 @@ def main() -> None:
                 gain_db = TARGET_PEAK_DB - max_vol
                 print(f'  Calculated boost: {actual_boost:.2f}x (+{gain_db:.1f} dB)')
 
-            # Apply boost
+            # Apply boost using appropriate booster class
             if file_extension == '.mp3':
-                boost_mp3_volume(
-                    input_file=audio_file,
+                booster = MP3Booster()
+                booster.boost_volume(
+                    input_file=media_file,
                     use_loudnorm=use_loudnorm,
                     boost_value=actual_boost
                 )
                 mp3_count += 1
             elif file_extension in ['.mp4', '.m4a']:
-                boost_mp4_volume(
-                    input_file=audio_file,
+                booster = MP4Booster()
+                booster.boost_volume(
+                    input_file=media_file,
                     use_loudnorm=use_loudnorm,
                     boost_value=actual_boost
                 )
                 mp4_count += 1
         except Exception as e:
-            print(f'Error processing {audio_file.name}: {e}')
-            failed_files.append(audio_file.name)
+            print(f'Error processing {media_file.name}: {e}')
+            failed_files.append(media_file.name)
 
     # Print summary
     print('\n' + '=' * 60)
