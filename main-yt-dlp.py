@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2025-111-25 14:30:11'
+VERSION = '2025-11-27 17:01'
 
 from logger_config import setup_logging
 from funcs_for_main_yt_dlp import (validate_and_get_url, organize_and_sanitize_files,

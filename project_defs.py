@@ -7,9 +7,13 @@ VALID_AUDIO_FORMATS = {'mp3', 'm4a', 'flac'}
 
 # YouTube URL validation
 MAX_URL_RETRIES = 3
+
+# Supported domains
 VALID_YOUTUBE_DOMAINS = ('youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be')
 VALID_FACEBOOK_DOMAINS = ('facebook.com', 'www.facebook.com', 'fbcdn.net', 'fb.com', 'fb.me')
 VALID_OTHER_DOMAINS = ('www.ertflix.gr', 'ertflix.gr')
+
+VALID_DOMAINS_ALL = VALID_YOUTUBE_DOMAINS + VALID_FACEBOOK_DOMAINS + VALID_OTHER_DOMAINS
 
 # File processing constants
 MAX_ALBUM_NAME_LENGTH = 64

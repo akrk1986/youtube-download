@@ -4,3 +4,4 @@ arrow
 yt-dlp
 mypy
 pytest
+odfpy

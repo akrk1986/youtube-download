@@ -1,0 +1,25 @@
+Sample file with mixed URLs - valid and invalid domains
+
+Valid YouTube URLs (should be extracted):
+https://www.youtube.com/watch?v=dQw4w9WgXcQ
+https://youtu.be/jNQXAC9IVRw
+https://m.youtube.com/playlist?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf
+https://youtube.com/@GreekMusicChannel/videos
+
+Valid ERTFlix URLs (should be extracted):
+https://www.ertflix.gr/video/12345
+https://ertflix.gr/series/greek-music
+
+Valid Facebook URLs (should be extracted):
+https://www.facebook.com/video/12345
+https://fb.me/shortlink
+
+Invalid URLs (should be filtered out):
+https://github.com/yt-dlp/yt-dlp
+https://docs.python.org/3/library/re.html
+https://www.google.com
+https://example.com/test
+http://www.w3.org/TR/NOTE-datetime
+https://odfpy.readthedocs.io/en/latest/
+
+End of test file.

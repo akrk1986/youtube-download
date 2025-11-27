@@ -18,6 +18,7 @@ from project_defs import (
     GLOB_MP3_FILES_UPPER, GLOB_M4A_FILES_UPPER, GLOB_FLAC_FILES_UPPER, GLOB_MP4_FILES,
     SUBPROCESS_TIMEOUT_YOUTUBE, SUBPROCESS_TIMEOUT_FACEBOOK, SUBPROCESS_TIMEOUT_OTHER_SITES
 )
+from funcs_url_extraction import is_valid_domain_url
 
 logger = logging.getLogger(__name__)
 
@@ -465,9 +466,8 @@ def validate_video_url(url: str) -> tuple[bool, str]:
         if parsed.scheme not in ('http', 'https'):
             return False, f"Invalid URL scheme '{parsed.scheme}'. Must be http or https"
 
-        # Check domain - accept both YouTube and other valid domains
-        all_valid_domains = VALID_YOUTUBE_DOMAINS + VALID_FACEBOOK_DOMAINS + VALID_OTHER_DOMAINS
-        if not any(domain in parsed.netloc for domain in all_valid_domains):
+        # Check domain using the centralized validation function
+        if not is_valid_domain_url(url=url):
             return (False,
                     f"Invalid domain '{parsed.netloc}'. Must be a YouTube, Facebook or other supported video site URL")
         return True, ''
