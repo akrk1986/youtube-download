@@ -274,6 +274,45 @@ python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 - This prevents 403 errors and makes downloads more reliable, especially with `--split-chapters`
 - Downloads will be slower but much more stable for authenticated content
 
+## URL Extraction Utility
+
+The project includes a utility for extracting URLs from text and ODF documents, filtering only valid video site URLs (YouTube, Facebook, ERTFlix).
+
+### Usage
+
+```bash
+# Extract URLs from a text file
+python Tests/main-test-url-extraction.py path/to/file.txt
+
+# Extract URLs from an ODT file
+python Tests/main-test-url-extraction.py path/to/document.odt
+```
+
+### Features
+
+- **Supported formats**: Plain text (.txt) and OpenDocument Text (.odt) files
+- **Smart filtering**: Only extracts URLs from valid domains (YouTube, Facebook, ERTFlix)
+- **Case-insensitive**: Handles domain variations (YouTube, YOUTUBE, youtube)
+- **Subdomain support**: Works with www.youtube.com, m.youtube.com, youtu.be, etc.
+- **Security**: Rejects similar domain names and subdomain attacks
+
+### Example Output
+
+```bash
+$ python Tests/main-test-url-extraction.py my-urls.txt
+Found 5 URL(s) in my-urls.txt:
+
+1. https://www.youtube.com/watch?v=dQw4w9WgXcQ
+2. https://youtu.be/abc123
+3. https://www.facebook.com/video/12345
+4. https://ertflix.gr/series/greek-music
+5. https://m.youtube.com/playlist?list=PLxxxxxxxx
+```
+
+**Note**: URLs from other domains (GitHub, Google, etc.) are automatically filtered out.
+
+For more details, see [URL Validation Summary](Docs/URL-VALIDATION-SUMMARY.md).
+
 ## Output Structure
 
 - `yt-videos/` - Downloaded MP4 video files
@@ -297,7 +336,7 @@ python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 - `ffmpeg` executable
   - **Windows**: Expected at `~/Apps/yt-dlp/ffmpeg.exe`
   - **Linux**: Must be in `$PATH`
-- Python packages: `mutagen`, `yt-dlp`, `arrow`, `emoji` (see `requirements.txt`)
+- Python packages: `mutagen`, `yt-dlp`, `arrow`, `emoji`, `odfpy` (see `requirements.txt`)
 
 ## Installation
 
@@ -336,7 +375,9 @@ which ffmpeg
 
 - **[Configuring mp3tag to Display yt-dlp Generated Audio Files](Docs/Configuring%20mp3tag%20to%20display%20yt-dlp%20generated%20audio%20files.md)** - Guide for viewing and editing metadata in mp3tag for MP3, M4A, and FLAC files
 - **[Artists File from Trello Update Guide](Docs/Artists-file-from-trello-update-guide.md)** - How to update the Greek artists database from Trello
+- **[URL Validation Summary](Docs/URL-VALIDATION-SUMMARY.md)** - URL extraction utility and domain validation implementation details
 - **[Code Quality Recommendations](Docs/code-quality-recommendations.md)** - Development guidelines and best practices
+- **[CHANGELOG](Docs/CHANGELOG.md)** - Feature enhancements and major changes history
 
 ## Greek Music Features
 

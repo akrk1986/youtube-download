@@ -4,6 +4,66 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2025-11-27
+
+**Feature Addition:** URL extraction utility and enhanced domain validation
+
+**Summary:** Added a new utility for extracting URLs from text and ODF documents, with smart filtering for valid video site domains. Improved URL validation in main-yt-dlp.py with centralized domain checking.
+
+**Changes made:**
+
+1. **`funcs_url_extraction.py`** (new file):
+   - Created `extract_urls_from_file()` - Extract URLs from .txt or .odt files
+   - Created `is_valid_domain_url()` - Public function to validate URLs against VALID_DOMAINS_ALL
+   - Created `print_urls_from_file()` - Extract and print URLs from a file
+   - Smart URL filtering: only extracts URLs from valid domains (YouTube, Facebook, ERTFlix)
+   - Uses regex pattern to find all HTTP/HTTPS URLs in text
+   - Handles both plain text (.txt) and OpenDocument Text (.odt) files
+   - Case-insensitive domain matching
+   - Subdomain support (www.youtube.com, m.youtube.com, youtu.be)
+   - Protection against subdomain attacks (e.g., youtube.com.fake.com)
+
+2. **`Tests/main-test-url-extraction.py`** (new file):
+   - Command-line utility for URL extraction
+   - Accepts file path as argument (.txt or .odt)
+   - Displays extracted URLs with count
+
+3. **`funcs_utils.py`**:
+   - Added import: `from funcs_url_extraction import is_valid_domain_url`
+   - Updated `validate_video_url()` to use centralized domain validation
+   - Replaced simple string containment check with robust domain matching
+
+4. **`requirements.txt`**:
+   - Added `odfpy` package for ODT file support
+
+5. **Test files created**:
+   - `Tests/sample-urls.txt` - Sample text file with URLs
+   - `Tests/sample-urls.odt` - Sample ODT file with URLs
+   - `Tests/sample-mixed-urls.txt` - Mixed valid/invalid URLs for testing
+   - `Tests/test-domain-edge-cases.txt` - Edge case testing
+   - `Tests/create-sample-odt.py` - Utility to create sample ODT files
+   - `Tests/test-url-validation.py` - Comprehensive test suite (20 test cases)
+   - `Tests/test-main-url-validation.py` - Integration tests (7 test cases)
+
+6. **`README.md`**:
+   - Added "URL Extraction Utility" section with usage examples
+   - Documented supported formats, features, and example output
+   - Added reference to URL-VALIDATION-SUMMARY.md
+
+7. **`Docs/URL-VALIDATION-SUMMARY.md`** (new file):
+   - Comprehensive documentation of URL validation implementation
+   - Lists supported domains
+   - Documents test results and security improvements
+   - Provides usage examples
+
+**Test Results:**
+- All 20 URL validation tests passed
+- All 7 integration tests passed
+- Correctly accepts valid YouTube, Facebook, and ERTFlix URLs
+- Correctly rejects invalid domains (GitHub, Google, fake domains)
+
+---
+
 ## 2025-10-22
 
 **Feature Enhancement:** Chapter CSV generation and video chapter splitting behavior change
