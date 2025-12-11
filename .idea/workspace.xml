@@ -8,8 +8,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Tests/last_url.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Tests/last_url.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/funcs_for_main_yt_dlp.py" beforeDir="false" afterPath="$PROJECT_DIR$/funcs_for_main_yt_dlp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/funcs_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/funcs_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main-yt-dlp.py" beforeDir="false" afterPath="$PROJECT_DIR$/main-yt-dlp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/project_defs.py" beforeDir="false" afterPath="$PROJECT_DIR$/project_defs.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -71,6 +76,7 @@
     &quot;Python.get-artists-from-trello.executor&quot;: &quot;Run&quot;,
     &quot;Python.greek_search_comprehensive.executor&quot;: &quot;Run&quot;,
     &quot;Python.main-check-if-playlist.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main-extract-ertflix-urls.executor&quot;: &quot;Run&quot;,
     &quot;Python.main-get-artists-from-trello.executor&quot;: &quot;Run&quot;,
     &quot;Python.main-staging-m4a-to-mp3.executor&quot;: &quot;Run&quot;,
     &quot;Python.main-staging-mp3-to-m4a.executor&quot;: &quot;Run&quot;,
@@ -127,6 +133,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Tests/check-mp3-encoding.py" />
       <option name="PARAMETERS" value="../Tests-UTF/after-agg.mp3" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -149,6 +156,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Tests/compare-mp3-files.py" />
       <option name="PARAMETERS" value="../Tests-UTF/before.mp3 ../Tests-UTF/fixed.mp3" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -171,6 +179,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
       <option name="PARAMETERS" value="&quot;https://www.youtube.com/playlist?list=PLRXnwzqAlx1OjuERxW0S7XEdJCgl_lf_L&quot; --only-audio --verbose" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -193,6 +202,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
       <option name="PARAMETERS" value="&quot; https://www.youtube.com/playlist?list=PLRXnwzqAlx1NpAhU7k0p7cRUJClFtU2Mv&quot; --with-audio --audio-format mp3 --subs" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -215,6 +225,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
       <option name="PARAMETERS" value="&quot;https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE&quot; --with-audio --subs" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -237,6 +248,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
       <option name="PARAMETERS" value="--only-audio --audio-format mp3 --split-chapters --verbose" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -259,6 +271,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
       <option name="PARAMETERS" value="--only-audio --subs --audio-format flac --verbose" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -281,6 +294,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
       <option name="PARAMETERS" value="--only-audio --subs --audio-format m4a --verbose" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -304,6 +318,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
       <option name="PARAMETERS" value="--only-audio --verbose" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -327,8 +342,9 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
-      <option name="PARAMETERS" value="--with-audio --subs --split-chapters --json --verbose --progress --video-download-timeout 1800 --rerun" />
+      <option name="PARAMETERS" value="--with-audio --subs --split-chapters --json --verbose --progress" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -336,7 +352,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="dlp-prompt-both-no-chapters" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-prompt">
+    <configuration name="dlp-prompt-both" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-prompt">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -349,8 +365,9 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
-      <option name="PARAMETERS" value="--with-audio --audio-format mp3 --subs --verbose" />
+      <option name="PARAMETERS" value="--with-audio --audio-format mp3 --subs" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -371,6 +388,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
       <option name="PARAMETERS" value="--verbose --progress --other 5000 -z" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -394,6 +412,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
       <option name="PARAMETERS" value="--subs --verbose" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -416,6 +435,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/yt-dlp-v2.py" />
       <option name="PARAMETERS" value="https://youtu.be/xAy3y3ijR-k?si=STUis1RgjqB12Ary" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -438,6 +458,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Tests/dump-mp3-bytes.py" />
       <option name="PARAMETERS" value="../Tests-UTF/after-agg.mp3 TALB" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -460,6 +481,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Tests/fix-mp3-encoding-aggressive.py" />
       <option name="PARAMETERS" value="../Tests-UTF" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -482,6 +504,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Tests/fix-mp3-encoding.py" />
       <option name="PARAMETERS" value="../Tests-UTF" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -504,6 +527,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Tests/clone-with-transliteration.py" />
       <option name="PARAMETERS" value="../Tests-UTF/before.mp3 ../Tests-UTF/after-agg.mp3 ../Tests-UTF/transliterated.mp3" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -513,7 +537,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="main-get-artists-from-trello" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="main-extract-ertflix-urls" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -526,7 +550,8 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-get-artists-from-trello.py" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-extract-ertflix-urls.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -549,6 +574,7 @@
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Tests/main-sanitize-file-names.py" />
       <option name="PARAMETERS" value="yt-videos yt-audio" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -571,6 +597,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-staging.py" />
       <option name="PARAMETERS" value="--source m4a --create --top-level &quot;C:\Users\user\Music\Greek\02-Singles-Staging&quot;" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -593,6 +620,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-staging.py" />
       <option name="PARAMETERS" value="--source mp3 --create --top-level &quot;C:\Users\user\Music\Greek\02-Singles-Staging&quot;" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -615,6 +643,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Tests/clone-mp3-structure.py" />
       <option name="PARAMETERS" value="../Tests-UTF/before.mp3 ../Tests-UTF/after-agg.mp3 ../Tests-UTF/fixed.mp3" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -637,6 +666,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Beta/test-yt-dlp.py" />
       <option name="PARAMETERS" value="--only-audio --audio-format mp3 https://youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE&amp;si=bS8yYdh_Ju7FaaH4" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -659,6 +689,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test_chapter_regex.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -681,6 +712,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/yt-dlp-v2.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -701,7 +733,7 @@
       <item itemvalue="Python.dlp-prompt-video-only" />
       <item itemvalue="Python.dlp-prompt-ertflix" />
       <item itemvalue="Python.dlp-v2-prompt-audio-only" />
-      <item itemvalue="Python.dlp-prompt-both-no-chapters" />
+      <item itemvalue="Python.dlp-prompt-both" />
       <item itemvalue="Python.dlp-DL-Singles-both-OLD" />
       <item itemvalue="Python.yt-dlp-v2" />
       <item itemvalue="Python.main-sanitize-file-names" />
@@ -716,22 +748,22 @@
       <item itemvalue="Python.dump-mp3-encoding" />
       <item itemvalue="Python.compare-mp3-files" />
       <item itemvalue="Python.mp3-fix-v2" />
-      <item itemvalue="Python.main-get-artists-from-trello" />
+      <item itemvalue="Python.main-extract-ertflix-urls" />
     </list>
     <recent_temporary>
       <list>
         <item itemvalue="Python.dlp-DL-Singles-both" />
+        <item itemvalue="Python.main-extract-ertflix-urls" />
         <item itemvalue="Python.main-staging-m4a-to-mp3" />
         <item itemvalue="Python.yt-dlp-v2" />
         <item itemvalue="Python.test_chapter_regex" />
-        <item itemvalue="Python.main-get-artists-from-trello" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-f69e5c277ee4-cbfc7b97e6b2-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-252.27397.106" />
+        <option value="bundled-python-sdk-0978a7220b69-9867c7d4c0a4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.28294.336" />
       </set>
     </attachedChunks>
   </component>

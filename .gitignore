@@ -1,7 +1,7 @@
 /yt-videos
 /yt-audio
-/yt-videos-old
-/yt-audio-old
+/yt-audio-m4a
+/yt-audio-flac
 .idea/workspace.xml
 *.mp3
 *.webm
@@ -20,6 +20,7 @@
 Tests/Data/
 Tests/yt-audio/
 Tests/yt-videos/
+Tests/last_url.txt
 staging-mp3/
 staging-m4a/
 .pyscn/

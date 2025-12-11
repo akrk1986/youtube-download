@@ -19,13 +19,34 @@ from funcs_utils import (get_video_info, is_playlist, get_chapter_count, sanitiz
 from project_defs import (
     DEFAULT_AUDIO_QUALITY, DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
     YT_DLP_WRITE_JSON_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
-    YT_DLP_IS_PLAYLIST_FLAG, VIDEO_OUTPUT_DIR, AUDIO_OUTPUT_DIR
+    YT_DLP_IS_PLAYLIST_FLAG, VIDEO_OUTPUT_DIR, AUDIO_OUTPUT_DIR,
+    AUDIO_OUTPUT_DIR_M4A, AUDIO_OUTPUT_DIR_FLAC
 )
 
 logger = logging.getLogger(__name__)
 
 # Track if progress log file has been initialized (for --progress flag)
 _progress_log_initialized = False
+
+
+def _get_audio_dir_for_format(audio_format: str) -> str:
+    """
+    Get the output directory for a given audio format.
+
+    Args:
+        audio_format: Audio format ('mp3', 'm4a', or 'flac')
+
+    Returns:
+        Directory path for the format
+    """
+    if audio_format == 'mp3':
+        return AUDIO_OUTPUT_DIR
+    elif audio_format == 'm4a':
+        return AUDIO_OUTPUT_DIR_M4A
+    elif audio_format == 'flac':
+        return AUDIO_OUTPUT_DIR_FLAC
+    else:
+        raise ValueError(f'Unknown audio format: {audio_format}')
 
 
 def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bool,
@@ -112,7 +133,7 @@ def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bo
         else:
             raise RuntimeError(f"Failed to download video from '{video_url}': {e.stderr}")
 
-def _extract_single_format(ytdlp_exe: Path, video_url: str, audio_folder: str,
+def _extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
                            has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
                            format_type: str, artist_pat: str | None = None,
                            album_artist_pat: str | None = None,
@@ -124,9 +145,8 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, audio_folder: str,
     # Get appropriate timeout based on URL domain
     timeout = get_timeout_for_url(url=video_url, video_download_timeout=video_download_timeout)
 
-    # Create format-specific subfolder
-    format_folder = os.path.join(audio_folder, format_type)
-    os.makedirs(format_folder, exist_ok=True)
+    # Ensure output folder exists
+    os.makedirs(output_folder, exist_ok=True)
 
     # For FLAC (lossless), use best quality (0); for lossy formats use default quality
     audio_quality = '0' if format_type == 'flac' else DEFAULT_AUDIO_QUALITY
@@ -140,7 +160,7 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, audio_folder: str,
         '--embed-metadata',
         '--add-metadata',
         '--embed-thumbnail',
-        '-o', os.path.join(format_folder, '%(title)s.%(ext)s'),
+        '-o', os.path.join(output_folder, '%(title)s.%(ext)s'),
         sanitized_url
     ]
 
@@ -200,7 +220,7 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, audio_folder: str,
         else:
             raise RuntimeError(f"Failed to download {format_type.upper()} audio from '{video_url}': {e.stderr}")
 
-def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: str,
+def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str,
                               has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
                               audio_formats: list[str], show_progress: bool = False,
                               video_download_timeout: int | None = None) -> None:
@@ -233,7 +253,9 @@ def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str, audio_folder: 
     timeout = get_timeout_for_url(url=playlist_url, video_download_timeout=video_download_timeout)
     logger.info(f'Using timeout of {timeout} seconds for audio extraction')
     for audio_format in audio_formats:
-        _extract_single_format(ytdlp_exe=ytdlp_exe, video_url=playlist_url, audio_folder=audio_folder,
+        # Get the appropriate output directory for this format
+        output_dir = os.path.abspath(_get_audio_dir_for_format(audio_format=audio_format))
+        _extract_single_format(ytdlp_exe=ytdlp_exe, video_url=playlist_url, output_folder=output_dir,
                                has_chapters=has_chapters,
                                split_chapters=split_chapters, is_it_playlist=is_it_playlist, format_type=audio_format,
                                artist_pat=artist_pat, album_artist_pat=album_artist_pat,
@@ -323,11 +345,13 @@ def main() -> None:
     last_url_file.write_text(args.video_url)
 
     video_folder = os.path.abspath(VIDEO_OUTPUT_DIR)
-    audio_folder = os.path.abspath(AUDIO_OUTPUT_DIR)
     if not args.only_audio:
         os.makedirs(video_folder, exist_ok=True)
     if need_audio:
-        os.makedirs(audio_folder, exist_ok=True)
+        # Create audio directories for each requested format
+        for audio_format in audio_formats:
+            audio_dir = os.path.abspath(_get_audio_dir_for_format(audio_format=audio_format))
+            os.makedirs(audio_dir, exist_ok=True)
 
     url_is_playlist = is_playlist(url=args.video_url)
     uploader_name = None  # Initialize uploader name for chapter processing
@@ -377,7 +401,7 @@ def main() -> None:
     # Download audios if requested
     if need_audio:
         # Run yt-dlp to download videos, and let yt-dlp extract audio and add tags
-        _extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.video_url, audio_folder=audio_folder,
+        _extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.video_url,
                                   split_chapters=args.split_chapters, has_chapters=has_chapters,
                                   is_it_playlist=url_is_playlist, audio_formats=audio_formats,
                                   show_progress=args.progress, video_download_timeout=args.video_download_timeout)
@@ -385,7 +409,6 @@ def main() -> None:
     # Organize chapter files and sanitize filenames
     original_names = organize_and_sanitize_files(
         video_folder=Path(video_folder),
-        audio_folder=Path(audio_folder),
         audio_formats=audio_formats,
         has_chapters=has_chapters,
         only_audio=args.only_audio,
@@ -395,7 +418,6 @@ def main() -> None:
     # Process audio tags
     if need_audio:
         process_audio_tags(
-            audio_folder=Path(audio_folder),
             audio_formats=audio_formats,
             artists_json=artists_json,
             has_chapters=has_chapters,

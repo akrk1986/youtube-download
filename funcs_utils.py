@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 import subprocess
 import json
+from typing import Any
 import yt_dlp
 import emoji
 import urllib.error
@@ -16,7 +17,8 @@ from project_defs import (
     LEADING_NONALNUM_PATTERN, MULTIPLE_SPACES_PATTERN,
     GLOB_MP3_FILES, GLOB_M4A_FILES, GLOB_FLAC_FILES,
     GLOB_MP3_FILES_UPPER, GLOB_M4A_FILES_UPPER, GLOB_FLAC_FILES_UPPER, GLOB_MP4_FILES,
-    SUBPROCESS_TIMEOUT_YOUTUBE, SUBPROCESS_TIMEOUT_FACEBOOK, SUBPROCESS_TIMEOUT_OTHER_SITES
+    SUBPROCESS_TIMEOUT_YOUTUBE, SUBPROCESS_TIMEOUT_FACEBOOK, SUBPROCESS_TIMEOUT_OTHER_SITES,
+    AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_M4A, AUDIO_OUTPUT_DIR_FLAC
 )
 from funcs_url_extraction import is_valid_domain_url
 
@@ -226,10 +228,14 @@ def greek_search(big_string: str, sub_string: str) -> bool:
 
 # File utilities
 
-def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
+def organize_media_files(video_dir: Path) -> dict:
     """
-    Move all MP3/M4A/FLAC files to 'yt-audio' subfolder and all MP4 files to 'yt-videos' subfolder.
-    Creates the subfolders if they don't exist.
+    Move all MP3/M4A/FLAC files to their respective directories and all MP4 files to video directory.
+    - MP3 files -> yt-audio/
+    - M4A files -> yt-audio-m4a/
+    - FLAC files -> yt-audio-flac/
+    - MP4 files -> yt-videos/
+    Creates the directories if they don't exist.
 
     Returns:
         dict: Summary with moved files counts, any errors, and original_names mapping.
@@ -247,37 +253,37 @@ def organize_media_files(video_dir: Path, audio_dir: Path) -> dict:
                    list(current_dir.glob(GLOB_M4A_FILES_UPPER)) +
                    list(current_dir.glob(GLOB_FLAC_FILES_UPPER)))
 
-    # Find and move MP3/M4A/FLAC files to their respective subfolders
+    # Find and move MP3/M4A/FLAC files to their respective directories
     for audio_file in audio_files:
         try:
             if audio_file.suffix.lower() == '.mp3':
-                subfolder = audio_dir / 'mp3'
+                dest_dir = Path(AUDIO_OUTPUT_DIR)
                 moved_files['mp3'].append(audio_file.name)
-                subfolder_name = 'mp3'
+                dest_dir_name = AUDIO_OUTPUT_DIR
             elif audio_file.suffix.lower() == '.m4a':
-                subfolder = audio_dir / 'm4a'
+                dest_dir = Path(AUDIO_OUTPUT_DIR_M4A)
                 moved_files['m4a'].append(audio_file.name)
-                subfolder_name = 'm4a'
+                dest_dir_name = AUDIO_OUTPUT_DIR_M4A
             elif audio_file.suffix.lower() == '.flac':
-                subfolder = audio_dir / 'flac'
+                dest_dir = Path(AUDIO_OUTPUT_DIR_FLAC)
                 moved_files['flac'].append(audio_file.name)
-                subfolder_name = 'flac'
+                dest_dir_name = AUDIO_OUTPUT_DIR_FLAC
             else:
                 # Skip files that are not MP3, M4A, or FLAC
                 logger.warning(
                     f"Skipping unsupported audio file '{audio_file.name}' with extension '{audio_file.suffix}'")
                 continue
 
-            # Create subfolder if it doesn't exist
-            subfolder.mkdir(parents=True, exist_ok=True)
+            # Create destination directory if it doesn't exist
+            dest_dir.mkdir(parents=True, exist_ok=True)
 
             # Store original filename before moving
             original_name = audio_file.name
-            destination = subfolder / audio_file.name
+            destination = dest_dir / audio_file.name
             shutil.move(str(audio_file), str(destination))
             # Map destination path to original name
             moved_files['original_names'][str(destination)] = original_name
-            logger.info(f'Moved {audio_file.name} -> yt-audio/{subfolder_name}/')
+            logger.info(f'Moved {audio_file.name} -> {dest_dir_name}/')
         except Exception as e:
             error_msg = f'Error moving {audio_file.name}: {str(e)}'
             moved_files['errors'].append(error_msg)
@@ -509,7 +515,7 @@ def get_video_info(yt_dlp_path: Path, url: str) -> dict:
 def is_playlist(url: str) -> bool:
     """Check if url is a playlist, w/o downloading.
     Using the yt-dlp Python library."""
-    ydl_opts = {
+    ydl_opts: dict[str, Any] = {
         'quiet': True,
         'no_warnings': True,
         'extract_flat': True,
@@ -521,10 +527,10 @@ def is_playlist(url: str) -> bool:
         browser = 'chrome' if cookie_env.lower() == 'chrome' else 'firefox'
         ydl_opts['cookiesfrombrowser'] = (browser,)
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    with yt_dlp.YoutubeDL(params=ydl_opts) as ydl:  # type: ignore[arg-type]
         try:
             info = ydl.extract_info(url=url, download=False)
-            return info.get('webpage_url_basename') == 'playlist'
+            return info.get('webpage_url_basename') == 'playlist'  # type: ignore[typeddict-item]
         except Exception as e:
             logger.error(f"Failed to get video info for URL '{url}': {e}")
             return False
@@ -540,6 +546,8 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
     Returns:
         int: Number of chapters (0 if none or error)
     """
+    timeout = 1000  # to avoid linter warning
+
     try:
         # Security: Validate URL before passing to subprocess
         sanitized_url = sanitize_url_for_subprocess(url=playlist_url)

@@ -9,9 +9,29 @@ from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter
 from funcs_process_m4a_tags import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
 from funcs_process_flac_tags import set_artists_in_flac_files, set_tags_in_chapter_flac_files
 from funcs_utils import organize_media_files, sanitize_filenames_in_folder, validate_video_url
-from project_defs import MAX_URL_RETRIES
+from project_defs import MAX_URL_RETRIES, AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_M4A, AUDIO_OUTPUT_DIR_FLAC
 
 logger = logging.getLogger(__name__)
+
+
+def _get_audio_dir_for_format(audio_format: str) -> str:
+    """
+    Get the output directory for a given audio format.
+
+    Args:
+        audio_format: Audio format ('mp3', 'm4a', or 'flac')
+
+    Returns:
+        Directory path for the format
+    """
+    if audio_format == 'mp3':
+        return AUDIO_OUTPUT_DIR
+    elif audio_format == 'm4a':
+        return AUDIO_OUTPUT_DIR_M4A
+    elif audio_format == 'flac':
+        return AUDIO_OUTPUT_DIR_FLAC
+    else:
+        raise ValueError(f'Unknown audio format: {audio_format}')
 
 
 def validate_and_get_url(provided_url: str) -> str | None:
@@ -49,14 +69,13 @@ def validate_and_get_url(provided_url: str) -> str | None:
             sys.exit(1)
         return provided_url
 
-def organize_and_sanitize_files(video_folder: Path, audio_folder: Path, audio_formats: list[str],
+def organize_and_sanitize_files(video_folder: Path, audio_formats: list[str],
                                  has_chapters: bool, only_audio: bool, need_audio: bool) -> dict[str, dict[str, str]]:
     """
     Organize chapter files and sanitize all downloaded file names.
 
     Args:
         video_folder: Path to video output directory
-        audio_folder: Path to audio output directory
         audio_formats: List of audio formats (e.g., ['mp3', 'm4a', 'flac'])
         has_chapters: Whether video has chapters
         only_audio: Whether to skip video processing
@@ -69,9 +88,9 @@ def organize_and_sanitize_files(video_folder: Path, audio_folder: Path, audio_fo
     original_names_m4a = {}
     original_names_flac = {}
 
-    # If chapters, move chapter files to subfolders
+    # If chapters, move chapter files to their respective directories
     if has_chapters:
-        result = organize_media_files(video_dir=video_folder, audio_dir=audio_folder)
+        result = organize_media_files(video_dir=video_folder)
 
         # Check move results
         if result['mp3'] or result['m4a'] or result['flac'] or result['mp4']:
@@ -97,31 +116,30 @@ def organize_and_sanitize_files(video_folder: Path, audio_folder: Path, audio_fo
     if not only_audio:
         sanitize_filenames_in_folder(folder_path=video_folder)
 
-    # Sanitize downloaded audio file names in subfolders for each format
+    # Sanitize downloaded audio file names in their respective directories for each format
     if need_audio:
         for audio_format in audio_formats:
-            subfolder = audio_folder / audio_format
-            if subfolder.exists():
+            audio_dir = Path(_get_audio_dir_for_format(audio_format=audio_format))
+            if audio_dir.exists():
                 if audio_format == 'mp3':
-                    original_names_mp3 = sanitize_filenames_in_folder(folder_path=subfolder,
+                    original_names_mp3 = sanitize_filenames_in_folder(folder_path=audio_dir,
                                                                       original_names=original_names_mp3)
                 elif audio_format == 'm4a':
-                    original_names_m4a = sanitize_filenames_in_folder(folder_path=subfolder,
+                    original_names_m4a = sanitize_filenames_in_folder(folder_path=audio_dir,
                                                                       original_names=original_names_m4a)
                 elif audio_format == 'flac':
-                    original_names_flac = sanitize_filenames_in_folder(folder_path=subfolder,
+                    original_names_flac = sanitize_filenames_in_folder(folder_path=audio_dir,
                                                                        original_names=original_names_flac)
 
     return {'mp3': original_names_mp3, 'm4a': original_names_m4a, 'flac': original_names_flac}
 
-def process_audio_tags(audio_folder: Path, audio_formats: list[str], artists_json: Path,
+def process_audio_tags(audio_formats: list[str], artists_json: Path,
                        has_chapters: bool, uploader_name: str | None, video_title: str | None,
                        original_names: dict[str, dict[str, str]] | None = None) -> None:
     """
     Process audio file tags based on formats.
 
     Args:
-        audio_folder: Path to audio output directory
         audio_formats: List of audio formats (e.g., ['mp3', 'm4a', 'flac'])
         artists_json: Path to artists database JSON file
         has_chapters: Whether video has chapters
@@ -138,25 +156,25 @@ def process_audio_tags(audio_folder: Path, audio_formats: list[str], artists_jso
         if len(audio_formats) > 1:
             logger.info(f'Processing {audio_format.upper()} files...')
 
-        subfolder = audio_folder / audio_format
+        audio_dir = Path(_get_audio_dir_for_format(audio_format=audio_format))
 
         if audio_format == 'mp3':
-            set_artists_in_mp3_files(mp3_folder=subfolder, artists_json=artists_json,
+            set_artists_in_mp3_files(mp3_folder=audio_dir, artists_json=artists_json,
                                      original_names=original_names.get('mp3', {}))
             if has_chapters:
-                _ = set_tags_in_chapter_mp3_files(mp3_folder=subfolder, uploader=uploader_name,
+                _ = set_tags_in_chapter_mp3_files(mp3_folder=audio_dir, uploader=uploader_name,
                                                   video_title=video_title, original_names=original_names.get('mp3', {}))
         elif audio_format == 'm4a':
-            set_artists_in_m4a_files(m4a_folder=subfolder, artists_json=artists_json,
+            set_artists_in_m4a_files(m4a_folder=audio_dir, artists_json=artists_json,
                                      original_names=original_names.get('m4a', {}))
             if has_chapters:
-                _ = set_tags_in_chapter_m4a_files(m4a_folder=subfolder, uploader=uploader_name,
+                _ = set_tags_in_chapter_m4a_files(m4a_folder=audio_dir, uploader=uploader_name,
                                                   video_title=video_title, original_names=original_names.get('m4a', {}))
         elif audio_format == 'flac':
-            set_artists_in_flac_files(flac_folder=subfolder, artists_json=artists_json,
+            set_artists_in_flac_files(flac_folder=audio_dir, artists_json=artists_json,
                                       original_names=original_names.get('flac', {}))
             if has_chapters:
-                _ = set_tags_in_chapter_flac_files(flac_folder=subfolder, uploader=uploader_name,
+                _ = set_tags_in_chapter_flac_files(flac_folder=audio_dir, uploader=uploader_name,
                                                    video_title=video_title, original_names=original_names.get('flac', {}))
 
 def _get_external_paths() -> tuple[str, str, str]:
