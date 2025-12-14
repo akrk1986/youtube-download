@@ -114,9 +114,11 @@ def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bo
                 result = subprocess.run(yt_dlp_cmd, check=True, stdout=f, stderr=subprocess.STDOUT,
                                         text=True, timeout=timeout)
             logger.info(f'Video download completed successfully. Progress logged to {log_file}')
+            logger.info(f'Downloaded from URL: {video_url}')
         else:
             result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=timeout)
             logger.info('Video download completed successfully')
+            logger.info(f'Downloaded from URL: {video_url}')
             if result.stdout:
                 logger.debug(f'yt-dlp output: {result.stdout}')
     except subprocess.TimeoutExpired:
@@ -201,9 +203,11 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
             with open(log_file, mode) as f:
                 result = subprocess.run(yt_dlp_cmd, check=True, stdout=f, stderr=subprocess.STDOUT, text=True, timeout=timeout)
             logger.info(f'{format_type.upper()} audio download completed successfully. Progress logged to {log_file}')
+            logger.info(f'Downloaded from URL: {video_url}')
         else:
             result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=timeout)
             logger.info(f'{format_type.upper()} audio download completed successfully')
+            logger.info(f'Downloaded from URL: {video_url}')
             if result.stdout:
                 logger.debug(f'yt-dlp output: {result.stdout}')
     except subprocess.TimeoutExpired:
