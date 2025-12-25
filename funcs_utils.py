@@ -131,10 +131,20 @@ def sanitize_string(dirty_string: str) -> str:
     if not dirty_string:
         return dirty_string
 
-    # Split filename and extension
+    # Supported file extensions (case-insensitive)
+    valid_extensions = {'mp4', 'wmv', 'mkv', 'mp3', 'm4a', 'flac', 'webm', 'avi', 'mov', 'txt'}
+
+    # Split filename and extension using the last '.'
+    # Only treat as extension if it's a supported format
     if '.' in dirty_string:
         name_part, extension = dirty_string.rsplit('.', 1)
-        has_extension = True
+        if extension.lower() in valid_extensions:
+            has_extension = True
+        else:
+            # Not a valid extension, treat as part of basename
+            name_part = dirty_string
+            extension = ''
+            has_extension = False
     else:
         name_part = dirty_string
         extension = ''
@@ -181,14 +191,24 @@ def sanitize_string(dirty_string: str) -> str:
     # 5. Remove leading and trailing spaces
     name_part = name_part.strip()
 
+    # 6. Truncate to ensure total filename length <= 64 characters
+    max_filename_length = 64
+    if has_extension:
+        # Account for dot and extension length
+        max_name_length = max_filename_length - 1 - len(extension)
+        if len(name_part) > max_name_length:
+            name_part = name_part[:max_name_length].rstrip()
+    else:
+        if len(name_part) > max_filename_length:
+            name_part = name_part[:max_filename_length].rstrip()
+
     # Reconstruct filename
     if has_extension and name_part:
         return f'{name_part}.{extension}'
     elif has_extension:
         # If name_part is empty, but we had an extension, keep the extension
         return f'untitled.{extension}'
-    else:
-        return name_part
+    return name_part
 
 def remove_diacritics(text: str) -> str:
     """

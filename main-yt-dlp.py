@@ -15,7 +15,7 @@ from funcs_for_main_yt_dlp import (validate_and_get_url, organize_and_sanitize_f
                                    process_audio_tags, get_ffmpeg_path, get_ytdlp_path)
 from funcs_utils import (get_video_info, is_playlist, get_chapter_count, sanitize_url_for_subprocess,
                          get_timeout_for_url, display_chapters_and_confirm, get_cookie_args,
-                         create_chapters_csv)
+                         create_chapters_csv, sanitize_string)
 from project_defs import (
     DEFAULT_AUDIO_QUALITY, DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
     YT_DLP_WRITE_JSON_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
@@ -59,6 +59,17 @@ def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bo
     # Get appropriate timeout based on URL domain
     timeout = get_timeout_for_url(url=video_url, video_download_timeout=video_download_timeout)
 
+    # Determine output filename template
+    # For single videos, get the title and sanitize it; for playlists, use yt-dlp template
+    if is_it_playlist:
+        output_template = os.path.join(video_folder, '%(title)s.%(ext)s')
+    else:
+        video_info = get_video_info(yt_dlp_path=ytdlp_exe, url=video_url)
+        video_title = video_info.get('title', 'untitled')
+        sanitized_title = sanitize_string(dirty_string=video_title)
+        output_template = os.path.join(video_folder, f'{sanitized_title}.%(ext)s')
+        logger.debug(f"Sanitized video title: '{video_title}' -> '{sanitized_title}'")
+
     yt_dlp_cmd = [
         ytdlp_exe,
         '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
@@ -66,7 +77,7 @@ def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bo
         '--embed-metadata',
         '--add-metadata',
         '--parse-metadata', 'webpage_url:%(meta_comment)s',  # Store URL in comment metadata
-        '-o', os.path.join(video_folder, '%(title)s.%(ext)s'),
+        '-o', output_template,
         sanitized_url
     ]
 
@@ -153,6 +164,17 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
     # For FLAC (lossless), use best quality (0); for lossy formats use default quality
     audio_quality = '0' if format_type == 'flac' else DEFAULT_AUDIO_QUALITY
 
+    # Determine output filename template
+    # For single videos, get the title and sanitize it; for playlists, use yt-dlp template
+    if is_it_playlist:
+        output_template = os.path.join(output_folder, '%(title)s.%(ext)s')
+    else:
+        video_info = get_video_info(yt_dlp_path=ytdlp_exe, url=video_url)
+        video_title = video_info.get('title', 'untitled')
+        sanitized_title = sanitize_string(dirty_string=video_title)
+        output_template = os.path.join(output_folder, f'{sanitized_title}.%(ext)s')
+        logger.debug(f"Sanitized audio title: '{video_title}' -> '{sanitized_title}'")
+
     yt_dlp_cmd = [
         ytdlp_exe,
         '-f', 'bestaudio/best',
@@ -162,7 +184,7 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
         '--embed-metadata',
         '--add-metadata',
         '--embed-thumbnail',
-        '-o', os.path.join(output_folder, '%(title)s.%(ext)s'),
+        '-o', output_template,
         sanitized_url
     ]
 
