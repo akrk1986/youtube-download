@@ -5,3 +5,5 @@ yt-dlp
 mypy
 pytest
 odfpy
+flake8
+pylint

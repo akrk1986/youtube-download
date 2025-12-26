@@ -24,7 +24,9 @@ from funcs_url_extraction import is_valid_domain_url
 
 logger = logging.getLogger(__name__)
 
+
 # Cookie handling for yt-dlp
+
 
 def get_cookie_args() -> list[str]:
     """
@@ -58,7 +60,9 @@ def get_cookie_args() -> list[str]:
     # Add --sleep-requests to avoid rate limiting by YouTube
     return ['--cookies-from-browser', browser, '--no-cache-dir', '--sleep-requests', '1']
 
+
 # Security helper functions for subprocess calls
+
 
 def sanitize_url_for_subprocess(url: str) -> str:
     """
@@ -89,6 +93,7 @@ def sanitize_url_for_subprocess(url: str) -> str:
 
     return url
 
+
 def validate_file_path_security(file_path: Path, expected_parent: Path | None = None) -> None:
     """
     Validate that a file path is safe to use in subprocess calls.
@@ -114,10 +119,12 @@ def validate_file_path_security(file_path: Path, expected_parent: Path | None = 
     except (OSError, RuntimeError) as e:
         raise ValueError(f'Invalid or suspicious file path {file_path}: {e}')
 
+
 # Multilingual strings handling, for file names and MP3 titles
 
 # Regex: remove leading non-alphanumeric characters (English+Greek+Hebrew+French+Turkish), including spaces
 pattern = re.compile(LEADING_NONALNUM_PATTERN)
+
 
 def sanitize_string(dirty_string: str) -> str:
     """
@@ -174,7 +181,8 @@ def sanitize_string(dirty_string: str) -> str:
             allowed_chars.append(char)
         # Additional French and Turkish characters in Latin Extended-A
         # Includes: French ligatures, Turkish İ, ı, Ğ, ğ, Ş, ş
-        elif char in 'ĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž':
+        elif char in ('ĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁł'
+                      'ŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž'):
             allowed_chars.append(char)
         else:
             # Replace foreign character with space
@@ -210,6 +218,7 @@ def sanitize_string(dirty_string: str) -> str:
         return f'untitled.{extension}'
     return name_part
 
+
 def remove_diacritics(text: str) -> str:
     """
     Remove diacritics from Greek text by normalizing to NFD form
@@ -223,6 +232,7 @@ def remove_diacritics(text: str) -> str:
         if unicodedata.category(char) != 'Mn'
     )
     return without_diacritics
+
 
 def greek_search(big_string: str, sub_string: str) -> bool:
     """
@@ -247,6 +257,7 @@ def greek_search(big_string: str, sub_string: str) -> bool:
     return sub_string_clean in big_string_clean
 
 # File utilities
+
 
 def organize_media_files(video_dir: Path) -> dict:
     """
@@ -331,6 +342,7 @@ def organize_media_files(video_dir: Path) -> dict:
         logger.warning(f'Errors: {len(moved_files["errors"])}')
     return moved_files
 
+
 def organize_media_files_silent() -> dict:
     """
     Same as organize_media_files() but without print statements.
@@ -370,6 +382,7 @@ def organize_media_files_silent() -> dict:
             moved_files['errors'].append(f'Error moving {mp4_file.name}: {str(e)}')
 
     return moved_files
+
 
 def sanitize_filenames_in_folder(folder_path: Path,
                                  original_names: dict[str, str] | None = None) -> dict[str, str]:
@@ -427,6 +440,7 @@ def sanitize_filenames_in_folder(folder_path: Path,
 
 # Video files utils
 
+
 def get_timeout_for_url(url: str, video_download_timeout: int | None = None) -> int:
     """
     Determine the appropriate subprocess timeout based on the URL domain.
@@ -468,6 +482,7 @@ def get_timeout_for_url(url: str, video_download_timeout: int | None = None) -> 
         raise ValueError(f"URL '{url}' cannot be parsed, aborting")
     # abort on any other exception
 
+
 def validate_video_url(url: str) -> tuple[bool, str]:
     """
     Validate that the URL is a valid video streaming URL (YouTube or other supported sites).
@@ -501,6 +516,7 @@ def validate_video_url(url: str) -> tuple[bool, str]:
     except Exception as e:
         return False, f'Invalid URL format: {e}'
 
+
 def get_video_info(yt_dlp_path: Path, url: str) -> dict:
     """Get video information using yt-dlp by requesting the meta-data as JSON, w/o download of the video."""
     # Security: Validate URL before passing to subprocess
@@ -532,6 +548,7 @@ def get_video_info(yt_dlp_path: Path, url: str) -> dict:
     except json.JSONDecodeError as e:
         raise RuntimeError(f"Failed to parse yt-dlp output for '{url}': {e}")
 
+
 def is_playlist(url: str) -> bool:
     """Check if url is a playlist, w/o downloading.
     Using the yt-dlp Python library."""
@@ -554,6 +571,7 @@ def is_playlist(url: str) -> bool:
         except Exception as e:
             logger.error(f"Failed to get video info for URL '{url}': {e}")
             return False
+
 
 def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
     """
@@ -603,6 +621,7 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
         logger.debug(f'No chapters found in video info: {e}')
         return 0
 
+
 def _format_duration(seconds: float) -> str:
     """Format duration in seconds to HH:MM:SS or MM:SS format."""
     total_seconds = int(seconds)
@@ -613,6 +632,7 @@ def _format_duration(seconds: float) -> str:
     if hours > 0:
         return f'{hours:02d}:{minutes:02d}:{secs:02d}'
     return f'{minutes:02d}:{secs:02d}'
+
 
 def display_chapters_and_confirm(video_info: dict) -> bool:
     """
@@ -676,6 +696,7 @@ def display_chapters_and_confirm(video_info: dict) -> bool:
     # Auto-continue without prompting
     return True
 
+
 def _seconds_to_hhmmss(seconds: float) -> str:
     """Convert seconds to HHMMSS format."""
     total_seconds = int(seconds)
@@ -683,6 +704,7 @@ def _seconds_to_hhmmss(seconds: float) -> str:
     minutes = (total_seconds % 3600) // 60
     secs = total_seconds % 60
     return f'{hours:02d}{minutes:02d}{secs:02d}'
+
 
 def create_chapters_csv(video_info: dict, output_dir: str, video_title: str) -> None:
     """
@@ -765,4 +787,3 @@ def create_chapters_csv(video_info: dict, output_dir: str, video_title: str) -> 
 
     logger.info(f'Chapters CSV created successfully: {csv_path}')
     print(f'\nChapters CSV file created: {csv_path}')
-

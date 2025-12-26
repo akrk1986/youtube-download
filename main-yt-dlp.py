@@ -1,6 +1,5 @@
 """Using yt-dlp, download videos from URL, and extract the MP3 files."""
 import argparse
-import glob
 import logging
 import os
 import subprocess
@@ -12,7 +11,7 @@ VERSION = '2025-11-27 17:01'
 
 from logger_config import setup_logging
 from funcs_for_main_yt_dlp import (validate_and_get_url, organize_and_sanitize_files,
-                                   process_audio_tags, get_ffmpeg_path, get_ytdlp_path)
+                                   process_audio_tags, get_ytdlp_path)
 from funcs_utils import (get_video_info, is_playlist, get_chapter_count, sanitize_url_for_subprocess,
                          get_timeout_for_url, display_chapters_and_confirm, get_cookie_args,
                          create_chapters_csv, sanitize_string)
@@ -109,6 +108,9 @@ def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bo
         ]
     if show_progress:
         yt_dlp_cmd[1:1] = ['--progress']
+    if custom_title:
+        # Set the title metadata tag to the custom title
+        yt_dlp_cmd[1:1] = ['--replace-in-metadata', 'title', '.+', sanitized_title]
 
     logger.info(f'Downloading media, using timeout of {timeout} seconds for video download')
     logger.info(f'Command: {yt_dlp_cmd}')
@@ -151,6 +153,7 @@ def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bo
             logger.warning(f"Some videos in playlist '{video_url}' may have failed, continuing...")
         else:
             raise RuntimeError(f"Failed to download video from '{video_url}': {e.stderr}")
+
 
 def _extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
                            has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
@@ -215,6 +218,9 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
         yt_dlp_cmd[1:1] = [YT_DLP_SPLIT_CHAPTERS_FLAG]
     if show_progress:
         yt_dlp_cmd[1:1] = ['--progress']
+    if custom_title:
+        # Set the title metadata tag to the custom title
+        yt_dlp_cmd[1:1] = ['--replace-in-metadata', 'title', '.+', sanitized_title]
 
     logger.info(f'Downloading and extracting {format_type.upper()} audio with yt-dlp')
     logger.info(f'Using timeout of {timeout} seconds for {format_type.upper()} audio download')
@@ -235,7 +241,9 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
             _progress_log_initialized = True
 
             with open(log_file, mode) as f:
-                result = subprocess.run(yt_dlp_cmd, check=True, stdout=f, stderr=subprocess.STDOUT, text=True, timeout=timeout)
+                result = subprocess.run(
+                    yt_dlp_cmd, check=True, stdout=f,
+                    stderr=subprocess.STDOUT, text=True, timeout=timeout)
             logger.info(f'{format_type.upper()} audio download completed successfully. Progress logged to {log_file}')
             logger.info(f'Downloaded from URL: {video_url}')
         else:
@@ -257,6 +265,7 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
             logger.warning(f"Some videos in playlist '{video_url}' may have failed, continuing...")
         else:
             raise RuntimeError(f"Failed to download {format_type.upper()} audio from '{video_url}': {e.stderr}")
+
 
 def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str,
                               has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
@@ -301,16 +310,17 @@ def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str,
                                show_progress=show_progress, video_download_timeout=video_download_timeout,
                                custom_title=custom_title)
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description='Download YouTube playlist/video, optionally with subtitles.')
     parser.add_argument('video_url', nargs='?', help='Playlist/video URL')
     parser.add_argument('--audio-format', default=DEFAULT_AUDIO_FORMAT,
-                        help='Audio format for extraction: mp3, m4a, flac, or comma-separated list (e.g., mp3,m4a).' +
-                             f'(default: {DEFAULT_AUDIO_FORMAT})')
+                        help='Audio format for extraction: mp3, m4a, flac, or comma-separated list '
+                             f'(e.g., mp3,m4a). (default: {DEFAULT_AUDIO_FORMAT})')
     parser.add_argument('--split-chapters', action='store_true', help='Split to chapters')
     parser.add_argument('--video-download-timeout', type=int,
-                        help='Timeout in seconds for video downloads. If specified, applies to all sites. ' +
+                        help='Timeout in seconds for video downloads. If specified, applies to all sites. '
                              'If not specified, uses defaults: 300s for YouTube/Facebook, 3600s for other sites')
     parser.add_argument('--subs', action='store_true', help='Download subtitles')
     parser.add_argument('--json', action='store_true', help='Write JSON file')
@@ -319,7 +329,8 @@ def main() -> None:
                         help='Show yt-dlp progress bar and log output to Logs/yt-dlp.log')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose (DEBUG) logging')
     parser.add_argument('--rerun', action='store_true',
-                        help='Reuse URL from previous run (stored in Tests/last_url.txt). Ignored if video_url is provided.')
+                        help='Reuse URL from previous run (stored in Tests/last_url.txt). '
+                             'Ignored if video_url is provided.')
     parser.add_argument('--title',
                         help='Custom title for output filename (ignored for playlists)')
     parser.add_argument('--version', action='version', version=f'%(prog)s {VERSION}')
@@ -327,7 +338,7 @@ def main() -> None:
     audio_group = parser.add_mutually_exclusive_group()
     audio_group.add_argument('--with-audio', action='store_true',
                              help='Also extract audio (format specified by --audio-format)')
-    audio_group.add_argument('--only-audio', action='store_true', 
+    audio_group.add_argument('--only-audio', action='store_true',
                              help='Delete video files after extraction')
 
     args = parser.parse_args()
@@ -480,6 +491,7 @@ def main() -> None:
             video_title=video_title,
             original_names=original_names
         )
+
 
 if __name__ == '__main__':
     main()
