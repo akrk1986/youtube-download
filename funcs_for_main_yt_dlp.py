@@ -8,7 +8,8 @@ import subprocess
 from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
 from funcs_process_m4a_tags import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
 from funcs_process_flac_tags import set_artists_in_flac_files, set_tags_in_chapter_flac_files
-from funcs_utils import organize_media_files, sanitize_filenames_in_folder, validate_video_url
+from funcs_utils import organize_media_files, sanitize_filenames_in_folder
+from funcs_video_info import validate_video_url
 from project_defs import MAX_URL_RETRIES, AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_M4A, AUDIO_OUTPUT_DIR_FLAC
 
 logger = logging.getLogger(__name__)
@@ -71,7 +72,7 @@ def validate_and_get_url(provided_url: str) -> str | None:
 
 
 def organize_and_sanitize_files(video_folder: Path, audio_formats: list[str],
-                                 has_chapters: bool, only_audio: bool, need_audio: bool) -> dict[str, dict[str, str]]:
+                                has_chapters: bool, only_audio: bool, need_audio: bool) -> dict[str, dict[str, str]]:
     """
     Organize chapter files and sanitize all downloaded file names.
 
@@ -177,7 +178,8 @@ def process_audio_tags(audio_formats: list[str], artists_json: Path,
                                       original_names=original_names.get('flac', {}))
             if has_chapters:
                 _ = set_tags_in_chapter_flac_files(flac_folder=audio_dir, uploader=uploader_name,
-                                                   video_title=video_title, original_names=original_names.get('flac', {}))
+                                                   video_title=video_title,
+                                                   original_names=original_names.get('flac', {}))
 
 
 def _get_external_paths() -> tuple[str, str, str]:

@@ -3,7 +3,7 @@ import csv
 import logging
 import re
 from pathlib import Path
-from funcs_utils import get_video_info
+from funcs_video_info import get_video_info
 from project_defs import CHAPTER_TIMESTAMP_PATTERNS, SAFE_FILENAME_PATTERN, WHITESPACE_TO_UNDERSCORE_PATTERN
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,7 @@ def _parse_time_to_seconds(time_str: str) -> int:
         return hours * 3600 + minutes * 60 + seconds
     else:
         raise ValueError(f'Invalid time format: {time_str}')
+
 
 def _extract_chapters_from_description(description: str) -> list[dict]:
     """Extract chapters from video description using regex patterns."""
@@ -51,6 +52,7 @@ def _extract_chapters_from_description(description: str) -> list[dict]:
             chapters[i]['end_time'] = None  # Will be set to video duration
 
     return chapters
+
 
 def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> str | None:
     """

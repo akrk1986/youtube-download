@@ -5,17 +5,17 @@ import os
 import sys
 from pathlib import Path
 
-# Version corresponds to the latest changelog entry timestamp
-VERSION = '2025-11-27 17:01'
-
 from logger_config import setup_logging
 from funcs_for_main_yt_dlp import (validate_and_get_url, organize_and_sanitize_files,
                                    process_audio_tags, get_ytdlp_path)
 from funcs_yt_dlp_download import (run_yt_dlp, extract_audio_with_ytdlp,
                                    get_audio_dir_for_format)
-from funcs_utils import (get_video_info, is_playlist, get_chapter_count,
-                         display_chapters_and_confirm, create_chapters_csv)
+from funcs_video_info import (get_video_info, is_playlist, get_chapter_count,
+                              display_chapters_and_confirm, create_chapters_csv)
 from project_defs import DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS, VIDEO_OUTPUT_DIR
+
+# Version corresponds to the latest changelog entry timestamp
+VERSION = '2025-11-27 17:01'
 
 logger = logging.getLogger(__name__)
 

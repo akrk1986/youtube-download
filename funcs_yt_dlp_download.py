@@ -4,8 +4,8 @@ import os
 import subprocess
 from pathlib import Path
 
-from funcs_utils import (get_cookie_args, get_timeout_for_url, get_video_info,
-                         sanitize_string, sanitize_url_for_subprocess)
+from funcs_utils import get_cookie_args, sanitize_string, sanitize_url_for_subprocess
+from funcs_video_info import get_timeout_for_url, get_video_info
 from project_defs import (AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_FLAC, AUDIO_OUTPUT_DIR_M4A,
                           DEFAULT_AUDIO_QUALITY,
                           YT_DLP_IS_PLAYLIST_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG, YT_DLP_WRITE_JSON_FLAG)
@@ -140,7 +140,7 @@ def run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: boo
             mode = 'w' if not _progress_log_initialized else 'a'
             _progress_log_initialized = True
 
-            with open(log_file, mode) as f:
+            with open(log_file, mode, encoding='utf-8') as f:
                 result = subprocess.run(yt_dlp_cmd, check=True, stdout=f, stderr=subprocess.STDOUT,
                                         text=True, timeout=timeout)
             logger.info(f'Video download completed successfully. Progress logged to {log_file}')
@@ -264,7 +264,7 @@ def extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
             mode = 'w' if not _progress_log_initialized else 'a'
             _progress_log_initialized = True
 
-            with open(log_file, mode) as f:
+            with open(log_file, mode, encoding='utf-8') as f:
                 result = subprocess.run(
                     yt_dlp_cmd, check=True, stdout=f,
                     stderr=subprocess.STDOUT, text=True, timeout=timeout)

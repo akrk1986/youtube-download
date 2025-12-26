@@ -19,7 +19,8 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 usage: main-yt-dlp.py [-h] [--audio-format AUDIO_FORMAT] [--split-chapters]
                       [--video-download-timeout VIDEO_DOWNLOAD_TIMEOUT]
                       [--subs] [--json] [--no-log-file] [--progress]
-                      [--verbose] [--rerun] [--version]
+                      [--verbose] [--rerun] [--title TITLE] [--artist ARTIST]
+                      [--album ALBUM] [--version]
                       [--with-audio | --only-audio]
                       [video_url]
 
@@ -58,6 +59,15 @@ options:
 
   --rerun               Reuse URL from previous run (stored in Tests/last_url.txt)
                         Ignored if video_url is provided
+
+  --title TITLE         Custom title for output filename (ignored for playlists)
+                        Use --title ask or --title prompt to be prompted for the title
+
+  --artist ARTIST       Custom artist tag for audio files (ignored for playlists)
+                        Use --artist ask or --artist prompt to be prompted for the artist
+
+  --album ALBUM         Custom album tag for audio files (ignored for playlists)
+                        Use --album ask or --album prompt to be prompted for the album
 
   --version             Show program's version number and exit
 
@@ -100,6 +110,19 @@ audio extraction mode (mutually exclusive):
 - `--progress` - Shows yt-dlp's progress bar and writes verbose download logs to `Logs/yt-dlp-progress.log`
 - `--verbose` / `-v` - Enables DEBUG level logging for troubleshooting
 - By default, application logs are written to `Logs/yt-dlp_YYYYMMDD_HHMMSS.log` (keeps last 5 log files)
+
+**Custom Metadata (Single Videos Only):**
+- `--title TITLE` - Override the output filename with a custom title
+  - Use `--title ask` or `--title prompt` to be prompted interactively
+  - Ignored for playlists (each video uses its own title)
+  - The title is sanitized for safe filenames
+- `--artist ARTIST` - Set custom artist tag in audio files
+  - Use `--artist ask` or `--artist prompt` to be prompted interactively
+  - Sets both artist and album artist tags
+  - Ignored for playlists
+- `--album ALBUM` - Set custom album tag in audio files
+  - Use `--album ask` or `--album prompt` to be prompted interactively
+  - Ignored for playlists
 
 **Other:**
 - `--rerun` - Reuse URL from previous run without having to paste it again
@@ -249,6 +272,18 @@ python main-yt-dlp.py --only-audio --video-download-timeout 600 "https://youtube
 
 # Set 30-minute timeout for slow sites
 python main-yt-dlp.py --with-audio --video-download-timeout 1800 "https://www.ertflix.gr/video/VIDEO_ID"
+```
+
+### Download with custom metadata
+```bash
+# Set custom title, artist, and album
+python main-yt-dlp.py --only-audio --title "My Song Title" --artist "Artist Name" --album "Album Name" "URL"
+
+# Be prompted for custom metadata interactively
+python main-yt-dlp.py --only-audio --title ask --artist ask --album ask "URL"
+
+# Mix: specify some, prompt for others
+python main-yt-dlp.py --only-audio --title "Known Title" --artist prompt "URL"
 ```
 
 ### Download age-restricted or private videos using browser cookies

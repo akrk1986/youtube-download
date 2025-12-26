@@ -22,14 +22,21 @@ The codebase follows a modular function-based architecture:
 - `main-get-artists-from-trello.py` - Utility to convert Trello board data to artist JSON
 
 ### Core Function Modules
-- `funcs_utils.py` - General utilities (file operations, Greek text handling, yt-dlp integration)
+- `funcs_utils.py` - General utilities (file operations, string sanitization, Greek text handling)
+- `funcs_video_info.py` - Video information retrieval, URL validation, chapter display, CSV generation
+- `funcs_yt_dlp_download.py` - yt-dlp download and audio extraction functions
+- `funcs_for_main_yt_dlp.py` - Helper functions for main-yt-dlp.py (validation, file organization, tag processing coordination)
 - `funcs_process_mp3_tags.py` - MP3 ID3v2 tag processing and artist detection
-- `funcs_process_mp4_tags.py` - M4A MP4/iTunes metadata processing
+- `funcs_process_m4a_tags.py` - M4A MP4/iTunes metadata processing
 - `funcs_process_flac_tags.py` - FLAC Vorbis Comments processing
 - `funcs_process_audio_tags_common.py` - Common audio tag processing functions
+- `funcs_process_audio_tags_unified.py` - Unified audio tag processing across formats
 - `funcs_audio_tag_handlers.py` - Audio tag handler classes (MP3TagHandler, M4ATagHandler, FLACTagHandler)
 - `funcs_artist_search.py` - Greek artist name matching and search variants
 - `funcs_chapter_extraction.py` - Video chapter detection and processing
+- `funcs_url_extraction.py` - URL extraction from text and ODF documents
+- `funcs_audio_conversion.py` - Audio format conversion utilities
+- `funcs_audio_boost.py` - Audio volume boosting utilities
 
 ### Data Files
 - `Data/artists.json` - Greek music artists database (~17KB)
@@ -67,6 +74,12 @@ python main-yt-dlp.py --only-audio --split-chapters "https://youtube.com/watch?v
 
 # With subtitles and JSON metadata
 python main-yt-dlp.py --with-audio --subs --json "URL"
+
+# With custom title, artist, and album (single videos only)
+python main-yt-dlp.py --only-audio --title "Custom Title" --artist "Artist Name" --album "Album" "URL"
+
+# Interactive prompts for metadata (use 'ask' or 'prompt')
+python main-yt-dlp.py --only-audio --title ask --artist prompt "URL"
 ```
 
 ### Testing Individual Components
