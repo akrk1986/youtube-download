@@ -11,7 +11,7 @@ VERSION = '2025-11-27 17:01'
 
 from logger_config import setup_logging
 from funcs_for_main_yt_dlp import (validate_and_get_url, organize_and_sanitize_files,
-                                   process_audio_tags, get_ytdlp_path)
+                                   process_audio_tags, get_ytdlp_path, quote_if_needed)
 from funcs_utils import (get_video_info, is_playlist, get_chapter_count, sanitize_url_for_subprocess,
                          get_timeout_for_url, display_chapters_and_confirm, get_cookie_args,
                          create_chapters_csv, sanitize_string)
@@ -27,16 +27,6 @@ logger = logging.getLogger(__name__)
 # Track if progress log file has been initialized (for --progress flag)
 _progress_log_initialized = False
 
-
-def _quote_if_needed(value: str) -> str:
-    """Quote a string with double quotes if it contains whitespace and isn't already quoted."""
-    if ' ' in value or '\t' in value:
-        # Check if already quoted
-        if (value.startswith('"') and value.endswith('"')) or \
-           (value.startswith("'") and value.endswith("'")):
-            return value
-        return f'"{value}"'
-    return value
 
 
 def _get_audio_dir_for_format(audio_format: str) -> str:
@@ -127,11 +117,11 @@ def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bo
         # Set metadata tags using ffmpeg postprocessor args
         ffmpeg_metadata = []
         if custom_artist:
-            quoted_artist = _quote_if_needed(custom_artist)
+            quoted_artist = quote_if_needed(custom_artist)
             ffmpeg_metadata.extend(['-metadata', f'artist={quoted_artist}',
                                     '-metadata', f'album_artist={quoted_artist}'])
         if custom_album:
-            quoted_album = _quote_if_needed(custom_album)
+            quoted_album = quote_if_needed(custom_album)
             ffmpeg_metadata.extend(['-metadata', f'album={quoted_album}'])
         yt_dlp_cmd[1:1] = ['--postprocessor-args', 'ffmpeg:' + ' '.join(ffmpeg_metadata)]
 
@@ -249,11 +239,11 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
         # Set metadata tags using ffmpeg postprocessor args
         ffmpeg_metadata = []
         if custom_artist:
-            quoted_artist = _quote_if_needed(custom_artist)
+            quoted_artist = quote_if_needed(custom_artist)
             ffmpeg_metadata.extend(['-metadata', f'artist={quoted_artist}',
                                     '-metadata', f'album_artist={quoted_artist}'])
         if custom_album:
-            quoted_album = _quote_if_needed(custom_album)
+            quoted_album = quote_if_needed(custom_album)
             ffmpeg_metadata.extend(['-metadata', f'album={quoted_album}'])
         yt_dlp_cmd[1:1] = ['--postprocessor-args', 'ffmpeg:' + ' '.join(ffmpeg_metadata)]
 
@@ -456,7 +446,7 @@ def main() -> None:
     if custom_title:
         # If title starts with 'ask' or 'prompt', prompt user for the actual title
         if custom_title.lower().startswith(('ask', 'prompt')):
-            custom_title = input('Enter custom title: ').strip() or None
+            custom_title = input('Enter custom title : ').strip() or None
 
         # Warn if --title is used with a playlist
         if custom_title and url_is_playlist:
@@ -476,7 +466,7 @@ def main() -> None:
     custom_album = args.album
     if custom_album:
         if custom_album.lower().startswith(('ask', 'prompt')):
-            custom_album = input('Enter custom album: ').strip() or None
+            custom_album = input('Enter custom album : ').strip() or None
         if custom_album and url_is_playlist:
             logger.warning('--album is ignored for playlists')
             custom_album = None

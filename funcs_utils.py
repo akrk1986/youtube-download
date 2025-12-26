@@ -256,6 +256,7 @@ def greek_search(big_string: str, sub_string: str) -> bool:
     # Check if sub_string appears in big_string
     return sub_string_clean in big_string_clean
 
+
 # File utilities
 
 

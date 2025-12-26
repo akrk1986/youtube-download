@@ -69,6 +69,7 @@ def validate_and_get_url(provided_url: str) -> str | None:
             sys.exit(1)
         return provided_url
 
+
 def organize_and_sanitize_files(video_folder: Path, audio_formats: list[str],
                                  has_chapters: bool, only_audio: bool, need_audio: bool) -> dict[str, dict[str, str]]:
     """
@@ -133,6 +134,7 @@ def organize_and_sanitize_files(video_folder: Path, audio_formats: list[str],
 
     return {'mp3': original_names_mp3, 'm4a': original_names_m4a, 'flac': original_names_flac}
 
+
 def process_audio_tags(audio_formats: list[str], artists_json: Path,
                        has_chapters: bool, uploader_name: str | None, video_title: str | None,
                        original_names: dict[str, dict[str, str]] | None = None) -> None:
@@ -177,6 +179,7 @@ def process_audio_tags(audio_formats: list[str], artists_json: Path,
                 _ = set_tags_in_chapter_flac_files(flac_folder=audio_dir, uploader=uploader_name,
                                                    video_title=video_title, original_names=original_names.get('flac', {}))
 
+
 def _get_external_paths() -> tuple[str, str, str]:
     """
     Determine yt-dlp, ffmpeg and ffprobe paths based on the operating system.
@@ -192,6 +195,7 @@ def _get_external_paths() -> tuple[str, str, str]:
         return str(yt_dlp_dir / 'ffmpeg.exe'), str(yt_dlp_dir / 'ffprobe.exe'), str(yt_dlp_dir / 'yt-dlp.exe')
     # Linux/WSL/macOS: assume ffmpeg/ffprobe are in PATH
     return 'ffmpeg', 'ffprobe', 'yt-dlp'
+
 
 def get_ffmpeg_path() -> str:
     """
@@ -219,6 +223,7 @@ def get_ffmpeg_path() -> str:
         logger.error("Install with: 'sudo apt install ffmpeg'")
         sys.exit(1)
 
+
 def get_ytdlp_path() -> str:
     """
     Determine yt-dlp path based on the operating system.
@@ -244,3 +249,14 @@ def get_ytdlp_path() -> str:
         logger.error(f'yt-dlp not found in PATH: {e}')
         logger.error('Install with: pip install yt-dlp')
         sys.exit(1)
+
+
+def quote_if_needed(value: str) -> str:
+    """Quote a string with double quotes if it contains whitespace and isn't already quoted."""
+    if ' ' in value or '\t' in value:
+        # Check if already quoted
+        if (value.startswith('"') and value.endswith('"')) or \
+           (value.startswith("'") and value.endswith("'")):
+            return value
+        return f'"{value}"'
+    return value
