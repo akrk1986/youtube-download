@@ -28,6 +28,17 @@ logger = logging.getLogger(__name__)
 _progress_log_initialized = False
 
 
+def _quote_if_needed(value: str) -> str:
+    """Quote a string with double quotes if it contains whitespace and isn't already quoted."""
+    if ' ' in value or '\t' in value:
+        # Check if already quoted
+        if (value.startswith('"') and value.endswith('"')) or \
+           (value.startswith("'") and value.endswith("'")):
+            return value
+        return f'"{value}"'
+    return value
+
+
 def _get_audio_dir_for_format(audio_format: str) -> str:
     """
     Get the output directory for a given audio format.
@@ -51,7 +62,8 @@ def _get_audio_dir_for_format(audio_format: str) -> str:
 def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bool,
                 write_json: bool, has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
                 show_progress: bool = False, video_download_timeout: int | None = None,
-                custom_title: str | None = None) -> None:
+                custom_title: str | None = None, custom_artist: str | None = None,
+                custom_album: str | None = None) -> None:
     """Extract videos from video URL with yt-dlp. Include subtitles if requested."""
     # Security: Validate URL before passing to subprocess
     sanitized_url = sanitize_url_for_subprocess(url=video_url)
@@ -111,6 +123,17 @@ def _run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bo
     if custom_title:
         # Set the title metadata tag to the custom title
         yt_dlp_cmd[1:1] = ['--replace-in-metadata', 'title', '.+', sanitized_title]
+    if custom_artist or custom_album:
+        # Set metadata tags using ffmpeg postprocessor args
+        ffmpeg_metadata = []
+        if custom_artist:
+            quoted_artist = _quote_if_needed(custom_artist)
+            ffmpeg_metadata.extend(['-metadata', f'artist={quoted_artist}',
+                                    '-metadata', f'album_artist={quoted_artist}'])
+        if custom_album:
+            quoted_album = _quote_if_needed(custom_album)
+            ffmpeg_metadata.extend(['-metadata', f'album={quoted_album}'])
+        yt_dlp_cmd[1:1] = ['--postprocessor-args', 'ffmpeg:' + ' '.join(ffmpeg_metadata)]
 
     logger.info(f'Downloading media, using timeout of {timeout} seconds for video download')
     logger.info(f'Command: {yt_dlp_cmd}')
@@ -160,7 +183,8 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
                            format_type: str, artist_pat: str | None = None,
                            album_artist_pat: str | None = None,
                            show_progress: bool = False, video_download_timeout: int | None = None,
-                           custom_title: str | None = None) -> None:
+                           custom_title: str | None = None, custom_artist: str | None = None,
+                           custom_album: str | None = None) -> None:
     """Extract audio in a single format using yt-dlp."""
     # Security: Validate URL before passing to subprocess
     sanitized_url = sanitize_url_for_subprocess(url=video_url)
@@ -221,6 +245,17 @@ def _extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
     if custom_title:
         # Set the title metadata tag to the custom title
         yt_dlp_cmd[1:1] = ['--replace-in-metadata', 'title', '.+', sanitized_title]
+    if custom_artist or custom_album:
+        # Set metadata tags using ffmpeg postprocessor args
+        ffmpeg_metadata = []
+        if custom_artist:
+            quoted_artist = _quote_if_needed(custom_artist)
+            ffmpeg_metadata.extend(['-metadata', f'artist={quoted_artist}',
+                                    '-metadata', f'album_artist={quoted_artist}'])
+        if custom_album:
+            quoted_album = _quote_if_needed(custom_album)
+            ffmpeg_metadata.extend(['-metadata', f'album={quoted_album}'])
+        yt_dlp_cmd[1:1] = ['--postprocessor-args', 'ffmpeg:' + ' '.join(ffmpeg_metadata)]
 
     logger.info(f'Downloading and extracting {format_type.upper()} audio with yt-dlp')
     logger.info(f'Using timeout of {timeout} seconds for {format_type.upper()} audio download')
@@ -271,7 +306,8 @@ def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str,
                               has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
                               audio_formats: list[str], show_progress: bool = False,
                               video_download_timeout: int | None = None,
-                              custom_title: str | None = None) -> None:
+                              custom_title: str | None = None, custom_artist: str | None = None,
+                              custom_album: str | None = None) -> None:
     """Use yt-dlp to download and extract audio with metadata and thumbnail."""
 
     # For a single video, check if video has 'artist' or 'uploader' tags.
@@ -308,7 +344,8 @@ def _extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str,
                                split_chapters=split_chapters, is_it_playlist=is_it_playlist, format_type=audio_format,
                                artist_pat=artist_pat, album_artist_pat=album_artist_pat,
                                show_progress=show_progress, video_download_timeout=video_download_timeout,
-                               custom_title=custom_title)
+                               custom_title=custom_title, custom_artist=custom_artist,
+                               custom_album=custom_album)
 
 
 def main() -> None:
@@ -333,6 +370,10 @@ def main() -> None:
                              'Ignored if video_url is provided.')
     parser.add_argument('--title',
                         help='Custom title for output filename (ignored for playlists)')
+    parser.add_argument('--artist',
+                        help='Custom artist tag (ignored for playlists)')
+    parser.add_argument('--album',
+                        help='Custom album tag (ignored for playlists)')
     parser.add_argument('--version', action='version', version=f'%(prog)s {VERSION}')
 
     audio_group = parser.add_mutually_exclusive_group()
@@ -422,6 +463,24 @@ def main() -> None:
             logger.warning('--title is ignored for playlists')
             custom_title = None
 
+    # Handle --artist option
+    custom_artist = args.artist
+    if custom_artist:
+        if custom_artist.lower().startswith(('ask', 'prompt')):
+            custom_artist = input('Enter custom artist: ').strip() or None
+        if custom_artist and url_is_playlist:
+            logger.warning('--artist is ignored for playlists')
+            custom_artist = None
+
+    # Handle --album option
+    custom_album = args.album
+    if custom_album:
+        if custom_album.lower().startswith(('ask', 'prompt')):
+            custom_album = input('Enter custom album: ').strip() or None
+        if custom_album and url_is_playlist:
+            logger.warning('--album is ignored for playlists')
+            custom_album = None
+
     if not url_is_playlist:
         chapters_count = get_chapter_count(ytdlp_exe=yt_dlp_exe, playlist_url=args.video_url)
         has_chapters = chapters_count > 0
@@ -456,12 +515,14 @@ def main() -> None:
             _run_yt_dlp(ytdlp_exe=yt_dlp_exe, video_url=args.video_url, video_folder=video_folder, get_subs=args.subs,
                         write_json=args.json, split_chapters=False, has_chapters=has_chapters,
                         is_it_playlist=url_is_playlist, show_progress=args.progress,
-                        video_download_timeout=args.video_download_timeout, custom_title=custom_title)
+                        video_download_timeout=args.video_download_timeout, custom_title=custom_title,
+                        custom_artist=custom_artist, custom_album=custom_album)
         else:
             _run_yt_dlp(ytdlp_exe=yt_dlp_exe, video_url=args.video_url, video_folder=video_folder, get_subs=args.subs,
                         write_json=args.json, split_chapters=args.split_chapters, has_chapters=has_chapters,
                         is_it_playlist=url_is_playlist, show_progress=args.progress,
-                        video_download_timeout=args.video_download_timeout, custom_title=custom_title)
+                        video_download_timeout=args.video_download_timeout, custom_title=custom_title,
+                        custom_artist=custom_artist, custom_album=custom_album)
 
     # Download audios if requested
     if need_audio:
@@ -470,7 +531,8 @@ def main() -> None:
                                   split_chapters=args.split_chapters, has_chapters=has_chapters,
                                   is_it_playlist=url_is_playlist, audio_formats=audio_formats,
                                   show_progress=args.progress, video_download_timeout=args.video_download_timeout,
-                                  custom_title=custom_title)
+                                  custom_title=custom_title, custom_artist=custom_artist,
+                                  custom_album=custom_album)
 
     # Organize chapter files and sanitize filenames
     original_names = organize_and_sanitize_files(
