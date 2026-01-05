@@ -10,7 +10,6 @@
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Tests/last_url.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Tests/last_url.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main-yt-dlp.py" beforeDir="false" afterPath="$PROJECT_DIR$/main-yt-dlp.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,12 +53,14 @@
     &quot;Python.dlp-DL-Singles-audio-only.executor&quot;: &quot;Run&quot;,
     &quot;Python.dlp-DL-Singles-both-אקצפ.executor&quot;: &quot;Run&quot;,
     &quot;Python.dlp-DL-Singles-both.executor&quot;: &quot;Run&quot;,
+    &quot;Python.dlp-prompt-all.executor&quot;: &quot;Run&quot;,
     &quot;Python.dlp-prompt-audio-only-chapters.executor&quot;: &quot;Debug&quot;,
     &quot;Python.dlp-prompt-audio-only-flac.executor&quot;: &quot;Run&quot;,
     &quot;Python.dlp-prompt-audio-only-m4a.executor&quot;: &quot;Run&quot;,
     &quot;Python.dlp-prompt-audio-only.executor&quot;: &quot;Run&quot;,
     &quot;Python.dlp-prompt-both-chapters.executor&quot;: &quot;Run&quot;,
     &quot;Python.dlp-prompt-both-no-chapters.executor&quot;: &quot;Run&quot;,
+    &quot;Python.dlp-prompt-both-with-title.executor&quot;: &quot;Run&quot;,
     &quot;Python.dlp-prompt-both.executor&quot;: &quot;Run&quot;,
     &quot;Python.dlp-prompt-ertflix.executor&quot;: &quot;Run&quot;,
     &quot;Python.dlp-prompt-video-only.executor&quot;: &quot;Run&quot;,
@@ -115,7 +116,7 @@
       <recent name="C:\Users\user\PycharmProjects\youtube-download\Beta" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.dlp-prompt-video-only">
+  <component name="RunManager" selected="Python.dlp-DL-Singles-audio-only">
     <configuration name="check-mp3-encoding" type="PythonConfigurationType" factoryName="Python">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -224,6 +225,29 @@
       <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
       <option name="PARAMETERS" value="&quot;https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE&quot; --with-audio --subs" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="dlp-prompt-all" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-prompt">
+      <module name="youtube-download" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
+      <option name="PARAMETERS" value="--with-audio --subs --title prompt-user --album prompt --artist prompt" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -729,6 +753,7 @@
       <item itemvalue="Python.dlp-prompt-ertflix" />
       <item itemvalue="Python.dlp-v2-prompt-audio-only" />
       <item itemvalue="Python.dlp-prompt-both" />
+      <item itemvalue="Python.dlp-prompt-all" />
       <item itemvalue="Python.dlp-DL-Singles-both-OLD" />
       <item itemvalue="Python.yt-dlp-v2" />
       <item itemvalue="Python.main-sanitize-file-names" />
