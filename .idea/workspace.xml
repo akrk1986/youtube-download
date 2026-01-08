@@ -9,6 +9,8 @@
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Data/artists.json" beforeDir="false" afterPath="$PROJECT_DIR$/Data/artists.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Data/trello - greek-music-artists.json" beforeDir="false" afterPath="$PROJECT_DIR$/Data/trello - greek-music-artists.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Tests/last_url.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Tests/last_url.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -116,7 +118,7 @@
       <recent name="C:\Users\user\PycharmProjects\youtube-download\Beta" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.dlp-DL-Singles-audio-only">
+  <component name="RunManager" selected="Python.dlp-DL-Singles-both">
     <configuration name="check-mp3-encoding" type="PythonConfigurationType" factoryName="Python">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -557,6 +559,30 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="get-artists-from-trello" type="PythonConfigurationType" factoryName="Python" folderName="YT-DLP-presets">
+      <module name="youtube-download" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="Python 3.14 (youtube-download)" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-get-artists-from-trello.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="main-extract-ertflix-urls" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -742,6 +768,7 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Python.get-artists-from-trello" />
       <item itemvalue="Python.dlp-DL-Singles-audio-only" />
       <item itemvalue="Python.dlp-DL-Singles-both" />
       <item itemvalue="Python.dlp-prompt-audio-only-chapters" />
