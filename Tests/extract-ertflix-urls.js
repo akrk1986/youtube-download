@@ -1,14 +1,20 @@
 // ERTFlix URL Extractor - Browser Console Script
 //
 // Instructions:
-// 1. Open the series page in your browser (e.g., https://www.ertflix.gr/series/ser.521736-parea-1)
-// 2. Press F12 to open Developer Tools
-// 3. Click the Console tab
-// 4. Copy and paste this entire file into the console
-// 5. Press Enter
-// 6. URLs will be displayed and copied to clipboard
+// 1. Open ANY series page in your browser
+//    Examples:
+//    - https://www.ertflix.gr/series/ser.521736-parea-1
+//    - https://www.ertflix.gr/en/series/ser.27883-nykhta-stasou
+//    - https://www.ertflix.gr/series/ser.99028-i-ayli-ton-chromaton
+// 2. Wait 5-10 seconds for the page to fully load
+// 3. Press F12 to open Developer Tools
+// 4. Click the Console tab
+// 5. Copy and paste this entire file into the console
+// 6. Press Enter
+// 7. URLs with text will be automatically extracted and copied to clipboard
 //
-// To extract URLs for different programs, change the pattern variable below:
+// The script automatically detects which program you're viewing and
+// generates the correct URL pattern - no manual configuration needed!
 
 // =============================================================================
 // EXTRACTION CODE
@@ -18,18 +24,64 @@
 (function() {
 
 // =============================================================================
-// CONFIGURATION: Change this pattern for different programs
+// AUTO-DETECT PROGRAM FROM PAGE URL
 // =============================================================================
 
-// Parea (default)
-const pattern = /https:\/\/www\.ertflix\.gr\/vod\/vod\.\d+-parea-\d+/;
+const currentUrl = window.location.href;
+console.clear();
+console.log('='.repeat(80));
+console.log('ERTFlix URL Extractor');
+console.log('='.repeat(80));
+console.log(`\nCurrent page: ${currentUrl}`);
 
-// Uncomment one of these for other programs:
-// const pattern = /https:\/\/www\.ertflix\.gr\/en\/vod\/vod\.\d+-nukhta-stasou-\d+/;  // Nykhta Stasou
-// const pattern = /https:\/\/www\.ertflix\.gr\/vod\/vod\.\d+-e-aule-ton-khromaton-\d+/;  // Aule Ton Chromaton
+// Extract series slug from URL
+// URLs are like: https://www.ertflix.gr/series/ser.521736-parea-1
+// or: https://www.ertflix.gr/en/series/ser.27883-nykhta-stasou
+const seriesMatch = currentUrl.match(/\/series\/ser\.\d+-([\w-]+)/);
 
-// Or create a custom pattern:
-// const pattern = /https:\/\/www\.ertflix\.gr\/vod\/vod\.\d+-YOUR-PATTERN-\d+/;
+if (!seriesMatch) {
+    console.log('\n❌ ERROR: Not on a series page!');
+    console.log('This script must be run on a series page like:');
+    console.log('  https://www.ertflix.gr/series/ser.XXXXXX-program-name');
+    return;
+}
+
+const seriesSlug = seriesMatch[1];
+console.log(`Detected series slug: ${seriesSlug}`);
+
+// Detect language path (/en/ or not)
+const hasEnglishPath = currentUrl.includes('/en/');
+const langPath = hasEnglishPath ? '/en' : '';
+
+// Remove trailing numbers from slug (e.g., "parea-1" -> "parea-")
+// This handles season numbers in series URLs
+const baseSlug = seriesSlug.replace(/\d+$/, '');
+
+// Try to find the actual VOD slug from links on the page
+// This handles cases where series slug differs from VOD slug (e.g., nykhta vs nukhta)
+const allVodLinks = document.querySelectorAll('a[href*="/vod/vod."]');
+let detectedVodSlug = baseSlug;
+
+if (allVodLinks.length > 0) {
+    const firstVodHref = allVodLinks[0].href;
+    // Extract slug from VOD URL: /vod/vod.NUMBER-SLUG-NUMBER
+    const vodSlugMatch = firstVodHref.match(/\/vod\/vod\.\d+-([\w-]+)-\d+/);
+    if (vodSlugMatch) {
+        detectedVodSlug = vodSlugMatch[1] + '-';
+        if (detectedVodSlug !== baseSlug) {
+            console.log(`Note: VOD slug differs from series slug`);
+            console.log(`  Series uses: "${baseSlug}"`);
+            console.log(`  VOD uses: "${detectedVodSlug}"`);
+        }
+    }
+}
+
+// Build pattern based on detected VOD slug
+// Pattern: https://www.ertflix.gr[/en]/vod/vod.NNNNNN-SLUG-NN
+const patternString = `https:\\/\\/www\\.ertflix\\.gr${langPath.replace('/', '\\/')}\\/vod\\/vod\\.\\d+-${detectedVodSlug}\\d+`;
+const pattern = new RegExp(patternString);
+
+console.log(`Generated pattern: ${pattern}\n`);
 
 // =============================================================================
 // EXTRACTION CODE (no need to modify below this line)
@@ -89,12 +141,7 @@ Object.keys(linksByHref).forEach(href => {
 });
 
 // Display results in console
-console.clear();
-console.log('='.repeat(80));
-console.log('ERTFlix URL Extractor');
-console.log('='.repeat(80));
-console.log(`\nPattern: ${pattern}\n`);
-console.log(`Found ${results.length} episodes:\n`);
+console.log(`\nFound ${results.length} episodes:\n`);
 
 results.forEach((item, index) => {
     console.log(`${(index + 1).toString().padStart(3, ' ')}. ${item.url}`);
