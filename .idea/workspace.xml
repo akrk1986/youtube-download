@@ -9,9 +9,8 @@
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Data/artists.json" beforeDir="false" afterPath="$PROJECT_DIR$/Data/artists.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Data/trello - greek-music-artists.json" beforeDir="false" afterPath="$PROJECT_DIR$/Data/trello - greek-music-artists.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Tests/last_url.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Tests/last_url.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main-extract-ertflix-urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/main-extract-ertflix-urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,65 +43,66 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.1-dlp-DL-Singles-both.executor&quot;: &quot;Run&quot;,
-    &quot;Python.check-mp3-encoding.executor&quot;: &quot;Run&quot;,
-    &quot;Python.compare-mp3-files.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-DL-Singles-audio-only.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-DL-Singles-both-אקצפ.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-DL-Singles-both.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-prompt-all.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-prompt-audio-only-chapters.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.dlp-prompt-audio-only-flac.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-prompt-audio-only-m4a.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-prompt-audio-only.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-prompt-both-chapters.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-prompt-both-no-chapters.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-prompt-both-with-title.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-prompt-both.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-prompt-ertflix.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-prompt-video-only.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dlp-v2-prompt-audio-only (1).executor&quot;: &quot;Run&quot;,
-    &quot;Python.dump-mp3-encoding.executor&quot;: &quot;Run&quot;,
-    &quot;Python.find-artists-main.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.fix-mp3-encoding-agg.executor&quot;: &quot;Run&quot;,
-    &quot;Python.fix-mp3-encoding.executor&quot;: &quot;Run&quot;,
-    &quot;Python.fix-mp3-trans.executor&quot;: &quot;Run&quot;,
-    &quot;Python.get-artists-from-trello.executor&quot;: &quot;Run&quot;,
-    &quot;Python.greek_search_comprehensive.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main-check-if-playlist.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main-extract-ertflix-urls.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main-get-artists-from-trello.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main-staging-m4a-to-mp3.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main-staging-mp3-to-m4a.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main-staging.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main_greek_search (1).executor&quot;: &quot;Run&quot;,
-    &quot;Python.main_greek_search.executor&quot;: &quot;Run&quot;,
-    &quot;Python.mp3-fix-v2.executor&quot;: &quot;Run&quot;,
-    &quot;Python.sanitize-file-names.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test-yt-dlp - both.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test_chapter_regex.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-one-song-prompt.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-playlist-audio-only.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-playlist-audio.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-playlist-singles.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-playlist.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-prompt-video-only.executor&quot;: &quot;Run&quot;,
-    &quot;Python.yt-dlp-v2.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;run.code.analysis.last.selected.profile&quot;: &quot;aDefault&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.1-dlp-DL-Singles-both.executor": "Run",
+    "Python.check-mp3-encoding.executor": "Run",
+    "Python.compare-mp3-files.executor": "Run",
+    "Python.dlp-DL-Singles-audio-only.executor": "Run",
+    "Python.dlp-DL-Singles-both-אקצפ.executor": "Run",
+    "Python.dlp-DL-Singles-both.executor": "Run",
+    "Python.dlp-prompt-all.executor": "Run",
+    "Python.dlp-prompt-audio-only-chapters.executor": "Debug",
+    "Python.dlp-prompt-audio-only-flac.executor": "Run",
+    "Python.dlp-prompt-audio-only-m4a.executor": "Run",
+    "Python.dlp-prompt-audio-only.executor": "Run",
+    "Python.dlp-prompt-both-chapters.executor": "Run",
+    "Python.dlp-prompt-both-no-chapters.executor": "Run",
+    "Python.dlp-prompt-both-with-title.executor": "Run",
+    "Python.dlp-prompt-both.executor": "Run",
+    "Python.dlp-prompt-ertflix.executor": "Run",
+    "Python.dlp-prompt-video-only.executor": "Run",
+    "Python.dlp-v2-prompt-audio-only (1).executor": "Run",
+    "Python.dump-mp3-encoding.executor": "Run",
+    "Python.extract-ertflix-urls.executor": "Debug",
+    "Python.find-artists-main.executor": "Debug",
+    "Python.fix-mp3-encoding-agg.executor": "Run",
+    "Python.fix-mp3-encoding.executor": "Run",
+    "Python.fix-mp3-trans.executor": "Run",
+    "Python.get-artists-from-trello.executor": "Run",
+    "Python.greek_search_comprehensive.executor": "Run",
+    "Python.main-check-if-playlist.executor": "Run",
+    "Python.main-extract-ertflix-urls.executor": "Run",
+    "Python.main-get-artists-from-trello.executor": "Run",
+    "Python.main-staging-m4a-to-mp3.executor": "Run",
+    "Python.main-staging-mp3-to-m4a.executor": "Run",
+    "Python.main-staging.executor": "Run",
+    "Python.main_greek_search (1).executor": "Run",
+    "Python.main_greek_search.executor": "Run",
+    "Python.mp3-fix-v2.executor": "Run",
+    "Python.sanitize-file-names.executor": "Run",
+    "Python.test-yt-dlp - both.executor": "Run",
+    "Python.test_chapter_regex.executor": "Run",
+    "Python.yt-dlp-one-song-prompt.executor": "Run",
+    "Python.yt-dlp-playlist-audio-only.executor": "Run",
+    "Python.yt-dlp-playlist-audio.executor": "Run",
+    "Python.yt-dlp-playlist-singles.executor": "Run",
+    "Python.yt-dlp-playlist.executor": "Run",
+    "Python.yt-dlp-prompt-video-only.executor": "Run",
+    "Python.yt-dlp-v2.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "run.code.analysis.last.selected.profile": "aDefault",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
-}</component>
+}]]></component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
       <console-settings module-name="youtube-download" is-module-sdk="true">
@@ -118,7 +118,7 @@
       <recent name="C:\Users\user\PycharmProjects\youtube-download\Beta" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.dlp-DL-Singles-both">
+  <component name="RunManager" selected="Python.extract-ertflix-urls">
     <configuration name="check-mp3-encoding" type="PythonConfigurationType" factoryName="Python">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -490,6 +490,29 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="extract-ertflix-urls" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="youtube-download" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-extract-ertflix-urls.py" />
+      <option name="PARAMETERS" value="--prog parea" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="fix-mp3-encoding-agg" type="PythonConfigurationType" factoryName="Python">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -575,29 +598,6 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-get-artists-from-trello.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="main-extract-ertflix-urls" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="youtube-download" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="RUN_TOOL" value="" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-extract-ertflix-urls.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -795,12 +795,12 @@
       <item itemvalue="Python.dump-mp3-encoding" />
       <item itemvalue="Python.compare-mp3-files" />
       <item itemvalue="Python.mp3-fix-v2" />
-      <item itemvalue="Python.main-extract-ertflix-urls" />
+      <item itemvalue="Python.extract-ertflix-urls" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.extract-ertflix-urls" />
         <item itemvalue="Python.dlp-DL-Singles-both" />
-        <item itemvalue="Python.main-extract-ertflix-urls" />
         <item itemvalue="Python.main-staging-m4a-to-mp3" />
         <item itemvalue="Python.yt-dlp-v2" />
         <item itemvalue="Python.test_chapter_regex" />
@@ -837,5 +837,16 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/main-extract-ertflix-urls.py</url>
+          <line>59</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
