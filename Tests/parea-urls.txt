@@ -1,0 +1,1 @@
+# Paste the URLs here (one per line) after running the browser console script

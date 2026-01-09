@@ -9,3 +9,5 @@ flake8
 pylint
 beautifulsoup4
 requests
+selenium
+webdriver-manager
