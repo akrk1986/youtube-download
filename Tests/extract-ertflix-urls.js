@@ -11,6 +11,13 @@
 // To extract URLs for different programs, change the pattern variable below:
 
 // =============================================================================
+// EXTRACTION CODE
+// =============================================================================
+
+// Wrap in function to avoid variable redeclaration errors in Firefox
+(function() {
+
+// =============================================================================
 // CONFIGURATION: Change this pattern for different programs
 // =============================================================================
 
@@ -138,3 +145,5 @@ console.log('URLs with text stored in: window.ertflixUrls');
 console.log('Type "ertflixUrls" in console to see all data');
 console.log('Format: URL [TAB] Episode_Number - Episode_Title');
 console.log('='.repeat(80));
+
+})(); // End of function scope
