@@ -33,13 +33,52 @@ const links = Array.from(document.querySelectorAll('a[href*="/vod/vod."]'));
 const results = [];
 const seen = new Set();
 
+// Group links by href to find the one with episode info
+const linksByHref = {};
 links.forEach(link => {
     const href = link.href;
-    if (pattern.test(href) && !seen.has(href)) {
-        seen.add(href);
-        const text = link.textContent.trim().replace(/\s+/g, ' ');
-        results.push({ url: href, text: text });
+    if (pattern.test(href)) {
+        if (!linksByHref[href]) {
+            linksByHref[href] = [];
+        }
+        linksByHref[href].push(link);
     }
+});
+
+// Process each unique episode URL
+Object.keys(linksByHref).forEach(href => {
+    if (seen.has(href)) return;
+    seen.add(href);
+
+    const episodeLinks = linksByHref[href];
+    let episodeNumber = '';
+    let episodeTitle = '';
+
+    // Find the link that contains episode info (has the episodeNumber span)
+    for (const link of episodeLinks) {
+        // Look for episode number span
+        const numberSpan = link.querySelector('[class*="episodeNumber"]');
+        const titleSpan = link.querySelector('[class*="episodeSubtitle"]');
+
+        if (numberSpan) {
+            episodeNumber = numberSpan.textContent.trim();
+        }
+        if (titleSpan) {
+            episodeTitle = titleSpan.textContent.trim();
+        }
+
+        // If we found both, we're done
+        if (episodeNumber && episodeTitle) {
+            break;
+        }
+    }
+
+    // Combine episode number and title
+    const text = episodeNumber && episodeTitle
+        ? `${episodeNumber} - ${episodeTitle}`
+        : episodeNumber || episodeTitle || 'No title found';
+
+    results.push({ url: href, text: text });
 });
 
 // Display results in console
@@ -57,8 +96,8 @@ results.forEach((item, index) => {
     }
 });
 
-// Copy URLs to clipboard (one per line)
-const urlList = results.map(item => item.url).join('\n');
+// Copy URLs with text to clipboard (tab-separated)
+const urlList = results.map(item => `${item.url}\t${item.text}`).join('\n');
 
 // Try automatic clipboard copy (works in Chrome/Edge, not Firefox)
 let copied = false;
@@ -73,13 +112,14 @@ if (typeof copy === 'function') {
 
 console.log('\n' + '='.repeat(80));
 if (copied) {
-    console.log(`✓ SUCCESS: ${results.length} URLs copied to clipboard!`);
+    console.log(`✓ SUCCESS: ${results.length} URLs with text copied to clipboard!`);
     console.log('='.repeat(80));
-    console.log('\nYou can now paste them into a text file.');
+    console.log('\nFormat: URL [TAB] Text (one per line)');
+    console.log('You can now paste them into a text file or spreadsheet.');
 } else {
     console.log('FIREFOX USERS: Automatic clipboard copy not available.');
     console.log('='.repeat(80));
-    console.log('\nTo copy URLs, use one of these methods:');
+    console.log('\nTo copy URLs with text, use one of these methods:');
     console.log('');
     console.log('METHOD 1 - Copy from variable:');
     console.log('  Type this in console:  ertflixUrls');
@@ -94,6 +134,7 @@ if (copied) {
 // Make the URL list available as a variable for manual access
 window.ertflixUrls = urlList;
 console.log('\n' + '='.repeat(80));
-console.log('URLs stored in: window.ertflixUrls');
-console.log('Type "ertflixUrls" in console to see all URLs');
+console.log('URLs with text stored in: window.ertflixUrls');
+console.log('Type "ertflixUrls" in console to see all data');
+console.log('Format: URL [TAB] Episode_Number - Episode_Title');
 console.log('='.repeat(80));
