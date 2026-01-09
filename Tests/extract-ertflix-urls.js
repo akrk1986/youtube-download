@@ -11,7 +11,8 @@
 // 4. Click the Console tab
 // 5. Copy and paste this entire file into the console
 // 6. Press Enter
-// 7. URLs with text will be automatically extracted and copied to clipboard
+// 7. Episodes will be automatically extracted and copied to clipboard
+// 8. Paste into a text file
 //
 // The script automatically detects which program you're viewing and
 // generates the correct URL pattern - no manual configuration needed!
@@ -143,10 +144,6 @@ Object.keys(linksByHref).forEach(href => {
 // Display results in console
 console.log(`\nFound ${results.length} episodes:\n`);
 
-// Format current date/time as YYYY-MM-DD HH:MM
-const now = new Date();
-const dateStr = now.toISOString().slice(0, 16).replace('T', ' ');
-
 // Format output with multiple lines per episode
 const formattedOutput = [];
 const displayOutput = [];
@@ -158,22 +155,22 @@ results.forEach((item, index) => {
     const episodeNumberPart = parts[0] || `Episode ${index + 1}`;
     const titlePart = parts.slice(1).join(' - ') || 'No title';
 
-    // Format for clipboard (multiple lines)
-    const episodeBlock = [
+    // Format for plain text output
+    const plainBlock = [
         episodeNumberPart,
         item.url,
-        titlePart,
+        `Title: ${titlePart}`,
         'Artists: TBD',
-        `Download status X, at ${dateStr}`,
+        'Download status: pending, started at: TBD',
         '' // Blank line
     ].join('\n');
 
-    formattedOutput.push(episodeBlock);
+    formattedOutput.push(plainBlock);
 
     // Format for console display (more compact)
     displayOutput.push(`${(index + 1).toString().padStart(3, ' ')}. ${episodeNumberPart}`);
     displayOutput.push(`     ${item.url}`);
-    displayOutput.push(`     ${titlePart}`);
+    displayOutput.push(`     Title: ${titlePart}`);
 });
 
 // Display in console (first 3 episodes)
@@ -183,10 +180,9 @@ if (results.length > 3) {
     console.log(`\n     ... and ${results.length - 3} more episodes\n`);
 }
 
-// Copy formatted output to clipboard
+// Copy plain text to clipboard
 const urlList = formattedOutput.join('\n');
 
-// Try automatic clipboard copy (works in Chrome/Edge, not Firefox)
 let copied = false;
 if (typeof copy === 'function') {
     try {
@@ -204,24 +200,24 @@ if (copied) {
     console.log('\nFormat per episode:');
     console.log('  Line 1: Episode number');
     console.log('  Line 2: URL');
-    console.log('  Line 3: Title');
+    console.log('  Line 3: Title: <title>');
     console.log('  Line 4: Artists: TBD');
-    console.log('  Line 5: Download status X, at YYYY-MM-DD HH:MM');
+    console.log('  Line 5: Download status: pending, started at: TBD');
     console.log('  Line 6: Blank line');
-    console.log('\nYou can now paste them into a text file.');
+    console.log('\nYou can now paste into a text file.');
 } else {
-    console.log('FIREFOX USERS: Automatic clipboard copy not available.');
+    console.log('⚠ Automatic clipboard copy not available.');
     console.log('='.repeat(80));
-    console.log('\nTo copy the formatted output:');
+    console.log('\nMANUAL COPY METHOD:');
     console.log('  Type this in console:  ertflixUrls');
     console.log('  Then right-click the output and select "Copy object"');
 }
 
-// Make the URL list available as a variable for manual access
+// Make the data available as a variable for manual access
 window.ertflixUrls = urlList;
 console.log('\n' + '='.repeat(80));
 console.log('Data stored in: window.ertflixUrls');
-console.log('Type "ertflixUrls" in console to see all formatted data');
+console.log('Type "ertflixUrls" in console to see all data');
 console.log('='.repeat(80));
 
 })(); // End of function scope
