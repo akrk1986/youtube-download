@@ -143,15 +143,48 @@ Object.keys(linksByHref).forEach(href => {
 // Display results in console
 console.log(`\nFound ${results.length} episodes:\n`);
 
+// Format current date/time as YYYY-MM-DD HH:MM
+const now = new Date();
+const dateStr = now.toISOString().slice(0, 16).replace('T', ' ');
+
+// Format output with multiple lines per episode
+const formattedOutput = [];
+const displayOutput = [];
+
 results.forEach((item, index) => {
-    console.log(`${(index + 1).toString().padStart(3, ' ')}. ${item.url}`);
-    if (item.text) {
-        console.log(`     Text: ${item.text}`);
-    }
+    // Parse episode number and title from text
+    // Text format: "Επεισόδιο 1 - Title" or "Episode 1 - Title"
+    const parts = item.text.split(' - ');
+    const episodeNumberPart = parts[0] || `Episode ${index + 1}`;
+    const titlePart = parts.slice(1).join(' - ') || 'No title';
+
+    // Format for clipboard (multiple lines)
+    const episodeBlock = [
+        episodeNumberPart,
+        item.url,
+        titlePart,
+        'Artists: TBD',
+        `Download status X, at ${dateStr}`,
+        '' // Blank line
+    ].join('\n');
+
+    formattedOutput.push(episodeBlock);
+
+    // Format for console display (more compact)
+    displayOutput.push(`${(index + 1).toString().padStart(3, ' ')}. ${episodeNumberPart}`);
+    displayOutput.push(`     ${item.url}`);
+    displayOutput.push(`     ${titlePart}`);
 });
 
-// Copy URLs with text to clipboard (tab-separated)
-const urlList = results.map(item => `${item.url}\t${item.text}`).join('\n');
+// Display in console (first 3 episodes)
+console.log(displayOutput.slice(0, 9).join('\n')); // 3 episodes × 3 lines = 9 lines
+
+if (results.length > 3) {
+    console.log(`\n     ... and ${results.length - 3} more episodes\n`);
+}
+
+// Copy formatted output to clipboard
+const urlList = formattedOutput.join('\n');
 
 // Try automatic clipboard copy (works in Chrome/Edge, not Firefox)
 let copied = false;
@@ -166,31 +199,29 @@ if (typeof copy === 'function') {
 
 console.log('\n' + '='.repeat(80));
 if (copied) {
-    console.log(`✓ SUCCESS: ${results.length} URLs with text copied to clipboard!`);
+    console.log(`✓ SUCCESS: ${results.length} episodes copied to clipboard!`);
     console.log('='.repeat(80));
-    console.log('\nFormat: URL [TAB] Text (one per line)');
-    console.log('You can now paste them into a text file or spreadsheet.');
+    console.log('\nFormat per episode:');
+    console.log('  Line 1: Episode number');
+    console.log('  Line 2: URL');
+    console.log('  Line 3: Title');
+    console.log('  Line 4: Artists: TBD');
+    console.log('  Line 5: Download status X, at YYYY-MM-DD HH:MM');
+    console.log('  Line 6: Blank line');
+    console.log('\nYou can now paste them into a text file.');
 } else {
     console.log('FIREFOX USERS: Automatic clipboard copy not available.');
     console.log('='.repeat(80));
-    console.log('\nTo copy URLs with text, use one of these methods:');
-    console.log('');
-    console.log('METHOD 1 - Copy from variable:');
+    console.log('\nTo copy the formatted output:');
     console.log('  Type this in console:  ertflixUrls');
     console.log('  Then right-click the output and select "Copy object"');
-    console.log('');
-    console.log('METHOD 2 - Manual copy:');
-    console.log('  Scroll up and manually select the URLs listed above');
-    console.log('');
-    console.log('METHOD 3 - Use Chrome/Edge instead (has auto-copy feature)');
 }
 
 // Make the URL list available as a variable for manual access
 window.ertflixUrls = urlList;
 console.log('\n' + '='.repeat(80));
-console.log('URLs with text stored in: window.ertflixUrls');
-console.log('Type "ertflixUrls" in console to see all data');
-console.log('Format: URL [TAB] Episode_Number - Episode_Title');
+console.log('Data stored in: window.ertflixUrls');
+console.log('Type "ertflixUrls" in console to see all formatted data');
 console.log('='.repeat(80));
 
 })(); // End of function scope
