@@ -58,31 +58,45 @@ const langPath = hasEnglishPath ? '/en' : '';
 // This handles season numbers in series URLs
 const baseSlug = seriesSlug.replace(/\d+$/, '');
 
-// Try to find the actual VOD slug from links on the page
-// This handles cases where series slug differs from VOD slug (e.g., nykhta vs nukhta)
+// Try to find ALL unique VOD slugs from links on the page
+// This handles cases where a page uses multiple slug variations
 const allVodLinks = document.querySelectorAll('a[href*="/vod/vod."]');
-let detectedVodSlug = baseSlug;
+const detectedVodSlugs = new Set();
 
 if (allVodLinks.length > 0) {
-    const firstVodHref = allVodLinks[0].href;
-    // Extract slug from VOD URL: /vod/vod.NUMBER-SLUG-NUMBER
-    const vodSlugMatch = firstVodHref.match(/\/vod\/vod\.\d+-([\w-]+)-\d+/);
-    if (vodSlugMatch) {
-        detectedVodSlug = vodSlugMatch[1] + '-';
-        if (detectedVodSlug !== baseSlug) {
-            console.log(`Note: VOD slug differs from series slug`);
-            console.log(`  Series uses: "${baseSlug}"`);
-            console.log(`  VOD uses: "${detectedVodSlug}"`);
+    allVodLinks.forEach(link => {
+        // Extract slug from VOD URL: /vod/vod.NUMBER-SLUG-NUMBER
+        const vodSlugMatch = link.href.match(/\/vod\/vod\.\d+-([\w-]+)-\d+/);
+        if (vodSlugMatch) {
+            detectedVodSlugs.add(vodSlugMatch[1] + '-');
         }
-    }
+    });
 }
 
-// Build pattern based on detected VOD slug
-// Pattern: https://www.ertflix.gr[/en]/vod/vod.NNNNNN-SLUG-NN
-const patternString = `https:\\/\\/www\\.ertflix\\.gr${langPath.replace('/', '\\/')}\\/vod\\/vod\\.\\d+-${detectedVodSlug}\\d+`;
-const pattern = new RegExp(patternString);
+// If no slugs detected, fall back to base slug
+if (detectedVodSlugs.size === 0) {
+    detectedVodSlugs.add(baseSlug);
+}
 
-console.log(`Generated pattern: ${pattern}\n`);
+// Build patterns for ALL detected slugs
+const patterns = Array.from(detectedVodSlugs).map(slug => {
+    const patternString = `https:\\/\\/www\\.ertflix\\.gr${langPath.replace('/', '\\/')}\\/vod\\/vod\\.\\d+-${slug}\\d+`;
+    return new RegExp(patternString);
+});
+
+console.log(`Detected ${detectedVodSlugs.size} unique slug(s):`);
+detectedVodSlugs.forEach(slug => {
+    if (slug !== baseSlug) {
+        console.log(`  - "${slug}" (differs from series slug "${baseSlug}")`);
+    } else {
+        console.log(`  - "${slug}"`);
+    }
+});
+console.log(`\nGenerated ${patterns.length} pattern(s):`);
+patterns.forEach((pattern, index) => {
+    console.log(`  ${index + 1}. ${pattern}`);
+});
+console.log('');
 
 // =============================================================================
 // EXTRACTION CODE (no need to modify below this line)
@@ -97,7 +111,9 @@ const seen = new Set();
 const linksByHref = {};
 links.forEach(link => {
     const href = link.href;
-    if (pattern.test(href)) {
+    // Check if href matches ANY of the patterns
+    const matchesAnyPattern = patterns.some(pattern => pattern.test(href));
+    if (matchesAnyPattern) {
         if (!linksByHref[href]) {
             linksByHref[href] = [];
         }
