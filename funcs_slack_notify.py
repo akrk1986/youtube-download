@@ -15,8 +15,11 @@ def send_slack_notification(webhook_url: str, status: str, url: str,
     """
     Send a Slack notification about download status.
 
+    SECURITY NOTE: The webhook_url parameter must NEVER be logged or printed
+    to avoid exposing the secret webhook URL in logs.
+
     Args:
-        webhook_url: Slack webhook URL
+        webhook_url: Slack webhook URL (NEVER log this value)
         status: 'start', 'success', or 'failure'
         url: The video/playlist URL that was downloaded
         args_dict: Dictionary of script arguments
@@ -95,12 +98,20 @@ def send_slack_notification(webhook_url: str, status: str, url: str,
             logger.debug(f'Slack notification sent: {status} (HTTP {response.status_code})')
             return True
         else:
-            logger.warning(f'Slack notification failed with status {response.status_code}')
+            logger.warning(f'Slack notification failed with HTTP status {response.status_code}')
             return False
 
-    except requests.RequestException as e:
-        logger.warning(f'Failed to send Slack notification: {e}')
+    except requests.Timeout:
+        logger.warning('Failed to send Slack notification: Request timed out')
+        return False
+    except requests.ConnectionError:
+        logger.warning('Failed to send Slack notification: Connection error')
+        return False
+    except requests.RequestException:
+        # Generic request exception (avoid logging exception details that might contain webhook URL)
+        logger.warning('Failed to send Slack notification: Request failed')
         return False
     except Exception as e:
-        logger.warning(f'Unexpected error sending Slack notification: {e}')
+        # Log exception type but not the message to avoid leaking webhook URL
+        logger.warning(f'Unexpected error sending Slack notification: {type(e).__name__}')
         return False
