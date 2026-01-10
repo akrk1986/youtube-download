@@ -13,6 +13,12 @@ from funcs_yt_dlp_download import (run_yt_dlp, extract_audio_with_ytdlp,
 from funcs_video_info import (get_video_info, is_playlist, get_chapter_count,
                               display_chapters_and_confirm, create_chapters_csv)
 from project_defs import DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS, VIDEO_OUTPUT_DIR
+from funcs_slack_notify import send_slack_notification
+
+try:
+    from git_excluded import SLACK_WEBHOOK
+except ImportError:
+    SLACK_WEBHOOK = None
 
 # Version corresponds to the latest changelog entry timestamp
 VERSION = '2025-11-27 17:01'
@@ -58,6 +64,43 @@ def main() -> None:
 
     # Setup logging (must be done early)
     setup_logging(verbose=args.verbose, log_to_file=not args.no_log_file)
+
+    # Store args as dict for Slack notification
+    args_dict = {
+        'video_url': args.video_url,
+        'audio_format': args.audio_format,
+        'split_chapters': args.split_chapters,
+        'video_download_timeout': args.video_download_timeout,
+        'subs': args.subs,
+        'json': args.json,
+        'with_audio': args.with_audio,
+        'only_audio': args.only_audio,
+        'title': args.title,
+        'artist': args.artist,
+        'album': args.album,
+        'rerun': args.rerun
+    }
+
+    try:
+        _execute_main(args=args, args_dict=args_dict)
+    except Exception as e:
+        logger.exception(f'Download failed: {e}')
+        # Send failure notification
+        if SLACK_WEBHOOK:
+            audio_formats_str = args.audio_format
+            audio_formats = [fmt.strip() for fmt in audio_formats_str.split(',')]
+            send_slack_notification(
+                webhook_url=SLACK_WEBHOOK,
+                status='failure',
+                url=args.video_url or 'N/A',
+                audio_formats=audio_formats,
+                args_dict=args_dict
+            )
+        sys.exit(1)
+
+
+def _execute_main(args, args_dict: dict) -> None:
+    """Execute the main download logic."""
 
     # Parse and validate audio formats
     audio_formats_str = args.audio_format
@@ -225,6 +268,17 @@ def main() -> None:
             video_title=video_title,
             original_names=original_names
         )
+
+    # Send success notification
+    if SLACK_WEBHOOK:
+        send_slack_notification(
+            webhook_url=SLACK_WEBHOOK,
+            status='success',
+            url=args.video_url,
+            audio_formats=audio_formats,
+            args_dict=args_dict
+        )
+    logger.info('Download completed successfully')
 
 
 if __name__ == '__main__':

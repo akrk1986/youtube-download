@@ -25,3 +25,4 @@ staging-mp3/
 staging-m4a/
 .pyscn/
 Logs/
+git_excluded.py
