@@ -30,7 +30,7 @@ MAX_LOG_FILES = 5  # Maximum number of log files to keep
 # Subprocess timeout constants (in seconds)
 SUBPROCESS_TIMEOUT_YOUTUBE = 300  # 5 minutes for YouTube yt-dlp operations
 SUBPROCESS_TIMEOUT_FACEBOOK = 300
-SUBPROCESS_TIMEOUT_OTHER_SITES = 3600  # 1 hour for other sites (some are very slow)
+SUBPROCESS_TIMEOUT_OTHER_SITES = 5400  # 1.5 hour for other sites (some are very slow)
 FFMPEG_TIMEOUT_SECONDS = 600  # 10 minutes for audio/video conversion
 
 # Regex patterns
