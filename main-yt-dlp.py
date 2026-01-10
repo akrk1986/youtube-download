@@ -3,6 +3,7 @@ import argparse
 import logging
 import os
 import sys
+import time
 from pathlib import Path
 
 from logger_config import setup_logging
@@ -21,9 +22,35 @@ except ImportError:
     SLACK_WEBHOOK = None
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2025-11-27 17:01'
+VERSION = '2026-01-10-1945'
 
 logger = logging.getLogger(__name__)
+
+
+def _format_elapsed_time(seconds: float) -> str:
+    """Format elapsed time in seconds to a human-readable string."""
+    hours, remainder = divmod(int(seconds), 3600)
+    minutes, secs = divmod(remainder, 60)
+
+    if hours > 0:
+        return f'{hours}h {minutes}m {secs}s'
+    elif minutes > 0:
+        return f'{minutes}m {secs}s'
+    else:
+        return f'{secs}s'
+
+
+def _count_files(directory: Path, extensions: list[str]) -> int:
+    """Count files with specified extensions in a directory (including subdirectories)."""
+    if not directory.exists():
+        return 0
+
+    count = 0
+    for ext in extensions:
+        # Count files with the extension (case-insensitive)
+        count += len(list(directory.rglob(f'*{ext}')))
+        count += len(list(directory.rglob(f'*{ext.upper()}')))
+    return count
 
 
 def main() -> None:
@@ -81,25 +108,40 @@ def main() -> None:
         'rerun': args.rerun
     }
 
+    # Record start time
+    start_time = time.time()
+
     try:
-        _execute_main(args=args, args_dict=args_dict)
+        _execute_main(args=args, args_dict=args_dict, start_time=start_time)
     except Exception as e:
         logger.exception(f'Download failed: {e}')
         # Send failure notification
         if SLACK_WEBHOOK:
+            elapsed_time = _format_elapsed_time(time.time() - start_time)
+            # Count files created before failure
             audio_formats_str = args.audio_format
             audio_formats = [fmt.strip() for fmt in audio_formats_str.split(',')]
+            video_count = 0
+            audio_count = 0
+            if not args.only_audio:
+                video_count = _count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
+            if args.with_audio or args.only_audio:
+                for audio_format in audio_formats:
+                    audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
+                    audio_count += _count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
             send_slack_notification(
                 webhook_url=SLACK_WEBHOOK,
                 status='failure',
                 url=args.video_url or 'N/A',
-                audio_formats=audio_formats,
-                args_dict=args_dict
+                args_dict=args_dict,
+                elapsed_time=elapsed_time,
+                video_count=video_count,
+                audio_count=audio_count
             )
         sys.exit(1)
 
 
-def _execute_main(args, args_dict: dict) -> None:
+def _execute_main(args, args_dict: dict, start_time: float) -> None:
     """Execute the main download logic."""
 
     # Parse and validate audio formats
@@ -148,6 +190,15 @@ def _execute_main(args, args_dict: dict) -> None:
     # Validate and get URL
     args.video_url = validate_and_get_url(provided_url=args.video_url)
     logger.info(f'Processing URL: {args.video_url}')
+
+    # Send start notification to Slack
+    if SLACK_WEBHOOK:
+        send_slack_notification(
+            webhook_url=SLACK_WEBHOOK,
+            status='start',
+            url=args.video_url,
+            args_dict=args_dict
+        )
 
     # Save URL for future --rerun
     last_url_file.parent.mkdir(exist_ok=True)
@@ -271,12 +322,24 @@ def _execute_main(args, args_dict: dict) -> None:
 
     # Send success notification
     if SLACK_WEBHOOK:
+        elapsed_time = _format_elapsed_time(time.time() - start_time)
+        # Count files created
+        video_count = 0
+        audio_count = 0
+        if not args.only_audio:
+            video_count = _count_files(directory=Path(video_folder), extensions=['.mp4', '.webm', '.mkv'])
+        if need_audio:
+            for audio_format in audio_formats:
+                audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
+                audio_count += _count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
         send_slack_notification(
             webhook_url=SLACK_WEBHOOK,
             status='success',
             url=args.video_url,
-            audio_formats=audio_formats,
-            args_dict=args_dict
+            args_dict=args_dict,
+            elapsed_time=elapsed_time,
+            video_count=video_count,
+            audio_count=audio_count
         )
     logger.info('Download completed successfully')
 
