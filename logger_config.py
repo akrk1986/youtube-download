@@ -29,7 +29,7 @@ def _cleanup_old_logs(log_dir: Path) -> None:
                 # Silently ignore errors (file might be locked, etc.)
                 pass
 
-def setup_logging(verbose: bool = False, log_to_file: bool = True) -> None:
+def setup_logging(verbose: bool = False, log_to_file: bool = True, show_urls: bool = False) -> None:
     """
     Configure logging for the entire application.
 
@@ -39,6 +39,7 @@ def setup_logging(verbose: bool = False, log_to_file: bool = True) -> None:
     Args:
         verbose: If True, set log level to DEBUG; otherwise INFO
         log_to_file: If True, also write logs to file in Logs/ directory
+        show_urls: If True, allow urllib3/requests to log URLs (may expose Slack webhook)
     """
     level = logging.DEBUG if verbose else logging.INFO
 
@@ -84,3 +85,9 @@ def setup_logging(verbose: bool = False, log_to_file: bool = True) -> None:
     if not verbose:
         logging.getLogger('yt_dlp').setLevel(logging.WARNING)
         logging.getLogger('mutagen').setLevel(logging.WARNING)
+
+    # SECURITY: Suppress urllib3 and requests logging to prevent Slack webhook URL leaks
+    # unless --show-urls flag is explicitly provided
+    if not show_urls:
+        logging.getLogger('urllib3').setLevel(logging.WARNING)
+        logging.getLogger('requests').setLevel(logging.WARNING)

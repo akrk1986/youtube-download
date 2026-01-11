@@ -80,6 +80,8 @@ def main() -> None:
     parser.add_argument('--progress', action='store_true',
                         help='Show yt-dlp progress bar and log output to Logs/yt-dlp.log')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose (DEBUG) logging')
+    parser.add_argument('--show-urls', action='store_true',
+                        help='Allow urllib3/requests to log URLs (WARNING: may expose Slack webhook URL)')
     parser.add_argument('--rerun', action='store_true',
                         help='Reuse URL from previous run (stored in Tests/last_url.txt). '
                              'Ignored if video_url is provided.')
@@ -100,7 +102,7 @@ def main() -> None:
     args = parser.parse_args()
 
     # Setup logging (must be done early)
-    setup_logging(verbose=args.verbose, log_to_file=not args.no_log_file)
+    setup_logging(verbose=args.verbose, log_to_file=not args.no_log_file, show_urls=args.show_urls)
 
     # Store args as dict for Slack notification
     args_dict = {
