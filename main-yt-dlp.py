@@ -2,9 +2,12 @@
 import argparse
 import logging
 import os
+import socket
 import sys
 import time
 from pathlib import Path
+
+import arrow
 
 from logger_config import setup_logging
 from funcs_for_main_yt_dlp import (validate_and_get_url, organize_and_sanitize_files,
@@ -51,6 +54,13 @@ def _count_files(directory: Path, extensions: list[str]) -> int:
         count += len(list(directory.rglob(f'*{ext}')))
         count += len(list(directory.rglob(f'*{ext.upper()}')))
     return count
+
+
+def _generate_session_id() -> str:
+    """Generate a unique session identifier with timestamp and hostname."""
+    hostname = socket.gethostname()
+    timestamp = arrow.now().format('YYYY-MM-DD HH:mm')
+    return f'[{timestamp} {hostname}]'
 
 
 def main() -> None:
@@ -108,14 +118,18 @@ def main() -> None:
         'rerun': args.rerun
     }
 
+    # Generate session ID for Slack notifications
+    session_id = _generate_session_id()
+
     # Record start time
     start_time = time.time()
 
     try:
-        _execute_main(args=args, args_dict=args_dict, start_time=start_time)
+        _execute_main(args=args, args_dict=args_dict, start_time=start_time, session_id=session_id)
     except Exception as e:
         logger.exception(f'Download failed: {e}')
         # Send failure notification
+        # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
         if SLACK_WEBHOOK:
             elapsed_time = _format_elapsed_time(time.time() - start_time)
             # Count files created before failure
@@ -134,6 +148,7 @@ def main() -> None:
                 status='failure',
                 url=args.video_url or 'N/A',
                 args_dict=args_dict,
+                session_id=session_id,
                 elapsed_time=elapsed_time,
                 video_count=video_count,
                 audio_count=audio_count
@@ -141,7 +156,7 @@ def main() -> None:
         sys.exit(1)
 
 
-def _execute_main(args, args_dict: dict, start_time: float) -> None:
+def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> None:
     """Execute the main download logic."""
 
     # Parse and validate audio formats
@@ -192,12 +207,14 @@ def _execute_main(args, args_dict: dict, start_time: float) -> None:
     logger.info(f'Processing URL: {args.video_url}')
 
     # Send start notification to Slack
+    # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
     if SLACK_WEBHOOK:
         send_slack_notification(
             webhook_url=SLACK_WEBHOOK,
             status='start',
             url=args.video_url,
-            args_dict=args_dict
+            args_dict=args_dict,
+            session_id=session_id
         )
 
     # Save URL for future --rerun
@@ -321,6 +338,7 @@ def _execute_main(args, args_dict: dict, start_time: float) -> None:
         )
 
     # Send success notification
+    # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
     if SLACK_WEBHOOK:
         elapsed_time = _format_elapsed_time(time.time() - start_time)
         # Count files created
@@ -337,6 +355,7 @@ def _execute_main(args, args_dict: dict, start_time: float) -> None:
             status='success',
             url=args.video_url,
             args_dict=args_dict,
+            session_id=session_id,
             elapsed_time=elapsed_time,
             video_count=video_count,
             audio_count=audio_count

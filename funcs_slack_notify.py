@@ -1,7 +1,9 @@
 """Send Slack notifications for download status."""
 import logging
+import socket
 from typing import Optional
 
+import arrow
 import requests
 
 logger = logging.getLogger(__name__)
@@ -9,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 def send_slack_notification(webhook_url: str, status: str, url: str,
                            args_dict: dict,
+                           session_id: str,
                            elapsed_time: Optional[str] = None,
                            video_count: int = 0,
                            audio_count: int = 0) -> bool:
@@ -16,13 +19,14 @@ def send_slack_notification(webhook_url: str, status: str, url: str,
     Send a Slack notification about download status.
 
     SECURITY NOTE: The webhook_url parameter must NEVER be logged or printed
-    to avoid exposing the secret webhook URL in logs.
+    to avoid exposing the secret webhook URL in logs, even with --verbose flag.
 
     Args:
         webhook_url: Slack webhook URL (NEVER log this value)
         status: 'start', 'success', or 'failure'
         url: The video/playlist URL that was downloaded
         args_dict: Dictionary of script arguments
+        session_id: Unique session identifier [YYYY-mm-dd HH:MM hostname]
         elapsed_time: Optional elapsed time string (e.g., '5m 23s')
         video_count: Number of video files created
         audio_count: Number of audio files created
@@ -67,8 +71,8 @@ def send_slack_notification(webhook_url: str, status: str, url: str,
 
     params_text = '\n'.join(param_lines) if param_lines else '  (default parameters)'
 
-    # Build message text
-    message_text = f'{title}\n\n*URL:* {url}\n\n*Parameters:*\n{params_text}'
+    # Build message text with session ID
+    message_text = f'{title}\n\n*Session:* {session_id}\n\n*URL:* {url}\n\n*Parameters:*\n{params_text}'
 
     # Add file counts if status is success or failure
     if status in ['success', 'failure'] and (video_count > 0 or audio_count > 0):

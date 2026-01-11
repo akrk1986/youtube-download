@@ -8,7 +8,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fed5a814-3864-438b-86a6-81f2a3a4eb18" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/project_defs.py" beforeDir="false" afterPath="$PROJECT_DIR$/project_defs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Tests/last_url.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Tests/last_url.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/funcs_slack_notify.py" beforeDir="false" afterPath="$PROJECT_DIR$/funcs_slack_notify.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main-yt-dlp.py" beforeDir="false" afterPath="$PROJECT_DIR$/main-yt-dlp.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -116,7 +119,7 @@
       <recent name="C:\Users\user\PycharmProjects\youtube-download" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.dlp-DL-Singles-both">
+  <component name="RunManager" selected="Python.dlp-prompt-all">
     <configuration name="check-mp3-encoding" type="PythonConfigurationType" factoryName="Python">
       <module name="youtube-download" />
       <option name="ENV_FILES" value="" />
@@ -434,7 +437,7 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main-yt-dlp.py" />
-      <option name="PARAMETERS" value="--subs --verbose" />
+      <option name="PARAMETERS" value="--subs" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
