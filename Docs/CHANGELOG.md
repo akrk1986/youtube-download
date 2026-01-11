@@ -4,6 +4,69 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2026-01-11
+
+**Feature Enhancement:** Slack notification improvements and URL security
+
+**Summary:** Enhanced Slack notifications with session tracking (hostname + timestamp) and added security measures to prevent Slack webhook URL from leaking in verbose logs.
+
+**Changes made:**
+
+1. **`funcs_slack_notify.py`**:
+   - Added `socket` and `arrow` imports for hostname and timestamp generation
+   - Added `session_id` parameter to `send_slack_notification()` function
+   - Session ID is displayed in all Slack messages (start, success, failure)
+   - Updated security documentation in docstring
+
+2. **`main-yt-dlp.py`**:
+   - Added `socket` and `arrow` imports
+   - Created `_generate_session_id()` helper function that generates unique session identifier in format `[YYYY-MM-DD HH:mm hostname]`
+   - Session ID is generated once at start and used in all Slack notifications for the same run
+   - Added `--show-urls` command-line flag to optionally allow urllib3/requests URL logging
+   - Added security comments before every use of `SLACK_WEBHOOK`
+
+3. **`logger_config.py`**:
+   - Added `show_urls` parameter to `setup_logging()` function
+   - By default, urllib3 and requests loggers are suppressed at WARNING level to prevent Slack webhook URL from appearing in verbose logs
+   - When `--show-urls` flag is used, these loggers operate normally (for debugging only)
+
+4. **Test files created**:
+   - `Tests/test_session_id.py` - Demonstrates session ID format
+   - `Tests/test_logging_suppression.py` - Verifies urllib3/requests logging suppression
+
+**Slack Message Format:**
+
+```
+🚀 Download STARTED
+
+*Session:* [2026-01-11 15:30 LEGION-JH9CBS7]
+
+*URL:* https://www.youtube.com/watch?v=VIDEO_ID
+
+*Parameters:*
+  • only_audio: True
+  • split_chapters: True
+```
+
+**Security Features:**
+
+- **Without `--show-urls`**: urllib3 and requests are suppressed → Slack webhook URL protected
+- **With `--show-urls`**: urllib3 and requests can log URLs → Use only for debugging
+
+**Usage:**
+
+```bash
+# Normal usage (Slack webhook protected, even with --verbose)
+python main-yt-dlp.py --verbose --only-audio "URL"
+
+# Debug mode (shows all URLs including webhook - use with caution)
+python main-yt-dlp.py --verbose --show-urls --only-audio "URL"
+```
+
+**Result:** Slack notifications now include session tracking (hostname + timestamp) for easy correlation between start and end messages. The Slack webhook URL is protected from leaking in logs even when `--verbose` is enabled, unless the user explicitly adds `--show-urls` for debugging purposes.
+
+---
+
 ## 2025-11-27
 
 **Feature Addition:** URL extraction utility and enhanced domain validation

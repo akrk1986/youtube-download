@@ -25,7 +25,7 @@ except ImportError:
     SLACK_WEBHOOK = None
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-01-10-1945'
+VERSION = '2026-01-11-1900'
 
 logger = logging.getLogger(__name__)
 

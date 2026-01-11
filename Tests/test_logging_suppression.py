@@ -39,6 +39,10 @@ def test_with_show_urls():
     print('Expected: urllib3 and requests should inherit root logger level (DEBUG)')
     print('=' * 70)
 
+    # Reset loggers to NOTSET before testing
+    logging.getLogger('urllib3').setLevel(logging.NOTSET)
+    logging.getLogger('requests').setLevel(logging.NOTSET)
+
     setup_logging(verbose=True, log_to_file=False, show_urls=True)
 
     urllib3_level = logging.getLogger('urllib3').level

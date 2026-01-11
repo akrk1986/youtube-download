@@ -37,6 +37,7 @@ The codebase follows a modular function-based architecture:
 - `funcs_url_extraction.py` - URL extraction from text and ODF documents
 - `funcs_audio_conversion.py` - Audio format conversion utilities
 - `funcs_audio_boost.py` - Audio volume boosting utilities
+- `funcs_slack_notify.py` - Slack notification functions for download status
 
 ### Data Files
 - `Data/artists.json` - Greek music artists database (~17KB)
@@ -80,6 +81,9 @@ python main-yt-dlp.py --only-audio --title "Custom Title" --artist "Artist Name"
 
 # Interactive prompts for metadata (use 'ask' or 'prompt')
 python main-yt-dlp.py --only-audio --title ask --artist prompt "URL"
+
+# Verbose logging with URL debugging (WARNING: may expose Slack webhook)
+python main-yt-dlp.py --verbose --show-urls --only-audio "URL"
 ```
 
 ### Testing Individual Components
@@ -157,3 +161,21 @@ The codebase has specialized handling for Greek text:
   - use double quotes for docstrings
   - if there is an embedded single quote in a string, do not escape it with a backslash. instead, use double quotes around the whole string
 - in the logger_config, move local functions (name start with _) before any global function. do the same whenever adding local functions
+
+## Slack Notifications
+
+The tool can send Slack notifications for download start/success/failure events.
+
+### Setup
+1. Create a file `git_excluded.py` in the project root (not tracked by git)
+2. Add: `SLACK_WEBHOOK = 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'`
+
+### Features
+- **Session tracking**: Each run generates a unique session ID `[YYYY-MM-DD HH:mm hostname]` that appears in both start and end messages for easy correlation
+- **Security**: The Slack webhook URL is never logged, even with `--verbose` flag
+  - urllib3 and requests loggers are suppressed by default
+  - Use `--show-urls` flag only for debugging (exposes webhook URL in logs)
+
+### Message Content
+- Start message: URL, selected parameters (with-audio, only-audio, split-chapters, title, artist, album)
+- Success/failure message: All parameters, file counts, elapsed time
