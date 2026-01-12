@@ -140,7 +140,24 @@ def get_video_info(yt_dlp_path: Path, url: str) -> dict:
     logger.debug(f'Getting video info with timeout of {timeout} seconds')
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)
-        return json.loads(result.stdout)
+
+        # Try to parse as single JSON object first
+        try:
+            return json.loads(result.stdout)
+        except json.JSONDecodeError as e:
+            # If parsing fails due to multiple JSON objects (playlist), parse only the first one
+            if 'Extra data' in str(e):
+                logger.warning('Multiple JSON objects detected in yt-dlp output, parsing first object only')
+                lines = result.stdout.strip().split('\n')
+                for line in lines:
+                    if line.strip():
+                        try:
+                            return json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+            # Re-raise if it's not an "Extra data" error or no valid JSON found
+            raise
+
     except subprocess.TimeoutExpired:
         raise RuntimeError(f"yt-dlp timed out after {timeout} seconds for URL '{url}'")
     except subprocess.CalledProcessError as e:
@@ -202,7 +219,29 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
 
         logger.debug(f'Getting chapter count with timeout of {timeout} seconds')
         result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)
-        video_info = json.loads(result.stdout)
+
+        # Try to parse as single JSON object first
+        try:
+            video_info = json.loads(result.stdout)
+        except json.JSONDecodeError as e:
+            # If parsing fails due to multiple JSON objects (playlist), parse only the first one
+            if 'Extra data' in str(e):
+                logger.warning('Multiple JSON objects detected in yt-dlp output, parsing first object only')
+                lines = result.stdout.strip().split('\n')
+                for line in lines:
+                    if line.strip():
+                        try:
+                            video_info = json.loads(line)
+                            break
+                        except json.JSONDecodeError:
+                            continue
+                else:
+                    # No valid JSON found
+                    raise
+            else:
+                # Re-raise if it's not an "Extra data" error
+                raise
+
         chapters = video_info.get('chapters')
         # Handle cases where chapters is None or not a list
         if not chapters:
