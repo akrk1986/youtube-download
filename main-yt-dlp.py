@@ -130,6 +130,35 @@ def main() -> None:
 
     try:
         _execute_main(args=args, args_dict=args_dict, start_time=start_time, session_id=session_id)
+    except KeyboardInterrupt:
+        logger.warning('Download cancelled by user (CTRL-C)')
+        # Send cancellation notification
+        # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
+        if SLACK_WEBHOOK:
+            elapsed_time = _format_elapsed_time(time.time() - start_time)
+            # Count files created before cancellation
+            audio_formats_str = args.audio_format
+            audio_formats = [fmt.strip() for fmt in audio_formats_str.split(',')]
+            video_count = 0
+            audio_count = 0
+            if not args.only_audio:
+                video_count = _count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
+            if args.with_audio or args.only_audio:
+                for audio_format in audio_formats:
+                    audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
+                    audio_count += _count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+            send_slack_notification(
+                webhook_url=SLACK_WEBHOOK,
+                status='cancelled',
+                url=args.video_url or 'N/A',
+                args_dict=args_dict,
+                session_id=session_id,
+                elapsed_time=elapsed_time,
+                video_count=video_count,
+                audio_count=audio_count
+            )
+        logger.info('Exiting...')
+        sys.exit(130)  # Standard exit code for CTRL-C
     except Exception as e:
         logger.exception(f'Download failed: {e}')
         # Send failure notification

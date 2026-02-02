@@ -23,7 +23,7 @@ def send_slack_notification(webhook_url: str, status: str, url: str,
 
     Args:
         webhook_url: Slack webhook URL (NEVER log this value)
-        status: 'start', 'success', or 'failure'
+        status: 'start', 'success', 'failure', or 'cancelled'
         url: The video/playlist URL that was downloaded
         args_dict: Dictionary of script arguments
         session_id: Unique session identifier [YYYY-mm-dd HH:MM hostname]
@@ -45,6 +45,9 @@ def send_slack_notification(webhook_url: str, status: str, url: str,
     elif status == 'success':
         icon = '✅'
         title = f'{icon} Download SUCCESS'
+    elif status == 'cancelled':
+        icon = '🛑'
+        title = f'{icon} Download CANCELLED'
     else:
         icon = '❌'
         title = f'{icon} Download FAILURE'
@@ -74,8 +77,8 @@ def send_slack_notification(webhook_url: str, status: str, url: str,
     # Build message text with session ID
     message_text = f'{title}\n\n*Session:* {session_id}\n\n*URL:* {url}\n\n*Parameters:*\n{params_text}'
 
-    # Add file counts if status is success or failure
-    if status in ['success', 'failure'] and (video_count > 0 or audio_count > 0):
+    # Add file counts if status is success, failure, or cancelled
+    if status in ['success', 'failure', 'cancelled'] and (video_count > 0 or audio_count > 0):
         files_text = []
         if video_count > 0:
             files_text.append(f'{video_count} video file(s)')
