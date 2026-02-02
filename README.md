@@ -12,6 +12,7 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 - Sanitize filenames for multiple languages (English, French, Turkish, Greek, Hebrew)
 - Automatic artist detection from a curated database of Greek musicians
 - Store source YouTube URL in both video and audio file metadata
+- Automatic format fallback when preferred video/audio formats are unavailable
 
 ## Usage
 
@@ -432,6 +433,17 @@ The tool includes specialized functionality for Greek music:
 - `Tests/` - Test scripts for individual components
 - `Docs/` - Documentation files
 - `Beta/` - Experimental features (excluded from global changes)
+
+## Automatic Format Fallback
+
+The tool automatically handles videos where preferred formats are unavailable:
+
+- **Video downloads**: Tries multiple format combinations (MP4+M4A → any video+audio → best available)
+- **Audio downloads**: Falls back to best available audio format
+- **Silent operation**: Format errors are suppressed; only shows error if no format works at all
+- **No user action required**: The fallback happens automatically without any configuration
+
+This eliminates confusing "Requested format is not available" error messages while still downloading successfully using alternative formats.
 
 ## License
 

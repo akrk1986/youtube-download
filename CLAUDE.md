@@ -138,6 +138,25 @@ The project uses a strategy pattern for handling different audio formats:
 5. Update audio tags with detected artists and original filename
 6. For chapter files: Set track numbers and album tags
 
+## Format Fallback System
+
+The download functions implement automatic format fallback to handle videos where preferred formats are unavailable:
+
+### Video Downloads
+- Tries formats in sequence: `bestvideo[ext=mp4]+bestaudio[ext=m4a]` → `bestvideo+bestaudio` → `best` → `bv*+ba/b`
+- Format errors are suppressed (logged at DEBUG level only)
+- Only shows error if ALL format options fail
+
+### Audio Downloads
+- Uses `bestaudio/best` with automatic fallback
+- Format errors are silently handled
+
+### Key Components
+- `is_format_error()` in `funcs_utils.py` - Detects format-related errors
+- `VIDEO_FORMAT_FALLBACKS` in `funcs_yt_dlp_download.py` - List of formats to try
+- `_SilentLogger` in `funcs_video_info.py` - Suppresses yt-dlp library error output
+- `--no-warnings` and `--ignore-config` flags added to yt-dlp commands
+
 ## Greek Text Processing
 
 The codebase has specialized handling for Greek text:

@@ -4,6 +4,57 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2026-02-02
+
+**Bug Fix:** Suppress yt-dlp format availability errors with automatic fallback
+
+**Problem:** When downloading certain videos, yt-dlp would display error messages like `ERROR: [youtube] VIDEO_ID: Requested format is not available` even when alternative formats could be used successfully.
+
+**Solution:** Implemented format error suppression with automatic fallback mechanism:
+
+1. Format errors are now detected and handled gracefully
+2. Video downloads try multiple format strings in sequence
+3. Error messages are suppressed (logged at DEBUG level only)
+4. Only shows error if ALL format options fail
+
+**Changes made:**
+
+1. **`funcs_utils.py`**:
+   - Added `is_format_error()` utility function to detect format-related errors
+   - Checks for patterns: "Requested format is not available", "No video formats found"
+
+2. **`funcs_yt_dlp_download.py`**:
+   - Added `--no-warnings` flag to suppress yt-dlp warning messages
+   - Added `VIDEO_FORMAT_FALLBACKS` list with format strings to try in order:
+     - First: `bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best`
+     - Fallback: `bv*+ba/b` (most permissive)
+   - Implemented retry mechanism that silently tries next format on failure
+   - Updated stderr capture to properly detect format errors
+   - Audio extraction also updated with `--no-warnings` flag
+
+3. **`funcs_video_info.py`**:
+   - Added `--no-warnings` and `--ignore-config` flags to `get_video_info()`
+   - Format errors now return empty dict instead of raising exception
+   - Added `_SilentLogger` class to suppress yt-dlp library error output
+   - Updated `is_playlist()` to use silent logger and suppress format errors
+
+**Behavioral Changes:**
+
+**Before:**
+```
+ERROR: [youtube] VIDEO_ID: Requested format is not available. Use --list-formats...
+2026-02-02 13:59:27 - funcs_video_info - ERROR - Failed to get video info...
+```
+
+**After:**
+- No error messages for format availability issues
+- Automatic fallback to alternative formats
+- Error only shown if no format can be used at all
+
+**Result:** Cleaner output with automatic format fallback. Users no longer see confusing format error messages when yt-dlp can successfully download using an alternative format.
+
+---
+
 ## 2026-01-11
 
 **Feature Enhancement:** Slack notification improvements and URL security

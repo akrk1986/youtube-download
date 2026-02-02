@@ -11,11 +11,12 @@ from typing import Any
 import yt_dlp
 
 from funcs_url_extraction import is_valid_domain_url
-from funcs_utils import get_cookie_args, sanitize_url_for_subprocess
-from project_defs import (
-    SUBPROCESS_TIMEOUT_FACEBOOK, SUBPROCESS_TIMEOUT_OTHER_SITES, SUBPROCESS_TIMEOUT_YOUTUBE,
-    VALID_FACEBOOK_DOMAINS, VALID_OTHER_DOMAINS, VALID_YOUTUBE_DOMAINS
-)
+from funcs_utils import (get_cookie_args, is_format_error,
+                         sanitize_url_for_subprocess)
+from project_defs import (SUBPROCESS_TIMEOUT_FACEBOOK,
+                          SUBPROCESS_TIMEOUT_OTHER_SITES,
+                          SUBPROCESS_TIMEOUT_YOUTUBE, VALID_FACEBOOK_DOMAINS,
+                          VALID_OTHER_DOMAINS, VALID_YOUTUBE_DOMAINS)
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,8 @@ def get_video_info(yt_dlp_path: Path, url: str) -> dict:
 
     cmd = [
         str(yt_dlp_path),
+        '--no-warnings',
+        '--ignore-config',
         '--dump-json',
         '--no-download',
         sanitized_url
@@ -161,9 +164,31 @@ def get_video_info(yt_dlp_path: Path, url: str) -> dict:
     except subprocess.TimeoutExpired:
         raise RuntimeError(f"yt-dlp timed out after {timeout} seconds for URL '{url}'")
     except subprocess.CalledProcessError as e:
+        # Check if this is a format error - return empty dict instead of raising
+        if is_format_error(e.stderr):
+            logger.debug(f'Format not available for URL, returning empty info: {url}')
+            return {}
         raise RuntimeError(f'yt-dlp failed: {e.stderr}')
     except json.JSONDecodeError as e:
         raise RuntimeError(f"Failed to parse yt-dlp output for '{url}': {e}")
+
+
+class _SilentLogger:
+    """Custom logger for yt-dlp that suppresses format errors."""
+
+    def debug(self, msg: str) -> None:
+        pass
+
+    def info(self, msg: str) -> None:
+        pass
+
+    def warning(self, msg: str) -> None:
+        pass
+
+    def error(self, msg: str) -> None:
+        # Suppress format errors, log others at debug level
+        if not is_format_error(msg):
+            logger.debug(f'yt-dlp error: {msg}')
 
 
 def is_playlist(url: str) -> bool:
@@ -173,6 +198,7 @@ def is_playlist(url: str) -> bool:
         'quiet': True,
         'no_warnings': True,
         'extract_flat': True,
+        'logger': _SilentLogger(),
     }
 
     # Add cookie configuration if environment variable is set
@@ -186,7 +212,11 @@ def is_playlist(url: str) -> bool:
             info = ydl.extract_info(url=url, download=False)
             return info.get('webpage_url_basename') == 'playlist'  # type: ignore[typeddict-item]
         except Exception as e:
-            logger.error(f"Failed to get video info for URL '{url}': {e}")
+            error_str = str(e)
+            if is_format_error(error_str):
+                logger.debug(f'Format not available for URL, assuming not a playlist: {url}')
+            else:
+                logger.error(f"Failed to get video info for URL '{url}': {e}")
             return False
 
 
@@ -210,7 +240,7 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
         # Get appropriate timeout based on URL domain
         timeout = get_timeout_for_url(url=playlist_url)
 
-        cmd = [ytdlp_exe, '--dump-json', '--no-download', sanitized_url]
+        cmd: list[str | Path] = [ytdlp_exe, '--dump-json', '--no-download', sanitized_url]
 
         # Add cookie arguments if configured via environment variable
         cookie_args = get_cookie_args()

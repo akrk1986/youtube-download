@@ -1,21 +1,24 @@
 // ERTFlix URL Extractor - Browser Console Script
 //
 // Instructions:
-// 1. Open ANY series page in your browser
+// 1. Open ANY series page in your browser. Chrome works best
 //    Examples:
 //    - https://www.ertflix.gr/series/ser.521736-parea-1
 //    - https://www.ertflix.gr/en/series/ser.27883-nykhta-stasou
 //    - https://www.ertflix.gr/series/ser.99028-i-ayli-ton-chromaton
 // 2. Wait 5-10 seconds for the page to fully load
-// 3. Press F12 to open Developer Tools
-// 4. Click the Console tab
-// 5. Copy and paste this entire file into the console
-// 6. Press Enter
-// 7. Episodes will be automatically extracted and copied to clipboard
-// 8. Paste into a text file
+// 3. If there are arrows to more previous/past episodes, click on them so that all
+//    episodes are displayed on the page
+// 4. Press F12 to open Developer Tools
+// 5. Click the Console tab
+// 6. Clear the console
+// 7. Copy and paste this entire file into the console
+// 8. Press Enter
+// 9. Episodes will be automatically extracted and copied to clipboard
+// 10. Paste into a text file
 //
 // The script automatically detects which program you're viewing and
-// generates the correct URL pattern - no manual configuration needed!
+// generates the correct URL pattern - no manual configuration is needed!
 
 // =============================================================================
 // EXTRACTION CODE

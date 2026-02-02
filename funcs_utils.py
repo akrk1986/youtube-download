@@ -8,15 +8,29 @@ from pathlib import Path
 
 import emoji
 
-from project_defs import (
-    AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_FLAC, AUDIO_OUTPUT_DIR_M4A,
-    GLOB_FLAC_FILES, GLOB_FLAC_FILES_UPPER,
-    GLOB_M4A_FILES, GLOB_M4A_FILES_UPPER,
-    GLOB_MP3_FILES, GLOB_MP3_FILES_UPPER, GLOB_MP4_FILES,
-    LEADING_NONALNUM_PATTERN, MULTIPLE_SPACES_PATTERN
-)
+from project_defs import (AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_FLAC,
+                          AUDIO_OUTPUT_DIR_M4A, GLOB_FLAC_FILES,
+                          GLOB_FLAC_FILES_UPPER, GLOB_M4A_FILES,
+                          GLOB_M4A_FILES_UPPER, GLOB_MP3_FILES,
+                          GLOB_MP3_FILES_UPPER, GLOB_MP4_FILES,
+                          LEADING_NONALNUM_PATTERN, MULTIPLE_SPACES_PATTERN)
 
 logger = logging.getLogger(__name__)
+
+
+# yt-dlp error detection
+
+
+def is_format_error(error_text: str | None) -> bool:
+    """Check if the error is a format availability error that should be suppressed."""
+    if not error_text:
+        return False
+    format_error_patterns = [
+        'Requested format is not available',
+        'No video formats found',
+        'requested format not available',
+    ]
+    return any(pattern.lower() in error_text.lower() for pattern in format_error_patterns)
 
 
 # Cookie handling for yt-dlp

@@ -4,11 +4,13 @@ import os
 import subprocess
 from pathlib import Path
 
-from funcs_utils import get_cookie_args, sanitize_string, sanitize_url_for_subprocess
+from funcs_utils import (get_cookie_args, is_format_error, sanitize_string,
+                         sanitize_url_for_subprocess)
 from funcs_video_info import get_timeout_for_url, get_video_info
-from project_defs import (AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_FLAC, AUDIO_OUTPUT_DIR_M4A,
-                          DEFAULT_AUDIO_QUALITY,
-                          YT_DLP_IS_PLAYLIST_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG, YT_DLP_WRITE_JSON_FLAG)
+from project_defs import (AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_FLAC,
+                          AUDIO_OUTPUT_DIR_M4A, DEFAULT_AUDIO_QUALITY,
+                          YT_DLP_IS_PLAYLIST_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
+                          YT_DLP_WRITE_JSON_FLAG)
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +48,13 @@ def _quote_if_needed(value: str) -> str:
     return value
 
 
+# Format strings to try in order, from most preferred to most permissive
+VIDEO_FORMAT_FALLBACKS = [
+    'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',  # Preferred: MP4+M4A, then any
+    'bv*+ba/b',  # Very permissive: any video + any audio, or best combined
+]
+
+
 def run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: bool,
                write_json: bool, has_chapters: bool, split_chapters: bool, is_it_playlist: bool,
                show_progress: bool = False, video_download_timeout: int | None = None,
@@ -76,9 +85,12 @@ def run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: boo
         output_template = os.path.join(video_folder, f'{sanitized_title}.%(ext)s')
         logger.debug(f"Sanitized video title: '{video_title}' -> '{sanitized_title}'")
 
-    yt_dlp_cmd = [
+    # Build base command (format will be inserted during retry loop)
+    format_placeholder = '__FORMAT__'
+    base_cmd: list[str | Path] = [
         ytdlp_exe,
-        '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
+        '--no-warnings',  # Suppress yt-dlp warnings (format errors handled via retry)
+        '-f', format_placeholder,  # Placeholder for format, will be set in loop
         '--merge-output-format', 'mp4',
         '--embed-metadata',
         '--add-metadata',
@@ -90,28 +102,28 @@ def run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: boo
     # Add cookie arguments if configured via environment variable
     cookie_args = get_cookie_args()
     if cookie_args:
-        yt_dlp_cmd[1:1] = cookie_args
+        base_cmd[1:1] = cookie_args
 
     if is_it_playlist:
-        yt_dlp_cmd[1:1] = [YT_DLP_IS_PLAYLIST_FLAG]
+        base_cmd[1:1] = [YT_DLP_IS_PLAYLIST_FLAG]
     if write_json:
-        yt_dlp_cmd[1:1] = [YT_DLP_WRITE_JSON_FLAG]
+        base_cmd[1:1] = [YT_DLP_WRITE_JSON_FLAG]
     if split_chapters and has_chapters:
-        yt_dlp_cmd[1:1] = [YT_DLP_SPLIT_CHAPTERS_FLAG]
+        base_cmd[1:1] = [YT_DLP_SPLIT_CHAPTERS_FLAG]
         # Remux to MP4 after splitting to fix container metadata and ensure proper seeking
-        yt_dlp_cmd[1:1] = ['--remux-video', 'mp4']
+        base_cmd[1:1] = ['--remux-video', 'mp4']
     if get_subs:
         # Extract subtitles in Greek, English, Hebrew
-        yt_dlp_cmd[1:1] = [
+        base_cmd[1:1] = [
             '--write-subs',
             '--sub-lang', 'el,en,he',
             '--convert-subs', 'srt'
         ]
     if show_progress:
-        yt_dlp_cmd[1:1] = ['--progress']
+        base_cmd[1:1] = ['--progress']
     if custom_title:
         # Set the title metadata tag to the custom title
-        yt_dlp_cmd[1:1] = ['--replace-in-metadata', 'title', '.+', sanitized_title]
+        base_cmd[1:1] = ['--replace-in-metadata', 'title', '.+', sanitized_title]
     if custom_artist or custom_album:
         # Set metadata tags using ffmpeg postprocessor args
         ffmpeg_metadata = []
@@ -122,48 +134,77 @@ def run_yt_dlp(ytdlp_exe: Path, video_url: str, video_folder: str, get_subs: boo
         if custom_album:
             quoted_album = _quote_if_needed(custom_album)
             ffmpeg_metadata.extend(['-metadata', f'album={quoted_album}'])
-        yt_dlp_cmd[1:1] = ['--postprocessor-args', 'ffmpeg:' + ' '.join(ffmpeg_metadata)]
+        base_cmd[1:1] = ['--postprocessor-args', 'ffmpeg:' + ' '.join(ffmpeg_metadata)]
+
+    # Find the index of the format placeholder (after -f flag)
+    format_index = base_cmd.index(format_placeholder)
 
     logger.info(f'Downloading media, using timeout of {timeout} seconds for video download')
-    logger.info(f'Command: {yt_dlp_cmd}')
 
-    # Run download with error handling
-    # Note: Some videos in playlists may be unavailable, which is expected
-    try:
-        if show_progress:
-            # Create Logs directory if it doesn't exist, set up log file for download progress (very verbose)
-            logs_dir = Path('Logs')
-            logs_dir.mkdir(exist_ok=True)
-            log_file = logs_dir / 'yt-dlp-progress.log'
+    # Try each format in sequence until one succeeds
+    last_error = None
+    for format_str in VIDEO_FORMAT_FALLBACKS:
+        yt_dlp_cmd = base_cmd.copy()
+        yt_dlp_cmd[format_index] = format_str
 
-            # First write overwrites, subsequent writes append
-            mode = 'w' if not _progress_log_initialized else 'a'
-            _progress_log_initialized = True
+        logger.debug(f'Trying format: {format_str}')
+        logger.info(f'Command: {yt_dlp_cmd}')
 
-            with open(log_file, mode, encoding='utf-8') as f:
-                result = subprocess.run(yt_dlp_cmd, check=True, stdout=f, stderr=subprocess.STDOUT,
-                                        text=True, timeout=timeout)
-            logger.info(f'Video download completed successfully. Progress logged to {log_file}')
-            logger.info(f'Downloaded from URL: {video_url}')
-        else:
-            result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=timeout)
-            logger.info('Video download completed successfully')
-            logger.info(f'Downloaded from URL: {video_url}')
-            if result.stdout:
-                logger.debug(f'yt-dlp output: {result.stdout}')
-    except subprocess.TimeoutExpired:
-        logger.error(f"Video download timed out after {timeout} seconds for URL '{video_url}'")
-        if not is_it_playlist:
-            raise RuntimeError(f"Download timed out for '{video_url}'")
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Video download failed for URL '{video_url}' (exit code {e.returncode})")
-        if e.stderr:
-            logger.error(f'Error details: {e.stderr}')
-        # For playlists, partial failure is acceptable
-        if is_it_playlist:
-            logger.warning(f"Some videos in playlist '{video_url}' may have failed, continuing...")
-        else:
+        try:
+            if show_progress:
+                # Create Logs directory if it doesn't exist, set up log file for download progress (very verbose)
+                logs_dir = Path('Logs')
+                logs_dir.mkdir(exist_ok=True)
+                log_file = logs_dir / 'yt-dlp-progress.log'
+
+                # First write overwrites, subsequent writes append
+                mode = 'w' if not _progress_log_initialized else 'a'
+                _progress_log_initialized = True
+
+                with open(log_file, mode, encoding='utf-8') as f:
+                    # Capture stderr separately to detect format errors
+                    result = subprocess.run(yt_dlp_cmd, check=True, stdout=f,
+                                            stderr=subprocess.PIPE, text=True, timeout=timeout)
+                logger.info(f'Video download completed successfully. Progress logged to {log_file}')
+                logger.info(f'Downloaded from URL: {video_url}')
+            else:
+                result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=timeout)
+                logger.info('Video download completed successfully')
+                logger.info(f'Downloaded from URL: {video_url}')
+                if result.stdout:
+                    logger.debug(f'yt-dlp output: {result.stdout}')
+            return  # Success, exit function
+
+        except subprocess.TimeoutExpired:
+            logger.error(f"Video download timed out after {timeout} seconds for URL '{video_url}'")
+            if not is_it_playlist:
+                raise RuntimeError(f"Download timed out for '{video_url}'")
+            return
+
+        except subprocess.CalledProcessError as e:
+            last_error = e
+            # Check stderr for format error (also check stdout in case messages went there)
+            error_output = (e.stderr or '') + (e.stdout or '')
+            if is_format_error(error_output):
+                logger.debug(f'Format {format_str} not available, trying next format...')
+                continue
+
+            # Non-format error, handle normally
+            logger.error(f"Video download failed for URL '{video_url}' (exit code {e.returncode})")
+            if e.stderr:
+                logger.error(f'Error details: {e.stderr}')
+            if is_it_playlist:
+                logger.warning(f"Some videos in playlist '{video_url}' may have failed, continuing...")
+                return
             raise RuntimeError(f"Failed to download video from '{video_url}': {e.stderr}")
+
+    # All formats failed
+    logger.error(f"All format options exhausted for URL '{video_url}'")
+    if is_it_playlist:
+        logger.warning(f"Some videos in playlist '{video_url}' may have failed, continuing...")
+    else:
+        stderr = last_error.stderr if last_error else 'Unknown error'
+        raise RuntimeError(f"No compatible format found for '{video_url}': {stderr}")
 
 
 def extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
@@ -204,8 +245,9 @@ def extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
         output_template = os.path.join(output_folder, f'{sanitized_title}.%(ext)s')
         logger.debug(f"Sanitized audio title: '{video_title}' -> '{sanitized_title}'")
 
-    yt_dlp_cmd = [
+    yt_dlp_cmd: list[str | Path] = [
         ytdlp_exe,
+        '--no-warnings',  # Suppress yt-dlp warnings (format errors handled via retry)
         '-f', 'bestaudio/best',
         '--extract-audio',
         '--audio-format', format_type,
@@ -265,9 +307,10 @@ def extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
             _progress_log_initialized = True
 
             with open(log_file, mode, encoding='utf-8') as f:
+                # Capture stderr separately to detect format errors
                 result = subprocess.run(
                     yt_dlp_cmd, check=True, stdout=f,
-                    stderr=subprocess.STDOUT, text=True, timeout=timeout)
+                    stderr=subprocess.PIPE, text=True, timeout=timeout)
             logger.info(f'{format_type.upper()} audio download completed successfully. Progress logged to {log_file}')
             logger.info(f'Downloaded from URL: {video_url}')
         else:
@@ -281,10 +324,19 @@ def extract_single_format(ytdlp_exe: Path, video_url: str, output_folder: str,
         if not is_it_playlist:
             raise RuntimeError(f"Audio download timed out for '{video_url}'")
     except subprocess.CalledProcessError as e:
+        # Check if this is a format error - suppress it, only log non-format errors
+        error_output = (e.stderr or '') + (e.stdout or '')
+        if is_format_error(error_output):
+            # Format error - the bestaudio/best fallback should have worked, but didn't
+            # This is unusual, log at debug level and continue
+            logger.debug(f'{format_type.upper()} format not available for this video')
+            if is_it_playlist:
+                logger.warning(f"Some videos in playlist '{video_url}' may have failed, continuing...")
+            return  # Don't raise for format errors - the format simply isn't available
+        # Non-format error
         logger.error(f"{format_type.upper()} audio download failed for URL '{video_url}' (exit code {e.returncode})")
         if e.stderr:
             logger.error(f'Error details: {e.stderr}')
-        # For playlists, partial failure is acceptable
         if is_it_playlist:
             logger.warning(f"Some videos in playlist '{video_url}' may have failed, continuing...")
         else:
@@ -310,8 +362,8 @@ def extract_audio_with_ytdlp(ytdlp_exe: Path, playlist_url: str,
         video_info = get_video_info(yt_dlp_path=ytdlp_exe, url=playlist_url)
         artist = video_info.get('artist')
         uploader = video_info.get('uploader')
-        have_artist = artist and artist not in ('NA', '')
-        have_uploader = uploader and uploader not in ('NA', '')
+        have_artist = bool(artist and artist not in ('NA', ''))
+        have_uploader = bool(uploader and uploader not in ('NA', ''))
 
         if have_artist:
             artist_pat = 'artist:%(artist)s'
