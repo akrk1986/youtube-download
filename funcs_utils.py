@@ -5,6 +5,7 @@ import re
 import shutil
 import unicodedata
 from pathlib import Path
+from typing import Any
 
 import emoji
 
@@ -283,7 +284,7 @@ def organize_media_files(video_dir: Path) -> dict:
     """
     current_dir = Path.cwd()
 
-    moved_files = {'mp3': [], 'mp4': [], 'm4a': [], 'flac': [], 'errors': [], 'original_names': {}}
+    moved_files: dict[str, Any] = {'mp3': [], 'mp4': [], 'm4a': [], 'flac': [], 'errors': [], 'original_names': {}}
 
     # Get all audio-like files including case variations
     audio_files = (list(current_dir.glob(GLOB_MP3_FILES)) +
@@ -365,7 +366,7 @@ def organize_media_files_silent() -> dict:
     audio_dir.mkdir(exist_ok=True)
     video_dir.mkdir(exist_ok=True)
 
-    moved_files = {'mp3': [], 'mp4': [], 'm4a': [], 'errors': []}
+    moved_files: dict[str, Any] = {'mp3': [], 'mp4': [], 'm4a': [], 'errors': []}
 
     audio_files = list(current_dir.glob(GLOB_MP3_FILES)) + list(current_dir.glob(GLOB_M4A_FILES))
 

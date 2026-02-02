@@ -35,7 +35,7 @@ def _get_audio_dir_for_format(audio_format: str) -> str:
         raise ValueError(f'Unknown audio format: {audio_format}')
 
 
-def validate_and_get_url(provided_url: str) -> str | None:
+def validate_and_get_url(provided_url: str) -> str:
     """
     Validate YouTube URL or prompt user for one if not provided.
 
@@ -62,6 +62,8 @@ def validate_and_get_url(provided_url: str) -> str | None:
             else:
                 logger.error('Maximum retry attempts reached. Exiting.')
                 sys.exit(1)
+        # Should never reach here, but mypy needs this
+        sys.exit(1)
     else:
         # CLI mode: validate provided URL
         is_valid, error_msg = validate_video_url(url=provided_url)

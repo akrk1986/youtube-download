@@ -8,7 +8,7 @@ from typing import Any
 import logging
 
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3, ID3NoHeaderError, TENC, TIT2, TPE1, TPE2, TALB, TDRC, TRCK, COMM
+from mutagen.id3 import ID3, ID3NoHeaderError, TENC
 from mutagen.mp4 import MP4
 from mutagen.flac import FLAC
 
@@ -52,6 +52,12 @@ def _force_utf16_encoding(file_path: Path) -> None:
 
 class AudioTagHandler(ABC):
     """Abstract base class for audio tag handlers."""
+
+    # Tag name constants (overridden in subclasses)
+    TAG_TITLE: str = ''
+    TAG_ARTIST: str = ''
+    TAG_ALBUMARTIST: str = ''
+    TAG_ALBUM: str = ''
 
     @abstractmethod
     def open_audio_file(self, file_path: Path) -> Any:
@@ -112,6 +118,7 @@ class AudioTagHandler(ABC):
             original_filename: Original filename from yt-dlp (before sanitization/moving), defaults to file_path.name
         """
         pass
+
 
 class MP3TagHandler(AudioTagHandler):
     """Handler for MP3 files and tags using EasyID3."""
@@ -198,6 +205,7 @@ class MP3TagHandler(AudioTagHandler):
         # Reload the audio object to reflect the changes
         audio.load(file_path)
 
+
 class M4ATagHandler(AudioTagHandler):
     """Handler for M4A files and tags using MP4."""
 
@@ -276,6 +284,7 @@ class M4ATagHandler(AudioTagHandler):
             original_filename = original_filename[:-4]
 
         audio[self.TAG_LYRICS] = [original_filename]
+
 
 class FLACTagHandler(AudioTagHandler):
     """Handler for FLAC files and tags using Vorbis Comments."""

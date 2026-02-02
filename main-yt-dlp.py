@@ -21,6 +21,7 @@ from logger_config import setup_logging
 from project_defs import (DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
                           VIDEO_OUTPUT_DIR)
 
+SLACK_WEBHOOK: str | None
 try:
     from git_excluded import SLACK_WEBHOOK
 except ImportError:
@@ -205,7 +206,12 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> 
 
     # Remove duplicates while preserving order
     seen = set()
-    audio_formats = [fmt for fmt in audio_formats if not (fmt in seen or seen.add(fmt))]
+    deduplicated_formats = []
+    for fmt in audio_formats:
+        if fmt not in seen:
+            seen.add(fmt)
+            deduplicated_formats.append(fmt)
+    audio_formats = deduplicated_formats
 
     logger.info(f'Requested audio formats: {", ".join(audio_formats)}')
 
@@ -260,8 +266,8 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> 
     if need_audio:
         # Create audio directories for each requested format
         for audio_format in audio_formats:
-            audio_dir = os.path.abspath(get_audio_dir_for_format(audio_format=audio_format))
-            os.makedirs(audio_dir, exist_ok=True)
+            audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
+            audio_dir.mkdir(parents=True, exist_ok=True)
 
     url_is_playlist = is_playlist(url=args.video_url)
     uploader_name = None  # Initialize uploader name for chapter processing
@@ -298,13 +304,13 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> 
             custom_album = None
 
     if not url_is_playlist:
-        chapters_count = get_chapter_count(ytdlp_exe=yt_dlp_exe, playlist_url=args.video_url)
+        chapters_count = get_chapter_count(ytdlp_exe=Path(yt_dlp_exe), playlist_url=args.video_url)
         has_chapters = chapters_count > 0
 
         # Get uploader and title information for chapter processing
         if has_chapters:
             logger.info(f'Video has {chapters_count} chapters')
-            video_info = get_video_info(yt_dlp_path=yt_dlp_exe, url=args.video_url)
+            video_info = get_video_info(yt_dlp_path=Path(yt_dlp_exe), url=args.video_url)
             uploader_name = video_info.get('uploader')
             video_title = video_info.get('title')
             if uploader_name and uploader_name not in ('NA', ''):
@@ -340,7 +346,7 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> 
         # If split-chapters is requested with chapters, create CSV instead of downloading video chapters
         if args.split_chapters and has_chapters:
             logger.info('Creating chapters CSV file instead of downloading video chapters')
-            create_chapters_csv(video_info=video_info, output_dir=video_folder, video_title=video_title)
+            create_chapters_csv(video_info=video_info, output_dir=video_folder, video_title=video_title or 'Unknown')
             # Still download the full video without chapter splitting
             # Create a copy with split_chapters=False
             video_opts = DownloadOptions(

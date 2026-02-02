@@ -70,8 +70,8 @@ def _extract_text_from_odt(file_path: str) -> str:
         Text content of the file
     """
     try:
-        from odf import text, teletype
-        from odf.opendocument import load
+        from odf import text, teletype  # type: ignore[import-untyped]
+        from odf.opendocument import load  # type: ignore[import-untyped]
     except ImportError:
         raise ImportError('odfpy package is required to read .odt files. Install it with: pip install odfpy')
 

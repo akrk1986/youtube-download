@@ -1,9 +1,6 @@
 """Send Slack notifications for download status."""
 import logging
-import socket
 from typing import Optional
-
-import arrow
 import requests
 
 logger = logging.getLogger(__name__)
@@ -104,9 +101,9 @@ def send_slack_notification(webhook_url: str, status: str, url: str,
         if response.ok:
             logger.debug(f'Slack notification sent: {status} (HTTP {response.status_code})')
             return True
-        else:
-            logger.warning(f'Slack notification failed with HTTP status {response.status_code}')
-            return False
+        
+        logger.warning(f'Slack notification failed with HTTP status {response.status_code}')
+        return False
 
     except requests.Timeout:
         logger.warning('Failed to send Slack notification: Request timed out')
