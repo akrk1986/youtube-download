@@ -144,7 +144,6 @@ def set_tags_in_chapter_audio_files(
 
             # If no artist is set and we have an uploader, use uploader as artist
             current_artist = handler.get_tag(audio=audio, tag_name=handler.TAG_ARTIST)
-            current_albumartist = handler.get_tag(audio=audio, tag_name=handler.TAG_ALBUMARTIST)
 
             if (not current_artist or current_artist == '' or current_artist == 'NA') and uploader:
                 handler.set_tag(audio=audio, tag_name=handler.TAG_ARTIST, value=uploader)

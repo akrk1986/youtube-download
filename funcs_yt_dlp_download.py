@@ -1,6 +1,5 @@
 """Download functions for yt-dlp operations."""
 import logging
-import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -73,7 +72,7 @@ VIDEO_FORMAT_FALLBACKS = [
 ]
 
 
-def run_yt_dlp(opts: DownloadOptions, video_folder: str, get_subs: bool, write_json: bool) -> None:
+def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, write_json: bool) -> None:
     """Extract videos from video URL with yt-dlp. Include subtitles if requested."""
     global _progress_log_initialized
 
@@ -86,17 +85,18 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: str, get_subs: bool, write_j
     # Determine output filename template
     # For single videos, use custom title if provided, otherwise get and sanitize the video title
     # For playlists, use yt-dlp template
+    video_folder_path = Path(video_folder)
     if opts.is_it_playlist:
-        output_template = os.path.join(video_folder, '%(title)s.%(ext)s')
+        output_template = str(video_folder_path / '%(title)s.%(ext)s')
     elif opts.custom_title:
         sanitized_title = sanitize_string(dirty_string=opts.custom_title)
-        output_template = os.path.join(video_folder, f'{sanitized_title}.%(ext)s')
+        output_template = str(video_folder_path / f'{sanitized_title}.%(ext)s')
         logger.debug(f"Using custom title: '{opts.custom_title}' -> '{sanitized_title}'")
     else:
         video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url)
         video_title = video_info.get('title', 'untitled')
         sanitized_title = sanitize_string(dirty_string=video_title)
-        output_template = os.path.join(video_folder, f'{sanitized_title}.%(ext)s')
+        output_template = str(video_folder_path / f'{sanitized_title}.%(ext)s')
         logger.debug(f"Sanitized video title: '{video_title}' -> '{sanitized_title}'")
 
     # Build base command (format will be inserted during retry loop)
@@ -221,7 +221,7 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: str, get_subs: bool, write_j
         raise RuntimeError(f"No compatible format found for '{opts.url}': {stderr}")
 
 
-def extract_single_format(opts: DownloadOptions, output_folder: str, format_type: str,
+def extract_single_format(opts: DownloadOptions, output_folder: Path | str, format_type: str,
                           artist_pat: str | None = None,
                           album_artist_pat: str | None = None) -> None:
     """Extract audio in a single format using yt-dlp."""
@@ -234,7 +234,8 @@ def extract_single_format(opts: DownloadOptions, output_folder: str, format_type
     timeout = get_timeout_for_url(url=opts.url, video_download_timeout=opts.video_download_timeout)
 
     # Ensure output folder exists
-    os.makedirs(output_folder, exist_ok=True)
+    output_folder_path = Path(output_folder)
+    output_folder_path.mkdir(parents=True, exist_ok=True)
 
     # For FLAC (lossless), use best quality (0); for lossy formats use default quality
     audio_quality = '0' if format_type == 'flac' else DEFAULT_AUDIO_QUALITY
@@ -243,16 +244,16 @@ def extract_single_format(opts: DownloadOptions, output_folder: str, format_type
     # For single videos, use custom title if provided, otherwise get and sanitize the video title
     # For playlists, use yt-dlp template
     if opts.is_it_playlist:
-        output_template = os.path.join(output_folder, '%(title)s.%(ext)s')
+        output_template = str(output_folder_path / '%(title)s.%(ext)s')
     elif opts.custom_title:
         sanitized_title = sanitize_string(dirty_string=opts.custom_title)
-        output_template = os.path.join(output_folder, f'{sanitized_title}.%(ext)s')
+        output_template = str(output_folder_path / f'{sanitized_title}.%(ext)s')
         logger.debug(f"Using custom title: '{opts.custom_title}' -> '{sanitized_title}'")
     else:
         video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url)
         video_title = video_info.get('title', 'untitled')
         sanitized_title = sanitize_string(dirty_string=video_title)
-        output_template = os.path.join(output_folder, f'{sanitized_title}.%(ext)s')
+        output_template = str(output_folder_path / f'{sanitized_title}.%(ext)s')
         logger.debug(f"Sanitized audio title: '{video_title}' -> '{sanitized_title}'")
 
     yt_dlp_cmd: list[str | Path] = [
@@ -384,6 +385,6 @@ def extract_audio_with_ytdlp(opts: DownloadOptions, audio_formats: list[str]) ->
     logger.info(f'Using timeout of {timeout} seconds for audio extraction')
     for audio_format in audio_formats:
         # Get the appropriate output directory for this format
-        output_dir = os.path.abspath(get_audio_dir_for_format(audio_format=audio_format))
+        output_dir = Path(get_audio_dir_for_format(audio_format=audio_format)).resolve()
         extract_single_format(opts=opts, output_folder=output_dir, format_type=audio_format,
                               artist_pat=artist_pat, album_artist_pat=album_artist_pat)

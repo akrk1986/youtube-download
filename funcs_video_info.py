@@ -344,7 +344,7 @@ def display_chapters_and_confirm(video_info: dict) -> bool:
     return True
 
 
-def create_chapters_csv(video_info: dict, output_dir: str, video_title: str) -> None:
+def create_chapters_csv(video_info: dict, output_dir: Path | str, video_title: str) -> None:
     """
     Create a CSV file with chapter information instead of downloading video chapters.
 

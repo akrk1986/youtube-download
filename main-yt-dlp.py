@@ -1,7 +1,6 @@
 """Using yt-dlp, download videos from URL, and extract the MP3 files."""
 import argparse
 import logging
-import os
 import socket
 import sys
 import time
@@ -260,9 +259,9 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> 
     last_url_file.parent.mkdir(exist_ok=True)
     last_url_file.write_text(args.video_url)
 
-    video_folder = os.path.abspath(VIDEO_OUTPUT_DIR)
+    video_folder = Path(VIDEO_OUTPUT_DIR).resolve()
     if not args.only_audio:
-        os.makedirs(video_folder, exist_ok=True)
+        video_folder.mkdir(parents=True, exist_ok=True)
     if need_audio:
         # Create audio directories for each requested format
         for audio_format in audio_formats:
@@ -372,7 +371,7 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> 
 
     # Organize chapter files and sanitize filenames
     original_names = organize_and_sanitize_files(
-        video_folder=Path(video_folder),
+        video_folder=video_folder,
         audio_formats=audio_formats,
         has_chapters=has_chapters,
         only_audio=args.only_audio,
@@ -398,7 +397,7 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> 
         video_count = 0
         audio_count = 0
         if not args.only_audio:
-            video_count = _count_files(directory=Path(video_folder), extensions=['.mp4', '.webm', '.mkv'])
+            video_count = _count_files(directory=video_folder, extensions=['.mp4', '.webm', '.mkv'])
         if need_audio:
             for audio_format in audio_formats:
                 audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
