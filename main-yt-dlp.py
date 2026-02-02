@@ -9,15 +9,17 @@ from pathlib import Path
 
 import arrow
 
-from logger_config import setup_logging
-from funcs_for_main_yt_dlp import (validate_and_get_url, organize_and_sanitize_files,
-                                   process_audio_tags, get_ytdlp_path)
-from funcs_yt_dlp_download import (run_yt_dlp, extract_audio_with_ytdlp,
-                                   get_audio_dir_for_format)
-from funcs_video_info import (get_video_info, is_playlist, get_chapter_count,
-                              display_chapters_and_confirm, create_chapters_csv)
-from project_defs import DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS, VIDEO_OUTPUT_DIR
+from funcs_for_main_yt_dlp import (get_ytdlp_path, organize_and_sanitize_files,
+                                   process_audio_tags, validate_and_get_url)
 from funcs_slack_notify import send_slack_notification
+from funcs_video_info import (create_chapters_csv,
+                              display_chapters_and_confirm, get_chapter_count,
+                              get_video_info, is_playlist)
+from funcs_yt_dlp_download import (DownloadOptions, extract_audio_with_ytdlp,
+                                   get_audio_dir_for_format, run_yt_dlp)
+from logger_config import setup_logging
+from project_defs import (DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
+                          VIDEO_OUTPUT_DIR)
 
 try:
     from git_excluded import SLACK_WEBHOOK
@@ -290,6 +292,20 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> 
         logger.info('URL is a playlist, not extracting chapters')
         has_chapters = False
 
+    # Create download options dataclass for common parameters
+    download_opts = DownloadOptions(
+        ytdlp_exe=yt_dlp_exe,
+        url=args.video_url,
+        has_chapters=has_chapters,
+        split_chapters=args.split_chapters,
+        is_it_playlist=url_is_playlist,
+        show_progress=args.progress,
+        video_download_timeout=args.video_download_timeout,
+        custom_title=custom_title,
+        custom_artist=custom_artist,
+        custom_album=custom_album
+    )
+
     # Download videos if requested
     if not args.only_audio:
         # If split-chapters is requested with chapters, create CSV instead of downloading video chapters
@@ -297,27 +313,27 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> 
             logger.info('Creating chapters CSV file instead of downloading video chapters')
             create_chapters_csv(video_info=video_info, output_dir=video_folder, video_title=video_title)
             # Still download the full video without chapter splitting
-            run_yt_dlp(ytdlp_exe=yt_dlp_exe, video_url=args.video_url, video_folder=video_folder, get_subs=args.subs,
-                       write_json=args.json, split_chapters=False, has_chapters=has_chapters,
-                       is_it_playlist=url_is_playlist, show_progress=args.progress,
-                       video_download_timeout=args.video_download_timeout, custom_title=custom_title,
-                       custom_artist=custom_artist, custom_album=custom_album)
+            # Create a copy with split_chapters=False
+            video_opts = DownloadOptions(
+                ytdlp_exe=yt_dlp_exe,
+                url=args.video_url,
+                has_chapters=has_chapters,
+                split_chapters=False,
+                is_it_playlist=url_is_playlist,
+                show_progress=args.progress,
+                video_download_timeout=args.video_download_timeout,
+                custom_title=custom_title,
+                custom_artist=custom_artist,
+                custom_album=custom_album
+            )
+            run_yt_dlp(opts=video_opts, video_folder=video_folder, get_subs=args.subs, write_json=args.json)
         else:
-            run_yt_dlp(ytdlp_exe=yt_dlp_exe, video_url=args.video_url, video_folder=video_folder, get_subs=args.subs,
-                       write_json=args.json, split_chapters=args.split_chapters, has_chapters=has_chapters,
-                       is_it_playlist=url_is_playlist, show_progress=args.progress,
-                       video_download_timeout=args.video_download_timeout, custom_title=custom_title,
-                       custom_artist=custom_artist, custom_album=custom_album)
+            run_yt_dlp(opts=download_opts, video_folder=video_folder, get_subs=args.subs, write_json=args.json)
 
     # Download audios if requested
     if need_audio:
         # Run yt-dlp to download videos, and let yt-dlp extract audio and add tags
-        extract_audio_with_ytdlp(ytdlp_exe=yt_dlp_exe, playlist_url=args.video_url,
-                                 split_chapters=args.split_chapters, has_chapters=has_chapters,
-                                 is_it_playlist=url_is_playlist, audio_formats=audio_formats,
-                                 show_progress=args.progress, video_download_timeout=args.video_download_timeout,
-                                 custom_title=custom_title, custom_artist=custom_artist,
-                                 custom_album=custom_album)
+        extract_audio_with_ytdlp(opts=download_opts, audio_formats=audio_formats)
 
     # Organize chapter files and sanitize filenames
     original_names = organize_and_sanitize_files(
