@@ -181,6 +181,36 @@ The codebase has specialized handling for Greek text:
   - if there is an embedded single quote in a string, do not escape it with a backslash. instead, use double quotes around the whole string
 - in the logger_config, move local functions (name start with _) before any global function. do the same whenever adding local functions
 
+## Code Quality and Type Checking
+
+The project uses multiple linting and type checking tools to maintain code quality:
+
+### Type Checking with mypy
+- **Status**: Full mypy compliance (0 errors)
+- **Type stubs installed**: `types-requests`, `types-yt-dlp`
+- **Path handling**: All path/directory operations use `pathlib.Path` instead of `os` module
+- **Function signatures**: Use `Path | str` for parameters that accept both types
+- **Type hints**: All functions have proper type annotations
+
+### Linting Tools
+- **flake8**: PEP 8 compliance, unused import detection
+- **pylint**: Code quality metrics, unused variable detection
+- **isort**: Import statement ordering
+- **mypy**: Static type checking
+
+### Path Handling Convention
+- **Use `pathlib.Path`** for all file/directory operations
+- **Avoid `os.path`** functions (join, abspath, exists, etc.)
+- Use `Path.resolve()` instead of `os.path.abspath()`
+- Use `Path.mkdir()` instead of `os.makedirs()`
+- Use `Path / 'file'` instead of `os.path.join()`
+- **Exception**: `os.getenv()` is acceptable for environment variables (not a path operation)
+
+### Code Organization
+- No unused imports or variables
+- Functions accept `Path | str` for flexibility
+- Convert to Path early, work with Path throughout
+
 ## Slack Notifications
 
 The tool can send Slack notifications for download start/success/failure events.
