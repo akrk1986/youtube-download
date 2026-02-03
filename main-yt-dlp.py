@@ -1,21 +1,20 @@
 """Using yt-dlp, download videos from URL, and extract the MP3 files."""
 import argparse
 import logging
-import socket
 import sys
 import time
 from pathlib import Path
 
-import arrow
-
-from funcs_for_main_yt_dlp import (get_ytdlp_path, organize_and_sanitize_files,
+from funcs_for_main_yt_dlp import (count_files, format_elapsed_time,
+                                   generate_session_id, get_audio_dir_for_format,
+                                   get_ytdlp_path, organize_and_sanitize_files,
                                    process_audio_tags, validate_and_get_url)
 from funcs_slack_notify import send_slack_notification
 from funcs_video_info import (create_chapters_csv,
                               display_chapters_and_confirm, get_chapter_count,
                               get_video_info, is_playlist)
 from funcs_yt_dlp_download import (DownloadOptions, extract_audio_with_ytdlp,
-                                   get_audio_dir_for_format, run_yt_dlp)
+                                   run_yt_dlp)
 from logger_config import setup_logging
 from project_defs import (DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
                           VIDEO_OUTPUT_DIR)
@@ -27,45 +26,13 @@ except ImportError:
     SLACK_WEBHOOK = None
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-02-02-1700'
+VERSION = '2026-02-03-1300'
 
 logger = logging.getLogger(__name__)
 
 
-def _format_elapsed_time(seconds: float) -> str:
-    """Format elapsed time in seconds to a human-readable string."""
-    hours, remainder = divmod(int(seconds), 3600)
-    minutes, secs = divmod(remainder, 60)
-
-    if hours > 0:
-        return f'{hours}h {minutes}m {secs}s'
-    elif minutes > 0:
-        return f'{minutes}m {secs}s'
-    else:
-        return f'{secs}s'
-
-
-def _count_files(directory: Path, extensions: list[str]) -> int:
-    """Count files with specified extensions in a directory (including subdirectories)."""
-    if not directory.exists():
-        return 0
-
-    count = 0
-    for ext in extensions:
-        # Count files with the extension (case-insensitive)
-        count += len(list(directory.rglob(f'*{ext}')))
-        count += len(list(directory.rglob(f'*{ext.upper()}')))
-    return count
-
-
-def _generate_session_id() -> str:
-    """Generate a unique session identifier with timestamp and hostname."""
-    hostname = socket.gethostname()
-    timestamp = arrow.now().format('YYYY-MM-DD HH:mm')
-    return f'[{timestamp} {hostname}]'
-
-
-def main() -> None:
+def parse_arguments() -> argparse.Namespace:
+    """Parse and return command-line arguments."""
     parser = argparse.ArgumentParser(
         description='Download YouTube playlist/video, optionally with subtitles.')
     parser.add_argument('video_url', nargs='?', help='Playlist/video URL')
@@ -101,92 +68,7 @@ def main() -> None:
     audio_group.add_argument('--only-audio', action='store_true',
                              help='Delete video files after extraction')
 
-    args = parser.parse_args()
-
-    # Setup logging (must be done early)
-    setup_logging(verbose=args.verbose, log_to_file=not args.no_log_file, show_urls=args.show_urls)
-
-    # Store args as dict for Slack notification
-    args_dict = {
-        'video_url': args.video_url,
-        'audio_format': args.audio_format,
-        'split_chapters': args.split_chapters,
-        'video_download_timeout': args.video_download_timeout,
-        'subs': args.subs,
-        'json': args.json,
-        'with_audio': args.with_audio,
-        'only_audio': args.only_audio,
-        'title': args.title,
-        'artist': args.artist,
-        'album': args.album,
-        'rerun': args.rerun
-    }
-
-    # Generate session ID for Slack notifications
-    session_id = _generate_session_id()
-
-    # Record start time
-    start_time = time.time()
-
-    try:
-        _execute_main(args=args, args_dict=args_dict, start_time=start_time, session_id=session_id)
-    except KeyboardInterrupt:
-        logger.warning('Download cancelled by user (CTRL-C)')
-        # Send cancellation notification
-        # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
-        if SLACK_WEBHOOK:
-            elapsed_time = _format_elapsed_time(time.time() - start_time)
-            # Count files created before cancellation
-            audio_formats_str = args.audio_format
-            audio_formats = [fmt.strip() for fmt in audio_formats_str.split(',')]
-            video_count = 0
-            audio_count = 0
-            if not args.only_audio:
-                video_count = _count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
-            if args.with_audio or args.only_audio:
-                for audio_format in audio_formats:
-                    audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
-                    audio_count += _count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
-            send_slack_notification(
-                webhook_url=SLACK_WEBHOOK,
-                status='cancelled',
-                url=args.video_url or 'N/A',
-                args_dict=args_dict,
-                session_id=session_id,
-                elapsed_time=elapsed_time,
-                video_count=video_count,
-                audio_count=audio_count
-            )
-        logger.info('Exiting...')
-        sys.exit(130)  # Standard exit code for CTRL-C
-    except Exception as e:
-        logger.exception(f'Download failed: {e}')
-        # Send failure notification
-        # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
-        if SLACK_WEBHOOK:
-            elapsed_time = _format_elapsed_time(time.time() - start_time)
-            # Count files created before failure
-            audio_formats_str = args.audio_format
-            audio_formats = [fmt.strip() for fmt in audio_formats_str.split(',')]
-            video_count = 0
-            audio_count = 0
-            if not args.only_audio:
-                video_count = _count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
-            if args.with_audio or args.only_audio:
-                for audio_format in audio_formats:
-                    audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
-                    audio_count += _count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
-            send_slack_notification(
-                webhook_url=SLACK_WEBHOOK,
-                status='failure',
-                url=args.video_url or 'N/A',
-                args_dict=args_dict,
-                session_id=session_id,
-                elapsed_time=elapsed_time,
-                video_count=video_count,
-                audio_count=audio_count
-            )
-        sys.exit(1)
+    return parser.parse_args()
 
 
 def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> None:
@@ -392,16 +274,16 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> 
     # Send success notification
     # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
     if SLACK_WEBHOOK:
-        elapsed_time = _format_elapsed_time(time.time() - start_time)
+        elapsed_time = format_elapsed_time(time.time() - start_time)
         # Count files created
         video_count = 0
         audio_count = 0
         if not args.only_audio:
-            video_count = _count_files(directory=video_folder, extensions=['.mp4', '.webm', '.mkv'])
+            video_count = count_files(directory=video_folder, extensions=['.mp4', '.webm', '.mkv'])
         if need_audio:
             for audio_format in audio_formats:
                 audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
-                audio_count += _count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+                audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
         send_slack_notification(
             webhook_url=SLACK_WEBHOOK,
             status='success',
@@ -413,6 +295,95 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> 
             audio_count=audio_count
         )
     logger.info('Download completed successfully')
+
+
+def main() -> None:
+    args = parse_arguments()
+
+    # Setup logging (must be done early)
+    setup_logging(verbose=args.verbose, log_to_file=not args.no_log_file, show_urls=args.show_urls)
+
+    # Store args as dict for Slack notification
+    args_dict = {
+        'video_url': args.video_url,
+        'audio_format': args.audio_format,
+        'split_chapters': args.split_chapters,
+        'video_download_timeout': args.video_download_timeout,
+        'subs': args.subs,
+        'json': args.json,
+        'with_audio': args.with_audio,
+        'only_audio': args.only_audio,
+        'title': args.title,
+        'artist': args.artist,
+        'album': args.album,
+        'rerun': args.rerun
+    }
+
+    # Generate session ID for Slack notifications
+    session_id = generate_session_id()
+
+    # Record start time
+    start_time = time.time()
+
+    try:
+        _execute_main(args=args, args_dict=args_dict, start_time=start_time, session_id=session_id)
+    except KeyboardInterrupt:
+        logger.warning('Download cancelled by user (CTRL-C)')
+        # Send cancellation notification
+        # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
+        if SLACK_WEBHOOK:
+            elapsed_time = format_elapsed_time(time.time() - start_time)
+            # Count files created before cancellation
+            audio_formats_str = args.audio_format
+            audio_formats = [fmt.strip() for fmt in audio_formats_str.split(',')]
+            video_count = 0
+            audio_count = 0
+            if not args.only_audio:
+                video_count = count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
+            if args.with_audio or args.only_audio:
+                for audio_format in audio_formats:
+                    audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
+                    audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+            send_slack_notification(
+                webhook_url=SLACK_WEBHOOK,
+                status='cancelled',
+                url=args.video_url or 'N/A',
+                args_dict=args_dict,
+                session_id=session_id,
+                elapsed_time=elapsed_time,
+                video_count=video_count,
+                audio_count=audio_count
+            )
+        logger.info('Exiting...')
+        sys.exit(130)  # Standard exit code for CTRL-C
+    except Exception as e:
+        logger.exception(f'Download failed: {e}')
+        # Send failure notification
+        # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
+        if SLACK_WEBHOOK:
+            elapsed_time = format_elapsed_time(time.time() - start_time)
+            # Count files created before failure
+            audio_formats_str = args.audio_format
+            audio_formats = [fmt.strip() for fmt in audio_formats_str.split(',')]
+            video_count = 0
+            audio_count = 0
+            if not args.only_audio:
+                video_count = count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
+            if args.with_audio or args.only_audio:
+                for audio_format in audio_formats:
+                    audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
+                    audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+            send_slack_notification(
+                webhook_url=SLACK_WEBHOOK,
+                status='failure',
+                url=args.video_url or 'N/A',
+                args_dict=args_dict,
+                session_id=session_id,
+                elapsed_time=elapsed_time,
+                video_count=video_count,
+                audio_count=audio_count
+            )
+        sys.exit(1)
 
 
 if __name__ == '__main__':
