@@ -71,7 +71,8 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> None:
+def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
+                  initial_video_count: int, initial_audio_count: int) -> None:
     """Execute the main download logic."""
 
     # Parse and validate audio formats
@@ -275,15 +276,18 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str) -> 
     # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
     if SLACK_WEBHOOK:
         elapsed_time = format_elapsed_time(time.time() - start_time)
-        # Count files created
+        # Count newly created files (difference between final and initial counts)
         video_count = 0
         audio_count = 0
         if not args.only_audio:
-            video_count = count_files(directory=video_folder, extensions=['.mp4', '.webm', '.mkv'])
+            final_video_count = count_files(directory=video_folder, extensions=['.mp4', '.webm', '.mkv'])
+            video_count = final_video_count - initial_video_count
         if need_audio:
+            final_audio_count = 0
             for audio_format in audio_formats:
                 audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
-                audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+                final_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+            audio_count = final_audio_count - initial_audio_count
         send_slack_notification(
             webhook_url=SLACK_WEBHOOK,
             status='success',
@@ -325,25 +329,39 @@ def main() -> None:
     # Record start time
     start_time = time.time()
 
+    # Count existing files before download to track only newly created files
+    audio_formats_str = args.audio_format
+    audio_formats = [fmt.strip() for fmt in audio_formats_str.split(',')]
+    initial_video_count = 0
+    initial_audio_count = 0
+    if not args.only_audio:
+        initial_video_count = count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
+    if args.with_audio or args.only_audio:
+        for audio_format in audio_formats:
+            audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
+            initial_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+
     try:
-        _execute_main(args=args, args_dict=args_dict, start_time=start_time, session_id=session_id)
+        _execute_main(args=args, args_dict=args_dict, start_time=start_time, session_id=session_id,
+                      initial_video_count=initial_video_count, initial_audio_count=initial_audio_count)
     except KeyboardInterrupt:
         logger.warning('Download cancelled by user (CTRL-C)')
         # Send cancellation notification
         # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
         if SLACK_WEBHOOK:
             elapsed_time = format_elapsed_time(time.time() - start_time)
-            # Count files created before cancellation
-            audio_formats_str = args.audio_format
-            audio_formats = [fmt.strip() for fmt in audio_formats_str.split(',')]
+            # Count newly created files before cancellation (difference between final and initial counts)
             video_count = 0
             audio_count = 0
             if not args.only_audio:
-                video_count = count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
+                final_video_count = count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
+                video_count = final_video_count - initial_video_count
             if args.with_audio or args.only_audio:
+                final_audio_count = 0
                 for audio_format in audio_formats:
                     audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
-                    audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+                    final_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+                audio_count = final_audio_count - initial_audio_count
             send_slack_notification(
                 webhook_url=SLACK_WEBHOOK,
                 status='cancelled',
@@ -362,17 +380,18 @@ def main() -> None:
         # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
         if SLACK_WEBHOOK:
             elapsed_time = format_elapsed_time(time.time() - start_time)
-            # Count files created before failure
-            audio_formats_str = args.audio_format
-            audio_formats = [fmt.strip() for fmt in audio_formats_str.split(',')]
+            # Count newly created files before failure (difference between final and initial counts)
             video_count = 0
             audio_count = 0
             if not args.only_audio:
-                video_count = count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
+                final_video_count = count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
+                video_count = final_video_count - initial_video_count
             if args.with_audio or args.only_audio:
+                final_audio_count = 0
                 for audio_format in audio_formats:
                     audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
-                    audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+                    final_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+                audio_count = final_audio_count - initial_audio_count
             send_slack_notification(
                 webhook_url=SLACK_WEBHOOK,
                 status='failure',
