@@ -31,7 +31,7 @@ def is_format_error(error_text: str | None) -> bool:
         'No video formats found',
         'requested format not available',
     ]
-    return any(pattern.lower() in error_text.lower() for pattern in format_error_patterns)
+    return any(_pattern.lower() in error_text.lower() for _pattern in format_error_patterns)
 
 
 # Cookie handling for yt-dlp
@@ -170,6 +170,7 @@ def sanitize_string(dirty_string: str) -> str:
     name_part = emoji.replace_emoji(name_part, replace=' ')
 
     # 2. Replace foreign characters with spaces
+    # noinspection SpellCheckingInspection
     # Keep: English (a-z, A-Z), French (àáâãäåæçèéêëìíîïðñòóôõöøùúûüýÿ),
     #       Turkish (çğıöşüÇĞİÖŞÜ), Greek (α-ω, Α-Ω), Hebrew (א-ת),
     #       numbers (0-9), and common punctuation

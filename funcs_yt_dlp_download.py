@@ -177,8 +177,8 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
 
                 with open(log_file, mode, encoding='utf-8') as f:
                     # Capture stderr separately to detect format errors
-                    result = subprocess.run(yt_dlp_cmd, check=True, stdout=f,
-                                            stderr=subprocess.PIPE, text=True, timeout=timeout)
+                    _ = subprocess.run(yt_dlp_cmd, check=True, stdout=f,
+                                       stderr=subprocess.PIPE, text=True, timeout=timeout)
                 logger.info(f'Video download completed successfully. Progress logged to {log_file}')
                 logger.info(f'Downloaded from URL: {opts.url}')
             else:
@@ -319,7 +319,7 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
 
             with open(log_file, mode, encoding='utf-8') as f:
                 # Capture stderr separately to detect format errors
-                result = subprocess.run(
+                _ = subprocess.run(
                     yt_dlp_cmd, check=True, stdout=f,
                     stderr=subprocess.PIPE, text=True, timeout=timeout)
             logger.info(f'{format_type.upper()} audio download completed successfully. Progress logged to {log_file}')
@@ -362,7 +362,6 @@ def extract_audio_with_ytdlp(opts: DownloadOptions, audio_formats: list[str]) ->
     artist_pat = album_artist_pat = None
 
     if opts.is_it_playlist:
-        have_artist = have_uploader = False
         logger.info('URL is a playlist, cannot extract artist/uploader')
     else:
         video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url)

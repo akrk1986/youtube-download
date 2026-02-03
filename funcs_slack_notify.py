@@ -101,7 +101,7 @@ def send_slack_notification(webhook_url: str, status: str, url: str,
         if response.ok:
             logger.debug(f'Slack notification sent: {status} (HTTP {response.status_code})')
             return True
-        
+
         logger.warning(f'Slack notification failed with HTTP status {response.status_code}')
         return False
 
