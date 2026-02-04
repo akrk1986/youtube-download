@@ -5,6 +5,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from funcs_process_audio_tags_common import sanitize_album_name
 from funcs_utils import (get_cookie_args, is_format_error, sanitize_string,
                          sanitize_url_for_subprocess)
 from funcs_video_info import get_timeout_for_url, get_video_info
@@ -228,14 +229,17 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
 
 
 def remux_video_chapters(ffmpeg_path: str, video_folder: Path,
-                         chapters: list[dict] | None = None) -> None:
-    """Remux split video chapter files to fix duration metadata and set chapter titles.
+                         chapters: list[dict] | None = None,
+                         video_title: str | None = None) -> None:
+    """Remux split video chapter files to fix duration metadata and set chapter tags.
 
     yt-dlp's --split-chapters creates MP4 files whose container duration
     still reflects the original (full) video. A stream-copy remux via ffmpeg
     rewrites the container with the correct duration. If chapters metadata is
-    provided, also sets the title tag to the individual chapter title.
+    provided, also sets title, track number, and album tags.
     """
+    sanitized_album = sanitize_album_name(title=video_title) if video_title else ''
+
     # Chapter files may land in CWD or in video_folder depending on yt-dlp version
     candidates = list(Path.cwd().glob(GLOB_MP4_FILES)) + list(video_folder.glob(GLOB_MP4_FILES))
     # Deduplicate resolved paths (handles CWD == video_folder)
@@ -270,6 +274,9 @@ def remux_video_chapters(ffmpeg_path: str, video_folder: Path,
                 chapter_title = chapter.get('title', '')
                 if chapter_title:
                     metadata_args = ['-metadata', f'title={chapter_title}']
+                metadata_args.extend(['-metadata', f'track={chapter_num}'])
+                if sanitized_album:
+                    metadata_args.extend(['-metadata', f'album={sanitized_album}'])
                 start_time = chapter.get('start_time', 0)
                 end_time = chapter.get('end_time', 0)
                 if end_time > start_time:

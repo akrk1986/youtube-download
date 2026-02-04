@@ -27,7 +27,7 @@ except ImportError:
     SLACK_WEBHOOK = None
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-02-04-1646'
+VERSION = '2026-02-04-1829'
 
 logger = logging.getLogger(__name__)
 
@@ -233,7 +233,8 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
         run_yt_dlp(opts=download_opts, video_folder=video_folder, get_subs=args.subs, write_json=args.json)
         if args.split_chapters and has_chapters:
             remux_video_chapters(ffmpeg_path=get_ffmpeg_path(), video_folder=video_folder,
-                                 chapters=video_info.get('chapters', []))
+                                 chapters=video_info.get('chapters', []),
+                                 video_title=video_title)
 
     # Download audios if requested
     if need_audio:

@@ -4,6 +4,64 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2026-02-04 (18:29)
+
+**Bug Fix:** Video chapter post-processing, CSV comment quoting, audio title tag sanitization, chapter title extraction from original filenames
+
+**Summary:** Fixed multiple issues introduced when video chapter splitting was re-enabled. Added a post-download ffmpeg remux step for video chapter files that fixes container duration, and sets title/track/album tags. Fixed CSV segment file comment lines being quoted when uploader name contains a comma. Stopped sanitizing audio title tags (tags are metadata, not filenames). Fixed chapter title extraction to use original yt-dlp filenames instead of the renamed files.
+
+**Changes made:**
+
+### 1. **Video Chapter Post-Processing (`remux_video_chapters`)**
+
+**Problem:** yt-dlp's `--split-chapters` creates MP4 files with two issues:
+- Container duration reflects the original (full) video, not the chapter. VLC and other players show an empty timeline after the chapter content ends.
+- Title, track, and album tags are not set per-chapter.
+
+**Solution:** Added `remux_video_chapters()` in `funcs_yt_dlp_download.py`, called after `run_yt_dlp` when splitting chapters. Runs ffmpeg on each split MP4 file with `-c copy` (no re-encoding):
+- `-t <duration>` trims the container to the exact chapter duration (`end_time - start_time` from video info)
+- `-metadata title=<chapter_title>` sets the title to the original chapter title (as-is, no sanitization)
+- `-metadata track=<N>` sets the track number to the chapter's serial number
+- `-metadata album=<sanitized_video_title>` sets the album, using `sanitize_album_name()` — same as the audio path
+
+**Files changed:**
+- `funcs_yt_dlp_download.py`: Added `_VIDEO_CHAPTER_PATTERN`, `remux_video_chapters()`, imported `sanitize_album_name` and `FFMPEG_TIMEOUT_SECONDS`
+- `main-yt-dlp.py`: Added call to `remux_video_chapters()` after `run_yt_dlp`, passing `chapters` and `video_title` from `video_info`
+
+**Bugs fixed during implementation:**
+- `Path.rename()` → `Path.replace()`: `rename()` raises `FileExistsError` on Windows when the target exists; `replace()` overwrites atomically on all platforms
+- `text=True` → `encoding='utf-8', errors='replace'`: ffmpeg output contains bytes outside cp1252 (Windows default encoding), causing `UnicodeDecodeError` in the subprocess reader thread
+
+### 2. **Removed `--remux-video mp4` from `run_yt_dlp`**
+
+`--remux-video` runs during the download phase, *before* `--split-chapters` splits the file. It had no effect on the split chapter files. Removed to avoid confusion; the post-split remux in `remux_video_chapters` is what actually fixes the container.
+
+### 3. **CSV Comment Quoting Fix (`create_chapters_csv`)**
+
+**Problem:** Comment lines in the segments CSV (`# Title:`, `# Artist/Uploader:`, `# URL:`) were written via `csv.writer.writerow()`. When the content contained a comma (e.g. uploader `Melodia 99,2`), the CSV writer quoted the entire field, turning `# Artist/Uploader: 'Melodia 99,2'` into `"# Artist/Uploader: 'Melodia 99,2'"` — breaking the `#` comment convention.
+
+**Fix:** Comment lines are now written directly to the file handle with `csvfile.write()`. Data rows continue to use `csv.writer` (commas in song names like `ό,τι θες` are correctly handled via standard CSV quoting).
+
+- `funcs_video_info/chapters.py`: `create_chapters_csv()` — three comment lines use `csvfile.write()` instead of `writer.writerow()`
+
+### 4. **Audio Title Tag Sanitization Removed**
+
+**Problem:** `set_artists_in_audio_files()` called `sanitize_string()` on the title tag read from the audio file, then wrote the sanitized version back. Tags are in-file metadata — they don't need filesystem sanitization.
+
+**Fix:** Removed `clean_title`/`upd_title` logic and the `sanitize_string` import. The title tag is left as-is.
+
+- `funcs_process_audio_tags_unified.py`: `set_artists_in_audio_files()` — title tag no longer sanitized; removed unused `sanitize_string` import
+
+### 5. **Chapter Title Extraction: Use Original Filename**
+
+**Problem:** `set_tags_in_chapter_audio_files()` called `extract_chapter_info(file_name=audio_file.name)` to extract the chapter title and track number from the filename. After `_resolve_dest_name` renamed files to `<Chapter Title> - NNN.<ext>`, the filename no longer matched `CHAPTER_FILENAME_PATTERN` (which expects `[VIDEO_ID]` at the end). `extract_chapter_info` returned `None` for every file, so no title or track number was ever set.
+
+**Fix:** Look up the original yt-dlp filename from the `original_names` mapping before calling `extract_chapter_info`. The original filename (e.g. `Video Title - 001 Chapter Name [VIDEO_ID].mp3`) matches the pattern correctly. Removed the now-duplicate `original_names` lookup that was previously only used for the original-filename tag.
+
+- `funcs_process_audio_tags_unified.py`: `set_tags_in_chapter_audio_files()` — moved `original_names` lookup before `extract_chapter_info` call
+
+---
+
 ## 2026-02-04
 
 **Feature Enhancement:** Centralized chapter filename mapping, video chapter splitting re-enabled, NTFS glob deduplication, filename sanitization for Windows-reserved characters, Slack notification improvements
