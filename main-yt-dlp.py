@@ -7,14 +7,15 @@ from pathlib import Path
 
 from funcs_for_main_yt_dlp import (count_files, format_elapsed_time,
                                    generate_session_id, get_audio_dir_for_format,
-                                   get_ytdlp_path, organize_and_sanitize_files,
+                                   get_ffmpeg_path, get_ytdlp_path,
+                                   organize_and_sanitize_files,
                                    process_audio_tags, validate_and_get_url)
 from funcs_slack_notify import send_slack_notification
 from funcs_video_info import (create_chapters_csv,
                               display_chapters_and_confirm, get_chapter_count,
                               get_video_info, is_playlist)
 from funcs_yt_dlp_download import (DownloadOptions, extract_audio_with_ytdlp,
-                                   run_yt_dlp)
+                                   remux_video_chapters, run_yt_dlp)
 from logger_config import setup_logging
 from project_defs import (DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
                           VIDEO_OUTPUT_DIR)
@@ -26,7 +27,7 @@ except ImportError:
     SLACK_WEBHOOK = None
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-02-03-1300'
+VERSION = '2026-02-04-1646'
 
 logger = logging.getLogger(__name__)
 
@@ -185,14 +186,18 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             logger.warning('--album is ignored for playlists')
             custom_album = None
 
+    chapter_name_map = {}
+
     if not url_is_playlist:
-        chapters_count = get_chapter_count(ytdlp_exe=Path(yt_dlp_exe), playlist_url=args.video_url)
+        chapters_count = get_chapter_count(ytdlp_exe=Path(yt_dlp_exe), playlist_url=args.video_url,
+                                            video_download_timeout=args.video_download_timeout)
         has_chapters = chapters_count > 0
 
         # Get uploader and title information for chapter processing
         if has_chapters:
             logger.info(f'Video has {chapters_count} chapters')
-            video_info = get_video_info(yt_dlp_path=Path(yt_dlp_exe), url=args.video_url)
+            video_info = get_video_info(yt_dlp_path=Path(yt_dlp_exe), url=args.video_url,
+                                        video_download_timeout=args.video_download_timeout)
             uploader_name = video_info.get('uploader')
             video_title = video_info.get('title')
             if uploader_name and uploader_name not in ('NA', ''):
@@ -200,11 +205,9 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             if video_title and video_title not in ('NA', ''):
                 logger.debug(f"Video title for chapters: '{video_title}'")
 
-            # Display chapters and get user confirmation if split-chapters is requested
+            # Display chapters and build filename mapping if split-chapters is requested
             if args.split_chapters:
-                if not display_chapters_and_confirm(video_info=video_info):
-                    logger.info('Exiting without downloading')
-                    sys.exit(0)
+                chapter_name_map = display_chapters_and_confirm(video_info=video_info)
     else:
         logger.info('URL is a playlist, not extracting chapters')
         has_chapters = False
@@ -225,27 +228,12 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
 
     # Download videos if requested
     if not args.only_audio:
-        # If split-chapters is requested with chapters, create CSV instead of downloading video chapters
         if args.split_chapters and has_chapters:
-            logger.info('Creating chapters CSV file instead of downloading video chapters')
             create_chapters_csv(video_info=video_info, output_dir=video_folder, video_title=video_title or 'Unknown')
-            # Still download the full video without chapter splitting
-            # Create a copy with split_chapters=False
-            video_opts = DownloadOptions(
-                ytdlp_exe=yt_dlp_exe,
-                url=args.video_url,
-                has_chapters=has_chapters,
-                split_chapters=False,
-                is_it_playlist=url_is_playlist,
-                show_progress=args.progress,
-                video_download_timeout=args.video_download_timeout,
-                custom_title=custom_title,
-                custom_artist=custom_artist,
-                custom_album=custom_album
-            )
-            run_yt_dlp(opts=video_opts, video_folder=video_folder, get_subs=args.subs, write_json=args.json)
-        else:
-            run_yt_dlp(opts=download_opts, video_folder=video_folder, get_subs=args.subs, write_json=args.json)
+        run_yt_dlp(opts=download_opts, video_folder=video_folder, get_subs=args.subs, write_json=args.json)
+        if args.split_chapters and has_chapters:
+            remux_video_chapters(ffmpeg_path=get_ffmpeg_path(), video_folder=video_folder,
+                                 chapters=video_info.get('chapters', []))
 
     # Download audios if requested
     if need_audio:
@@ -258,7 +246,8 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
         audio_formats=audio_formats,
         has_chapters=has_chapters,
         only_audio=args.only_audio,
-        need_audio=need_audio
+        need_audio=need_audio,
+        chapter_name_map=chapter_name_map
     )
 
     # Process audio tags
@@ -400,7 +389,8 @@ def main() -> None:
                 session_id=session_id,
                 elapsed_time=elapsed_time,
                 video_count=video_count,
-                audio_count=audio_count
+                audio_count=audio_count,
+                failure_reason=str(e)
             )
         sys.exit(1)
 

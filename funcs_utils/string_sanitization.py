@@ -52,7 +52,7 @@ def sanitize_string(dirty_string: str) -> str:
     allowed_chars = []
     for char in name_part:
         # English letters and numbers
-        if char.isascii() and (char.isalnum() or char in ' .,;:!?()-_[]{}'):
+        if char.isascii() and (char.isalnum() or char in ' .,;!()-_[]{}'):
             allowed_chars.append(char)
         # Greek letters (main range)
         elif '\u0370' <= char <= '\u03FF':

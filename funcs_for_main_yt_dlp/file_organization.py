@@ -28,7 +28,8 @@ def get_audio_dir_for_format(audio_format: str) -> str:
 
 
 def organize_and_sanitize_files(video_folder: Path, audio_formats: list[str],
-                                has_chapters: bool, only_audio: bool, need_audio: bool) -> dict[str, dict[str, str]]:
+                                has_chapters: bool, only_audio: bool, need_audio: bool,
+                                chapter_name_map: dict[int, str] | None = None) -> dict[str, dict[str, str]]:
     """
     Organize chapter files and sanitize all downloaded file names.
 
@@ -38,6 +39,7 @@ def organize_and_sanitize_files(video_folder: Path, audio_formats: list[str],
         has_chapters: Whether video has chapters
         only_audio: Whether to skip video processing
         need_audio: Whether audio was downloaded
+        chapter_name_map: Optional mapping of chapter numbers to normalized filenames
 
     Returns:
         dict with 'mp3', 'm4a', and 'flac' keys, each containing a mapping of final_path -> original_ytdlp_filename
@@ -48,7 +50,7 @@ def organize_and_sanitize_files(video_folder: Path, audio_formats: list[str],
 
     # If chapters, move chapter files to their respective directories
     if has_chapters:
-        result = organize_media_files(video_dir=video_folder)
+        result = organize_media_files(video_dir=video_folder, chapter_name_map=chapter_name_map)
 
         # Check move results
         if result['mp3'] or result['m4a'] or result['flac'] or result['mp4']:

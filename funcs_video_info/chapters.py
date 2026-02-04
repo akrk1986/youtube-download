@@ -5,10 +5,13 @@ import logging
 import subprocess
 from pathlib import Path
 
-from funcs_utils import get_cookie_args, sanitize_url_for_subprocess
+from funcs_utils import get_cookie_args, sanitize_string, sanitize_url_for_subprocess
 from funcs_video_info.url_validation import get_timeout_for_url
 
 logger = logging.getLogger(__name__)
+
+_MAX_NAME_WITHOUT_EXT = 59  # 64 max total - 1 dot - 4 chars for longest ext (.flac)
+_MAX_CHAPTER_TITLE_LEN = 53  # _MAX_NAME_WITHOUT_EXT - 6 chars for ' - NNN' suffix
 
 
 def _format_duration(seconds: float) -> str:
@@ -32,13 +35,38 @@ def _seconds_to_hhmmss(seconds: float) -> str:
     return f'{hours:02d}{minutes:02d}{secs:02d}'
 
 
-def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
+def _build_filename_mapping(video_info: dict) -> dict[int, str]:
+    """Build mapping of chapter numbers to normalized filenames without extension.
+
+    Key 0 is the base video title. Keys 1..N are chapter titles with ' - NNN' suffix.
+    Values are sanitized and truncated to fit within filename length limits.
+    """
+    video_title = video_info.get('title', 'Unknown')
+    chapters = video_info.get('chapters', [])
+
+    base_name = sanitize_string(dirty_string=video_title) or 'Unknown'
+    if len(base_name) > _MAX_NAME_WITHOUT_EXT:
+        base_name = base_name[:_MAX_NAME_WITHOUT_EXT].rstrip()
+    mapping = {0: base_name}
+
+    for i, chapter in enumerate(chapters, 1):
+        title = chapter.get('title', f'Chapter {i}')
+        sanitized = sanitize_string(dirty_string=title) or f'Chapter {i}'
+        if len(sanitized) > _MAX_CHAPTER_TITLE_LEN:
+            sanitized = sanitized[:_MAX_CHAPTER_TITLE_LEN].rstrip()
+        mapping[i] = f'{sanitized} - {i:03d}'
+
+    return mapping
+
+
+def get_chapter_count(ytdlp_exe: Path, playlist_url: str, video_download_timeout: int | None = None) -> int:
     """
     Get the number of chapters in a YouTube video using yt-dlp.
 
     Args:
         ytdlp_exe (Path): path to yt-dlp executable
         playlist_url (str): YouTube video URL
+        video_download_timeout (int | None): Optional timeout override in seconds
 
     Returns:
         int: Number of chapters (0 if none or error)
@@ -50,7 +78,7 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
         sanitized_url = sanitize_url_for_subprocess(url=playlist_url)
 
         # Get appropriate timeout based on URL domain
-        timeout = get_timeout_for_url(url=playlist_url)
+        timeout = get_timeout_for_url(url=playlist_url, video_download_timeout=video_download_timeout)
 
         cmd: list[str | Path] = [ytdlp_exe, '--dump-json', '--no-download', sanitized_url]
 
@@ -103,25 +131,26 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str) -> int:
         return 0
 
 
-def display_chapters_and_confirm(video_info: dict) -> bool:
+def display_chapters_and_confirm(video_info: dict) -> dict[int, str]:
     """
-    Display chapter list with timing information and prompt user for confirmation.
+    Display chapter list with timing information and build filename mapping.
 
     Args:
         video_info: Video information dictionary from yt-dlp
 
     Returns:
-        bool: True to continue, False to abort
+        dict[int, str]: Mapping of chapter numbers to normalized filenames (without extension).
+                        Empty dict if no chapters found.
     """
     chapters = video_info.get('chapters', [])
     if not chapters:
-        return True  # No chapters to display, continue
+        return {}  # No chapters to display
 
     video_title = video_info.get('title', 'Unknown')
     video_duration = video_info.get('duration', 0)
 
     print('\n' + '='*80)
-    print(f"Video: {video_title}")
+    print(f"Video: '{video_title}'")
     print(f'Total duration: {_format_duration(seconds=video_duration)}')
     print(f'Found {len(chapters)} chapters:')
     print('='*80)
@@ -152,8 +181,20 @@ def display_chapters_and_confirm(video_info: dict) -> bool:
 
     print('='*80)
 
-    # Auto-continue without prompting
-    return True
+    # Build and print filename mapping
+    mapping = _build_filename_mapping(video_info=video_info)
+    print('\n' + '='*80)
+    print('Filename Mapping:')
+    print('='*80)
+    print(f"{'#':<4} {'Original Name':<50} {'Normalized Name'}")
+    print('-'*80)
+    for num in sorted(mapping.keys()):
+        orig = video_title if num == 0 else chapters[num - 1].get('title', f'Chapter {num}')
+        orig_display = orig[:47] + '...' if len(orig) > 50 else orig
+        print(f'{num:<4} {orig_display:<50} {mapping[num]}')
+    print('='*80)
+
+    return mapping
 
 
 def create_chapters_csv(video_info: dict, output_dir: Path | str, video_title: str) -> None:
@@ -177,7 +218,7 @@ def create_chapters_csv(video_info: dict, output_dir: Path | str, video_title: s
     # Ensure output directory exists
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    logger.info(f'Creating chapters CSV file: {csv_path}')
+    logger.info(f"Creating chapters CSV file: '{csv_path}'")
 
     with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
@@ -195,13 +236,14 @@ def create_chapters_csv(video_info: dict, output_dir: Path | str, video_title: s
             'comments'
         ])
 
-        # Write comment lines with video metadata
+        # Write comment lines directly (bypassing csv.writer, which would
+        # quote any line whose content contains a comma)
         uploader = video_info.get('uploader', '')
         video_url = video_info.get('webpage_url', '')
 
-        writer.writerow([f"# Title: '{video_title}'"])
-        writer.writerow([f"# Artist/Uploader: '{uploader}'"])
-        writer.writerow([f'# URL: {video_url}'])
+        csvfile.write(f"# Title: '{video_title}'\n")
+        csvfile.write(f"# Artist/Uploader: '{uploader}'\n")
+        csvfile.write(f'# URL: {video_url}\n')
 
         # Extract year from video date if available
         year = ''
@@ -233,5 +275,4 @@ def create_chapters_csv(video_info: dict, output_dir: Path | str, video_title: s
                 ''                         # comments (empty for user to fill)
             ])
 
-    logger.info(f'Chapters CSV created successfully: {csv_path}')
-    print(f'\nChapters CSV file created: {csv_path}')
+    logger.info(f"Chapters CSV was created successfully: '{csv_path}'")

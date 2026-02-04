@@ -1,5 +1,6 @@
 """Download functions for yt-dlp operations."""
 import logging
+import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,6 +10,7 @@ from funcs_utils import (get_cookie_args, is_format_error, sanitize_string,
 from funcs_video_info import get_timeout_for_url, get_video_info
 from project_defs import (AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_FLAC,
                           AUDIO_OUTPUT_DIR_M4A, DEFAULT_AUDIO_QUALITY,
+                          FFMPEG_TIMEOUT_SECONDS, GLOB_MP4_FILES,
                           YT_DLP_IS_PLAYLIST_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
                           YT_DLP_WRITE_JSON_FLAG)
 
@@ -71,6 +73,9 @@ VIDEO_FORMAT_FALLBACKS = [
     'bv*+ba/b',  # Very permissive: any video + any audio, or best combined
 ]
 
+# Matches yt-dlp chapter filenames: '<title> - NNN <chapter_title>'
+_VIDEO_CHAPTER_PATTERN = re.compile(r'^.*?\s*-\s*(\d{3})\s+.+')
+
 
 def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, write_json: bool) -> None:
     """Extract videos from video URL with yt-dlp. Include subtitles if requested."""
@@ -93,7 +98,8 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
         output_template = str(video_folder_path / f'{sanitized_title}.%(ext)s')
         logger.debug(f"Using custom title: '{opts.custom_title}' -> '{sanitized_title}'")
     else:
-        video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url)
+        video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url,
+                                    video_download_timeout=opts.video_download_timeout)
         video_title = video_info.get('title', 'untitled')
         sanitized_title = sanitize_string(dirty_string=video_title)
         output_template = str(video_folder_path / f'{sanitized_title}.%(ext)s')
@@ -124,8 +130,8 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
         base_cmd[1:1] = [YT_DLP_WRITE_JSON_FLAG]
     if opts.split_chapters and opts.has_chapters:
         base_cmd[1:1] = [YT_DLP_SPLIT_CHAPTERS_FLAG]
-        # Remux to MP4 after splitting to fix container metadata and ensure proper seeking
-        base_cmd[1:1] = ['--remux-video', 'mp4']
+        # Chapter titles often contain ':' which is invalid on NTFS (/mnt/c/)
+        base_cmd[1:1] = ['--windows-filenames']
     if get_subs:
         # Extract subtitles in Greek, English, Hebrew
         base_cmd[1:1] = [
@@ -221,6 +227,70 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
         raise RuntimeError(f"No compatible format found for '{opts.url}': {stderr}")
 
 
+def remux_video_chapters(ffmpeg_path: str, video_folder: Path,
+                         chapters: list[dict] | None = None) -> None:
+    """Remux split video chapter files to fix duration metadata and set chapter titles.
+
+    yt-dlp's --split-chapters creates MP4 files whose container duration
+    still reflects the original (full) video. A stream-copy remux via ffmpeg
+    rewrites the container with the correct duration. If chapters metadata is
+    provided, also sets the title tag to the individual chapter title.
+    """
+    # Chapter files may land in CWD or in video_folder depending on yt-dlp version
+    candidates = list(Path.cwd().glob(GLOB_MP4_FILES)) + list(video_folder.glob(GLOB_MP4_FILES))
+    # Deduplicate resolved paths (handles CWD == video_folder)
+    seen: set[Path] = set()
+    unique: list[Path] = []
+    for f in candidates:
+        resolved = f.resolve()
+        if resolved not in seen:
+            seen.add(resolved)
+            unique.append(f)
+
+    # Filter to chapter files only (stem matches ' - NNN ' pattern)
+    chapter_files = [f for f in unique if _VIDEO_CHAPTER_PATTERN.match(f.stem)]
+
+    if not chapter_files:
+        logger.debug('No video chapter files to remux')
+        return
+
+    logger.info(f'Remuxing {len(chapter_files)} video chapter file(s) to fix duration metadata')
+
+    for mp4_file in chapter_files:
+        temp_file = mp4_file.with_name(mp4_file.stem + '.remux.mp4')
+
+        # Set title and trim to chapter duration if chapters info is available
+        metadata_args: list[str] = []
+        duration_args: list[str] = []
+        match = _VIDEO_CHAPTER_PATTERN.match(mp4_file.stem)
+        if match and chapters:
+            chapter_num = int(match.group(1))
+            if 1 <= chapter_num <= len(chapters):
+                chapter = chapters[chapter_num - 1]
+                chapter_title = chapter.get('title', '')
+                if chapter_title:
+                    metadata_args = ['-metadata', f'title={chapter_title}']
+                start_time = chapter.get('start_time', 0)
+                end_time = chapter.get('end_time', 0)
+                if end_time > start_time:
+                    duration_args = ['-t', str(end_time - start_time)]
+
+        try:
+            cmd = [ffmpeg_path, '-y', '-i', str(mp4_file), '-c', 'copy'] + duration_args + metadata_args + [str(temp_file)]
+            subprocess.run(cmd, capture_output=True, check=True, timeout=FFMPEG_TIMEOUT_SECONDS,
+                           encoding='utf-8', errors='replace')
+            temp_file.replace(mp4_file)
+            logger.info(f"Remuxed '{mp4_file.name}'")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to remux '{mp4_file.name}': {e.stderr}")
+            if temp_file.exists():
+                temp_file.unlink()
+        except subprocess.TimeoutExpired:
+            logger.error(f"Remux timed out for '{mp4_file.name}'")
+            if temp_file.exists():
+                temp_file.unlink()
+
+
 def extract_single_format(opts: DownloadOptions, output_folder: Path | str, format_type: str,
                           artist_pat: str | None = None,
                           album_artist_pat: str | None = None) -> None:
@@ -250,7 +320,8 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
         output_template = str(output_folder_path / f'{sanitized_title}.%(ext)s')
         logger.debug(f"Using custom title: '{opts.custom_title}' -> '{sanitized_title}'")
     else:
-        video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url)
+        video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url,
+                                    video_download_timeout=opts.video_download_timeout)
         video_title = video_info.get('title', 'untitled')
         sanitized_title = sanitize_string(dirty_string=video_title)
         output_template = str(output_folder_path / f'{sanitized_title}.%(ext)s')
@@ -283,6 +354,8 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
                            ]
     if opts.split_chapters and opts.has_chapters:
         yt_dlp_cmd[1:1] = [YT_DLP_SPLIT_CHAPTERS_FLAG]
+        # Chapter titles often contain ':' which is invalid on NTFS (/mnt/c/)
+        yt_dlp_cmd[1:1] = ['--windows-filenames']
     if opts.show_progress:
         yt_dlp_cmd[1:1] = ['--progress']
     if opts.custom_title:
@@ -364,7 +437,8 @@ def extract_audio_with_ytdlp(opts: DownloadOptions, audio_formats: list[str]) ->
     if opts.is_it_playlist:
         logger.info('URL is a playlist, cannot extract artist/uploader')
     else:
-        video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url)
+        video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url,
+                                    video_download_timeout=opts.video_download_timeout)
         artist = video_info.get('artist')
         uploader = video_info.get('uploader')
         have_artist = bool(artist and artist not in ('NA', ''))

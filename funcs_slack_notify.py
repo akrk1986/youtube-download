@@ -11,7 +11,8 @@ def send_slack_notification(webhook_url: str, status: str, url: str,
                            session_id: str,
                            elapsed_time: Optional[str] = None,
                            video_count: int = 0,
-                           audio_count: int = 0) -> bool:
+                           audio_count: int = 0,
+                           failure_reason: Optional[str] = None) -> bool:
     """
     Send a Slack notification about download status.
 
@@ -27,6 +28,7 @@ def send_slack_notification(webhook_url: str, status: str, url: str,
         elapsed_time: Optional elapsed time string (e.g., '5m 23s')
         video_count: Number of video files created
         audio_count: Number of audio files created
+        failure_reason: Optional reason string for failure notifications
 
     Returns:
         True if notification was sent successfully, False otherwise
@@ -73,6 +75,10 @@ def send_slack_notification(webhook_url: str, status: str, url: str,
 
     # Build message text with session ID
     message_text = f'{title}\n\n*Session:* {session_id}\n\n*URL:* {url}\n\n*Parameters:*\n{params_text}'
+
+    # Add failure reason if provided
+    if status == 'failure' and failure_reason:
+        message_text += f'\n\n*Reason:* {failure_reason}'
 
     # Add file counts if status is success, failure, or cancelled
     if status in ['success', 'failure', 'cancelled'] and (video_count > 0 or audio_count > 0):

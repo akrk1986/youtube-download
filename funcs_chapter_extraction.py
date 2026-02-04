@@ -54,19 +54,20 @@ def _extract_chapters_from_description(description: str) -> list[dict]:
     return chapters
 
 
-def extract_youtube_chapters(yt_dlp_path: Path, url: str) -> str | None:
+def extract_youtube_chapters(yt_dlp_path: Path, url: str, video_download_timeout: int | None = None) -> str | None:
     """
     Extract chapters from a YouTube video and save to CSV.
 
     Args:
         yt_dlp_path: Path to the yt-dlp executable
         url: YouTube video URL
+        video_download_timeout: Optional timeout override in seconds
 
     Returns:
         Path to the created CSV file if successful, None if no chapters found
     """
     # Get video information
-    video_info = get_video_info(yt_dlp_path=yt_dlp_path, url=url)
+    video_info = get_video_info(yt_dlp_path=yt_dlp_path, url=url, video_download_timeout=video_download_timeout)
 
     video_title = video_info.get('title', 'Unknown')
     video_duration = video_info.get('duration', 0)

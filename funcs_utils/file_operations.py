@@ -1,5 +1,6 @@
 """File organization and management utilities."""
 import logging
+import re
 import shutil
 from pathlib import Path
 from typing import Any
@@ -13,8 +14,23 @@ from project_defs import (AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_FLAC,
 
 logger = logging.getLogger(__name__)
 
+# yt-dlp --split-chapters creates files like: "<title> - <3-digit-number> <section_title>.<ext>"
+_CHAPTER_NUM_PATTERN = re.compile(r'^.*?\s*-\s*(\d{3})\s+.+')
 
-def organize_media_files(video_dir: Path) -> dict:
+
+def _resolve_dest_name(media_file: Path, chapter_name_map: dict[int, str] | None) -> str:
+    """Resolve destination filename using chapter name mapping if available."""
+    if chapter_name_map:
+        match = _CHAPTER_NUM_PATTERN.match(media_file.stem)
+        if match:
+            chapter_num = int(match.group(1))
+            if chapter_num > 0 and chapter_num in chapter_name_map:
+                return chapter_name_map[chapter_num] + media_file.suffix
+            logger.warning(f"Chapter file '{media_file.name}' has number {chapter_num}, not in chapter mapping")
+    return media_file.name
+
+
+def organize_media_files(video_dir: Path, chapter_name_map: dict[int, str] | None = None) -> dict:
     """
     Move all MP3/M4A/FLAC files to their respective directories and all MP4 files to video directory.
     - MP3 files -> yt-audio/
@@ -31,13 +47,15 @@ def organize_media_files(video_dir: Path) -> dict:
 
     moved_files: dict[str, Any] = {'mp3': [], 'mp4': [], 'm4a': [], 'flac': [], 'errors': [], 'original_names': {}}
 
-    # Get all audio-like files including case variations
-    audio_files = (list(current_dir.glob(GLOB_MP3_FILES)) +
-                   list(current_dir.glob(GLOB_M4A_FILES)) +
-                   list(current_dir.glob(GLOB_FLAC_FILES)) +
-                   list(current_dir.glob(GLOB_MP3_FILES_UPPER)) +
-                   list(current_dir.glob(GLOB_M4A_FILES_UPPER)) +
-                   list(current_dir.glob(GLOB_FLAC_FILES_UPPER)))
+    # Get all audio-like files including case variations, deduplicated for case-insensitive filesystems (e.g. NTFS)
+    audio_files = list(set(
+        list(current_dir.glob(GLOB_MP3_FILES)) +
+        list(current_dir.glob(GLOB_M4A_FILES)) +
+        list(current_dir.glob(GLOB_FLAC_FILES)) +
+        list(current_dir.glob(GLOB_MP3_FILES_UPPER)) +
+        list(current_dir.glob(GLOB_M4A_FILES_UPPER)) +
+        list(current_dir.glob(GLOB_FLAC_FILES_UPPER))
+    ))
 
     # Find and move MP3/M4A/FLAC files to their respective directories
     for audio_file in audio_files:
@@ -65,11 +83,12 @@ def organize_media_files(video_dir: Path) -> dict:
 
             # Store original filename before moving
             original_name = audio_file.name
-            destination = dest_dir / audio_file.name
+            dest_name = _resolve_dest_name(media_file=audio_file, chapter_name_map=chapter_name_map)
+            destination = dest_dir / dest_name
             shutil.move(str(audio_file), str(destination))
             # Map destination path to original name
             moved_files['original_names'][str(destination)] = original_name
-            logger.info(f'Moved {audio_file.name} -> {dest_dir_name}/')
+            logger.info(f'Moved {audio_file.name} -> {dest_dir_name}/{dest_name}')
         except Exception as e:
             error_msg = f'Error moving {audio_file.name}: {str(e)}'
             moved_files['errors'].append(error_msg)
@@ -78,10 +97,11 @@ def organize_media_files(video_dir: Path) -> dict:
     # Find and move MP4 files
     for mp4_file in current_dir.glob(GLOB_MP4_FILES):
         try:
-            destination = video_dir / mp4_file.name
+            dest_name = _resolve_dest_name(media_file=mp4_file, chapter_name_map=chapter_name_map)
+            destination = video_dir / dest_name
             shutil.move(str(mp4_file), str(destination))
             moved_files['mp4'].append(mp4_file.name)
-            logger.info(f'Moved {mp4_file.name} -> yt-videos/')
+            logger.info(f'Moved {mp4_file.name} -> yt-videos/{dest_name}')
         except Exception as e:
             error_msg = f'Error moving {mp4_file.name}: {str(e)}'
             moved_files['errors'].append(error_msg)

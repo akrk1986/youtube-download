@@ -4,6 +4,101 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2026-02-04
+
+**Feature Enhancement:** Centralized chapter filename mapping, video chapter splitting re-enabled, NTFS glob deduplication, filename sanitization for Windows-reserved characters, Slack notification improvements
+
+**Summary:** Replaced per-file chapter filename truncation with a centralized mapping table built at chapter-display time. Re-enabled video chapter splitting (reverses the 2025-10-22 decision to disable it). Fixed duplicate file-move errors on case-insensitive NTFS filesystems. Added removal of `:` and `?` from sanitized filenames. Added failure-reason field to Slack failure notifications and propagated the `--video-download-timeout` parameter to all yt-dlp calls.
+
+**Changes made:**
+
+### 1. **Centralized Chapter Filename Mapping**
+
+**Problem:** Chapter filenames were truncated and sanitized independently at each move site, leading to inconsistent results across audio and video formats.
+
+**Solution:** A single mapping table (`dict[int, str]`) is built once when chapters are displayed, then forwarded through the file-organization pipeline to all move operations.
+
+- **Key 0** = sanitized base video title (used for reference only; never assigned to a chapter file)
+- **Keys 1..N** = sanitized chapter titles with ` - NNN` suffix (e.g., `Intro - 001`)
+- Values are filenames **without extension**; the extension is appended at move time
+
+**Length constraints:**
+- Max filename without extension: 59 chars (64-char NTFS limit minus 1 dot minus 4 chars for `.flac`, the longest extension)
+- Max chapter title portion: 53 chars (59 minus 6 chars for ` - NNN` suffix)
+
+**Files changed:**
+
+- **`funcs_video_info/chapters.py`**:
+  - Added `_MAX_NAME_WITHOUT_EXT = 59` and `_MAX_CHAPTER_TITLE_LEN = 53` constants
+  - Added `_build_filename_mapping(video_info)` — builds and returns the mapping table
+  - `display_chapters_and_confirm()` now returns `dict[int, str]` (the mapping) instead of `bool`; prints a "Filename Mapping" table alongside the chapter timing table
+
+- **`funcs_utils/file_operations.py`**:
+  - Replaced `_YTDLP_CHAPTER_PATTERN` / `_CHAPTER_TITLE_MAX_LENGTH` / `_sanitize_chapter_filename()` with:
+    - `_CHAPTER_NUM_PATTERN = re.compile(r'^.*?\s*-\s*(\d{3})\s+.+')` — extracts the 3-digit chapter number from yt-dlp's chapter filename format
+    - `_resolve_dest_name(media_file, chapter_name_map)` — looks up the chapter number in the mapping and returns the normalized filename with extension; falls back to the original filename if no mapping match
+  - `organize_media_files()` now accepts `chapter_name_map` and passes it to `_resolve_dest_name` for both audio and MP4 moves
+
+- **`funcs_for_main_yt_dlp/file_organization.py`**:
+  - `organize_and_sanitize_files()` accepts and forwards `chapter_name_map` to `organize_media_files()`
+
+- **`main-yt-dlp.py`**:
+  - Captures the mapping returned by `display_chapters_and_confirm()` into `chapter_name_map`
+  - Passes it to `organize_and_sanitize_files()`
+
+### 2. **Video Chapter Splitting Re-enabled**
+
+**Problem:** The 2025-10-22 change introduced a `video_opts` override with `split_chapters=False` for video downloads, so `--split-chapters` only split audio files. Video chapter MP4 files were never created.
+
+**Solution:** Removed the `video_opts` override. Video downloads now use the same `download_opts` as audio, which carries `split_chapters=True` when `--split-chapters` is specified. The CSV file (`segments-hms-full.txt`) is still generated for reference.
+
+- **`main-yt-dlp.py`**: Removed `video_opts` block; `run_yt_dlp()` now receives `download_opts` directly
+- **`funcs_utils/file_operations.py`**: MP4 move loop already uses `_resolve_dest_name`, so video chapter files are renamed via the same mapping table as audio
+
+**Note:** The 2025-10-22 CHANGELOG entry's "Note on Video Chapter Splitting Code" and "Behavioral Changes" sections are now outdated. Video chapters are split again when `--split-chapters` is used.
+
+### 3. **NTFS Glob Deduplication**
+
+**Problem:** On case-insensitive NTFS filesystems (e.g., `/mnt/c/` on WSL2), both `*.mp3` and `*.MP3` glob patterns match the same files. This caused each file to appear twice in the move list, resulting in `[WinError 2]` on the second move attempt.
+
+**Solution:** Wrapped the combined glob results in `set()` to deduplicate before iterating:
+
+```python
+audio_files = list(set(
+    list(current_dir.glob(GLOB_MP3_FILES)) +
+    list(current_dir.glob(GLOB_M4A_FILES)) +
+    ...
+))
+```
+
+- **`funcs_utils/file_operations.py`**: `organize_media_files()` audio glob list
+
+### 4. **Filename Sanitization: Windows-Reserved Characters**
+
+**Problem:** yt-dlp output filenames can contain `:` and `?` from video titles. These characters are invalid on NTFS/Windows.
+
+**Solution:** Added `:` and `?` to the character-removal list in `sanitize_string()`.
+
+- **`funcs_utils/string_sanitization.py`**: Removed `:` and `?` from sanitized output
+- `--windows-filenames` flag was already added to yt-dlp subprocess calls when splitting chapters (handles other NTFS-invalid characters at the yt-dlp level)
+
+### 5. **Slack Notification: Failure Reason**
+
+**Problem:** Slack failure notifications did not include the exception message, making it difficult to diagnose failures remotely.
+
+**Solution:** Added a `failure_reason` field to the failure notification payload, populated with `str(e)` from the caught exception.
+
+- **`main-yt-dlp.py`**: Passes `failure_reason=str(e)` in the failure `send_slack_notification()` call
+- **`funcs_slack_notify.py`**: Accepts and includes `failure_reason` in the Slack message block
+
+### 6. **Timeout Propagation**
+
+**Problem:** The `--video-download-timeout` parameter was not consistently forwarded to all yt-dlp invocations (e.g., chapter count and video info calls used hardcoded or missing timeouts).
+
+**Solution:** Propagated `video_download_timeout` through all call chains so that every subprocess call to yt-dlp respects the user-specified timeout (or falls back to the per-domain defaults: 300s for YouTube/Facebook, 3600s for other sites).
+
+---
+
 ## 2026-02-03 (13:00)
 
 **Code Refactoring:** Major refactoring to improve code organization and maintainability
