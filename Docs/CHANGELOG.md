@@ -4,6 +4,82 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2026-02-03 (13:00)
+
+**Code Refactoring:** Major refactoring to improve code organization and maintainability
+
+**Summary:** Converted several large monolithic files into well-organized packages with focused modules. Added accurate file counting to track only newly created files during each run.
+
+**Changes made:**
+
+### 1. **Package Refactoring**
+
+Converted the following files into packages for better code organization:
+
+**`funcs_utils/` package (was `funcs_utils.py`, 450 lines):**
+- `file_operations.py` (105 lines) - File handling and organization
+- `string_sanitization.py` (164 lines) - String/filename sanitization
+- `yt_dlp_utils.py` (54 lines) - yt-dlp helpers
+- `security.py` (63 lines) - Security functions
+
+**`funcs_video_info/` package (was `funcs_video_info.py`, 425 lines):**
+- `url_validation.py` (84 lines) - URL validation & timeout
+- `metadata.py` (117 lines) - Video metadata retrieval
+- `chapters.py` (237 lines) - Chapter operations & CSV generation
+
+**`funcs_for_main_yt_dlp/` package (was `funcs_for_main_yt_dlp.py`, 267 lines):**
+- `external_tools.py` (90 lines) - ffmpeg/yt-dlp path detection
+- `url_validation.py` (46 lines) - URL validation and input
+- `file_organization.py` (105 lines) - File organization & sanitization
+- `audio_processing.py` (59 lines) - Audio tag processing
+- `utilities.py` (24 lines) - Utility functions (moved from main)
+
+**`funcs_audio_tag_handlers/` package (was `funcs_audio_tag_handlers.py`, 384 lines):**
+- `base.py` (74 lines) - Abstract base class
+- `mp3_handler.py` (130 lines) - MP3TagHandler + UTF-16 helper
+- `m4a_handler.py` (90 lines) - M4ATagHandler
+- `flac_handler.py` (108 lines) - FLACTagHandler
+
+**Benefits:**
+- Reduced file sizes by 60-80%
+- Better separation of concerns
+- Easier to navigate and maintain
+- All packages maintain backward compatibility via `__init__.py` re-exports
+
+### 2. **Main Script Refactoring (`main-yt-dlp.py`)**
+
+- Moved argparse code into `parse_arguments()` function
+- Moved utility functions to `funcs_for_main_yt_dlp/utilities.py`:
+  - `_format_elapsed_time()` → `format_elapsed_time()`
+  - `_count_files()` → `count_files()`
+  - `_generate_session_id()` → `generate_session_id()`
+- Reordered functions so `main()` is last (follows Python convention)
+- Updated VERSION to `2026-02-03-1300`
+- Reduced from 419 to 390 lines
+
+### 3. **Accurate File Counting**
+
+**Problem:** Script was counting ALL files in output directories, including files from previous runs.
+
+**Solution:** Track only files created during the current run:
+- Count existing files in output directories BEFORE download starts
+- Count final files AFTER download completes
+- Report the difference (newly created files only)
+- Applies to all notification scenarios (success, cancel, failure)
+
+**Implementation:**
+- Added `initial_video_count` and `initial_audio_count` parameters
+- Count existing files at start of `main()` before calling `_execute_main()`
+- Calculate difference when reporting to Slack notifications
+- Works correctly even if output directories contain files from previous runs
+
+**Verification:**
+- All imports work correctly (backward compatibility maintained)
+- mypy type checking passes (0 errors)
+- Syntax validation passes
+
+---
+
 ## 2026-02-02 (17:00)
 
 **Code Quality:** Complete migration to pathlib and mypy type checking compliance

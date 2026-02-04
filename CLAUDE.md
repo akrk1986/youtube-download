@@ -21,17 +21,39 @@ The codebase follows a modular function-based architecture:
 - `main-yt-dlp.py` - Primary CLI tool for downloading and processing YouTube content
 - `main-get-artists-from-trello.py` - Utility to convert Trello board data to artist JSON
 
-### Core Function Modules
-- `funcs_utils.py` - General utilities (file operations, string sanitization, Greek text handling)
-- `funcs_video_info.py` - Video information retrieval, URL validation, chapter display, CSV generation
+### Core Function Modules and Packages
+
+The codebase uses a modular package-based architecture for better organization:
+
+**Packages (refactored for better modularity):**
+- `funcs_utils/` - General utilities package
+  - `file_operations.py` - File organization and sanitization
+  - `string_sanitization.py` - String/filename sanitization and Greek text handling
+  - `yt_dlp_utils.py` - yt-dlp specific utilities (error detection, cookies)
+  - `security.py` - Security helpers for subprocess calls
+- `funcs_video_info/` - Video information package
+  - `url_validation.py` - URL validation and timeout determination
+  - `metadata.py` - Video metadata retrieval using yt-dlp
+  - `chapters.py` - Chapter detection, display, and CSV generation
+- `funcs_for_main_yt_dlp/` - Main script helpers package
+  - `external_tools.py` - External tool path detection (ffmpeg, yt-dlp)
+  - `url_validation.py` - URL validation and input handling
+  - `file_organization.py` - File organization and sanitization
+  - `audio_processing.py` - Audio tag processing coordination
+  - `utilities.py` - General utilities (time formatting, session ID)
+- `funcs_audio_tag_handlers/` - Audio tag handler classes package (strategy pattern)
+  - `base.py` - Abstract base class (AudioTagHandler)
+  - `mp3_handler.py` - MP3TagHandler with UTF-16 encoding support
+  - `m4a_handler.py` - M4ATagHandler for MP4/iTunes metadata
+  - `flac_handler.py` - FLACTagHandler for Vorbis Comments
+
+**Standalone Modules:**
 - `funcs_yt_dlp_download.py` - yt-dlp download and audio extraction functions
-- `funcs_for_main_yt_dlp.py` - Helper functions for main-yt-dlp.py (validation, file organization, tag processing coordination)
 - `funcs_process_mp3_tags.py` - MP3 ID3v2 tag processing and artist detection
 - `funcs_process_m4a_tags.py` - M4A MP4/iTunes metadata processing
 - `funcs_process_flac_tags.py` - FLAC Vorbis Comments processing
 - `funcs_process_audio_tags_common.py` - Common audio tag processing functions
 - `funcs_process_audio_tags_unified.py` - Unified audio tag processing across formats
-- `funcs_audio_tag_handlers.py` - Audio tag handler classes (MP3TagHandler, M4ATagHandler, FLACTagHandler)
 - `funcs_artist_search.py` - Greek artist name matching and search variants
 - `funcs_chapter_extraction.py` - Video chapter detection and processing
 - `funcs_url_extraction.py` - URL extraction from text and ODF documents
@@ -152,9 +174,9 @@ The download functions implement automatic format fallback to handle videos wher
 - Format errors are silently handled
 
 ### Key Components
-- `is_format_error()` in `funcs_utils.py` - Detects format-related errors
+- `is_format_error()` in `funcs_utils/yt_dlp_utils.py` - Detects format-related errors
 - `VIDEO_FORMAT_FALLBACKS` in `funcs_yt_dlp_download.py` - List of formats to try
-- `_SilentLogger` in `funcs_video_info.py` - Suppresses yt-dlp library error output
+- `_SilentLogger` in `funcs_video_info/metadata.py` - Suppresses yt-dlp library error output
 - `--no-warnings` and `--ignore-config` flags added to yt-dlp commands
 
 ## Greek Text Processing
@@ -227,4 +249,12 @@ The tool can send Slack notifications for download start/success/failure events.
 
 ### Message Content
 - Start message: URL, selected parameters (with-audio, only-audio, split-chapters, title, artist, album)
-- Success/failure message: All parameters, file counts, elapsed time
+- Success/failure/cancellation message: All parameters, file counts, elapsed time
+
+### File Counting
+The script accurately tracks only files created during the current run:
+- Counts existing files in output directories before download starts
+- Counts final files after download completes
+- Reports the difference (newly created files only)
+- Works correctly even if output directories contain files from previous runs
+- Applies to video files (yt-videos/), audio files (yt-audio/, yt-audio-m4a/, yt-audio-flac/)
