@@ -32,8 +32,12 @@ VERSION = '2026-02-04-1829'
 logger = logging.getLogger(__name__)
 
 
-def parse_arguments() -> argparse.Namespace:
-    """Parse and return command-line arguments."""
+def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse and return command-line arguments.
+
+    Args:
+        argv: Command-line arguments to parse. If None, uses sys.argv.
+    """
     parser = argparse.ArgumentParser(
         description='Download YouTube playlist/video, optionally with subtitles.')
     parser.add_argument('video_url', nargs='?', help='Playlist/video URL')
@@ -69,7 +73,7 @@ def parse_arguments() -> argparse.Namespace:
     audio_group.add_argument('--only-audio', action='store_true',
                              help='Delete video files after extraction')
 
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
