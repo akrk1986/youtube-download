@@ -367,6 +367,7 @@
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
         <env name="YTDLP_USE_COOKIES" value="firefox" />
+        <env name="YTDLP_RETRIES" value="50" />
       </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
