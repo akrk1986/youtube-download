@@ -233,6 +233,49 @@ The project uses multiple linting and type checking tools to maintain code quali
 - Functions accept `Path | str` for flexibility
 - Convert to Path early, work with Path throughout
 
+## Environment Variables
+
+The tool supports several environment variables for configuration:
+
+### YTDLP_RETRIES
+Controls the number of download retries for handling YouTube throttling and connection drops.
+
+- **Default**: 100 retries
+- **Valid values**: Positive integers (1, 2, 3, ... 100, 500, etc.)
+- **Location**: Set before running the script
+- **Purpose**: YouTube often throttles or drops connections during large downloads. The retry mechanism allows yt-dlp to keep attempting until successful.
+
+**Usage:**
+```bash
+# Linux/WSL/macOS
+export YTDLP_RETRIES=50
+python main-yt-dlp.py --only-audio "URL"
+
+# Windows PowerShell
+$env:YTDLP_RETRIES="50"
+python main-yt-dlp.py --only-audio "URL"
+```
+
+**Implementation:** `_get_download_retries()` in `funcs_yt_dlp_download.py` validates the value and raises `ValueError` if not a positive integer.
+
+### YTDLP_USE_COOKIES
+Enables downloading age-restricted or private videos using browser cookies.
+
+- **Valid values**: `chrome`, `firefox`
+- **Purpose**: Use logged-in browser session to access restricted content
+- **Auto-includes**: `--no-cache-dir` and `--sleep-requests 1` flags for reliability
+
+**Usage:**
+```bash
+# Linux/WSL/macOS
+export YTDLP_USE_COOKIES=firefox
+python main-yt-dlp.py --only-audio "URL"
+
+# Windows PowerShell
+$env:YTDLP_USE_COOKIES="chrome"
+python main-yt-dlp.py --only-audio "URL"
+```
+
 ## Slack Notifications
 
 The tool can send Slack notifications for download start/success/failure events.
