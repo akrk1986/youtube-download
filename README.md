@@ -310,6 +310,28 @@ python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 - This prevents 403 errors and makes downloads more reliable, especially with `--split-chapters`
 - Downloads will be slower but much more stable for authenticated content
 
+### Configure download retry behavior
+
+By default, yt-dlp will retry failed downloads up to 100 times. This handles temporary network issues and YouTube throttling. You can customize this behavior:
+
+```bash
+# Set custom retry limit (Linux, WSL, macOS)
+export YTDLP_RETRIES=50
+python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
+
+# On Windows (PowerShell):
+$env:YTDLP_RETRIES="50"
+python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
+
+# Use default of 100 retries (no environment variable needed)
+python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
+```
+
+**Note:** The retry count must be a positive integer. If `YTDLP_RETRIES` is unset or empty, the default of 100 retries is used. This is particularly useful for:
+- Large files that may experience intermittent connection drops
+- YouTube throttling on certain videos
+- Unreliable network connections
+
 ## URL Extraction Utility
 
 The project includes a utility for extracting URLs from text and ODF documents, filtering only valid video site URLs (YouTube, Facebook, ERTFlix).

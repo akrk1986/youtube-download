@@ -4,6 +4,52 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2026-02-07 (19:00)
+
+**Enhancement:** Configurable download retry behavior via `YTDLP_RETRIES` environment variable
+
+**Problem:** YouTube occasionally throttles or drops connections during downloads, especially for large files or videos with chapters. The default yt-dlp retry count of 10 was insufficient, causing downloads to fail with errors like:
+```
+[download] Got error: 878 bytes read, 10471974 more expected. Giving up after 10 retries
+```
+
+**Solution:** Added configurable retry behavior with a higher default (100 retries):
+- New environment variable `YTDLP_RETRIES` to control retry count
+- Default: 100 retries (sufficient for most throttling scenarios)
+- Validation: Must be a positive integer, or script aborts with `ValueError`
+- Added `--retries` flag to all yt-dlp download commands
+
+**Implementation:**
+- New helper function `_get_download_retries()` in `funcs_yt_dlp_download.py`
+  - Reads `YTDLP_RETRIES` env var
+  - Returns '100' if unset/empty
+  - Validates positive integer or raises `ValueError`
+- Updated `run_yt_dlp()` base command to include `--retries`
+- Updated `extract_single_format()` base command to include `--retries`
+
+**Usage:**
+```bash
+# Use default (100 retries)
+python main-yt-dlp.py --only-audio "URL"
+
+# Set custom retry limit
+export YTDLP_RETRIES=50
+python main-yt-dlp.py --only-audio "URL"
+
+# Windows PowerShell
+$env:YTDLP_RETRIES="50"
+```
+
+**Testing:** Verified with video that previously failed at 10 retries — now succeeds with 50+ retries.
+
+**Files changed:**
+- `funcs_yt_dlp_download.py`: Added `os` import, `_get_download_retries()` helper, retry flags in both download functions
+- `main-yt-dlp.py`: Updated VERSION to '2026-02-07-1900'
+- `README.md`: Added documentation section "Configure download retry behavior"
+- `Docs/CHANGELOG.md`: This entry
+
+---
+
 ## 2026-02-04 (18:29)
 
 **Bug Fix:** Video chapter post-processing, CSV comment quoting, audio title tag sanitization, chapter title extraction from original filenames

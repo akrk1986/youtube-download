@@ -1,5 +1,6 @@
 """Download functions for yt-dlp operations."""
 import logging
+import os
 import re
 import subprocess
 from dataclasses import dataclass
@@ -68,6 +69,27 @@ def _quote_if_needed(value: str) -> str:
     return value
 
 
+def _get_download_retries() -> str:
+    """Get download retry count from YTDLP_RETRIES env var, defaulting to 100.
+
+    Returns:
+        Retry count as a string (positive integer, default '100')
+
+    Raises:
+        ValueError: If YTDLP_RETRIES is set but not a positive integer
+    """
+    retries = os.getenv('YTDLP_RETRIES', '').strip()
+    if not retries:
+        return '100'
+    try:
+        value = int(retries)
+    except ValueError:
+        raise ValueError(f"YTDLP_RETRIES must be a positive integer, got '{retries}'")
+    if value <= 0:
+        raise ValueError(f"YTDLP_RETRIES must be a positive integer, got '{retries}'")
+    return retries
+
+
 # Format strings to try in order, from most preferred to most permissive
 VIDEO_FORMAT_FALLBACKS = [
     'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',  # Preferred: MP4+M4A, then any
@@ -108,9 +130,11 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
 
     # Build base command (format will be inserted during retry loop)
     format_placeholder = '__FORMAT__'
+    download_retries = _get_download_retries()
     base_cmd: list[str | Path] = [
         opts.ytdlp_exe,
         '--no-warnings',  # Suppress yt-dlp warnings (format errors handled via retry)
+        '--retries', download_retries,  # Retry on connection drops (default: 100)
         '-f', format_placeholder,  # Placeholder for format, will be set in loop
         '--merge-output-format', 'mp4',
         '--embed-metadata',
@@ -334,9 +358,11 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
         output_template = str(output_folder_path / f'{sanitized_title}.%(ext)s')
         logger.debug(f"Sanitized audio title: '{video_title}' -> '{sanitized_title}'")
 
+    download_retries = _get_download_retries()
     yt_dlp_cmd: list[str | Path] = [
         opts.ytdlp_exe,
         '--no-warnings',  # Suppress yt-dlp warnings (format errors handled via retry)
+        '--retries', download_retries,  # Retry on connection drops (default: 100)
         '-f', 'bestaudio/best',
         '--extract-audio',
         '--audio-format', format_type,
