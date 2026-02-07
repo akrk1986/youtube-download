@@ -1,0 +1,27 @@
+Testing edge cases for domain matching:
+
+Case variations (should all match):
+https://YouTube.com/watch?v=test
+https://WWW.YOUTUBE.COM/watch?v=test
+https://Youtube.Com/watch?v=test
+
+Different YouTube subdomains (should all match):
+https://www.youtube.com/watch?v=abc
+https://youtube.com/watch?v=def
+https://m.youtube.com/watch?v=ghi
+https://youtu.be/jkl
+
+ERTFlix variations (should all match):
+https://www.ertflix.gr/test
+https://ertflix.gr/test
+
+Facebook domains (should all match):
+https://www.facebook.com/test
+https://facebook.com/test
+https://fb.com/test
+https://fb.me/test
+
+Invalid - similar but not exact (should NOT match):
+https://fake-youtube.com/test
+https://youtube.com.fake.com/test
+https://notfacebook.com/test

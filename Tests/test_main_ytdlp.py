@@ -453,9 +453,9 @@ class TestMainExecution:
         saved_url = 'https://www.youtube.com/watch?v=savedURL'
 
         # Create test last_url.txt
-        tests_dir = tmp_path / 'Tests'
-        tests_dir.mkdir()
-        last_url_file = tests_dir / 'last_url.txt'
+        data_dir = tmp_path / 'Data'
+        data_dir.mkdir()
+        last_url_file = data_dir / 'last_url.txt'
         last_url_file.write_text(saved_url)
 
         # Test the rerun logic

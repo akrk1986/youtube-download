@@ -14,9 +14,9 @@ The end-to-end (E2E) testing system allows you to test `main-yt-dlp.py` with rea
 
 ## Files
 
-- `Tests/test_e2e_config.py` - Test URLs and timeouts (you populate this)
-- `Tests/test_e2e_main.py` - Test runner (don't modify)
-- `Tests/test_e2e_state.json` - Progress state (auto-generated)
+- `Tests/e2e_config.py` - Test URLs and timeouts (you populate this)
+- `Tests/e2e_main.py` - Test runner (don't modify)
+- `Tests/e2e_state.json` - Progress state (auto-generated)
 
 ## Test Use Cases
 
@@ -39,7 +39,7 @@ The following use cases are supported:
 
 ### 1. Configure Test URLs
 
-Edit `Tests/test_e2e_config.py` and add URLs to the use cases you want to test:
+Edit `Tests/e2e_config.py` and add URLs to the use cases you want to test:
 
 ```python
 E2E_TEST_CASES = {
@@ -77,7 +77,7 @@ Start a new test session (cleans output directories):
 
 ```bash
 cd Tests
-python test_e2e_main.py
+python e2e_main.py
 ```
 
 ### Resume Test Run
@@ -86,13 +86,13 @@ Resume from where you left off:
 
 ```bash
 cd Tests
-python test_e2e_main.py --resume
+python e2e_main.py --resume
 ```
 
 ### Help
 
 ```bash
-python test_e2e_main.py --help
+python e2e_main.py --help
 ```
 
 ## Interactive Test Flow
@@ -230,7 +230,7 @@ Each use case has a specific checklist to verify. Here are some examples:
 
 ### State File
 
-Progress is automatically saved to `Tests/test_e2e_state.json` after each action.
+Progress is automatically saved to `Tests/e2e_state.json` after each action.
 
 State includes:
 - Test results with status for each test (succeeded/failed/skipped)
@@ -316,7 +316,7 @@ After successful completion:
 
 If state file is corrupted:
 - You'll be prompted to start fresh
-- Backup is saved as `test_e2e_state.json.bak`
+- Backup is saved as `e2e_state.json.bak`
 
 ### Prerequisites Missing
 
@@ -343,7 +343,7 @@ If you press Ctrl+C during test:
 
 ### Initial Setup
 
-1. Edit `Tests/test_e2e_config.py`
+1. Edit `Tests/e2e_config.py`
 2. Add 1-2 URLs to each use case
 3. Use short test videos
 
@@ -351,7 +351,7 @@ If you press Ctrl+C during test:
 
 ```bash
 cd Tests
-python test_e2e_main.py
+python e2e_main.py
 ```
 
 ### During Testing
@@ -365,7 +365,7 @@ python test_e2e_main.py
 
 ```bash
 cd Tests
-python test_e2e_main.py --resume
+python e2e_main.py --resume
 ```
 
 ### After Completion

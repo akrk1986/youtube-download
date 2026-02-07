@@ -6,7 +6,7 @@
 
 ## Code Location
 
-The empty use case check is in `test_e2e_main.py` at line 501-504:
+The empty use case check is in `e2e_main.py` at line 501-504:
 
 ```python
 # Skip if no URLs
@@ -25,7 +25,7 @@ This check happens at the beginning of each use case iteration, before any test 
 
 **Command**:
 ```bash
-python test_e2e_main.py
+python e2e_main.py
 ```
 
 **Result**:

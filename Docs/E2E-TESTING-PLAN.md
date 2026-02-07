@@ -13,7 +13,7 @@ Add comprehensive end-to-end testing for `main-yt-dlp.py` that tests actual down
 
 ## Files to Create
 
-### 1. `Tests/test_e2e_config.py` - Test case configuration file
+### 1. `Tests/e2e_config.py` - Test case configuration file
 
 This file contains the test URLs organized by use case. User will populate after creation.
 
@@ -97,7 +97,7 @@ DEFAULT_TIMEOUTS = {
 }
 ```
 
-### 2. `Tests/test_e2e_main.py` - End-to-end test runner
+### 2. `Tests/e2e_main.py` - End-to-end test runner
 
 Main test execution script with **interactive mode** and **state persistence**.
 
@@ -116,7 +116,7 @@ Main test execution script with **interactive mode** and **state persistence**.
 - `_show_validation_checklist(use_case, files_created)` - Display what user should verify
 
 #### State Persistence
-State file: `Tests/test_e2e_state.json`
+State file: `Tests/e2e_state.json`
 
 Structure:
 ```json
@@ -140,7 +140,7 @@ State is saved:
 - Can be resumed with `--resume` flag
 
 #### Main Execution Flow
-1. Load test cases from `test_e2e_config.py`
+1. Load test cases from `e2e_config.py`
 2. Check for `--resume` flag:
    - If resuming: Load state, skip completed tests
    - If fresh: Clean output directories, create new state
@@ -198,7 +198,7 @@ Loaded test cases:
 Total: 15 test cases across 10 use case types
 
 Resume mode: No (fresh run)
-State file: Tests/test_e2e_state.json
+State file: Tests/e2e_state.json
 
 🧹 Cleaning output directories...
 ✅ Cleaned yt-videos/ (0 files removed)
@@ -265,12 +265,12 @@ USE CASE: audio_only_mp3 [2/10]
 **If user enters N:**
 ```
 🛑 Stopping test suite...
-💾 State saved to: Tests/test_e2e_state.json
+💾 State saved to: Tests/e2e_state.json
 
 Progress so far:
   video_only: 1/2 completed
 
-To resume later, run: python test_e2e_main.py --resume
+To resume later, run: python e2e_main.py --resume
 
 Exiting.
 ```
@@ -281,7 +281,7 @@ Exiting.
 END-TO-END TEST SUITE (RESUME MODE)
 ========================================
 
-📂 Loading state from: Tests/test_e2e_state.json
+📂 Loading state from: Tests/e2e_state.json
 ✅ Loaded previous progress (last run: 2026-02-06 15:30)
 
 Progress summary:
@@ -331,8 +331,8 @@ Use dictionary with lists of tuples for flexibility:
 ```
 
 ### 2. Separate Config from Execution
-- `test_e2e_config.py` - User edits to add URLs
-- `test_e2e_main.py` - Never needs editing (reads config)
+- `e2e_config.py` - User edits to add URLs
+- `e2e_main.py` - Never needs editing (reads config)
 - Allows users to update test URLs without modifying test logic
 
 ### 3. Pre-test Cleanup Only
@@ -356,7 +356,7 @@ else:
 ### 6. Not Using pytest Framework
 - These are integration tests, not unit tests
 - Run as standalone Python script (like `test_three_scenarios.py`)
-- Can be run directly: `python test_e2e_main.py`
+- Can be run directly: `python e2e_main.py`
 - Simpler output for manual test observation
 
 ## Interactive Validation Checklists
@@ -440,7 +440,7 @@ Different use cases have different validation checklists shown to the user:
 
 ### State Management
 
-State file location: `Tests/test_e2e_state.json`
+State file location: `Tests/e2e_state.json`
 
 Functions:
 - `_load_state()` → Returns state dict or None if no state file
@@ -476,10 +476,10 @@ def _prompt_user(use_case: str, url_index: int, result: bool) -> str:
 ### Command Line Arguments
 
 ```python
-# test_e2e_main.py supports:
-python test_e2e_main.py           # Fresh run (cleans directories)
-python test_e2e_main.py --resume  # Resume from saved state
-python test_e2e_main.py --help    # Show usage information
+# e2e_main.py supports:
+python e2e_main.py           # Fresh run (cleans directories)
+python e2e_main.py --resume  # Resume from saved state
+python e2e_main.py --help    # Show usage information
 ```
 
 ### File Counting Logic
@@ -524,18 +524,18 @@ After implementation, test by:
 1. **Empty Config Test**
    ```bash
    cd Tests
-   python test_e2e_main.py
+   python e2e_main.py
    ```
    Should show: "No test cases configured" warnings and exit gracefully
 
 2. **Help Command**
    ```bash
-   python test_e2e_main.py --help
+   python e2e_main.py --help
    ```
    Should display usage information and available options
 
 3. **Add Single URL to Config**
-   Add one simple video to `video_only` use case in `test_e2e_config.py`:
+   Add one simple video to `video_only` use case in `e2e_config.py`:
    ```python
    'video_only': [
        ('https://youtu.be/xxxxx', 120),
@@ -543,7 +543,7 @@ After implementation, test by:
    ```
    Run test:
    ```bash
-   python test_e2e_main.py
+   python e2e_main.py
    ```
    Should:
    - Clean directories
@@ -555,12 +555,12 @@ After implementation, test by:
    - Enter **Y** after first test → Should proceed to next test
    - Run again, enter **S** → Should skip remaining tests in use case
    - Run again, enter **N** → Should save state and exit
-   - Verify state file created: `test_e2e_state.json`
+   - Verify state file created: `e2e_state.json`
 
 5. **Test Resume Feature**
    After stopping with N:
    ```bash
-   python test_e2e_main.py --resume
+   python e2e_main.py --resume
    ```
    Should:
    - Load state file
@@ -576,7 +576,7 @@ After implementation, test by:
 7. **User Populates Full Config**
    User adds URLs to all use cases
    ```bash
-   python test_e2e_main.py
+   python e2e_main.py
    ```
    Run full test suite interactively
    - Can stop and resume at any point
@@ -603,7 +603,7 @@ After implementation, test by:
 
 ### State File Corruption
 - If state file is corrupted/invalid JSON → warn user and offer fresh start
-- Backup state file before modifying: `test_e2e_state.json.bak`
+- Backup state file before modifying: `e2e_state.json.bak`
 
 ### URL Changes in Config
 - If URLs in config change while state exists → warn user about mismatch

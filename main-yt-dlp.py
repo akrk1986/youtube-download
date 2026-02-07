@@ -57,7 +57,7 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument('--show-urls', action='store_true',
                         help='Allow urllib3/requests to log URLs (WARNING: may expose Slack webhook URL)')
     parser.add_argument('--rerun', action='store_true',
-                        help='Reuse URL from previous run (stored in Tests/last_url.txt). '
+                        help='Reuse URL from previous run (stored in Data/last_url.txt). '
                              'Ignored if video_url is provided.')
     parser.add_argument('--title',
                         help='Custom title for output filename (ignored for playlists)')
@@ -119,13 +119,13 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
         sys.exit(1)
 
     # Handle --rerun flag: load URL from previous run if requested
-    last_url_file = Path('Tests') / 'last_url.txt'
+    last_url_file = Path('Data') / 'last_url.txt'
     if args.rerun and not args.video_url:
         if last_url_file.exists():
             args.video_url = last_url_file.read_text().strip()
             logger.info(f'Reusing URL from previous run: {args.video_url}')
         else:
-            logger.error('No previous URL found in Tests/last_url.txt')
+            logger.error('No previous URL found in Data/last_url.txt')
             sys.exit(1)
 
     # Validate and get URL

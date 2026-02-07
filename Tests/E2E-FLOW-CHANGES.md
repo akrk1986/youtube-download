@@ -141,7 +141,7 @@ Your choice (Y/S/Q): S
 
 ## Files Modified
 
-1. `Tests/test_e2e_main.py` - Main test runner logic
+1. `Tests/e2e_main.py` - Main test runner logic
 2. `Docs/E2E-TESTING-GUIDE.md` - User guide updated
 3. `Tests/README-E2E-TESTS.md` - Quick reference updated
 

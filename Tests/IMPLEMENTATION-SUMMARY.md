@@ -38,7 +38,7 @@ Previous run: ⏭ SKIPPED
 ## Modified Files
 
 ### Code
-- **`Tests/test_e2e_main.py`** - Completely refactored test loop
+- **`Tests/e2e_main.py`** - Completely refactored test loop
   - New function: `_prompt_user_before_test()` - prompts before test
   - New function: `_get_test_status()` - retrieves previous status
   - New function: `_update_test_status()` - updates status
@@ -84,7 +84,7 @@ Previous run: ⏭ SKIPPED
 ### Fresh Run
 ```bash
 cd Tests
-python test_e2e_main.py
+python e2e_main.py
 ```
 
 User sees:
@@ -105,7 +105,7 @@ Your choice (Y/S/Q): _
 ### Resume Run
 ```bash
 cd Tests
-python test_e2e_main.py --resume
+python e2e_main.py --resume
 ```
 
 User sees:
@@ -150,13 +150,13 @@ Final summary:
   ❌ Failed: 2
   ⏭ Skipped: 1
 
-🗑️  State file removed: Tests/test_e2e_state.json
+🗑️  State file removed: Tests/e2e_state.json
 ```
 
 ## Testing Verification
 
 ✅ Code compiles without errors
-✅ Help command works: `python test_e2e_main.py --help`
+✅ Help command works: `python e2e_main.py --help`
 ✅ Empty config handled gracefully
 ✅ Module imports successfully
 ✅ All functions properly typed
@@ -167,7 +167,7 @@ Final summary:
 
 If you have an existing test session:
 1. Complete or abandon it before upgrading
-2. Or manually delete `Tests/test_e2e_state.json`
+2. Or manually delete `Tests/e2e_state.json`
 
 The new state structure is:
 - `test_results` (list) instead of `completed_tests` (list)
@@ -186,7 +186,7 @@ The new state structure is:
 
 The system is ready for use:
 1. Add test URLs to `Tests/test_e2e_config.py`
-2. Run `python test_e2e_main.py`
+2. Run `python e2e_main.py`
 3. Choose Y/S/Q for each test
 4. Use `--resume` to continue later
 

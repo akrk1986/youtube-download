@@ -2,29 +2,29 @@
 
 ## Quick Start
 
-1. **Configure test URLs** - Edit `test_e2e_config.py` and add YouTube URLs to test cases
-2. **Run tests** - `python test_e2e_main.py`
+1. **Configure test URLs** - Edit `e2e_config.py` and add YouTube URLs to test cases
+2. **Run tests** - `python e2e_main.py`
 3. **Choose action BEFORE each test** - Press Y to run, S to skip, or Q to quit
 4. **Validate downloads** - After test runs, verify using validation checklist
 5. **Resume anytime** - Press Q to quit, use `--resume` to continue later
 
 ## Files
 
-- `test_e2e_config.py` - Configure test URLs here (you edit this)
-- `test_e2e_main.py` - Test runner (don't edit)
-- `test_e2e_state.json` - Progress state (auto-generated)
+- `e2e_config.py` - Configure test URLs here (you edit this)
+- `e2e_main.py` - Test runner (don't edit)
+- `e2e_state.json` - Progress state (auto-generated)
 
 ## Commands
 
 ```bash
 # Fresh run (cleans directories)
-python test_e2e_main.py
+python e2e_main.py
 
 # Resume from saved state
-python test_e2e_main.py --resume
+python e2e_main.py --resume
 
 # Show help
-python test_e2e_main.py --help
+python e2e_main.py --help
 ```
 
 ## Interactive Controls
@@ -54,7 +54,7 @@ The system tests these scenarios:
 
 ## Example Configuration
 
-Edit `test_e2e_config.py`:
+Edit `e2e_config.py`:
 
 ```python
 E2E_TEST_CASES = {
@@ -84,7 +84,7 @@ See `../Docs/E2E-TESTING-GUIDE.md` for complete documentation.
 
 ## State Management
 
-- Progress is saved to `test_e2e_state.json` after each action
+- Progress is saved to `e2e_state.json` after each action
 - State includes test results with status: succeeded, failed, or skipped
 - Use `--resume` to continue - shows previous status for each test
 - You can re-run failed tests by choosing Y when resuming

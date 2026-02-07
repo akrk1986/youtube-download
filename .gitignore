@@ -20,7 +20,8 @@
 Tests/Data/
 Tests/yt-audio/
 Tests/yt-videos/
-Tests/last_url.txt
+Tests/e2e_state.json
+Data/last_url.txt
 staging-mp3/
 staging-m4a/
 .pyscn/
