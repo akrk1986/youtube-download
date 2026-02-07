@@ -58,7 +58,7 @@ options:
 
   --verbose, -v         Enable verbose (DEBUG) logging for detailed troubleshooting
 
-  --rerun               Reuse URL from previous run (stored in Tests/last_url.txt)
+  --rerun               Reuse URL from previous run (stored in Data/last_url.txt)
                         Ignored if video_url is provided
 
   --title TITLE         Custom title for output filename (ignored for playlists)
@@ -127,7 +127,7 @@ audio extraction mode (mutually exclusive):
 
 **Other:**
 - `--rerun` - Reuse URL from previous run without having to paste it again
-  - Every run saves the validated URL to `Tests/last_url.txt`
+  - Every run saves the validated URL to `Data/last_url.txt`
   - Use `--rerun` without providing a URL to reuse the last URL
   - Ignored if a URL is provided on the command line
   - Useful for repeated testing/downloading of the same URL
@@ -255,7 +255,7 @@ python main-yt-dlp.py --only-audio --audio-format mp3,m4a "https://youtube.com/p
 
 ### Rerun with same URL (convenient for testing)
 ```bash
-# First run - saves URL to Tests/last_url.txt
+# First run - saves URL to Data/last_url.txt
 python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 
 # Subsequent runs - reuse the saved URL

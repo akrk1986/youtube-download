@@ -4,6 +4,69 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2026-02-07 (21:00)
+
+**Enhancement:** Reorganized Tests/ directory structure for clarity
+
+**Problem:** The `Tests/` directory mixed pytest tests, E2E test scripts, standalone utility scripts, and test data files, making it unclear which files belong to the pytest suite and causing pytest to attempt collecting E2E test files.
+
+**Solution:** Reorganized into a three-tier testing structure:
+
+**Directory Structure:**
+- `Tests/` - Contains only pytest tests and E2E test files
+  - `test_main_ytdlp.py` - 30 pytest tests for main script
+  - `test_security_measures.py` - 19 pytest tests for security
+  - `e2e_main.py` - E2E test runner (renamed from `test_e2e_main.py`)
+  - `e2e_config.py` - E2E configuration (renamed from `test_e2e_config.py`)
+  - `conftest.py` - pytest fixtures
+  - E2E documentation (.md files)
+- `Tests-Standalone/` - Standalone scripts and utilities (newly created)
+  - 20 standalone test scripts
+  - 19 utility scripts
+  - Test data and fixtures
+- `Data/` - Runtime data files
+  - `last_url.txt` - Moved from `Tests/` (runtime file, not test-related)
+
+**Key Changes:**
+1. **E2E files renamed** to prevent pytest collection:
+   - `test_e2e_main.py` → `e2e_main.py`
+   - `test_e2e_config.py` → `e2e_config.py`
+   - `test_e2e_state.json` → `e2e_state.json`
+   - Updated all documentation references
+
+2. **Created `Tests-Standalone/`** directory:
+   - Moved 20 standalone test scripts (e.g., `test_chapter_regex.py`, `test_rerun.py`)
+   - Moved 19 utility scripts (e.g., `main_greek_search.py`, `find-artists-main.py`)
+   - Moved test data files (.mp3, .odt, .js, .md, .txt files)
+   - Moved test subdirectories (`yt-audio/`, `yt-videos/`)
+
+3. **Moved `last_url.txt`** from `Tests/` to `Data/`:
+   - Runtime data file, not test-related
+   - Updated references in `main-yt-dlp.py` and test files
+   - Updated `.gitignore`
+
+**Pytest Configuration:**
+- `pytest.ini` remains at project root (standard practice)
+- `testpaths = Tests` directive tells pytest where to find tests
+- `python_files = test_*.py` ensures only files starting with `test_` are collected
+- E2E files correctly excluded from pytest collection
+
+**Verification:**
+- All 49 pytest tests pass
+- `pytest --collect-only` correctly excludes E2E files
+- Standalone scripts work from new location
+
+**Files changed:**
+- `main-yt-dlp.py`: VERSION = '2026-02-07-2100', updated `last_url.txt` path
+- `.gitignore`: Updated for `Data/last_url.txt` and `Tests/e2e_state.json`
+- `Tests/`: Renamed E2E files, updated 4 E2E documentation files
+- `Docs/`: Updated E2E-TESTING-GUIDE.md and E2E-TESTING-PLAN.md
+- `README.md`: Updated `last_url.txt` references (3 locations)
+- `CLAUDE.md`: Added test organization documentation
+- 61 files total: git renames preserve history
+
+---
+
 ## 2026-02-07 (19:00)
 
 **Enhancement:** Configurable download retry behavior via `YTDLP_RETRIES` environment variable

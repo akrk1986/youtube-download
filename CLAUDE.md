@@ -109,11 +109,26 @@ python main-yt-dlp.py --verbose --show-urls --only-audio "URL"
 ```
 
 ### Testing Individual Components
-Test files are in the `Tests/` directory:
+The project has three categories of tests:
+
+**Pytest tests** (in `Tests/` directory):
 ```bash
-python Tests/test_chapter_regex.py  # Test chapter extraction regex
-python Tests/main_greek_search.py  # Test Greek text search functionality
-python Tests/find-artists-main.py  # Test artist detection in strings
+pytest Tests/                           # Run all pytest tests (49 tests)
+pytest Tests/test_main_ytdlp.py         # Main script tests (30 tests)
+pytest Tests/test_security_measures.py  # Security tests (19 tests)
+```
+
+**End-to-end tests** (in `Tests/` directory):
+```bash
+python Tests/e2e_main.py           # Interactive E2E test runner
+python Tests/e2e_main.py --resume  # Resume from saved state
+```
+
+**Standalone test scripts** (in `Tests-Standalone/` directory):
+```bash
+python Tests-Standalone/test_chapter_regex.py  # Test chapter extraction regex
+python Tests-Standalone/main_greek_search.py   # Test Greek text search functionality
+python Tests-Standalone/find-artists-main.py   # Test artist detection in strings
 ```
 
 ### Updating Artist Database
@@ -189,7 +204,19 @@ The codebase has specialized handling for Greek text:
 
 ## Development Notes
 
-- No formal test framework - uses standalone test scripts in `Tests/`
+### Test Organization
+The project uses a three-tier testing approach:
+- **pytest tests** (`Tests/`): Formal test suite with 49 tests (`test_main_ytdlp.py`, `test_security_measures.py`)
+  - Configuration: `pytest.ini` in project root with `testpaths = Tests`
+  - Run with: `pytest Tests/`
+- **E2E tests** (`Tests/`): Interactive end-to-end testing (`e2e_main.py`, `e2e_config.py`)
+  - Files renamed without `test_` prefix to prevent pytest collection
+  - Documentation in `Tests/README-E2E-TESTS.md` and `Docs/E2E-TESTING-GUIDE.md`
+- **Standalone scripts** (`Tests-Standalone/`): Utility scripts and one-off tests
+  - Contains ~40 standalone test/utility scripts
+  - Includes test fixtures and data files
+
+### General Notes
 - Documentation is minimal - mainly workflow guides in `Docs/`
 - Beta features and experiments are in `Beta/` directory
   - When making global changes, skip all files in the Beta/ directory
