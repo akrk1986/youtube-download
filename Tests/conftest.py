@@ -21,6 +21,13 @@ def mock_slack_webhook() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
+def mock_gmail_params() -> Generator[MagicMock, None, None]:
+    """Patch GMAIL_PARAMS to None to disable Gmail notifications."""
+    with patch('main-yt-dlp.GMAIL_PARAMS', None) as mock:
+        yield mock
+
+
+@pytest.fixture
 def mock_subprocess_run() -> Generator[MagicMock, None, None]:
     """Mock subprocess.run to avoid actual yt-dlp/ffmpeg execution."""
     with patch('subprocess.run') as mock:

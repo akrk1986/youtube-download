@@ -10,7 +10,7 @@ from funcs_for_main_yt_dlp import (count_files, format_elapsed_time,
                                    get_ffmpeg_path, get_ytdlp_path,
                                    organize_and_sanitize_files,
                                    process_audio_tags, validate_and_get_url)
-from funcs_slack_notify import send_slack_notification
+from funcs_notifications import GmailNotifier, SlackNotifier, send_all_notifications
 from funcs_video_info import (create_chapters_csv,
                               display_chapters_and_confirm, get_chapter_count,
                               get_video_info, is_playlist)
@@ -20,11 +20,16 @@ from logger_config import setup_logging
 from project_defs import (DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
                           VIDEO_OUTPUT_DIR)
 
-SLACK_WEBHOOK: str | None
+SLACK_WEBHOOK: str | None = None
+GMAIL_PARAMS: dict[str, str] | None = None
 try:
-    from git_excluded import SLACK_WEBHOOK
+    from git_excluded import SLACK_WEBHOOK  # type: ignore[assignment,no-redef]
 except ImportError:
-    SLACK_WEBHOOK = None
+    pass
+try:
+    from git_excluded import GMAIL_PARAMS  # type: ignore[assignment,no-redef,attr-defined]
+except ImportError:
+    pass
 
 # Version corresponds to the latest changelog entry timestamp
 VERSION = '2026-02-07-2100'
@@ -77,7 +82,8 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
-                  initial_video_count: int, initial_audio_count: int) -> None:
+                  initial_video_count: int, initial_audio_count: int,
+                  notifiers: list | None = None) -> None:
     """Execute the main download logic."""
 
     # Parse and validate audio formats
@@ -132,11 +138,10 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
     args.video_url = validate_and_get_url(provided_url=args.video_url)
     logger.info(f'Processing URL: {args.video_url}')
 
-    # Send start notification to Slack
-    # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
-    if SLACK_WEBHOOK:
-        send_slack_notification(
-            webhook_url=SLACK_WEBHOOK,
+    # Send start notification
+    if notifiers:
+        send_all_notifications(
+            notifiers=notifiers,
             status='start',
             url=args.video_url,
             args_dict=args_dict,
@@ -267,8 +272,7 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
         )
 
     # Send success notification
-    # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
-    if SLACK_WEBHOOK:
+    if notifiers:
         elapsed_time = format_elapsed_time(time.time() - start_time)
         # Count newly created files (difference between final and initial counts)
         video_count = 0
@@ -282,8 +286,8 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
                 audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
                 final_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
             audio_count = final_audio_count - initial_audio_count
-        send_slack_notification(
-            webhook_url=SLACK_WEBHOOK,
+        send_all_notifications(
+            notifiers=notifiers,
             status='success',
             url=args.video_url,
             args_dict=args_dict,
@@ -335,14 +339,23 @@ def main() -> None:
             audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
             initial_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
 
+    # Build notifiers list
+    notifiers: list = []
+    _slack = SlackNotifier(webhook_url=SLACK_WEBHOOK)
+    if _slack.is_configured():
+        notifiers.append(_slack)
+    _gmail = GmailNotifier(gmail_params=GMAIL_PARAMS)
+    if _gmail.is_configured():
+        notifiers.append(_gmail)
+
     try:
         _execute_main(args=args, args_dict=args_dict, start_time=start_time, session_id=session_id,
-                      initial_video_count=initial_video_count, initial_audio_count=initial_audio_count)
+                      initial_video_count=initial_video_count, initial_audio_count=initial_audio_count,
+                      notifiers=notifiers)
     except KeyboardInterrupt:
         logger.warning('Download cancelled by user (CTRL-C)')
         # Send cancellation notification
-        # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
-        if SLACK_WEBHOOK:
+        if notifiers:
             elapsed_time = format_elapsed_time(time.time() - start_time)
             # Count newly created files before cancellation (difference between final and initial counts)
             video_count = 0
@@ -356,8 +369,8 @@ def main() -> None:
                     audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
                     final_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
                 audio_count = final_audio_count - initial_audio_count
-            send_slack_notification(
-                webhook_url=SLACK_WEBHOOK,
+            send_all_notifications(
+                notifiers=notifiers,
                 status='cancelled',
                 url=args.video_url or 'N/A',
                 args_dict=args_dict,
@@ -371,8 +384,7 @@ def main() -> None:
     except Exception as e:
         logger.exception(f'Download failed: {e}')
         # Send failure notification
-        # SECURITY: SLACK_WEBHOOK must never be logged, even with --verbose
-        if SLACK_WEBHOOK:
+        if notifiers:
             elapsed_time = format_elapsed_time(time.time() - start_time)
             # Count newly created files before failure (difference between final and initial counts)
             video_count = 0
@@ -386,8 +398,8 @@ def main() -> None:
                     audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
                     final_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
                 audio_count = final_audio_count - initial_audio_count
-            send_slack_notification(
-                webhook_url=SLACK_WEBHOOK,
+            send_all_notifications(
+                notifiers=notifiers,
                 status='failure',
                 url=args.video_url or 'N/A',
                 args_dict=args_dict,

@@ -241,10 +241,10 @@ class TestSlackNotifications:
 
     def test_start_notification_sent(self, mock_requests_post):
         """Test that start notification is sent when webhook configured."""
-        from funcs_slack_notify import send_slack_notification
+        from funcs_notifications import SlackNotifier
 
-        result = send_slack_notification(
-            webhook_url='https://hooks.slack.com/services/TEST/WEBHOOK/URL',
+        notifier = SlackNotifier(webhook_url='https://hooks.slack.com/services/TEST/WEBHOOK/URL')
+        result = notifier.send(
             status='start',
             url='https://www.youtube.com/watch?v=test',
             args_dict={'with_audio': True},
@@ -258,10 +258,10 @@ class TestSlackNotifications:
 
     def test_success_notification_sent(self, mock_requests_post):
         """Test that success notification is sent when webhook configured."""
-        from funcs_slack_notify import send_slack_notification
+        from funcs_notifications import SlackNotifier
 
-        result = send_slack_notification(
-            webhook_url='https://hooks.slack.com/services/TEST/WEBHOOK/URL',
+        notifier = SlackNotifier(webhook_url='https://hooks.slack.com/services/TEST/WEBHOOK/URL')
+        result = notifier.send(
             status='success',
             url='https://www.youtube.com/watch?v=test',
             args_dict={'with_audio': True},
@@ -278,10 +278,11 @@ class TestSlackNotifications:
 
     def test_no_notification_when_webhook_none(self, mock_requests_post):
         """Test that no notification is sent when webhook is None."""
-        from funcs_slack_notify import send_slack_notification
+        from funcs_notifications import SlackNotifier
 
-        result = send_slack_notification(
-            webhook_url=None,
+        notifier = SlackNotifier(webhook_url=None)
+        assert notifier.is_configured() is False
+        result = notifier.send(
             status='start',
             url='https://www.youtube.com/watch?v=test',
             args_dict={},
@@ -293,10 +294,10 @@ class TestSlackNotifications:
 
     def test_cancelled_notification_on_keyboard_interrupt(self, mock_requests_post):
         """Test that cancelled notification is sent correctly."""
-        from funcs_slack_notify import send_slack_notification
+        from funcs_notifications import SlackNotifier
 
-        result = send_slack_notification(
-            webhook_url='https://hooks.slack.com/services/TEST/WEBHOOK/URL',
+        notifier = SlackNotifier(webhook_url='https://hooks.slack.com/services/TEST/WEBHOOK/URL')
+        result = notifier.send(
             status='cancelled',
             url='https://www.youtube.com/watch?v=test',
             args_dict={'only_audio': True},
@@ -310,6 +311,166 @@ class TestSlackNotifications:
         assert mock_requests_post.called
         call_args = mock_requests_post.call_args
         assert 'CANCELLED' in str(call_args)
+
+
+class TestGmailNotifications:
+    """Test Gmail notification functionality."""
+
+    def test_gmail_send_success(self):
+        """Test that GmailNotifier sends email successfully."""
+        from funcs_notifications import GmailNotifier
+
+        params = {
+            'sender_email': 'sender@gmail.com',
+            'sender_app_password': 'xxxx xxxx xxxx xxxx',
+            'recipient_email': 'recipient@gmail.com',
+        }
+        notifier = GmailNotifier(gmail_params=params)
+        assert notifier.is_configured() is True
+
+        with patch('smtplib.SMTP') as mock_smtp:
+            mock_server = MagicMock()
+            mock_smtp.return_value.__enter__ = MagicMock(return_value=mock_server)
+            mock_smtp.return_value.__exit__ = MagicMock(return_value=False)
+
+            result = notifier.send(
+                status='success',
+                url='https://www.youtube.com/watch?v=test',
+                args_dict={'only_audio': True},
+                session_id='[2026-02-11 12:00 test-host]',
+                elapsed_time='3m 10s',
+                video_count=0,
+                audio_count=5
+            )
+
+            assert result is True
+            mock_server.starttls.assert_called_once()
+            mock_server.login.assert_called_once_with('sender@gmail.com', 'xxxx xxxx xxxx xxxx')
+            mock_server.send_message.assert_called_once()
+
+    def test_gmail_not_configured_none(self):
+        """Test that GmailNotifier with None returns False."""
+        from funcs_notifications import GmailNotifier
+
+        notifier = GmailNotifier(gmail_params=None)
+        assert notifier.is_configured() is False
+        result = notifier.send(
+            status='start',
+            url='https://www.youtube.com/watch?v=test',
+            args_dict={},
+            session_id='test'
+        )
+        assert result is False
+
+    def test_gmail_not_configured_missing_keys(self):
+        """Test that GmailNotifier with incomplete dict returns False."""
+        from funcs_notifications import GmailNotifier
+
+        # Missing sender_app_password
+        params = {
+            'sender_email': 'sender@gmail.com',
+            'recipient_email': 'recipient@gmail.com',
+        }
+        notifier = GmailNotifier(gmail_params=params)
+        assert notifier.is_configured() is False
+
+    def test_gmail_auth_failure(self):
+        """Test that GmailNotifier handles SMTPAuthenticationError gracefully."""
+        import smtplib
+        from funcs_notifications import GmailNotifier
+
+        params = {
+            'sender_email': 'sender@gmail.com',
+            'sender_app_password': 'bad-password',
+            'recipient_email': 'recipient@gmail.com',
+        }
+        notifier = GmailNotifier(gmail_params=params)
+
+        with patch('smtplib.SMTP') as mock_smtp:
+            mock_server = MagicMock()
+            mock_smtp.return_value.__enter__ = MagicMock(return_value=mock_server)
+            mock_smtp.return_value.__exit__ = MagicMock(return_value=False)
+            mock_server.login.side_effect = smtplib.SMTPAuthenticationError(535, b'Auth failed')
+
+            result = notifier.send(
+                status='start',
+                url='https://www.youtube.com/watch?v=test',
+                args_dict={},
+                session_id='test'
+            )
+            assert result is False
+
+    def test_gmail_connection_timeout(self):
+        """Test that GmailNotifier handles TimeoutError gracefully."""
+        from funcs_notifications import GmailNotifier
+
+        params = {
+            'sender_email': 'sender@gmail.com',
+            'sender_app_password': 'xxxx xxxx xxxx xxxx',
+            'recipient_email': 'recipient@gmail.com',
+        }
+        notifier = GmailNotifier(gmail_params=params)
+
+        with patch('smtplib.SMTP') as mock_smtp:
+            mock_smtp.side_effect = TimeoutError('Connection timed out')
+
+            result = notifier.send(
+                status='start',
+                url='https://www.youtube.com/watch?v=test',
+                args_dict={},
+                session_id='test'
+            )
+            assert result is False
+
+
+class TestSendAllNotifications:
+    """Test send_all_notifications convenience function."""
+
+    def test_send_all_skips_unconfigured(self):
+        """Test that unconfigured notifiers are skipped."""
+        from funcs_notifications import SlackNotifier, GmailNotifier, send_all_notifications
+
+        slack = SlackNotifier(webhook_url=None)
+        gmail = GmailNotifier(gmail_params=None)
+
+        with patch.object(slack, 'send') as mock_slack_send, \
+             patch.object(gmail, 'send') as mock_gmail_send:
+            send_all_notifications(
+                notifiers=[slack, gmail],
+                status='start',
+                url='https://www.youtube.com/watch?v=test',
+                args_dict={},
+                session_id='test'
+            )
+            # send() is called on all notifiers in the list, but
+            # each notifier's send() checks is_configured() internally
+            mock_slack_send.assert_called_once()
+            mock_gmail_send.assert_called_once()
+
+    def test_one_failure_does_not_block_other(self, mock_requests_post):
+        """Test that if one notifier fails, others still send."""
+        from funcs_notifications import SlackNotifier, GmailNotifier, send_all_notifications
+
+        slack = SlackNotifier(webhook_url='https://hooks.slack.com/services/TEST/WEBHOOK/URL')
+        gmail = GmailNotifier(gmail_params={
+            'sender_email': 'sender@gmail.com',
+            'sender_app_password': 'xxxx xxxx xxxx xxxx',
+            'recipient_email': 'recipient@gmail.com',
+        })
+
+        # Make Slack raise an exception
+        with patch.object(slack, 'send', side_effect=RuntimeError('Slack boom')), \
+             patch.object(gmail, 'send', return_value=True) as mock_gmail_send:
+            # Should not raise
+            send_all_notifications(
+                notifiers=[slack, gmail],
+                status='success',
+                url='https://www.youtube.com/watch?v=test',
+                args_dict={},
+                session_id='test'
+            )
+            # Gmail should still be called despite Slack failure
+            mock_gmail_send.assert_called_once()
 
 
 class TestMainExecution:
