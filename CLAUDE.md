@@ -59,7 +59,7 @@ The codebase uses a modular package-based architecture for better organization:
 - `funcs_url_extraction.py` - URL extraction from text and ODF documents
 - `funcs_audio_conversion.py` - Audio format conversion utilities
 - `funcs_audio_boost.py` - Audio volume boosting utilities
-- `funcs_slack_notify.py` - Slack notification functions for download status
+- `funcs_notifications/` - Notification handlers package (Slack, Gmail)
 
 ### Data Files
 - `Data/artists.json` - Greek music artists database (~17KB)
@@ -303,23 +303,48 @@ $env:YTDLP_USE_COOKIES="chrome"
 python main-yt-dlp.py --only-audio "URL"
 ```
 
-## Slack Notifications
+## Notifications (Slack and Gmail)
 
-The tool can send Slack notifications for download start/success/failure events.
+The tool can send notifications via Slack and/or Gmail for download start/success/failure/cancellation events.
 
 ### Setup
-1. Create a file `git_excluded.py` in the project root (not tracked by git)
-2. Add: `SLACK_WEBHOOK = 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'`
+Create a file `git_excluded.py` in the project root (not tracked by git):
+
+**For Slack notifications:**
+```python
+SLACK_WEBHOOK = 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+```
+
+**For Gmail notifications:**
+```python
+GMAIL_PARAMS = {
+    'sender_email': 'sender@gmail.com',
+    'sender_app_password': 'xxxx xxxx xxxx xxxx',  # Gmail App Password (16 characters)
+    'recipient_email': 'recipient@gmail.com',
+}
+```
+
+**Important for Gmail:**
+- You must use a Gmail **App Password**, not your regular Gmail password
+- Enable 2-Step Verification first: https://myaccount.google.com/security
+- Generate App Password: https://myaccount.google.com/apppasswords
+- Select app: "Mail", device: "Other (custom name)"
+- Copy the 16-character password exactly as shown
+
+**Note:** You can configure one, both, or neither notification method. Each runs independently.
 
 ### Features
+- **Multiple notifiers**: Slack and Gmail notifications run independently — one failure doesn't block the other
 - **Session tracking**: Each run generates a unique session ID `[YYYY-MM-DD HH:mm hostname]` that appears in both start and end messages for easy correlation
-- **Security**: The Slack webhook URL is never logged, even with `--verbose` flag
+- **Security**: Credentials are never logged, even with `--verbose` flag
   - urllib3 and requests loggers are suppressed by default
   - Use `--show-urls` flag only for debugging (exposes webhook URL in logs)
 
 ### Message Content
-- Start message: URL, selected parameters (with-audio, only-audio, split-chapters, title, artist, album)
-- Success/failure/cancellation message: All parameters, file counts, elapsed time
+- **Start message**: URL, selected parameters (with-audio, only-audio, split-chapters, title, artist, album)
+- **Success/failure/cancellation message**: All parameters, file counts, elapsed time
+- **Slack format**: Markdown with `*bold*` and bullet points
+- **Gmail format**: HTML email with subject line indicating status
 
 ### File Counting
 The script accurately tracks only files created during the current run:
@@ -328,3 +353,19 @@ The script accurately tracks only files created during the current run:
 - Reports the difference (newly created files only)
 - Works correctly even if output directories contain files from previous runs
 - Applies to video files (yt-videos/), audio files (yt-audio/, yt-audio-m4a/, yt-audio-flac/)
+
+### Architecture
+Notifications use a strategy pattern with a `funcs_notifications/` package:
+- `base.py` - NotificationHandler abstract base class
+- `slack_notifier.py` - SlackNotifier implementation
+- `gmail_notifier.py` - GmailNotifier implementation
+- `message_builder.py` - Shared message formatting
+- `__init__.py` - Exports + `send_all_notifications()` helper
+
+### Troubleshooting Gmail
+If you get "Authentication failed" errors:
+```bash
+# Run diagnostic tool
+python Tests-Standalone/test_gmail_auth.py
+```
+This will test your Gmail configuration and show specific error messages.

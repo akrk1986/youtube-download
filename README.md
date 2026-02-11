@@ -332,6 +332,56 @@ python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 - YouTube throttling on certain videos
 - Unreliable network connections
 
+### Enable download notifications (Slack and Gmail)
+
+The tool can send notifications when downloads start, succeed, fail, or are cancelled. Supports both Slack and Gmail — configure one, both, or neither.
+
+#### Setup
+
+Create a file `git_excluded.py` in the project root (this file is not tracked by git):
+
+**For Slack notifications:**
+```python
+SLACK_WEBHOOK = 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+```
+
+**For Gmail notifications:**
+```python
+GMAIL_PARAMS = {
+    'sender_email': 'sender@gmail.com',
+    'sender_app_password': 'xxxx xxxx xxxx xxxx',  # Gmail App Password (16 characters)
+    'recipient_email': 'recipient@gmail.com',
+}
+```
+
+**Important for Gmail:**
+- You must use a Gmail **App Password**, not your regular Gmail password
+- Steps to set up:
+  1. Enable 2-Step Verification: https://myaccount.google.com/security
+  2. Generate App Password: https://myaccount.google.com/apppasswords
+  3. Select app: "Mail", device: "Other (custom name)"
+  4. Copy the 16-character password exactly as shown
+
+#### What gets notified
+
+Notifications are sent for these events:
+- **Start**: When download begins (includes URL and selected parameters)
+- **Success**: When download completes (includes file counts and elapsed time)
+- **Failure**: When download fails (includes error message)
+- **Cancelled**: When you press Ctrl+C (includes partial file counts)
+
+Each notification includes a session ID `[YYYY-MM-DD HH:mm hostname]` to correlate start/end messages.
+
+#### Troubleshooting Gmail authentication
+
+If you see "Authentication failed" errors:
+```bash
+# Run diagnostic tool to test your Gmail configuration
+python Tests-Standalone/test_gmail_auth.py
+```
+
+This will verify your credentials and show specific error messages if something is wrong.
+
 ## URL Extraction Utility
 
 The project includes a utility for extracting URLs from text and ODF documents, filtering only valid video site URLs (YouTube, Facebook, ERTFlix).

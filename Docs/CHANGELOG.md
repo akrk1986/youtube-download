@@ -4,6 +4,66 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2026-02-11 (18:20)
+
+**Enhancement:** Add notifications package with Gmail support alongside Slack
+
+**Problem:** Slack notifications were functional but monolithic (`funcs_slack_notify.py`). Adding additional notification methods (email, Discord, etc.) would require duplicating code. No email notification option existed for users who prefer email over Slack.
+
+**Solution:** Refactored notification system into modular package following strategy pattern (similar to `funcs_audio_tag_handlers/`). Added Gmail SMTP notifications alongside existing Slack functionality.
+
+**Package Structure:**
+- `funcs_notifications/` - New notifications package
+  - `base.py` - `NotificationHandler` abstract base class
+  - `slack_notifier.py` - `SlackNotifier` implementation (preserves all existing logic)
+  - `gmail_notifier.py` - `GmailNotifier` implementation (SMTP via stdlib)
+  - `message_builder.py` - Shared message formatting (Slack markdown, HTML email)
+  - `__init__.py` - Exports + `send_all_notifications()` convenience function
+
+**Key Features:**
+- **Multiple notifiers run independently** - One failure doesn't block others
+- **No new dependencies** - Gmail uses Python stdlib (`smtplib`, `email.mime`)
+- **Security** - Credentials never logged (Gmail App Password, Slack webhook)
+- **Backward compatible** - Existing Slack functionality preserved exactly
+- **Strategy pattern** - Easy to add more notifiers (Discord, Telegram, etc.)
+
+**Configuration (in `git_excluded.py`):**
+```python
+# Slack (existing)
+SLACK_WEBHOOK = 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+
+# Gmail (new)
+GMAIL_PARAMS = {
+    'sender_email': 'sender@gmail.com',
+    'sender_app_password': 'xxxx xxxx xxxx xxxx',  # Gmail App Password
+    'recipient_email': 'recipient@gmail.com',
+}
+```
+
+**Gmail Setup:**
+1. Enable 2-Step Verification: https://myaccount.google.com/security
+2. Generate App Password: https://myaccount.google.com/apppasswords
+3. Use the 16-character App Password (not regular Gmail password)
+
+**Changes:**
+- Deleted: `funcs_slack_notify.py` (replaced by package)
+- Updated: `main-yt-dlp.py` (imports from `funcs_notifications`, builds notifiers list)
+- Updated: Tests (56 tests: 49 original + 7 new Gmail/integration tests)
+- New: `main-qb-notify-gmail.py` (Gmail version of torrent completion script)
+- New: `Tests-Standalone/test_gmail_auth.py` (diagnostic tool for troubleshooting)
+
+**Verification:**
+- mypy: 0 errors
+- pytest: 56/56 tests pass
+- Manual: Both Slack and Gmail notifications send successfully
+
+**Files changed:**
+- `main-yt-dlp.py`: VERSION = '2026-02-11-1820'
+- 9 files total (package + main script + tests)
+- 568 insertions, 162 deletions
+
+---
+
 ## 2026-02-07 (21:00)
 
 **Enhancement:** Reorganized Tests/ directory structure for clarity
