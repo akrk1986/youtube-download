@@ -500,9 +500,17 @@ The tool includes specialized functionality for Greek music:
 ## Project Structure
 
 - `main-yt-dlp.py` - Main entry point
-- `funcs_*.py` - Modular function libraries for different tasks
+- `funcs_*/` - Modular function packages organized by purpose (7 packages, 4,017 lines)
+  - `funcs_for_main_yt_dlp/` - Main script helpers
+  - `funcs_video_info/` - Video metadata and chapters
+  - `funcs_utils/` - General utilities
+  - `funcs_audio_processing/` - Audio tag processing
+  - `funcs_audio_tag_handlers/` - Tag handler classes
+  - `funcs_for_audio_utils/` - Audio utilities
+  - `funcs_notifications/` - Notification handlers
 - `Data/artists.json` - Greek artists database (exported from Trello)
-- `Tests/` - Test scripts for individual components
+- `Tests/` - Pytest tests and E2E test framework
+- `Tests-Standalone/` - Standalone test scripts and utilities
 - `Docs/` - Documentation files
 - `Beta/` - Experimental features (excluded from global changes)
 

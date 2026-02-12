@@ -23,43 +23,55 @@ The codebase follows a modular function-based architecture:
 
 ### Core Function Modules and Packages
 
-The codebase uses a modular package-based architecture for better organization:
+The codebase uses a modular package-based architecture. All helper functions are organized into 7 logical packages:
 
-**Packages (refactored for better modularity):**
-- `funcs_utils/` - General utilities package
-  - `file_operations.py` - File organization and sanitization
-  - `string_sanitization.py` - String/filename sanitization and Greek text handling
-  - `yt_dlp_utils.py` - yt-dlp specific utilities (error detection, cookies)
-  - `security.py` - Security helpers for subprocess calls
-- `funcs_video_info/` - Video information package
-  - `url_validation.py` - URL validation and timeout determination
-  - `metadata.py` - Video metadata retrieval using yt-dlp
-  - `chapters.py` - Chapter detection, display, and CSV generation
-- `funcs_for_main_yt_dlp/` - Main script helpers package
+**Packages:**
+
+- `funcs_for_main_yt_dlp/` - Main script helpers (6 modules, 861 lines)
+  - `download.py` - Core yt-dlp download and audio extraction functions
+  - `audio_processing.py` - Audio tag processing coordination
+  - `file_organization.py` - File organization and sanitization
   - `external_tools.py` - External tool path detection (ffmpeg, yt-dlp)
   - `url_validation.py` - URL validation and input handling
-  - `file_organization.py` - File organization and sanitization
-  - `audio_processing.py` - Audio tag processing coordination
   - `utilities.py` - General utilities (time formatting, session ID)
-- `funcs_audio_tag_handlers/` - Audio tag handler classes package (strategy pattern)
-  - `base.py` - Abstract base class (AudioTagHandler)
+
+- `funcs_video_info/` - Video information (5 modules, 819 lines)
+  - `metadata.py` - Video metadata retrieval using yt-dlp
+  - `chapters.py` - Chapter detection, display, and CSV generation
+  - `url_validation.py` - URL validation and timeout determination
+  - `url_extraction.py` - URL extraction from text and ODF documents
+  - `chapter_extraction.py` - Video chapter detection and processing
+
+- `funcs_utils/` - General utilities (6 modules, 665 lines)
+  - `string_sanitization.py` - String/filename sanitization and Greek text handling
+  - `file_operations.py` - File organization and sanitization
+  - `logger_config.py` - Centralized logging configuration
+  - `yt_dlp_utils.py` - yt-dlp specific utilities (error detection, cookies)
+  - `security.py` - Security helpers for subprocess calls
+  - `artist_search.py` - Greek artist name matching and search variants
+
+- `funcs_audio_processing/` - Audio tag processing (5 modules, 486 lines)
+  - `unified.py` - Unified audio tag processing across formats
+  - `common.py` - Common audio tag processing functions
+  - `mp3.py` - MP3 ID3v2 tag processing and artist detection
+  - `m4a.py` - M4A MP4/iTunes metadata processing
+  - `flac.py` - FLAC Vorbis Comments processing
+
+- `funcs_audio_tag_handlers/` - Tag handler classes (4 modules, 425 lines)
+  - `base.py` - Abstract base class (AudioTagHandler) - strategy pattern
   - `mp3_handler.py` - MP3TagHandler with UTF-16 encoding support
   - `m4a_handler.py` - M4ATagHandler for MP4/iTunes metadata
   - `flac_handler.py` - FLACTagHandler for Vorbis Comments
 
-**Standalone Modules:**
-- `funcs_yt_dlp_download.py` - yt-dlp download and audio extraction functions
-- `funcs_process_mp3_tags.py` - MP3 ID3v2 tag processing and artist detection
-- `funcs_process_m4a_tags.py` - M4A MP4/iTunes metadata processing
-- `funcs_process_flac_tags.py` - FLAC Vorbis Comments processing
-- `funcs_process_audio_tags_common.py` - Common audio tag processing functions
-- `funcs_process_audio_tags_unified.py` - Unified audio tag processing across formats
-- `funcs_artist_search.py` - Greek artist name matching and search variants
-- `funcs_chapter_extraction.py` - Video chapter detection and processing
-- `funcs_url_extraction.py` - URL extraction from text and ODF documents
-- `funcs_audio_conversion.py` - Audio format conversion utilities
-- `funcs_audio_boost.py` - Audio volume boosting utilities
-- `funcs_notifications/` - Notification handlers package (Slack, Gmail)
+- `funcs_for_audio_utils/` - Audio utilities (2 modules, 408 lines)
+  - `boost.py` - Audio volume boosting with ffmpeg
+  - `conversion.py` - Audio format conversion utilities (MP3 ↔ M4A)
+
+- `funcs_notifications/` - Notification handlers (4 modules, 353 lines)
+  - `base.py` - NotificationHandler abstract base class
+  - `slack_notifier.py` - SlackNotifier implementation
+  - `gmail_notifier.py` - GmailNotifier implementation
+  - `message_builder.py` - Shared message formatting
 
 ### Data Files
 - `Data/artists.json` - Greek music artists database (~17KB)
