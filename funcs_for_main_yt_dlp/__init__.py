@@ -7,6 +7,7 @@ This package is organized into:
 - file_organization: File organization and sanitization
 - audio_processing: Audio tag processing
 - utilities: General utility functions
+- ertflix_token_handler: ERTFlix token API URL resolution
 """
 
 # Import all functions to maintain backward compatibility
@@ -16,6 +17,10 @@ from funcs_for_main_yt_dlp.download import (
     extract_audio_with_ytdlp,
     remux_video_chapters,
     run_yt_dlp,
+)
+from funcs_for_main_yt_dlp.ertflix_token_handler import (
+    is_ertflix_token_url,
+    resolve_ertflix_token_url,
 )
 from funcs_for_main_yt_dlp.external_tools import (
     get_ffmpeg_path,
@@ -54,4 +59,7 @@ __all__ = [
     # Utilities
     'format_elapsed_time',
     'generate_session_id',
+    # ERTFlix token handling
+    'is_ertflix_token_url',
+    'resolve_ertflix_token_url',
 ]

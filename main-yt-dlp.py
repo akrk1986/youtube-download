@@ -134,8 +134,8 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             logger.error('No previous URL found in Data/last_url.txt')
             sys.exit(1)
 
-    # Validate and get URL
-    args.video_url = validate_and_get_url(provided_url=args.video_url)
+    # Validate and get URL (resolves ERTFlix token URLs automatically)
+    args.video_url = validate_and_get_url(provided_url=args.video_url, ytdlp_path=Path(yt_dlp_exe))
     logger.info(f'Processing URL: {args.video_url}')
 
     # Send start notification
