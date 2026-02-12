@@ -4,7 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from funcs_audio_boost import (
+from funcs_for_audio_utils import (
     MP3Booster,
     MP4Booster,
     TARGET_PEAK_DB,

@@ -12,7 +12,7 @@ from mutagen.id3 import ID3NoHeaderError, ID3, COMM, TENC
 from mutagen.mp4 import MP4
 import arrow
 
-from funcs_audio_conversion import convert_mp3_to_m4a, convert_m4a_to_mp3
+from funcs_for_audio_utils import convert_mp3_to_m4a, convert_m4a_to_mp3
 
 
 def normalize_year(year_str: str | int | None) -> str:
