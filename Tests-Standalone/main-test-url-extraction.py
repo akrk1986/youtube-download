@@ -8,7 +8,7 @@ from pathlib import Path
 # Add parent directory to path to import project modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from funcs_url_extraction import print_urls_from_file
+from funcs_video_info.url_extraction import print_urls_from_file
 import argparse
 
 

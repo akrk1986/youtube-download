@@ -6,7 +6,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from funcs_process_audio_tags_common import sanitize_album_name
+from funcs_audio_processing.common import sanitize_album_name
 from funcs_utils import (get_cookie_args, is_format_error, sanitize_string,
                          sanitize_url_for_subprocess)
 from funcs_video_info import get_timeout_for_url, get_video_info

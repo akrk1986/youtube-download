@@ -1,5 +1,5 @@
 """Test code."""
-from funcs_process_mp3_tags import extract_chapter_info
+from funcs_audio_processing.common import extract_chapter_info
 
 def main() -> None:
     s = input('Enter the string: ')

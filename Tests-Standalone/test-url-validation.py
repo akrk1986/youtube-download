@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from funcs_utils import validate_video_url
-from funcs_url_extraction import is_valid_domain_url
+from funcs_video_info.url_extraction import is_valid_domain_url
 
 
 def test_url_validation():

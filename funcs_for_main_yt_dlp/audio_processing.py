@@ -3,12 +3,14 @@ import logging
 from pathlib import Path
 
 from funcs_for_main_yt_dlp.file_organization import get_audio_dir_for_format
-from funcs_process_flac_tags import (set_artists_in_flac_files,
-                                     set_tags_in_chapter_flac_files)
-from funcs_process_m4a_tags import (set_artists_in_m4a_files,
-                                    set_tags_in_chapter_m4a_files)
-from funcs_process_mp3_tags import (set_artists_in_mp3_files,
-                                    set_tags_in_chapter_mp3_files)
+from funcs_audio_processing import (
+    set_artists_in_flac_files,
+    set_tags_in_chapter_flac_files,
+    set_artists_in_m4a_files,
+    set_tags_in_chapter_m4a_files,
+    set_artists_in_mp3_files,
+    set_tags_in_chapter_mp3_files
+)
 
 logger = logging.getLogger(__name__)
 

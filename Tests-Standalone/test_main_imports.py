@@ -6,8 +6,8 @@ sys.path.append('..')
 
 try:
     # Test imports from main script
-    from funcs_process_mp3_tags import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
-    from funcs_process_m4a_tags import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
+    from funcs_audio_processing.mp3 import set_artists_in_mp3_files, set_tags_in_chapter_mp3_files
+    from funcs_audio_processing.m4a import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files
     print('✓ Successfully imported all audio tag processing functions')
 
     # Test argument parsing setup

@@ -3,7 +3,7 @@ import logging
 import urllib.error
 from urllib.parse import urlparse
 
-from funcs_url_extraction import is_valid_domain_url
+from funcs_video_info.url_extraction import is_valid_domain_url
 from project_defs import (SUBPROCESS_TIMEOUT_FACEBOOK,
                           SUBPROCESS_TIMEOUT_OTHER_SITES,
                           SUBPROCESS_TIMEOUT_YOUTUBE, VALID_FACEBOOK_DOMAINS,
