@@ -78,6 +78,8 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
                              help='Also extract audio (format specified by --audio-format)')
     audio_group.add_argument('--only-audio', action='store_true',
                              help='Delete video files after extraction')
+    audio_group.add_argument('--ertflix-program', action='store_true',
+                             help='ERTFlix program mode: download video only (resolves token URLs, ignores audio flags)')
 
     return parser.parse_args(argv)
 
@@ -107,9 +109,15 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             deduplicated_formats.append(fmt)
     audio_formats = deduplicated_formats
 
-    logger.info(f'Requested audio formats: {", ".join(audio_formats)}')
-
-    need_audio = args.with_audio or args.only_audio
+    # ERTFlix program mode: force video-only, no audio extraction
+    if args.ertflix_program:
+        logger.info('ERTFlix program mode: downloading video only (audio extraction disabled)')
+        need_audio = False
+        args.only_audio = False  # Don't delete video
+        args.with_audio = False  # Don't extract audio
+    else:
+        logger.info(f'Requested audio formats: {", ".join(audio_formats)}')
+        need_audio = args.with_audio or args.only_audio
 
     # Detect platform and set appropriate executable path
 
@@ -135,17 +143,35 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             logger.error('No previous URL found in Data/last_url.txt')
             sys.exit(1)
 
+    # Get URL first (but don't resolve yet) to check if it's ERTFlix
+    # In interactive mode, this prompts for URL
+    if not args.video_url:
+        # Import here to avoid issues before URL is obtained
+        from funcs_video_info import validate_video_url
+        for attempt in range(3):  # MAX_URL_RETRIES
+            url_input = input('Enter the YouTube URL: ').strip()
+            is_valid, error_msg = validate_video_url(url=url_input)
+            if is_valid:
+                args.video_url = url_input
+                break
+            logger.error(f'Invalid URL: {error_msg}')
+            if attempt < 2:
+                logger.info(f'Please try again ({2 - attempt} attempts remaining)')
+            else:
+                logger.error('Maximum retry attempts reached. Exiting.')
+                sys.exit(1)
+
     # Determine timeout from ORIGINAL URL before resolution
     # This ensures ERTFlix URLs get the correct timeout even after CDN resolution
     from funcs_for_main_yt_dlp import is_ertflix_token_url
     from funcs_video_info import get_timeout_for_url
-    if args.video_url and is_ertflix_token_url(url=args.video_url) and args.video_download_timeout is None:
+    if is_ertflix_token_url(url=args.video_url) and args.video_download_timeout is None:
         # Get timeout based on original ERTFlix domain, not future CDN domain
         original_timeout = get_timeout_for_url(url=args.video_url)
         args.video_download_timeout = original_timeout
         logger.info(f'ERTFlix URL detected, using timeout: {original_timeout}s (based on original domain)')
 
-    # Validate and get URL (resolves ERTFlix token URLs automatically)
+    # Validate and resolve URL (ERTFlix token URLs get resolved to playback URLs)
     args.video_url = validate_and_get_url(provided_url=args.video_url, ytdlp_path=Path(yt_dlp_exe))
     logger.info(f'Processing URL: {args.video_url}')
 
