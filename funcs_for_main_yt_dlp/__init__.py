@@ -1,6 +1,7 @@
 """Helper functions package for main-yt-dlp.py.
 
 This package is organized into:
+- download: Core yt-dlp download and audio extraction functions
 - external_tools: External tool path detection (ffmpeg, yt-dlp)
 - url_validation: URL validation and input handling
 - file_organization: File organization and sanitization
@@ -10,6 +11,12 @@ This package is organized into:
 
 # Import all functions to maintain backward compatibility
 from funcs_for_main_yt_dlp.audio_processing import process_audio_tags
+from funcs_for_main_yt_dlp.download import (
+    DownloadOptions,
+    extract_audio_with_ytdlp,
+    remux_video_chapters,
+    run_yt_dlp,
+)
 from funcs_for_main_yt_dlp.external_tools import (
     get_ffmpeg_path,
     get_ytdlp_path,
@@ -27,6 +34,11 @@ from funcs_for_main_yt_dlp.utilities import (
 )
 
 __all__ = [
+    # Download
+    'DownloadOptions',
+    'run_yt_dlp',
+    'extract_audio_with_ytdlp',
+    'remux_video_chapters',
     # External tools
     'get_ytdlp_path',
     'get_ffmpeg_path',

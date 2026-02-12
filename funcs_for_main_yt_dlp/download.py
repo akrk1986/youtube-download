@@ -7,14 +7,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from funcs_audio_processing.common import sanitize_album_name
+from funcs_for_main_yt_dlp.file_organization import get_audio_dir_for_format
 from funcs_utils import (get_cookie_args, is_format_error, sanitize_string,
                          sanitize_url_for_subprocess)
 from funcs_video_info import get_timeout_for_url, get_video_info
-from project_defs import (AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_FLAC,
-                          AUDIO_OUTPUT_DIR_M4A, DEFAULT_AUDIO_QUALITY,
-                          FFMPEG_TIMEOUT_SECONDS, GLOB_MP4_FILES,
-                          YT_DLP_IS_PLAYLIST_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
-                          YT_DLP_WRITE_JSON_FLAG)
+from project_defs import (DEFAULT_AUDIO_QUALITY, FFMPEG_TIMEOUT_SECONDS,
+                          GLOB_MP4_FILES, YT_DLP_IS_PLAYLIST_FLAG,
+                          YT_DLP_SPLIT_CHAPTERS_FLAG, YT_DLP_WRITE_JSON_FLAG)
 
 logger = logging.getLogger(__name__)
 
@@ -37,25 +36,6 @@ class DownloadOptions:
 
 # Track if progress log file has been initialized (for --progress flag)
 _progress_log_initialized = False
-
-
-def get_audio_dir_for_format(audio_format: str) -> str:
-    """
-    Get the output directory for a given audio format.
-
-    Args:
-        audio_format: Audio format ('mp3', 'm4a', or 'flac')
-
-    Returns:
-        Directory path for the format
-    """
-    if audio_format == 'mp3':
-        return AUDIO_OUTPUT_DIR
-    elif audio_format == 'm4a':
-        return AUDIO_OUTPUT_DIR_M4A
-    elif audio_format == 'flac':
-        return AUDIO_OUTPUT_DIR_FLAC
-    raise ValueError(f'Unknown audio format: {audio_format}')
 
 
 def _quote_if_needed(value: str) -> str:

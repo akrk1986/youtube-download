@@ -5,17 +5,17 @@ import sys
 import time
 from pathlib import Path
 
-from funcs_for_main_yt_dlp import (count_files, format_elapsed_time,
-                                   generate_session_id, get_audio_dir_for_format,
-                                   get_ffmpeg_path, get_ytdlp_path,
-                                   organize_and_sanitize_files,
-                                   process_audio_tags, validate_and_get_url)
+from funcs_for_main_yt_dlp import (DownloadOptions, count_files,
+                                   extract_audio_with_ytdlp,
+                                   format_elapsed_time, generate_session_id,
+                                   get_audio_dir_for_format, get_ffmpeg_path,
+                                   get_ytdlp_path, organize_and_sanitize_files,
+                                   process_audio_tags, remux_video_chapters,
+                                   run_yt_dlp, validate_and_get_url)
 from funcs_notifications import GmailNotifier, SlackNotifier, send_all_notifications
 from funcs_video_info import (create_chapters_csv,
                               display_chapters_and_confirm, get_chapter_count,
                               get_video_info, is_playlist)
-from funcs_yt_dlp_download import (DownloadOptions, extract_audio_with_ytdlp,
-                                   remux_video_chapters, run_yt_dlp)
 from logger_config import setup_logging
 from project_defs import (DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
                           VIDEO_OUTPUT_DIR)
