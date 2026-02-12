@@ -5,6 +5,7 @@ This package is organized into:
 - string_sanitization: String and filename sanitization
 - yt_dlp_utils: yt-dlp specific utilities
 - security: Security helper functions
+- logger_config: Centralized logging configuration
 """
 
 # Import all functions to maintain backward compatibility
@@ -13,6 +14,7 @@ from funcs_utils.file_operations import (
     organize_media_files_silent,
     sanitize_filenames_in_folder,
 )
+from funcs_utils.logger_config import setup_logging
 from funcs_utils.security import (
     sanitize_url_for_subprocess,
     validate_file_path_security,
@@ -42,4 +44,6 @@ __all__ = [
     # Security
     'sanitize_url_for_subprocess',
     'validate_file_path_security',
+    # Logging
+    'setup_logging',
 ]

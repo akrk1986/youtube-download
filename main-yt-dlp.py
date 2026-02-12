@@ -16,7 +16,7 @@ from funcs_notifications import GmailNotifier, SlackNotifier, send_all_notificat
 from funcs_video_info import (create_chapters_csv,
                               display_chapters_and_confirm, get_chapter_count,
                               get_video_info, is_playlist)
-from logger_config import setup_logging
+from funcs_utils import setup_logging
 from project_defs import (DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
                           VIDEO_OUTPUT_DIR)
 

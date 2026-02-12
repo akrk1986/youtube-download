@@ -3,10 +3,10 @@ import logging
 import sys
 from pathlib import Path
 
-# Add parent directory to path to import logger_config
+# Add parent directory to path to import funcs_utils
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from logger_config import setup_logging
+from funcs_utils import setup_logging
 
 
 def test_without_show_urls():
