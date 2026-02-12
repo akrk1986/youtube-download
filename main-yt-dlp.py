@@ -1,6 +1,7 @@
 """Using yt-dlp, download videos from URL, and extract the MP3 files."""
 import argparse
 import logging
+import os
 import sys
 import time
 from pathlib import Path
@@ -133,6 +134,16 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
         else:
             logger.error('No previous URL found in Data/last_url.txt')
             sys.exit(1)
+
+    # Determine timeout from ORIGINAL URL before resolution
+    # This ensures ERTFlix URLs get the correct timeout even after CDN resolution
+    from funcs_for_main_yt_dlp import is_ertflix_token_url
+    from funcs_video_info import get_timeout_for_url
+    if is_ertflix_token_url(url=args.video_url) and args.video_download_timeout is None:
+        # Get timeout based on original ERTFlix domain, not future CDN domain
+        original_timeout = get_timeout_for_url(url=args.video_url)
+        args.video_download_timeout = original_timeout
+        logger.info(f'ERTFlix URL detected, using timeout: {original_timeout}s (based on original domain)')
 
     # Validate and get URL (resolves ERTFlix token URLs automatically)
     args.video_url = validate_and_get_url(provided_url=args.video_url, ytdlp_path=Path(yt_dlp_exe))
@@ -339,14 +350,26 @@ def main() -> None:
             audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
             initial_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
 
-    # Build notifiers list
+    # Build notifiers list (check NOTIFICATIONS env var)
     notifiers: list = []
-    _slack = SlackNotifier(webhook_url=SLACK_WEBHOOK)
-    if _slack.is_configured():
-        notifiers.append(_slack)
-    _gmail = GmailNotifier(gmail_params=GMAIL_PARAMS)
-    if _gmail.is_configured():
-        notifiers.append(_gmail)
+    notifications_enabled = os.getenv('NOTIFICATIONS', 'Y').strip().upper()
+    if notifications_enabled in ('Y', 'YES'):
+        _slack = SlackNotifier(webhook_url=SLACK_WEBHOOK)
+        if _slack.is_configured():
+            notifiers.append(_slack)
+        _gmail = GmailNotifier(gmail_params=GMAIL_PARAMS)
+        if _gmail.is_configured():
+            notifiers.append(_gmail)
+    elif notifications_enabled in ('N', 'NO'):
+        logger.info('Notifications disabled via NOTIFICATIONS environment variable')
+    else:
+        logger.warning(f'Invalid NOTIFICATIONS value: {notifications_enabled}. Expected Y/YES/N/NO. Using default (enabled).')
+        _slack = SlackNotifier(webhook_url=SLACK_WEBHOOK)
+        if _slack.is_configured():
+            notifiers.append(_slack)
+        _gmail = GmailNotifier(gmail_params=GMAIL_PARAMS)
+        if _gmail.is_configured():
+            notifiers.append(_gmail)
 
     try:
         _execute_main(args=args, args_dict=args_dict, start_time=start_time, session_id=session_id,
