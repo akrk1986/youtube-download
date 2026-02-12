@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git mv:*)",
+      "Bash(ls:*)",
+      "Bash(source:*)",
+      "Bash(mypy:*)",
+      "Bash(git add:*)",
+      "Bash(pytest:*)",
+      "Bash(python3 -m py_compile:*)"
     ],
     "deny": [],
     "ask": []
