@@ -139,7 +139,7 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
     # This ensures ERTFlix URLs get the correct timeout even after CDN resolution
     from funcs_for_main_yt_dlp import is_ertflix_token_url
     from funcs_video_info import get_timeout_for_url
-    if is_ertflix_token_url(url=args.video_url) and args.video_download_timeout is None:
+    if args.video_url and is_ertflix_token_url(url=args.video_url) and args.video_download_timeout is None:
         # Get timeout based on original ERTFlix domain, not future CDN domain
         original_timeout = get_timeout_for_url(url=args.video_url)
         args.video_download_timeout = original_timeout
