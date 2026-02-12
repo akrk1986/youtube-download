@@ -5,6 +5,7 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 ## Features
 
 - Download YouTube videos and playlists as MP4 files with embedded URL metadata
+- **Download ERTFlix programs** (Greek public broadcaster) using token API URLs
 - Extract audio as MP3, M4A, and/or FLAC with embedded metadata and thumbnails
 - Split videos by chapters automatically
 - Process audio tags to identify and set Greek artists
@@ -13,6 +14,7 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 - Automatic artist detection from a curated database of Greek musicians
 - Store source YouTube URL in both video and audio file metadata
 - Automatic format fallback when preferred video/audio formats are unavailable
+- **Control notifications** via `NOTIFICATIONS` environment variable
 
 ## Usage
 
@@ -20,9 +22,9 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 usage: main-yt-dlp.py [-h] [--audio-format AUDIO_FORMAT] [--split-chapters]
                       [--video-download-timeout VIDEO_DOWNLOAD_TIMEOUT]
                       [--subs] [--json] [--no-log-file] [--progress]
-                      [--verbose] [--rerun] [--title TITLE] [--artist ARTIST]
-                      [--album ALBUM] [--version]
-                      [--with-audio | --only-audio]
+                      [--verbose] [--show-urls] [--rerun] [--title TITLE]
+                      [--artist ARTIST] [--album ALBUM] [--version]
+                      [--with-audio | --only-audio | --ertflix-program]
                       [video_url]
 
 Download YouTube playlist/video, optionally with subtitles.
@@ -77,6 +79,9 @@ audio extraction mode (mutually exclusive):
 
   --only-audio          Extract ONLY audio, delete video files after extraction
                         (audio format specified by --audio-format)
+
+  --ertflix-program     ERTFlix program mode: download video only (resolves token URLs,
+                        ignores audio flags). Use for full ERTFlix programs.
 ```
 
 ### Parameter Details
@@ -336,6 +341,18 @@ python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 
 The tool can send notifications when downloads start, succeed, fail, or are cancelled. Supports both Slack and Gmail — configure one, both, or neither.
 
+**Disable notifications temporarily:**
+```bash
+# Disable during batch operations or testing
+export NOTIFICATIONS=N
+python main-yt-dlp.py --only-audio "URL"
+
+# Re-enable (default behavior)
+export NOTIFICATIONS=Y
+```
+
+Accepted values (case-insensitive): `Y`, `YES`, `N`, `NO`. Default is enabled if not set.
+
 #### Setup
 
 Create a file `git_excluded.py` in the project root (this file is not tracked by git):
@@ -381,6 +398,101 @@ python Tests-Standalone/test_gmail_auth.py
 ```
 
 This will verify your credentials and show specific error messages if something is wrong.
+
+## ERTFlix Support
+
+The tool supports downloading from **ERTFlix** (Greek public broadcaster ERT's streaming platform) using token API URLs.
+
+### How It Works
+
+ERTFlix uses token API URLs that contain the actual playback URL as a URL-encoded parameter. The script:
+1. Detects ERTFlix token API URLs automatically
+2. Extracts the `content_URL` parameter
+3. URL-decodes it to get the actual CDN playback URL
+4. Downloads from the CDN with proper timeout (1.5 hours)
+
+No API calls needed - just simple URL parsing!
+
+### Capturing Token URLs
+
+Use the browser console script to capture token API URLs from ERTFlix:
+
+1. **Navigate to ERTFlix series page** (e.g., `https://www.ertflix.gr/#/details/ERT_PS054741_E0`)
+2. **Open browser console** (F12 → Console tab)
+3. **Load the capture script:**
+   ```bash
+   cat JS-files/capture-working-play-click.js
+   # Copy output and paste into browser console
+   ```
+4. **Click Play buttons** on episodes you want to download
+5. **Copy captured URLs:**
+   ```javascript
+   // In console:
+   copy(window.__ertflixTokenApiUrls.join('\n'))
+   ```
+
+### Downloading ERTFlix Content
+
+**Set browser cookies (required for authentication):**
+```bash
+export YTDLP_USE_COOKIES=firefox  # or chrome
+```
+
+**Download video only (recommended for full programs):**
+```bash
+python main-yt-dlp.py --ertflix-program "https://api.ertflix.opentv.com/urlbuilder/v1/playout/content/token?content_id=..."
+```
+
+**Download audio only:**
+```bash
+python main-yt-dlp.py --only-audio "https://api.ertflix.opentv.com/urlbuilder/v1/playout/content/token?content_id=..."
+```
+
+**Batch download multiple episodes:**
+```bash
+export YTDLP_USE_COOKIES=firefox
+
+# Save URLs to file
+cat > episodes.txt <<'EOF'
+https://api.ertflix.opentv.com/.../token?content_id=EP1...
+https://api.ertflix.opentv.com/.../token?content_id=EP2...
+https://api.ertflix.opentv.com/.../token?content_id=EP3...
+EOF
+
+# Download all
+while IFS= read -r url; do
+  python main-yt-dlp.py --ertflix-program "$url"
+done < episodes.txt
+```
+
+### Token URL Format
+
+```
+https://api.ertflix.opentv.com/urlbuilder/v1/playout/content/token?
+  content_id=DRM_PS027282_DASH&
+  type=account&
+  content_URL=https%3A%2F%2Fert-ucdn.broadpeak-aas.com%2Fbpk-vod%2F...%2Findex.mpd
+```
+
+The script automatically extracts and decodes the `content_URL` parameter.
+
+### Browser Scripts
+
+- **Production scripts** in `JS-files/`:
+  - `capture-working-play-click.js` - Captures token API URLs from Play buttons
+  - `extract-ertflix-urls.js` - Extracts episode URLs from series pages
+  - `extract-parea-urls-v4.js` - Extracts Parea episode URLs
+
+- **Diagnostic scripts** in `JS-files-diag/` (for debugging)
+
+### Key Features
+
+- ✅ Automatic token URL detection and resolution
+- ✅ CDN-independent timeout (1.5 hours, not affected by CDN provider changes)
+- ✅ Browser cookie support via `YTDLP_USE_COOKIES`
+- ✅ `--ertflix-program` flag for video-only downloads
+- ✅ Works with `--only-audio` for audio extraction
+- ✅ No API calls needed (simple URL parameter extraction)
 
 ## URL Extraction Utility
 

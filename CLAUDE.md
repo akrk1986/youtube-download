@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a Python-based YouTube downloader and media processing tool that uses `yt-dlp` for downloading videos/audio and processes metadata with special focus on Greek music. The tool can:
 
 - Download YouTube videos/playlists as MP4 files
+- Download ERTFlix (Greek public broadcaster) programs using token API URLs
 - Extract audio as MP3, M4A, and/or FLAC with embedded metadata and thumbnails
 - Split videos by chapters automatically
 - Process audio tags to identify and set Greek artists
@@ -27,13 +28,14 @@ The codebase uses a modular package-based architecture. All helper functions are
 
 **Packages:**
 
-- `funcs_for_main_yt_dlp/` - Main script helpers (6 modules, 861 lines)
+- `funcs_for_main_yt_dlp/` - Main script helpers (7 modules, ~1000 lines)
   - `download.py` - Core yt-dlp download and audio extraction functions
   - `audio_processing.py` - Audio tag processing coordination
   - `file_organization.py` - File organization and sanitization
   - `external_tools.py` - External tool path detection (ffmpeg, yt-dlp)
   - `url_validation.py` - URL validation and input handling
   - `utilities.py` - General utilities (time formatting, session ID)
+  - `ertflix_token_handler.py` - ERTFlix token URL resolution
 
 - `funcs_video_info/` - Video information (5 modules, 819 lines)
   - `metadata.py` - Video metadata retrieval using yt-dlp
@@ -118,16 +120,69 @@ python main-yt-dlp.py --only-audio --title ask --artist prompt "URL"
 
 # Verbose logging with URL debugging (WARNING: may expose Slack webhook)
 python main-yt-dlp.py --verbose --show-urls --only-audio "URL"
+
+# ERTFlix program download (video only, uses token API)
+export YTDLP_USE_COOKIES=firefox
+python main-yt-dlp.py --ertflix-program "https://api.ertflix.opentv.com/..."
 ```
+
+### ERTFlix Support
+
+The tool supports downloading from ERTFlix (Greek public broadcaster) using token API URLs:
+
+**Token URL Resolution:**
+- ERTFlix uses token API URLs that contain the actual playback URL as a parameter
+- The script automatically extracts and decodes the `content_URL` parameter
+- No API calls needed - simple URL parsing and decoding
+
+**Usage:**
+```bash
+# Capture token URLs using browser console script
+# (See JS-files/capture-working-play-click.js)
+
+# Set browser cookies for authentication
+export YTDLP_USE_COOKIES=firefox  # or chrome
+
+# Download ERTFlix program (video only)
+python main-yt-dlp.py --ertflix-program "TOKEN_URL"
+
+# Download audio only
+python main-yt-dlp.py --only-audio "TOKEN_URL"
+```
+
+**Browser Scripts:**
+- Production scripts in `JS-files/`:
+  - `capture-working-play-click.js` - Captures token API URLs from Play buttons
+  - `extract-ertflix-urls.js` - Extracts episode URLs from series pages
+  - `extract-parea-urls-v4.js` - Extracts Parea episode URLs
+- Diagnostic scripts in `JS-files-diag/` (for debugging)
+
+**Key Features:**
+- `--ertflix-program` flag: Download video only (ignores audio flags)
+- Automatic token URL detection and resolution
+- CDN-independent timeout (1.5 hours based on original ERTFlix domain)
+- Browser cookie support via `YTDLP_USE_COOKIES` environment variable
+
+**Token URL Format:**
+```
+https://api.ertflix.opentv.com/urlbuilder/v1/playout/content/token?
+  content_id=DRM_PS027282_DASH&
+  type=account&
+  content_URL=https%3A%2F%2Fert-ucdn.broadpeak-aas.com%2F...%2Findex.mpd
+```
+
+The script extracts the URL-encoded `content_URL` parameter, which contains the actual CDN playback URL.
 
 ### Testing Individual Components
 The project has three categories of tests:
 
 **Pytest tests** (in `Tests/` directory):
 ```bash
-pytest Tests/                           # Run all pytest tests (49 tests)
-pytest Tests/test_main_ytdlp.py         # Main script tests (30 tests)
-pytest Tests/test_security_measures.py  # Security tests (19 tests)
+pytest Tests/                                    # Run all pytest tests (71 tests)
+pytest Tests/test_main_ytdlp.py                  # Main script tests (30 tests)
+pytest Tests/test_security_measures.py           # Security tests (19 tests)
+pytest Tests/test_ertflix_token_handler.py       # ERTFlix token handler tests (15 tests)
+pytest Tests/test_ertflix_token_handler.py       # ERTFlix integration tests (7 tests)
 ```
 
 **End-to-end tests** (in `Tests/` directory):
@@ -296,6 +351,26 @@ python main-yt-dlp.py --only-audio "URL"
 ```
 
 **Implementation:** `_get_download_retries()` in `funcs_yt_dlp_download.py` validates the value and raises `ValueError` if not a positive integer.
+
+### NOTIFICATIONS
+Controls whether Slack and Gmail notifications are sent.
+
+- **Valid values**: `Y`, `YES`, `N`, `NO` (case-insensitive)
+- **Default**: `Y` (enabled) if not set
+- **Purpose**: Disable notifications during testing or batch operations
+
+**Usage:**
+```bash
+# Disable notifications
+export NOTIFICATIONS=N
+python main-yt-dlp.py --only-audio "URL"
+
+# Enable notifications (default)
+export NOTIFICATIONS=Y
+python main-yt-dlp.py --only-audio "URL"
+```
+
+**Implementation:** Checked in `main()` before building notifiers list. Invalid values log warning and default to enabled.
 
 ### YTDLP_USE_COOKIES
 Enables downloading age-restricted or private videos using browser cookies.
