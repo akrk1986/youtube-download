@@ -15,9 +15,22 @@
 
 (function() {
 
+// Generate unique instance ID to detect multiple script runs
+const instanceId = Math.random().toString(36).substring(2, 9);
+
+// Check if script is already running
+if (window.__ertflixScriptInstanceId) {
+    console.warn('⚠️  WARNING: Script appears to be already running!');
+    console.warn(`   Previous instance: ${window.__ertflixScriptInstanceId}`);
+    console.warn(`   New instance: ${instanceId}`);
+    console.warn('   This may cause duplicate captures. Consider reloading the page.');
+}
+window.__ertflixScriptInstanceId = instanceId;
+
 console.clear();
 console.log('='.repeat(80));
 console.log('ERTFlix - Capture Working Play Button Click');
+console.log(`Instance ID: ${instanceId}`);
 console.log('='.repeat(80));
 console.log(`\nCurrent URL: ${window.location.href}\n`);
 
@@ -80,6 +93,7 @@ let videoTitle = null;
 let videoDuration = null;
 let captureActive = true;  // Flag to control whether to capture URLs
 let summaryPrinted = false;  // Flag to prevent duplicate summary prints
+let summaryTimeoutId = null;  // Track scheduled timeout to prevent duplicates
 
 // Helper function to record URLs in order
 function recordUrl(type, url) {
@@ -319,13 +333,18 @@ document.addEventListener('click', (event) => {
 
         console.log('\nWaiting for navigation or video load...');
 
-        // Only schedule summary if not already scheduled
-        if (!summaryPrinted) {
+        // Only schedule summary if not already scheduled or printed
+        if (!summaryPrinted && summaryTimeoutId === null) {
             console.log('\nSummary will be printed in 3 seconds...');
             // Print summary after 3 seconds to capture all URLs
-            setTimeout(printSummary, 3000);
-        } else {
-            console.log('\n⚠️  Summary already printed/scheduled.');
+            summaryTimeoutId = setTimeout(() => {
+                printSummary();
+                summaryTimeoutId = null;  // Clear timeout ID after execution
+            }, 3000);
+        } else if (summaryTimeoutId !== null) {
+            console.log('\n⚠️  Summary already scheduled, waiting...');
+        } else if (summaryPrinted) {
+            console.log('\n⚠️  Summary already printed.');
         }
 
         console.log('='.repeat(80));
@@ -339,6 +358,8 @@ console.log('✓ Play button click monitor active');
 // =============================================================================
 
 function printSummary(force = false) {
+    console.log(`\n[DEBUG] printSummary called - force=${force}, summaryPrinted=${summaryPrinted}, captureActive=${captureActive}, instance=${instanceId}`);
+
     // Prevent duplicate prints unless forced
     if (summaryPrinted && !force) {
         console.log('\n⚠️  Summary already printed. Use window.__printUrlSummary(true) to force reprint.');
@@ -348,6 +369,7 @@ function printSummary(force = false) {
     // Mark as printed and disable further captures
     summaryPrinted = true;
     captureActive = false;
+    console.log(`[DEBUG] Capture disabled - captureActive is now FALSE (instance=${instanceId})`);
 
     console.log('\n' + '='.repeat(80));
     console.log('📋 CAPTURED URLs SUMMARY');
@@ -406,12 +428,15 @@ function printSummary(force = false) {
 function enableCapture() {
     captureActive = true;
     summaryPrinted = false;  // Reset summary flag for fresh start
-    console.log('✓ URL capturing re-enabled (summary flag reset)');
+    summaryTimeoutId = null;  // Clear timeout ID
+    console.log(`[DEBUG] Capture re-enabled - captureActive=TRUE, summaryPrinted=FALSE (instance=${instanceId})`);
+    console.log('✓ URL capturing re-enabled (all flags reset)');
 }
 
 // Helper function to disable capturing
 function disableCapture() {
     captureActive = false;
+    console.log(`[DEBUG] Capture disabled - captureActive=FALSE (instance=${instanceId})`);
     console.log('✓ URL capturing disabled');
 }
 
