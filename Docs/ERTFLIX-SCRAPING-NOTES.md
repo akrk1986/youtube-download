@@ -81,10 +81,19 @@ This is common for modern websites but requires different scraping techniques.
 
 ## Recommendation
 
-**RECOMMENDED - Browser Console Method:** Use the browser console extraction method (`Tests/extract-urls-from-console.md`)
-- **Pros:** Simple, fast, reliable, no setup required
-- **Time:** Takes 30 seconds
+**RECOMMENDED - Capture Script Method:** Use the browser console capture script (`JS-files/capture-working-play-click.js`)
+- **What it does:** Intercepts network requests to capture token API URLs from Play buttons
+- **Pros:** Simple, fast, reliable, no setup required, auto-copies to clipboard, saves summary to file
+- **Time:** Takes 30 seconds per video
+- **Process:** Paste script in console, click Play button, wait 3 seconds for summary
+- **Output:** Token API URL in clipboard + summary file in Downloads folder
 - **Cons:** Manual process (but very quick)
+- **Status:** Active, maintained, works with current ERTFlix site
+
+**OBSOLETE - Browser Console Extraction Methods:**
+- `JS-files-diag/obsolete-extract-ertflix-urls.js` - Outdated (site changed)
+- `JS-files-diag/obsolete-extract-parea-urls-v4.js` - Outdated (site changed)
+- `Tests/extract-urls-from-console.md` - May be outdated (check file if exists)
 
 **For automated scraping:** Selenium solution (`Tests/scrape-with-selenium.py`) is complex in WSL
 - **Issue:** Requires Windows Chrome + Windows ChromeDriver coordination

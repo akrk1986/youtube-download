@@ -417,19 +417,21 @@ No API calls needed - just simple URL parsing!
 
 Use the browser console script to capture token API URLs from ERTFlix:
 
-1. **Navigate to ERTFlix series page** (e.g., `https://www.ertflix.gr/#/details/ERT_PS054741_E0`)
+1. **Navigate to ERTFlix video page** (e.g., `https://www.ertflix.gr/#/details/ERT_PS054741_E0`)
 2. **Open browser console** (F12 → Console tab)
-3. **Load the capture script:**
+3. **Clear console** (Firefox: trash icon, Chrome: circle with diagonal line)
+4. **Load the capture script:**
    ```bash
    cat JS-files/capture-working-play-click.js
-   # Copy output and paste into browser console
+   # Copy output and paste into browser console, press Enter
    ```
-4. **Click Play buttons** on episodes you want to download
-5. **Copy captured URLs:**
-   ```javascript
-   // In console:
-   copy(window.__ertflixTokenApiUrls.join('\n'))
-   ```
+5. **Click a Play button** and wait 3 seconds
+6. **Token URL is automatically:**
+   - Copied to clipboard (ready to paste)
+   - Saved to Downloads folder as `concise-summary-YYYY-MM-DD-HHMMSS.txt`
+   - Displayed in console summary
+
+**Note:** The script automatically stops capturing after the summary to prevent console clutter. To capture another video, call `window.__enableCapture()` first, then click another Play button.
 
 ### Downloading ERTFlix Content
 
@@ -478,12 +480,34 @@ The script automatically extracts and decodes the `content_URL` parameter.
 
 ### Browser Scripts
 
-- **Production scripts** in `JS-files/`:
-  - `capture-working-play-click.js` - Captures token API URLs from Play buttons
-  - `extract-ertflix-urls.js` - Extracts episode URLs from series pages
-  - `extract-parea-urls-v4.js` - Extracts Parea episode URLs
+- **Production script** in `JS-files/`:
+  - `capture-working-play-click.js` - Captures token API URLs from Play buttons with concise summary
+
+- **Obsolete scripts** in `JS-files-diag/`:
+  - `obsolete-extract-ertflix-urls.js` - Outdated (site changed)
+  - `obsolete-extract-parea-urls-v4.js` - Outdated (site changed)
 
 - **Diagnostic scripts** in `JS-files-diag/` (for debugging)
+
+#### Capture Script Features
+
+The `capture-working-play-click.js` script provides:
+- ✅ **Concise summary** after 3 seconds showing video title, duration, and deduplicated URLs
+- ✅ **Auto-clipboard copy** of token API URL (ready to paste immediately)
+- ✅ **Auto-file download** to Downloads folder as `concise-summary-YYYY-MM-DD-HHMMSS.txt`
+- ✅ **URL tracking** with type labels (TOKEN_API, SHAKA_PLAYER, VIDEO_RELATED)
+- ✅ **Duplicate prevention** - stops multiple summaries from multiple Play clicks
+- ✅ **Auto-capture stop** after summary to prevent console clutter
+- ✅ **Manual controls**: `window.__printUrlSummary()`, `window.__enableCapture()`, etc.
+- ✅ **Debug output** with instance ID tracking
+- ✅ **Multi-instance detection** warns if script run multiple times
+
+**Quick usage:**
+1. Open ERTFlix video page, press F12
+2. Clear console (Firefox: trash icon, Chrome: circle icon)
+3. Paste script and press Enter
+4. Click Play button, wait 3 seconds
+5. Token URL in clipboard, summary file in Downloads folder
 
 ### Key Features
 

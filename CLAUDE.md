@@ -151,13 +151,39 @@ python main-yt-dlp.py --only-audio "TOKEN_URL"
 ```
 
 **Browser Scripts:**
-- Production scripts in `JS-files/`:
-  - `capture-working-play-click.js` - Captures token API URLs from Play buttons
-  - `extract-ertflix-urls.js` - Extracts episode URLs from series pages
-  - `extract-parea-urls-v4.js` - Extracts Parea episode URLs
+- Production script in `JS-files/`:
+  - `capture-working-play-click.js` - Captures token API URLs from Play buttons with concise summary
+- Obsolete scripts in `JS-files-diag/`:
+  - `obsolete-extract-ertflix-urls.js` - Outdated (site changed)
+  - `obsolete-extract-parea-urls-v4.js` - Outdated (site changed)
 - Diagnostic scripts in `JS-files-diag/` (for debugging)
 
-**Key Features:**
+**Capture Script Features (`capture-working-play-click.js`):**
+- **Automatic concise summary**: After 3 seconds, displays title, duration, and deduplicated URLs
+- **Clipboard copy**: Token API URL automatically copied to clipboard when captured
+- **File download**: Summary auto-saved to Downloads folder as `concise-summary-YYYY-MM-DD-HHMMSS.txt`
+- **Video metadata**: Captures title from Play button and duration from video player
+- **URL tracking**: Records all URLs in order with type labels (TOKEN_API, SHAKA_PLAYER, VIDEO_RELATED)
+- **Duplicate prevention**: Prevents multiple summaries from multiple Play button clicks
+- **Capture control**: Automatically stops URL capturing after summary to prevent console clutter
+- **Manual control functions**:
+  - `window.__printUrlSummary()` - Print summary again
+  - `window.__printUrlSummary(true)` - Force reprint summary
+  - `window.__enableCapture()` - Re-enable URL capturing
+  - `window.__disableCapture()` - Stop URL capturing
+- **Debug output**: Instance ID tracking and state change logging for troubleshooting
+- **Multi-instance detection**: Warns if script is pasted/run multiple times
+
+**Usage Instructions:**
+1. Navigate to ERTFlix video page (e.g., `https://www.ertflix.gr/#/details/ERT_PS054741_E0`)
+2. Open browser console (F12)
+3. Clear console (Firefox: trash icon, Chrome: circle with diagonal line)
+4. Paste the script and press Enter
+5. Click any Play button
+6. Wait 3 seconds for automatic summary
+7. Token URL is in clipboard, summary file in Downloads folder
+
+**Main Script Features:**
 - `--ertflix-program` flag: Download video only (ignores audio flags)
 - Automatic token URL detection and resolution
 - CDN-independent timeout (1.5 hours based on original ERTFlix domain)
