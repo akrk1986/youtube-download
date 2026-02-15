@@ -30,7 +30,9 @@ def send_all_notifications(notifiers: list[NotificationHandler],
                            session_id: str,
                            elapsed_time: Optional[str] = None,
                            video_count: int = 0, audio_count: int = 0,
-                           failure_reason: Optional[str] = None) -> None:
+                           failure_reason: Optional[str] = None,
+                           script_version: Optional[str] = None,
+                           ytdlp_version: Optional[str] = None) -> None:
     """Send notifications via all configured notifiers.
 
     Each notifier is called independently — one failure does not block others.
@@ -41,7 +43,8 @@ def send_all_notifications(notifiers: list[NotificationHandler],
                 status=status, url=url, args_dict=args_dict,
                 session_id=session_id, elapsed_time=elapsed_time,
                 video_count=video_count, audio_count=audio_count,
-                failure_reason=failure_reason
+                failure_reason=failure_reason,
+                script_version=script_version, ytdlp_version=ytdlp_version
             )
         except Exception as e:
             logger.warning(f'Notifier {type(notifier).__name__} failed: {type(e).__name__}')

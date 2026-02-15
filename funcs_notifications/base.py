@@ -14,7 +14,9 @@ class NotificationHandler(ABC):
     def send(self, status: str, url: str, args_dict: dict,
              session_id: str, elapsed_time: Optional[str] = None,
              video_count: int = 0, audio_count: int = 0,
-             failure_reason: Optional[str] = None) -> bool:
+             failure_reason: Optional[str] = None,
+             script_version: Optional[str] = None,
+             ytdlp_version: Optional[str] = None) -> bool:
         """Send a notification about download status.
 
         Args:
@@ -26,6 +28,8 @@ class NotificationHandler(ABC):
             video_count: Number of video files created
             audio_count: Number of audio files created
             failure_reason: Optional reason string for failure notifications
+            script_version: Optional script version string (for start notifications)
+            ytdlp_version: Optional yt-dlp version string (for start notifications)
 
         Returns:
             True if notification was sent successfully, False otherwise

@@ -25,6 +25,7 @@ from funcs_for_main_yt_dlp.ertflix_token_handler import (
 from funcs_for_main_yt_dlp.external_tools import (
     get_ffmpeg_path,
     get_ytdlp_path,
+    get_ytdlp_version,
     quote_if_needed,
 )
 from funcs_for_main_yt_dlp.file_organization import (
@@ -46,6 +47,7 @@ __all__ = [
     'remux_video_chapters',
     # External tools
     'get_ytdlp_path',
+    'get_ytdlp_version',
     'get_ffmpeg_path',
     'quote_if_needed',
     # URL validation

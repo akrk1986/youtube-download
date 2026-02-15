@@ -36,7 +36,9 @@ class GmailNotifier(NotificationHandler):
     def send(self, status: str, url: str, args_dict: dict,
              session_id: str, elapsed_time: Optional[str] = None,
              video_count: int = 0, audio_count: int = 0,
-             failure_reason: Optional[str] = None) -> bool:
+             failure_reason: Optional[str] = None,
+             script_version: Optional[str] = None,
+             ytdlp_version: Optional[str] = None) -> bool:
         """Send a Gmail notification about download status."""
         if not self.is_configured():
             logger.debug('Gmail not configured, skipping notification')
@@ -49,7 +51,8 @@ class GmailNotifier(NotificationHandler):
             status=status, url=url, args_dict=args_dict,
             session_id=session_id, elapsed_time=elapsed_time,
             video_count=video_count, audio_count=audio_count,
-            failure_reason=failure_reason
+            failure_reason=failure_reason,
+            script_version=script_version, ytdlp_version=ytdlp_version
         )
 
         msg = MIMEText(html_body, 'html')

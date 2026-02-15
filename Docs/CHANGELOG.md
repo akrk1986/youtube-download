@@ -4,7 +4,54 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
-## 2026-02-15 (01:00)
+## 2026-02-15 (16:21)
+
+**Enhancement:** Add version information to start notifications
+
+**Problem:** When receiving download start notifications via Slack or Gmail, there was no visibility into which version of the script or yt-dlp was being used. This made troubleshooting version-specific issues difficult.
+
+**Solution:** Added version tracking to start notifications. The script now retrieves both the script VERSION and yt-dlp executable version, and displays them in the start notification message.
+
+**Implementation:**
+- New function `get_ytdlp_version()` in `funcs_for_main_yt_dlp/external_tools.py`
+  - Runs `yt-dlp --version` to get version string
+  - Returns version or 'unknown' on failure
+  - 5-second timeout for reliability
+- Updated notification signatures to accept optional `script_version` and `ytdlp_version` parameters:
+  - `NotificationHandler.send()` base class
+  - `SlackNotifier.send()` implementation
+  - `GmailNotifier.send()` implementation
+  - `send_all_notifications()` helper function
+- Updated message builders to display version info in start notifications:
+  - `build_slack_message()` - adds "Versions" section with bullet points
+  - `build_email_message()` - adds "Versions" section with HTML list
+- Main script retrieves versions and passes to start notification:
+  - Gets yt-dlp version after detecting executable path
+  - Passes both VERSION and ytdlp_version to start notification
+
+**User Experience:**
+- Start notifications now show:
+  - Script version (e.g., "Script: 2026-02-15-1621")
+  - yt-dlp version (e.g., "yt-dlp: 2024.12.23")
+- Version info only appears in start notifications (not success/failure/cancelled)
+- No impact on existing functionality if version retrieval fails
+
+**Changes:**
+- `funcs_for_main_yt_dlp/external_tools.py`: Added `get_ytdlp_version()` function
+- `funcs_for_main_yt_dlp/__init__.py`: Export `get_ytdlp_version`
+- `funcs_notifications/base.py`: Updated `send()` signature with version parameters
+- `funcs_notifications/slack_notifier.py`: Updated `send()` signature and pass to message builder
+- `funcs_notifications/gmail_notifier.py`: Updated `send()` signature and pass to message builder
+- `funcs_notifications/__init__.py`: Updated `send_all_notifications()` signature
+- `funcs_notifications/message_builder.py`: Updated both message builders to display versions
+- `main-yt-dlp.py`: VERSION = '2026-02-15-1621'
+  - Import `get_ytdlp_version`
+  - Retrieve yt-dlp version after getting executable path
+  - Pass versions to start notification
+
+---
+
+## 2026-02-15 (16:12)
 
 **Enhancement:** Automatic cleanup of leftover download files
 
@@ -35,7 +82,7 @@ This document tracks feature enhancements and major changes to the YouTube downl
 - mypy: 0 errors ✓
 
 **Changes:**
-- `main-yt-dlp.py`: VERSION = '2026-02-15-0100'
+- `main-yt-dlp.py`: VERSION = '2026-02-15-1612'
   - Added `_cleanup_leftover_files()` helper function (lines 41-63)
   - Calls cleanup after video folder creation (line 220)
 - Documentation updated: README.md (new "Automatic Cleanup" section)

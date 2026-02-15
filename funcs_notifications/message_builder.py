@@ -35,7 +35,9 @@ def _format_param_lines(status: str, args_dict: dict) -> list[tuple[str, str]]:
 def build_slack_message(status: str, url: str, args_dict: dict,
                         session_id: str, elapsed_time: Optional[str] = None,
                         video_count: int = 0, audio_count: int = 0,
-                        failure_reason: Optional[str] = None) -> str:
+                        failure_reason: Optional[str] = None,
+                        script_version: Optional[str] = None,
+                        ytdlp_version: Optional[str] = None) -> str:
     """Build a Slack-formatted notification message.
 
     Returns:
@@ -51,6 +53,15 @@ def build_slack_message(status: str, url: str, args_dict: dict,
         params_text = '  (default parameters)'
 
     message = f'{title}\n\n*Session:* {session_id}\n\n*URL:* {url}\n\n*Parameters:*\n{params_text}'
+
+    # Add version info for start notifications
+    if status == 'start' and (script_version or ytdlp_version):
+        version_parts = []
+        if script_version:
+            version_parts.append(f'Script: {script_version}')
+        if ytdlp_version:
+            version_parts.append(f'yt-dlp: {ytdlp_version}')
+        message += f'\n\n*Versions:*\n  • {"\n  • ".join(version_parts)}'
 
     if status == 'failure' and failure_reason:
         message += f'\n\n*Reason:* {failure_reason}'
@@ -72,7 +83,9 @@ def build_slack_message(status: str, url: str, args_dict: dict,
 def build_email_message(status: str, url: str, args_dict: dict,
                         session_id: str, elapsed_time: Optional[str] = None,
                         video_count: int = 0, audio_count: int = 0,
-                        failure_reason: Optional[str] = None) -> tuple[str, str]:
+                        failure_reason: Optional[str] = None,
+                        script_version: Optional[str] = None,
+                        ytdlp_version: Optional[str] = None) -> tuple[str, str]:
     """Build an email notification message.
 
     Returns:
@@ -96,6 +109,15 @@ def build_email_message(status: str, url: str, args_dict: dict,
         lines.append('</ul>')
     else:
         lines.append('<p><b>Parameters:</b> (default parameters)</p>')
+
+    # Add version info for start notifications
+    if status == 'start' and (script_version or ytdlp_version):
+        lines.append('<p><b>Versions:</b></p><ul>')
+        if script_version:
+            lines.append(f'<li>Script: {script_version}</li>')
+        if ytdlp_version:
+            lines.append(f'<li>yt-dlp: {ytdlp_version}</li>')
+        lines.append('</ul>')
 
     if status == 'failure' and failure_reason:
         lines.append(f'<p><b>Reason:</b> {failure_reason}</p>')

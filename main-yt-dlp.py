@@ -10,7 +10,8 @@ from funcs_for_main_yt_dlp import (DownloadOptions, count_files,
                                    extract_audio_with_ytdlp,
                                    format_elapsed_time, generate_session_id,
                                    get_audio_dir_for_format, get_ffmpeg_path,
-                                   get_ytdlp_path, organize_and_sanitize_files,
+                                   get_ytdlp_path, get_ytdlp_version,
+                                   organize_and_sanitize_files,
                                    process_audio_tags, remux_video_chapters,
                                    run_yt_dlp, validate_and_get_url)
 from funcs_notifications import GmailNotifier, SlackNotifier, send_all_notifications
@@ -33,7 +34,7 @@ except ImportError:
     pass
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-02-15-0100'
+VERSION = '2026-02-15-1621'
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +148,7 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
     # Detect platform and set appropriate executable path
 
     yt_dlp_exe = get_ytdlp_path()
+    ytdlp_version = get_ytdlp_version(ytdlp_path=yt_dlp_exe)
 
     # Handle artists.json path relative to script location, not current working directory
     script_dir = Path(__file__).parent
@@ -207,7 +209,9 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             status='start',
             url=args.video_url,
             args_dict=args_dict,
-            session_id=session_id
+            session_id=session_id,
+            script_version=VERSION,
+            ytdlp_version=ytdlp_version
         )
 
     # Save URL for future --rerun

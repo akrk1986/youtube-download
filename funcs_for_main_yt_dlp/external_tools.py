@@ -79,6 +79,30 @@ def get_ytdlp_path() -> str:
         sys.exit(1)
 
 
+def get_ytdlp_version(ytdlp_path: str) -> str:
+    """
+    Get the version string of yt-dlp executable.
+
+    Args:
+        ytdlp_path: Path to yt-dlp executable
+
+    Returns:
+        str: Version string (e.g., '2024.12.23') or 'unknown' if version cannot be determined
+    """
+    try:
+        result = subprocess.run(
+            [ytdlp_path, '--version'],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=5
+        )
+        return result.stdout.strip()
+    except Exception as e:
+        logger.warning(f'Failed to get yt-dlp version: {e}')
+        return 'unknown'
+
+
 def quote_if_needed(value: str) -> str:
     """Quote a string with double quotes if it contains whitespace and isn't already quoted."""
     if ' ' in value or '\t' in value:
