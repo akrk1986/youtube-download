@@ -27,3 +27,7 @@ staging-m4a/
 .pyscn/
 Logs/
 git_excluded.py
+
+# Node/npm (JavaScript linting tools)
+node_modules/
+package-lock.json
