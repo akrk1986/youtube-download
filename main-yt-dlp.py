@@ -33,9 +33,34 @@ except ImportError:
     pass
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-02-12-2047'
+VERSION = '2026-02-15-0100'
 
 logger = logging.getLogger(__name__)
+
+
+def _cleanup_leftover_files(video_folder: Path) -> None:
+    """Remove leftover *.ytdl and *.part files from cancelled downloads.
+
+    Args:
+        video_folder: Path to the video output directory
+    """
+    if not video_folder.exists():
+        return
+
+    leftover_patterns = ['*.ytdl', '*.part']
+    removed_count = 0
+
+    for pattern in leftover_patterns:
+        for leftover_file in video_folder.glob(pattern):
+            try:
+                leftover_file.unlink()
+                logger.debug(f"Removed leftover file: {leftover_file.name}")
+                removed_count += 1
+            except Exception as e:
+                logger.warning(f"Failed to remove {leftover_file.name}: {e}")
+
+    if removed_count > 0:
+        logger.info(f'Cleaned up {removed_count} leftover file(s) from previous cancelled downloads')
 
 
 def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
@@ -192,6 +217,7 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
     video_folder = Path(VIDEO_OUTPUT_DIR).resolve()
     if not args.only_audio:
         video_folder.mkdir(parents=True, exist_ok=True)
+        _cleanup_leftover_files(video_folder=video_folder)
     if need_audio:
         # Create audio directories for each requested format
         for audio_format in audio_formats:

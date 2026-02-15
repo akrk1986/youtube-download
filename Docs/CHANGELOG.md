@@ -4,6 +4,45 @@ This document tracks feature enhancements and major changes to the YouTube downl
 
 ---
 
+## 2026-02-15 (01:00)
+
+**Enhancement:** Automatic cleanup of leftover download files
+
+**Problem:** When users cancel video downloads (Ctrl+C), yt-dlp leaves behind temporary `*.ytdl` and `*.part` files in the `yt-videos/` folder. These leftover files waste disk space and clutter the output directory. Users had to manually delete them before starting new downloads.
+
+**Solution:** Added automatic cleanup that runs before each video download. The script now removes all `*.ytdl` and `*.part` files from the output directory, ensuring a clean slate for every download operation.
+
+**Implementation:**
+- New helper function `_cleanup_leftover_files()` in `main-yt-dlp.py`
+- Runs automatically after creating video folder, before downloads start
+- Only operates when downloading videos (skipped in `--only-audio` mode)
+- Uses pathlib's `glob()` for pattern matching (`*.ytdl`, `*.part`)
+- Logs cleanup actions: DEBUG level for each file, INFO level for summary
+- Graceful error handling: warns on failure but continues execution
+- Preserves completed video files (`.mp4`, `.webm`, `.mkv`)
+
+**User Experience:**
+- Fully automatic - no configuration or manual cleanup needed
+- Silent when no leftover files exist
+- Shows informative message when files are removed: `Cleaned up N leftover file(s) from previous cancelled downloads`
+- Prevents disk space waste from incomplete downloads
+
+**Testing:**
+- Created standalone test: `Tests-Standalone/test_cleanup_leftover_files.py`
+- Verified: `*.ytdl` files removed ✓
+- Verified: `*.part` files removed ✓
+- Verified: Normal `.mp4` files preserved ✓
+- mypy: 0 errors ✓
+
+**Changes:**
+- `main-yt-dlp.py`: VERSION = '2026-02-15-0100'
+  - Added `_cleanup_leftover_files()` helper function (lines 41-63)
+  - Calls cleanup after video folder creation (line 220)
+- Documentation updated: README.md (new "Automatic Cleanup" section)
+- Test added: `Tests-Standalone/test_cleanup_leftover_files.py`
+
+---
+
 ## 2026-02-12 (14:27)
 
 **Enhancement:** Complete codebase reorganization into logical packages

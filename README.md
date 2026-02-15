@@ -566,6 +566,19 @@ For more details, see [URL Validation Summary](Docs/URL-VALIDATION-SUMMARY.md).
   - `yt-audio/flac/` - FLAC files
 - Chapter-split files are automatically organized into subdirectories
 
+## Automatic Cleanup
+
+When performing video downloads (with or without audio), the script automatically cleans up leftover files from previous cancelled operations:
+
+- **What gets cleaned**: All `*.ytdl` and `*.part` files in the `yt-videos/` folder
+- **When it runs**: Before starting any new download
+- **Why it's needed**: When you cancel a download (Ctrl+C), yt-dlp may leave temporary files behind
+- **Notification**: You'll see a message like `Cleaned up 2 leftover file(s) from previous cancelled downloads`
+
+This happens automatically - no configuration needed. The cleanup ensures a clean slate for each download and prevents disk space waste from incomplete downloads.
+
+**Note**: Only leftover temporary files are removed. Completed video files (`.mp4`, `.webm`, `.mkv`) are never deleted.
+
 ## Requirements
 
 ### Supported Platforms
