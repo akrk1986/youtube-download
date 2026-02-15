@@ -128,6 +128,18 @@ window.fetch = function(...args) {
 
                 window.__ertflixTokenApiUrl = url;
                 console.log('✓ Token API URL saved to: window.__ertflixTokenApiUrl');
+
+                // Try to copy to clipboard
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url).then(() => {
+                        console.log('✓ Token API URL copied to clipboard!');
+                    }).catch(err => {
+                        console.log('⚠️  Could not copy to clipboard:', err.message);
+                    });
+                } else {
+                    console.log('⚠️  Clipboard API not available');
+                }
+
                 console.log('\nTO DOWNLOAD WITH PYTHON:');
                 console.log(`export YTDLP_USE_COOKIES=firefox  # or chrome`);
                 console.log(`python main-yt-dlp.py --only-audio "${url}"`);
@@ -187,6 +199,18 @@ window.XMLHttpRequest.prototype.open = function(method, url, ...rest) {
 
                 window.__ertflixTokenApiUrl = url;
                 console.log('✓ Token API URL saved to: window.__ertflixTokenApiUrl');
+
+                // Try to copy to clipboard
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url).then(() => {
+                        console.log('✓ Token API URL copied to clipboard!');
+                    }).catch(err => {
+                        console.log('⚠️  Could not copy to clipboard:', err.message);
+                    });
+                } else {
+                    console.log('⚠️  Clipboard API not available');
+                }
+
                 console.log('\nTO DOWNLOAD WITH PYTHON:');
                 console.log(`export YTDLP_USE_COOKIES=firefox  # or chrome`);
                 console.log(`python main-yt-dlp.py --only-audio "${url}"`);
@@ -422,6 +446,107 @@ function printSummary(force = false) {
     console.log('💡 URL capturing has been stopped to prevent clutter');
     console.log('💡 To re-enable: window.__enableCapture()');
     console.log('='.repeat(80));
+
+    // Save summary to file
+    saveSummaryToFile();
+}
+
+// Helper function to generate summary as plain text
+function generateSummaryText() {
+    const lines = [];
+    lines.push('=' .repeat(80));
+    lines.push('CAPTURED URLs SUMMARY');
+    lines.push('=' .repeat(80));
+    lines.push('');
+
+    // Add metadata
+    if (videoTitle) {
+        lines.push(`Title: ${videoTitle}`);
+    }
+    if (videoDuration) {
+        lines.push(`Duration: ${videoDuration}`);
+    }
+    if (videoTitle || videoDuration) {
+        lines.push('');
+    }
+
+    if (orderedCapturedUrls.length === 0) {
+        lines.push('No URLs captured.');
+        return lines.join('\n');
+    }
+
+    // First URL
+    if (orderedCapturedUrls[0]) {
+        const first = orderedCapturedUrls[0];
+        lines.push(`1. ${first.type}:`);
+        lines.push(`   ${first.url}`);
+    }
+
+    // Second URL
+    if (orderedCapturedUrls[1]) {
+        const second = orderedCapturedUrls[1];
+        lines.push('');
+        lines.push(`2. ${second.type}:`);
+        lines.push(`   ${second.url}`);
+    }
+
+    // VIDEO_RELATED URLs
+    const allVideoRelated = orderedCapturedUrls.filter(item => item.type === 'VIDEO_RELATED');
+    if (allVideoRelated.length > 0) {
+        const uniqueUrls = new Set(allVideoRelated.map(item => item.url));
+        lines.push('');
+        lines.push(`3+ VIDEO_RELATED (${allVideoRelated.length} total, ${uniqueUrls.size} unique):`);
+        uniqueUrls.forEach((url) => {
+            lines.push(`   - ${url}`);
+        });
+    }
+
+    lines.push('');
+    lines.push('=' .repeat(80));
+    lines.push('TIP: Use the TOKEN_API URL (#1) for downloads');
+    lines.push('=' .repeat(80));
+
+    return lines.join('\n');
+}
+
+// Helper function to save summary to downloadable text file
+function saveSummaryToFile() {
+    try {
+        const summaryText = generateSummaryText();
+
+        // Generate filename with date-time
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const filename = `concise-summary-${year}-${month}-${day}-${hours}${minutes}${seconds}.txt`;
+
+        // Create blob and download link
+        const blob = new Blob([summaryText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+
+        // Cleanup
+        setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }, 100);
+
+        console.log(`✓ Summary saved to file: ${filename}`);
+        console.log('  (Check your Downloads folder)');
+    } catch (err) {
+        console.error('⚠️  Could not save summary to file:', err.message);
+    }
 }
 
 // Helper function to re-enable capturing
@@ -466,7 +591,9 @@ console.log('   - URL changes (if it navigates)');
 console.log('   - Episode IDs');
 console.log('   - Video title and duration (if available)');
 console.log('\n4. After 3 seconds, a CONCISE SUMMARY will appear automatically');
-console.log('   (URL capturing will stop after summary to prevent clutter)');
+console.log('   - Summary will be saved to Downloads folder as concise-summary-YYYY-MM-DD-HHMMSS.txt');
+console.log('   - Token API URL will be copied to clipboard automatically');
+console.log('   - URL capturing will stop after summary to prevent clutter');
 console.log('\n5. After clicking, check:');
 console.log('   - window.__ertflixTokenApiUrl (MAIN: token API URL)');
 console.log('   - window.__ertflixTokenApiUrls (array of all token URLs)');
