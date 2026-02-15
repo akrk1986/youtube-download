@@ -8,7 +8,14 @@
       "Bash(mypy:*)",
       "Bash(git add:*)",
       "Bash(pytest:*)",
-      "Bash(python3 -m py_compile:*)"
+      "Bash(python3 -m py_compile:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx jshint:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(for pkg in arrow emoji mutagen odf requests yt_dlp)",
+      "Bash(do echo \"=== $pkg ===\")",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []
