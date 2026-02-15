@@ -1,0 +1,16 @@
+{
+  "esversion": 10,
+  "browser": true,
+  "devel": true,
+  "undef": true,
+  "unused": true,
+  "strict": false,
+  "globals": {
+    "window": true,
+    "document": true,
+    "console": true,
+    "setTimeout": true,
+    "URL": true,
+    "Blob": true
+  }
+}

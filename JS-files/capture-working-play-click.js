@@ -141,7 +141,7 @@ window.fetch = function(...args) {
                 }
 
                 console.log('\nTO DOWNLOAD WITH PYTHON:');
-                console.log(`export YTDLP_USE_COOKIES=firefox  # or chrome`);
+                console.log('export YTDLP_USE_COOKIES=firefox  # or chrome');
                 console.log(`python main-yt-dlp.py --only-audio "${url}"`);
                 console.log('='.repeat(80));
             }
@@ -212,7 +212,7 @@ window.XMLHttpRequest.prototype.open = function(method, url, ...rest) {
                 }
 
                 console.log('\nTO DOWNLOAD WITH PYTHON:');
-                console.log(`export YTDLP_USE_COOKIES=firefox  # or chrome`);
+                console.log('export YTDLP_USE_COOKIES=firefox  # or chrome');
                 console.log(`python main-yt-dlp.py --only-audio "${url}"`);
                 console.log('='.repeat(80));
             }
@@ -296,7 +296,7 @@ if (typeof window.shaka !== 'undefined') {
                             window.__ertflixVideoDuration = videoDuration;
                             console.log(`\n✓ Video duration detected: ${videoDuration}`);
                         }
-                    } catch (e) {
+                    } catch {
                         // Duration not available yet
                     }
                 }, 1000);
