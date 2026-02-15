@@ -15,6 +15,9 @@
 
 (function() {
 
+// Version corresponds to the latest script update timestamp
+const VERSION = '2026-02-15-1641';
+
 // Generate unique instance ID to detect multiple script runs
 const instanceId = Math.random().toString(36).substring(2, 9);
 
@@ -398,6 +401,7 @@ function printSummary(force = false) {
     console.log('\n' + '='.repeat(80));
     console.log('📋 CAPTURED URLs SUMMARY');
     console.log('='.repeat(80));
+    console.log(`Script Version: ${VERSION}`);
 
     // Print metadata
     if (videoTitle) {
@@ -457,6 +461,7 @@ function generateSummaryText() {
     lines.push('=' .repeat(80));
     lines.push('CAPTURED URLs SUMMARY');
     lines.push('=' .repeat(80));
+    lines.push(`Script Version: ${VERSION}`);
     lines.push('');
 
     // Add metadata
