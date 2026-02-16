@@ -34,7 +34,7 @@ except ImportError:
     pass
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-02-15-1621'
+VERSION = '2026-02-16-1738'
 
 logger = logging.getLogger(__name__)
 
