@@ -379,24 +379,54 @@ python main-yt-dlp.py --only-audio "URL"
 **Implementation:** `_get_download_retries()` in `funcs_yt_dlp_download.py` validates the value and raises `ValueError` if not a positive integer.
 
 ### NOTIFICATIONS
-Controls whether Slack and Gmail notifications are sent.
+Controls whether Slack and/or Gmail notifications are sent.
 
-- **Valid values**: `Y`, `YES`, `N`, `NO` (case-insensitive)
-- **Default**: `Y` (enabled) if not set
-- **Purpose**: Disable notifications during testing or batch operations
+- **Valid values**: empty/`N`/`NO` (none), `S` (Slack), `G` (Gmail), `ALL` (both) - case-insensitive
+- **Default**: Disabled (opt-in model) if not set
+- **Purpose**: Granular control over notification channels
 
 **Usage:**
 ```bash
-# Disable notifications
-export NOTIFICATIONS=N
+# No notifications (default)
 python main-yt-dlp.py --only-audio "URL"
 
-# Enable notifications (default)
-export NOTIFICATIONS=Y
+# Slack only
+export NOTIFICATIONS=S
+python main-yt-dlp.py --only-audio "URL"
+
+# Gmail only
+export NOTIFICATIONS=G
+python main-yt-dlp.py --only-audio "URL"
+
+# Both Slack and Gmail
+export NOTIFICATIONS=ALL
 python main-yt-dlp.py --only-audio "URL"
 ```
 
-**Implementation:** Checked in `main()` before building notifiers list. Invalid values log warning and default to enabled.
+**Implementation:** Checked in `main()` before building notifiers list. Invalid values log warning and disable notifications.
+
+**Breaking changes (as of 2026-02-16):**
+- Removed legacy `Y`/`YES` support → use `ALL` instead
+- Default changed from enabled to disabled (opt-in model)
+
+### NOTIF_MSG
+Adds custom suffix to notification titles for environment identification.
+
+- **Purpose**: Distinguish notifications from different environments (e.g., "PROD", "TEST", "DEV")
+- **Format**: Appended to notification titles with dash separator
+- **Applied to**: Slack message title, Gmail subject line, Gmail HTML body `<h3>` tag
+- **Empty/whitespace handling**: Treated as "not set" (no suffix added)
+
+**Usage:**
+```bash
+export NOTIFICATIONS=ALL
+export NOTIF_MSG="PROD"
+python main-yt-dlp.py --only-audio "URL"
+# Slack: "🚀 Download STARTED - PROD"
+# Gmail subject: "🚀 yt-dlp Download STARTED - PROD"
+```
+
+**Implementation:** Read in `main()` and passed to all `send_all_notifications()` calls.
 
 ### YTDLP_USE_COOKIES
 Enables downloading age-restricted or private videos using browser cookies.

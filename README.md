@@ -341,17 +341,44 @@ python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 
 The tool can send notifications when downloads start, succeed, fail, or are cancelled. Supports both Slack and Gmail — configure one, both, or neither.
 
-**Disable notifications temporarily:**
+**Control notifications with NOTIFICATIONS environment variable:**
 ```bash
-# Disable during batch operations or testing
-export NOTIFICATIONS=N
+# No notifications (default - opt-in model)
+# Leave NOTIFICATIONS unset or set to empty/N/NO
 python main-yt-dlp.py --only-audio "URL"
 
-# Re-enable (default behavior)
-export NOTIFICATIONS=Y
+# Slack notifications only
+export NOTIFICATIONS=S
+python main-yt-dlp.py --only-audio "URL"
+
+# Gmail notifications only
+export NOTIFICATIONS=G
+python main-yt-dlp.py --only-audio "URL"
+
+# Both Slack and Gmail notifications
+export NOTIFICATIONS=ALL
+python main-yt-dlp.py --only-audio "URL"
 ```
 
-Accepted values (case-insensitive): `Y`, `YES`, `N`, `NO`. Default is enabled if not set.
+**Accepted values** (case-insensitive):
+- **Empty / N / NO**: No notifications (default)
+- **S**: Slack notifications only
+- **G**: Gmail notifications only
+- **ALL**: Both Slack and Gmail notifications
+
+**Add environment identifier with NOTIF_MSG:**
+```bash
+# Add custom suffix to notification titles (e.g., "PROD", "TEST", "DEV")
+export NOTIFICATIONS=ALL
+export NOTIF_MSG="PROD"
+python main-yt-dlp.py --only-audio "URL"
+
+# Result:
+#   Slack title: "🚀 Download STARTED - PROD"
+#   Gmail subject: "🚀 yt-dlp Download STARTED - PROD"
+```
+
+The `NOTIF_MSG` suffix helps distinguish notifications from different environments (production, testing, development, etc.). Whitespace-only values are ignored.
 
 #### Setup
 

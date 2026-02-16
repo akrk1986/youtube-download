@@ -112,7 +112,7 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
 
 def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
                   initial_video_count: int, initial_audio_count: int,
-                  notifiers: list | None = None) -> None:
+                  notifiers: list | None = None, notif_msg_suffix: str = '') -> None:
     """Execute the main download logic."""
 
     # Parse and validate audio formats
@@ -211,7 +211,8 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             args_dict=args_dict,
             session_id=session_id,
             script_version=VERSION,
-            ytdlp_version=ytdlp_version
+            ytdlp_version=ytdlp_version,
+            notif_msg_suffix=notif_msg_suffix
         )
 
     # Save URL for future --rerun
@@ -361,7 +362,8 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             session_id=session_id,
             elapsed_time=elapsed_time,
             video_count=video_count,
-            audio_count=audio_count
+            audio_count=audio_count,
+            notif_msg_suffix=notif_msg_suffix
         )
     logger.info('Download completed successfully')
 
@@ -408,29 +410,52 @@ def main() -> None:
 
     # Build notifiers list (check NOTIFICATIONS env var)
     notifiers: list = []
-    notifications_enabled = os.getenv('NOTIFICATIONS', 'Y').strip().upper()
-    if notifications_enabled in ('Y', 'YES'):
+    notifications_enabled = os.getenv('NOTIFICATIONS', '').strip().upper()
+
+    if notifications_enabled in ('', 'N', 'NO'):
+        # No notifications (empty string treated same as N/NO)
+        logger.info('Notifications disabled (NOTIFICATIONS env var: empty/N/NO)')
+    elif notifications_enabled == 'S':
+        # Slack only
+        _slack = SlackNotifier(webhook_url=SLACK_WEBHOOK)
+        if _slack.is_configured():
+            notifiers.append(_slack)
+            logger.debug('Slack notifications enabled (Gmail disabled)')
+        else:
+            logger.warning('Slack requested but not configured')
+    elif notifications_enabled == 'G':
+        # Gmail only
+        _gmail = GmailNotifier(gmail_params=GMAIL_PARAMS)
+        if _gmail.is_configured():
+            notifiers.append(_gmail)
+            logger.debug('Gmail notifications enabled (Slack disabled)')
+        else:
+            logger.warning('Gmail requested but not configured')
+    elif notifications_enabled == 'ALL':
+        # Both
         _slack = SlackNotifier(webhook_url=SLACK_WEBHOOK)
         if _slack.is_configured():
             notifiers.append(_slack)
         _gmail = GmailNotifier(gmail_params=GMAIL_PARAMS)
         if _gmail.is_configured():
             notifiers.append(_gmail)
-    elif notifications_enabled in ('N', 'NO'):
-        logger.info('Notifications disabled via NOTIFICATIONS environment variable')
+        if notifiers:
+            logger.debug('Both Slack and Gmail notifications enabled')
     else:
-        logger.warning(f'Invalid NOTIFICATIONS value: {notifications_enabled}. Expected Y/YES/N/NO. Using default (enabled).')
-        _slack = SlackNotifier(webhook_url=SLACK_WEBHOOK)
-        if _slack.is_configured():
-            notifiers.append(_slack)
-        _gmail = GmailNotifier(gmail_params=GMAIL_PARAMS)
-        if _gmail.is_configured():
-            notifiers.append(_gmail)
+        # Invalid value - log warning, disable notifications
+        logger.warning(f'Invalid NOTIFICATIONS value: "{notifications_enabled}". '
+                       f'Expected: empty/N/NO (none), S (Slack), G (Gmail), ALL (both). '
+                       f'Defaulting to no notifications.')
+
+    # Get NOTIF_MSG suffix (if set)
+    notif_msg_suffix = os.getenv('NOTIF_MSG', '').strip()
+    if notif_msg_suffix:
+        logger.debug(f'Notification message suffix: "{notif_msg_suffix}"')
 
     try:
         _execute_main(args=args, args_dict=args_dict, start_time=start_time, session_id=session_id,
                       initial_video_count=initial_video_count, initial_audio_count=initial_audio_count,
-                      notifiers=notifiers)
+                      notifiers=notifiers, notif_msg_suffix=notif_msg_suffix)
     except KeyboardInterrupt:
         logger.warning('Download cancelled by user (CTRL-C)')
         # Send cancellation notification
@@ -456,7 +481,8 @@ def main() -> None:
                 session_id=session_id,
                 elapsed_time=elapsed_time,
                 video_count=video_count,
-                audio_count=audio_count
+                audio_count=audio_count,
+                notif_msg_suffix=notif_msg_suffix
             )
         logger.info('Exiting...')
         sys.exit(130)  # Standard exit code for CTRL-C
@@ -486,7 +512,8 @@ def main() -> None:
                 elapsed_time=elapsed_time,
                 video_count=video_count,
                 audio_count=audio_count,
-                failure_reason=str(e)
+                failure_reason=str(e),
+                notif_msg_suffix=notif_msg_suffix
             )
         sys.exit(1)
 

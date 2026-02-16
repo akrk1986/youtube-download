@@ -38,7 +38,8 @@ class GmailNotifier(NotificationHandler):
              video_count: int = 0, audio_count: int = 0,
              failure_reason: Optional[str] = None,
              script_version: Optional[str] = None,
-             ytdlp_version: Optional[str] = None) -> bool:
+             ytdlp_version: Optional[str] = None,
+             notif_msg_suffix: str = '') -> bool:
         """Send a Gmail notification about download status."""
         if not self.is_configured():
             logger.debug('Gmail not configured, skipping notification')
@@ -52,7 +53,8 @@ class GmailNotifier(NotificationHandler):
             session_id=session_id, elapsed_time=elapsed_time,
             video_count=video_count, audio_count=audio_count,
             failure_reason=failure_reason,
-            script_version=script_version, ytdlp_version=ytdlp_version
+            script_version=script_version, ytdlp_version=ytdlp_version,
+            notif_msg_suffix=notif_msg_suffix
         )
 
         msg = MIMEText(html_body, 'html')

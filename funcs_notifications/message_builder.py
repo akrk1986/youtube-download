@@ -37,14 +37,20 @@ def build_slack_message(status: str, url: str, args_dict: dict,
                         video_count: int = 0, audio_count: int = 0,
                         failure_reason: Optional[str] = None,
                         script_version: Optional[str] = None,
-                        ytdlp_version: Optional[str] = None) -> str:
+                        ytdlp_version: Optional[str] = None,
+                        notif_msg_suffix: str = '') -> str:
     """Build a Slack-formatted notification message.
+
+    Args:
+        notif_msg_suffix: Optional suffix to append to title (e.g., 'PROD')
 
     Returns:
         Slack markdown message string.
     """
     emoji, word = _get_status_display(status)
     title = f'{emoji} Download {word}'
+    if notif_msg_suffix:
+        title = f'{title} - {notif_msg_suffix}'
 
     param_lines = _format_param_lines(status=status, args_dict=args_dict)
     if param_lines:
@@ -85,18 +91,28 @@ def build_email_message(status: str, url: str, args_dict: dict,
                         video_count: int = 0, audio_count: int = 0,
                         failure_reason: Optional[str] = None,
                         script_version: Optional[str] = None,
-                        ytdlp_version: Optional[str] = None) -> tuple[str, str]:
+                        ytdlp_version: Optional[str] = None,
+                        notif_msg_suffix: str = '') -> tuple[str, str]:
     """Build an email notification message.
+
+    Args:
+        notif_msg_suffix: Optional suffix to append to subject and body title
 
     Returns:
         Tuple of (subject, html_body).
     """
     emoji, word = _get_status_display(status)
     subject = f'{emoji} yt-dlp Download {word}'
+    if notif_msg_suffix:
+        subject = f'{subject} - {notif_msg_suffix}'
 
     # Build HTML body
+    html_title = f'{emoji} Download {word}'
+    if notif_msg_suffix:
+        html_title = f'{html_title} - {notif_msg_suffix}'
+
     lines = [
-        f'<h3>{emoji} Download {word}</h3>',
+        f'<h3>{html_title}</h3>',
         f'<p><b>Session:</b> {session_id}</p>',
         f'<p><b>URL:</b> {url}</p>',
     ]

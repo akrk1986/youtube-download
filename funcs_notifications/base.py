@@ -16,7 +16,8 @@ class NotificationHandler(ABC):
              video_count: int = 0, audio_count: int = 0,
              failure_reason: Optional[str] = None,
              script_version: Optional[str] = None,
-             ytdlp_version: Optional[str] = None) -> bool:
+             ytdlp_version: Optional[str] = None,
+             notif_msg_suffix: str = '') -> bool:
         """Send a notification about download status.
 
         Args:
@@ -30,6 +31,7 @@ class NotificationHandler(ABC):
             failure_reason: Optional reason string for failure notifications
             script_version: Optional script version string (for start notifications)
             ytdlp_version: Optional yt-dlp version string (for start notifications)
+            notif_msg_suffix: Optional suffix to append to notification titles (e.g., 'PROD')
 
         Returns:
             True if notification was sent successfully, False otherwise
