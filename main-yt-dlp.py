@@ -14,7 +14,8 @@ from funcs_for_main_yt_dlp import (DownloadOptions, count_files,
                                    organize_and_sanitize_files,
                                    process_audio_tags, remux_video_chapters,
                                    run_yt_dlp, validate_and_get_url)
-from funcs_notifications import GmailNotifier, SlackNotifier, send_all_notifications
+from funcs_notifications import (GmailNotifier, NotificationData, SlackNotifier,
+                                 send_all_notifications)
 from funcs_video_info import (create_chapters_csv,
                               display_chapters_and_confirm, get_chapter_count,
                               get_video_info, is_playlist)
@@ -206,13 +207,15 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
     if notifiers:
         send_all_notifications(
             notifiers=notifiers,
-            status='start',
-            url=args.video_url,
-            args_dict=args_dict,
-            session_id=session_id,
-            script_version=VERSION,
-            ytdlp_version=ytdlp_version,
-            notif_msg_suffix=notif_msg_suffix
+            data=NotificationData(
+                status='start',
+                url=args.video_url,
+                args_dict=args_dict,
+                session_id=session_id,
+                script_version=VERSION,
+                ytdlp_version=ytdlp_version,
+                notif_msg_suffix=notif_msg_suffix
+            )
         )
 
     # Save URL for future --rerun
@@ -356,14 +359,16 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             audio_count = final_audio_count - initial_audio_count
         send_all_notifications(
             notifiers=notifiers,
-            status='success',
-            url=args.video_url,
-            args_dict=args_dict,
-            session_id=session_id,
-            elapsed_time=elapsed_time,
-            video_count=video_count,
-            audio_count=audio_count,
-            notif_msg_suffix=notif_msg_suffix
+            data=NotificationData(
+                status='success',
+                url=args.video_url,
+                args_dict=args_dict,
+                session_id=session_id,
+                elapsed_time=elapsed_time,
+                video_count=video_count,
+                audio_count=audio_count,
+                notif_msg_suffix=notif_msg_suffix
+            )
         )
     logger.info('Download completed successfully')
 
@@ -475,14 +480,16 @@ def main() -> None:
                 audio_count = final_audio_count - initial_audio_count
             send_all_notifications(
                 notifiers=notifiers,
-                status='cancelled',
-                url=args.video_url or 'N/A',
-                args_dict=args_dict,
-                session_id=session_id,
-                elapsed_time=elapsed_time,
-                video_count=video_count,
-                audio_count=audio_count,
-                notif_msg_suffix=notif_msg_suffix
+                data=NotificationData(
+                    status='cancelled',
+                    url=args.video_url or 'N/A',
+                    args_dict=args_dict,
+                    session_id=session_id,
+                    elapsed_time=elapsed_time,
+                    video_count=video_count,
+                    audio_count=audio_count,
+                    notif_msg_suffix=notif_msg_suffix
+                )
             )
         logger.info('Exiting...')
         sys.exit(130)  # Standard exit code for CTRL-C
@@ -505,15 +512,17 @@ def main() -> None:
                 audio_count = final_audio_count - initial_audio_count
             send_all_notifications(
                 notifiers=notifiers,
-                status='failure',
-                url=args.video_url or 'N/A',
-                args_dict=args_dict,
-                session_id=session_id,
-                elapsed_time=elapsed_time,
-                video_count=video_count,
-                audio_count=audio_count,
-                failure_reason=str(e),
-                notif_msg_suffix=notif_msg_suffix
+                data=NotificationData(
+                    status='failure',
+                    url=args.video_url or 'N/A',
+                    args_dict=args_dict,
+                    session_id=session_id,
+                    elapsed_time=elapsed_time,
+                    video_count=video_count,
+                    audio_count=audio_count,
+                    failure_reason=str(e),
+                    notif_msg_suffix=notif_msg_suffix
+                )
             )
         sys.exit(1)
 

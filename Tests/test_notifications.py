@@ -8,7 +8,11 @@ from unittest.mock import patch
 
 from funcs_notifications import send_all_notifications
 from funcs_notifications.base import NotificationHandler
-from funcs_notifications.message_builder import build_email_message, build_slack_message
+from funcs_notifications.message_builder import (
+    EmailMessageBuilder,
+    NotificationData,
+    SlackMessageBuilder,
+)
 
 
 class MockNotifier(NotificationHandler):
@@ -21,26 +25,27 @@ class MockNotifier(NotificationHandler):
     def is_configured(self) -> bool:
         return self.configured
 
-    def send(self, status: str, url: str, args_dict: dict,
-             session_id: str, elapsed_time: str | None = None,
-             video_count: int = 0, audio_count: int = 0,
-             failure_reason: str | None = None,
-             script_version: str | None = None,
-             ytdlp_version: str | None = None,
-             notif_msg_suffix: str = '') -> bool:
-        """Record sent messages."""
+    def send(self, data: NotificationData) -> bool:
+        """Record sent messages.
+
+        Args:
+            data: NotificationData object containing all notification information
+
+        Returns:
+            True always (mock implementation)
+        """
         self.sent_messages.append({
-            'status': status,
-            'url': url,
-            'args_dict': args_dict,
-            'session_id': session_id,
-            'elapsed_time': elapsed_time,
-            'video_count': video_count,
-            'audio_count': audio_count,
-            'failure_reason': failure_reason,
-            'script_version': script_version,
-            'ytdlp_version': ytdlp_version,
-            'notif_msg_suffix': notif_msg_suffix,
+            'status': data.status,
+            'url': data.url,
+            'args_dict': data.args_dict,
+            'session_id': data.session_id,
+            'elapsed_time': data.elapsed_time,
+            'video_count': data.video_count,
+            'audio_count': data.audio_count,
+            'failure_reason': data.failure_reason,
+            'script_version': data.script_version,
+            'ytdlp_version': data.ytdlp_version,
+            'notif_msg_suffix': data.notif_msg_suffix,
         })
         return True
 
@@ -50,44 +55,51 @@ class MockNotifier(NotificationHandler):
 # ============================================================================
 
 class TestBuildSlackMessage:
-    """Test build_slack_message() with and without suffix."""
+    """Test SlackMessageBuilder with and without suffix."""
 
     def test_no_suffix(self) -> None:
         """Test Slack message without suffix."""
-        msg = build_slack_message(
+        builder = SlackMessageBuilder()
+        data = NotificationData(
             status='start',
             url='https://youtube.com/watch?v=test',
             args_dict={'with_audio': True},
             session_id='[2026-02-16 12:00 hostname]'
         )
+        msg = builder.build_message(data)
         assert '🚀 Download STARTED' in msg
         assert '🚀 Download STARTED -' not in msg  # No suffix
 
     def test_with_suffix(self) -> None:
         """Test Slack message with suffix."""
-        msg = build_slack_message(
+        builder = SlackMessageBuilder()
+        data = NotificationData(
             status='start',
             url='https://youtube.com/watch?v=test',
             args_dict={'with_audio': True},
             session_id='[2026-02-16 12:00 hostname]',
             notif_msg_suffix='PROD'
         )
+        msg = builder.build_message(data)
         assert '🚀 Download STARTED - PROD' in msg
 
     def test_empty_suffix(self) -> None:
         """Test Slack message with empty suffix (treated as no suffix)."""
-        msg = build_slack_message(
+        builder = SlackMessageBuilder()
+        data = NotificationData(
             status='success',
             url='https://youtube.com/watch?v=test',
             args_dict={},
             session_id='[2026-02-16 12:00 hostname]',
             notif_msg_suffix=''
         )
+        msg = builder.build_message(data)
         assert '✅ Download SUCCESS' in msg
         assert '✅ Download SUCCESS -' not in msg  # No suffix
 
     def test_all_status_types(self) -> None:
         """Test suffix works for all status types."""
+        builder = SlackMessageBuilder()
         statuses = [
             ('start', '🚀', 'STARTED'),
             ('success', '✅', 'SUCCESS'),
@@ -95,61 +107,69 @@ class TestBuildSlackMessage:
             ('failure', '❌', 'FAILURE'),
         ]
         for status, emoji, word in statuses:
-            msg = build_slack_message(
+            data = NotificationData(
                 status=status,
                 url='https://youtube.com/watch?v=test',
                 args_dict={},
                 session_id='[2026-02-16 12:00 hostname]',
                 notif_msg_suffix='TEST'
             )
+            msg = builder.build_message(data)
             expected = f'{emoji} Download {word} - TEST'
             assert expected in msg
 
 
 class TestBuildEmailMessage:
-    """Test build_email_message() with and without suffix."""
+    """Test EmailMessageBuilder with and without suffix."""
 
     def test_no_suffix(self) -> None:
         """Test email message without suffix."""
-        subject, html_body = build_email_message(
+        builder = EmailMessageBuilder()
+        data = NotificationData(
             status='start',
             url='https://youtube.com/watch?v=test',
             args_dict={'with_audio': True},
             session_id='[2026-02-16 12:00 hostname]'
         )
-        assert subject == '🚀 yt-dlp Download STARTED'
-        assert '<h3>🚀 Download STARTED</h3>' in html_body
-        assert '🚀 Download STARTED -' not in html_body  # No suffix
+        email_msg = builder.build_message(data)
+        assert email_msg.subject == '🚀 yt-dlp Download STARTED'
+        assert '<h3>🚀 Download STARTED</h3>' in email_msg.html_body
+        assert '🚀 Download STARTED -' not in email_msg.html_body  # No suffix
 
     def test_with_suffix(self) -> None:
         """Test email message with suffix in both subject and body."""
-        subject, html_body = build_email_message(
+        builder = EmailMessageBuilder()
+        data = NotificationData(
             status='start',
             url='https://youtube.com/watch?v=test',
             args_dict={'with_audio': True},
             session_id='[2026-02-16 12:00 hostname]',
             notif_msg_suffix='PROD'
         )
+        email_msg = builder.build_message(data)
         # Check subject has suffix
-        assert subject == '🚀 yt-dlp Download STARTED - PROD'
+        assert email_msg.subject == '🚀 yt-dlp Download STARTED - PROD'
         # Check HTML body <h3> has suffix
-        assert '<h3>🚀 Download STARTED - PROD</h3>' in html_body
+        assert '<h3>🚀 Download STARTED - PROD</h3>' in email_msg.html_body
 
     def test_empty_suffix(self) -> None:
         """Test email message with empty suffix (treated as no suffix)."""
-        subject, html_body = build_email_message(
+        builder = EmailMessageBuilder()
+        data = NotificationData(
             status='success',
             url='https://youtube.com/watch?v=test',
             args_dict={},
             session_id='[2026-02-16 12:00 hostname]',
             notif_msg_suffix=''
         )
-        assert subject == '✅ yt-dlp Download SUCCESS'
-        assert '<h3>✅ Download SUCCESS</h3>' in html_body
-        assert '✅ Download SUCCESS -' not in html_body  # No suffix
+        email_msg = builder.build_message(data)
+        assert email_msg.subject == '✅ yt-dlp Download SUCCESS'
+        assert '<h3>✅ Download SUCCESS</h3>' in email_msg.html_body
+        assert '✅ Download SUCCESS -' not in email_msg.html_body  # No suffix
 
     def test_all_status_types(self) -> None:
         """Test suffix works for all status types in subject and body."""
+        builder = EmailMessageBuilder()
         statuses = [
             ('start', '🚀', 'STARTED'),
             ('success', '✅', 'SUCCESS'),
@@ -157,17 +177,18 @@ class TestBuildEmailMessage:
             ('failure', '❌', 'FAILURE'),
         ]
         for status, emoji, word in statuses:
-            subject, html_body = build_email_message(
+            data = NotificationData(
                 status=status,
                 url='https://youtube.com/watch?v=test',
                 args_dict={},
                 session_id='[2026-02-16 12:00 hostname]',
                 notif_msg_suffix='DEV'
             )
+            email_msg = builder.build_message(data)
             expected_subject = f'{emoji} yt-dlp Download {word} - DEV'
             expected_body = f'<h3>{emoji} Download {word} - DEV</h3>'
-            assert subject == expected_subject
-            assert expected_body in html_body
+            assert email_msg.subject == expected_subject
+            assert expected_body in email_msg.html_body
 
 
 # ============================================================================
@@ -182,11 +203,13 @@ class TestSendAllNotifications:
         mock_notifier = MockNotifier()
         send_all_notifications(
             notifiers=[mock_notifier],
-            status='start',
-            url='https://youtube.com/watch?v=test',
-            args_dict={'with_audio': True},
-            session_id='[2026-02-16 12:00 hostname]',
-            notif_msg_suffix='PROD'
+            data=NotificationData(
+                status='start',
+                url='https://youtube.com/watch?v=test',
+                args_dict={'with_audio': True},
+                session_id='[2026-02-16 12:00 hostname]',
+                notif_msg_suffix='PROD'
+            )
         )
         assert len(mock_notifier.sent_messages) == 1
         assert mock_notifier.sent_messages[0]['notif_msg_suffix'] == 'PROD'
@@ -196,11 +219,13 @@ class TestSendAllNotifications:
         mock_notifier = MockNotifier()
         send_all_notifications(
             notifiers=[mock_notifier],
-            status='start',
-            url='https://youtube.com/watch?v=test',
-            args_dict={'with_audio': True},
-            session_id='[2026-02-16 12:00 hostname]',
-            notif_msg_suffix=''
+            data=NotificationData(
+                status='start',
+                url='https://youtube.com/watch?v=test',
+                args_dict={'with_audio': True},
+                session_id='[2026-02-16 12:00 hostname]',
+                notif_msg_suffix=''
+            )
         )
         assert len(mock_notifier.sent_messages) == 1
         assert mock_notifier.sent_messages[0]['notif_msg_suffix'] == ''
@@ -211,12 +236,14 @@ class TestSendAllNotifications:
         mock2 = MockNotifier()
         send_all_notifications(
             notifiers=[mock1, mock2],
-            status='success',
-            url='https://youtube.com/watch?v=test',
-            args_dict={},
-            session_id='[2026-02-16 12:00 hostname]',
-            elapsed_time='5m 23s',
-            notif_msg_suffix='TEST'
+            data=NotificationData(
+                status='success',
+                url='https://youtube.com/watch?v=test',
+                args_dict={},
+                session_id='[2026-02-16 12:00 hostname]',
+                elapsed_time='5m 23s',
+                notif_msg_suffix='TEST'
+            )
         )
         assert len(mock1.sent_messages) == 1
         assert mock1.sent_messages[0]['notif_msg_suffix'] == 'TEST'
