@@ -17,13 +17,15 @@
 .venv/
 .venv-linux/
 .venv-3.14/
+.old-venv-3.14/
 Tests/Data/
 Tests/yt-audio/
 Tests/yt-videos/
+Tests-UTF/
 Tests/e2e_state.json
 Data/last_url.txt
 staging-mp3/
-staging-m4a/
+staging-mp4/
 .pyscn/
 Logs/
 git_excluded.py
