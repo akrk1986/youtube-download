@@ -17,6 +17,7 @@
 .venv/
 .venv-linux/
 .venv-3.14/
+.venv-windows/
 .old-venv-3.14/
 Tests/Data/
 Tests/yt-audio/
@@ -29,7 +30,6 @@ staging-mp4/
 .pyscn/
 Logs/
 git_excluded.py
-
 # Node/npm (JavaScript linting tools)
 node_modules/
 package-lock.json
