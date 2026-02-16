@@ -1,5 +1,30 @@
 """Shared message formatting for notification handlers."""
-from typing import Optional
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any, Optional
+
+
+@dataclass
+class NotificationData:
+    """Data for building notification messages."""
+    status: str
+    url: str
+    args_dict: dict
+    session_id: str
+    elapsed_time: Optional[str] = None
+    video_count: int = 0
+    audio_count: int = 0
+    failure_reason: Optional[str] = None
+    script_version: Optional[str] = None
+    ytdlp_version: Optional[str] = None
+    notif_msg_suffix: str = ''
+
+
+@dataclass
+class EmailMessage:
+    """Email message with subject and HTML body."""
+    subject: str
+    html_body: str
 
 
 def _get_status_display(status: str) -> tuple[str, str]:
@@ -32,122 +57,115 @@ def _format_param_lines(status: str, args_dict: dict) -> list[tuple[str, str]]:
     return param_lines
 
 
-def build_slack_message(status: str, url: str, args_dict: dict,
-                        session_id: str, elapsed_time: Optional[str] = None,
-                        video_count: int = 0, audio_count: int = 0,
-                        failure_reason: Optional[str] = None,
-                        script_version: Optional[str] = None,
-                        ytdlp_version: Optional[str] = None,
-                        notif_msg_suffix: str = '') -> str:
-    """Build a Slack-formatted notification message.
+class MessageBuilder(ABC):
+    """Abstract base class for notification message builders."""
 
-    Args:
-        notif_msg_suffix: Optional suffix to append to title (e.g., 'PROD')
+    @abstractmethod
+    def build_message(self, data: NotificationData) -> Any:
+        """Build a notification message from data.
 
-    Returns:
-        Slack markdown message string.
-    """
-    emoji, word = _get_status_display(status)
-    title = f'{emoji} Download {word}'
-    if notif_msg_suffix:
-        title = f'{title} - {notif_msg_suffix}'
-
-    param_lines = _format_param_lines(status=status, args_dict=args_dict)
-    if param_lines:
-        params_text = '\n'.join(f'  • {key}: {value}' for key, value in param_lines)
-    else:
-        params_text = '  (default parameters)'
-
-    message = f'{title}\n\n*Session:* {session_id}\n\n*URL:* {url}\n\n*Parameters:*\n{params_text}'
-
-    # Add version info for start notifications
-    if status == 'start' and (script_version or ytdlp_version):
-        version_parts = []
-        if script_version:
-            version_parts.append(f'Script: {script_version}')
-        if ytdlp_version:
-            version_parts.append(f'yt-dlp: {ytdlp_version}')
-        message += f'\n\n*Versions:*\n  • {"\n  • ".join(version_parts)}'
-
-    if status == 'failure' and failure_reason:
-        message += f'\n\n*Reason:* {failure_reason}'
-
-    if status in ['success', 'failure', 'cancelled'] and (video_count > 0 or audio_count > 0):
-        files_text = []
-        if video_count > 0:
-            files_text.append(f'{video_count} video file(s)')
-        if audio_count > 0:
-            files_text.append(f'{audio_count} audio file(s)')
-        message += f'\n\n*Files created:* {", ".join(files_text)}'
-
-    if elapsed_time:
-        message += f'\n\n*Elapsed time:* {elapsed_time}'
-
-    return message
+        Returns:
+            Message in format specific to the builder (str for Slack, EmailMessage for Email).
+        """
+        pass
 
 
-def build_email_message(status: str, url: str, args_dict: dict,
-                        session_id: str, elapsed_time: Optional[str] = None,
-                        video_count: int = 0, audio_count: int = 0,
-                        failure_reason: Optional[str] = None,
-                        script_version: Optional[str] = None,
-                        ytdlp_version: Optional[str] = None,
-                        notif_msg_suffix: str = '') -> tuple[str, str]:
-    """Build an email notification message.
+class SlackMessageBuilder(MessageBuilder):
+    """Build Slack-formatted notification messages."""
 
-    Args:
-        notif_msg_suffix: Optional suffix to append to subject and body title
+    def build_message(self, data: NotificationData) -> str:
+        """Build a Slack markdown notification message."""
+        emoji, word = _get_status_display(data.status)
+        title = f'{emoji} Download {word}'
+        if data.notif_msg_suffix:
+            title = f'{title} - {data.notif_msg_suffix}'
 
-    Returns:
-        Tuple of (subject, html_body).
-    """
-    emoji, word = _get_status_display(status)
-    subject = f'{emoji} yt-dlp Download {word}'
-    if notif_msg_suffix:
-        subject = f'{subject} - {notif_msg_suffix}'
+        param_lines = _format_param_lines(status=data.status, args_dict=data.args_dict)
+        if param_lines:
+            params_text = '\n'.join(f'  • {key}: {value}' for key, value in param_lines)
+        else:
+            params_text = '  (default parameters)'
 
-    # Build HTML body
-    html_title = f'{emoji} Download {word}'
-    if notif_msg_suffix:
-        html_title = f'{html_title} - {notif_msg_suffix}'
+        message = f'{title}\n\n*Session:* {data.session_id}\n\n*URL:* {data.url}\n\n*Parameters:*\n{params_text}'
 
-    lines = [
-        f'<h3>{html_title}</h3>',
-        f'<p><b>Session:</b> {session_id}</p>',
-        f'<p><b>URL:</b> {url}</p>',
-    ]
+        # Add version info for start notifications
+        if data.status == 'start' and (data.script_version or data.ytdlp_version):
+            version_parts = []
+            if data.script_version:
+                version_parts.append(f'Script: {data.script_version}')
+            if data.ytdlp_version:
+                version_parts.append(f'yt-dlp: {data.ytdlp_version}')
+            message += f'\n\n*Versions:*\n  • {"\n  • ".join(version_parts)}'
 
-    param_lines = _format_param_lines(status=status, args_dict=args_dict)
-    if param_lines:
-        lines.append('<p><b>Parameters:</b></p><ul>')
-        for key, value in param_lines:
-            lines.append(f'<li>{key}: {value}</li>')
-        lines.append('</ul>')
-    else:
-        lines.append('<p><b>Parameters:</b> (default parameters)</p>')
+        if data.status == 'failure' and data.failure_reason:
+            message += f'\n\n*Reason:* {data.failure_reason}'
 
-    # Add version info for start notifications
-    if status == 'start' and (script_version or ytdlp_version):
-        lines.append('<p><b>Versions:</b></p><ul>')
-        if script_version:
-            lines.append(f'<li>Script: {script_version}</li>')
-        if ytdlp_version:
-            lines.append(f'<li>yt-dlp: {ytdlp_version}</li>')
-        lines.append('</ul>')
+        if data.status in ['success', 'failure', 'cancelled'] and (data.video_count > 0 or data.audio_count > 0):
+            files_text = []
+            if data.video_count > 0:
+                files_text.append(f'{data.video_count} video file(s)')
+            if data.audio_count > 0:
+                files_text.append(f'{data.audio_count} audio file(s)')
+            message += f'\n\n*Files created:* {", ".join(files_text)}'
 
-    if status == 'failure' and failure_reason:
-        lines.append(f'<p><b>Reason:</b> {failure_reason}</p>')
+        if data.elapsed_time:
+            message += f'\n\n*Elapsed time:* {data.elapsed_time}'
 
-    if status in ['success', 'failure', 'cancelled'] and (video_count > 0 or audio_count > 0):
-        files_parts = []
-        if video_count > 0:
-            files_parts.append(f'{video_count} video file(s)')
-        if audio_count > 0:
-            files_parts.append(f'{audio_count} audio file(s)')
-        lines.append(f'<p><b>Files created:</b> {", ".join(files_parts)}</p>')
+        return message
 
-    if elapsed_time:
-        lines.append(f'<p><b>Elapsed time:</b> {elapsed_time}</p>')
 
-    html_body = '\n'.join(lines)
-    return subject, html_body
+class EmailMessageBuilder(MessageBuilder):
+    """Build email notification messages."""
+
+    def build_message(self, data: NotificationData) -> EmailMessage:
+        """Build an email notification message with subject and HTML body."""
+        emoji, word = _get_status_display(data.status)
+        subject = f'{emoji} yt-dlp Download {word}'
+        if data.notif_msg_suffix:
+            subject = f'{subject} - {data.notif_msg_suffix}'
+
+        # Build HTML body
+        html_title = f'{emoji} Download {word}'
+        if data.notif_msg_suffix:
+            html_title = f'{html_title} - {data.notif_msg_suffix}'
+
+        lines = [
+            f'<h3>{html_title}</h3>',
+            f'<p><b>Session:</b> {data.session_id}</p>',
+            f'<p><b>URL:</b> {data.url}</p>',
+        ]
+
+        param_lines = _format_param_lines(status=data.status, args_dict=data.args_dict)
+        if param_lines:
+            lines.append('<p><b>Parameters:</b></p><ul>')
+            for key, value in param_lines:
+                lines.append(f'<li>{key}: {value}</li>')
+            lines.append('</ul>')
+        else:
+            lines.append('<p><b>Parameters:</b> (default parameters)</p>')
+
+        # Add version info for start notifications
+        if data.status == 'start' and (data.script_version or data.ytdlp_version):
+            lines.append('<p><b>Versions:</b></p><ul>')
+            if data.script_version:
+                lines.append(f'<li>Script: {data.script_version}</li>')
+            if data.ytdlp_version:
+                lines.append(f'<li>yt-dlp: {data.ytdlp_version}</li>')
+            lines.append('</ul>')
+
+        if data.status == 'failure' and data.failure_reason:
+            lines.append(f'<p><b>Reason:</b> {data.failure_reason}</p>')
+
+        if data.status in ['success', 'failure', 'cancelled'] and (data.video_count > 0 or data.audio_count > 0):
+            files_parts = []
+            if data.video_count > 0:
+                files_parts.append(f'{data.video_count} video file(s)')
+            if data.audio_count > 0:
+                files_parts.append(f'{data.audio_count} audio file(s)')
+            lines.append(f'<p><b>Files created:</b> {", ".join(files_parts)}</p>')
+
+        if data.elapsed_time:
+            lines.append(f'<p><b>Elapsed time:</b> {data.elapsed_time}</p>')
+
+        html_body = '\n'.join(lines)
+        return EmailMessage(subject=subject, html_body=html_body)

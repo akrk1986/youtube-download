@@ -1,11 +1,10 @@
 """Slack notification handler."""
 import logging
-from typing import Optional
 
 import requests
 
 from funcs_notifications.base import NotificationHandler
-from funcs_notifications.message_builder import build_slack_message
+from funcs_notifications.message_builder import NotificationData, SlackMessageBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +18,7 @@ class SlackNotifier(NotificationHandler):
 
     def __init__(self, webhook_url: str | None) -> None:
         self._webhook_url = webhook_url
+        self._builder = SlackMessageBuilder()
 
     def is_configured(self) -> bool:
         """Return True if webhook URL is set and not the placeholder."""
@@ -27,14 +27,15 @@ class SlackNotifier(NotificationHandler):
             and self._webhook_url != 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
         )
 
-    def send(self, status: str, url: str, args_dict: dict,
-             session_id: str, elapsed_time: Optional[str] = None,
-             video_count: int = 0, audio_count: int = 0,
-             failure_reason: Optional[str] = None,
-             script_version: Optional[str] = None,
-             ytdlp_version: Optional[str] = None,
-             notif_msg_suffix: str = '') -> bool:
-        """Send a Slack notification about download status."""
+    def send(self, data: NotificationData) -> bool:
+        """Send a Slack notification about download status.
+
+        Args:
+            data: NotificationData object containing all notification information
+
+        Returns:
+            True if notification was sent successfully, False otherwise
+        """
         if not self.is_configured():
             logger.debug('Slack webhook not configured, skipping notification')
             return False
@@ -42,14 +43,7 @@ class SlackNotifier(NotificationHandler):
         # Type guard: is_configured() ensures _webhook_url is str
         assert self._webhook_url is not None
 
-        message_text = build_slack_message(
-            status=status, url=url, args_dict=args_dict,
-            session_id=session_id, elapsed_time=elapsed_time,
-            video_count=video_count, audio_count=audio_count,
-            failure_reason=failure_reason,
-            script_version=script_version, ytdlp_version=ytdlp_version,
-            notif_msg_suffix=notif_msg_suffix
-        )
+        message_text = self._builder.build_message(data)
 
         payload = {
             'text': message_text,
@@ -61,7 +55,7 @@ class SlackNotifier(NotificationHandler):
             response = requests.post(self._webhook_url, json=payload, timeout=10)
 
             if response.ok:
-                logger.debug(f'Slack notification sent: {status} (HTTP {response.status_code})')
+                logger.debug(f'Slack notification sent: {data.status} (HTTP {response.status_code})')
                 return True
 
             logger.warning(f'Slack notification failed with HTTP status {response.status_code}')

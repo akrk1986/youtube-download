@@ -2,10 +2,9 @@
 import logging
 import smtplib
 from email.mime.text import MIMEText
-from typing import Optional
 
 from funcs_notifications.base import NotificationHandler
-from funcs_notifications.message_builder import build_email_message
+from funcs_notifications.message_builder import EmailMessageBuilder, NotificationData
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +22,7 @@ class GmailNotifier(NotificationHandler):
 
     def __init__(self, gmail_params: dict[str, str] | None) -> None:
         self._params = gmail_params
+        self._builder = EmailMessageBuilder()
 
     def is_configured(self) -> bool:
         """Return True if all required Gmail parameters are present and non-empty."""
@@ -33,14 +33,15 @@ class GmailNotifier(NotificationHandler):
             for key in self.REQUIRED_KEYS
         )
 
-    def send(self, status: str, url: str, args_dict: dict,
-             session_id: str, elapsed_time: Optional[str] = None,
-             video_count: int = 0, audio_count: int = 0,
-             failure_reason: Optional[str] = None,
-             script_version: Optional[str] = None,
-             ytdlp_version: Optional[str] = None,
-             notif_msg_suffix: str = '') -> bool:
-        """Send a Gmail notification about download status."""
+    def send(self, data: NotificationData) -> bool:
+        """Send a Gmail notification about download status.
+
+        Args:
+            data: NotificationData object containing all notification information
+
+        Returns:
+            True if notification was sent successfully, False otherwise
+        """
         if not self.is_configured():
             logger.debug('Gmail not configured, skipping notification')
             return False
@@ -48,17 +49,10 @@ class GmailNotifier(NotificationHandler):
         # Type guard: is_configured() ensures _params is dict[str, str]
         assert self._params is not None
 
-        subject, html_body = build_email_message(
-            status=status, url=url, args_dict=args_dict,
-            session_id=session_id, elapsed_time=elapsed_time,
-            video_count=video_count, audio_count=audio_count,
-            failure_reason=failure_reason,
-            script_version=script_version, ytdlp_version=ytdlp_version,
-            notif_msg_suffix=notif_msg_suffix
-        )
+        email_message = self._builder.build_message(data)
 
-        msg = MIMEText(html_body, 'html')
-        msg['Subject'] = subject
+        msg = MIMEText(email_message.html_body, 'html')
+        msg['Subject'] = email_message.subject
         msg['From'] = self._params['sender_email']
         msg['To'] = self._params['recipient_email']
 
@@ -68,7 +62,7 @@ class GmailNotifier(NotificationHandler):
                 server.login(self._params['sender_email'], self._params['sender_app_password'])
                 server.send_message(msg)
 
-            logger.debug(f'Gmail notification sent: {status}')
+            logger.debug(f'Gmail notification sent: {data.status}')
             return True
 
         except smtplib.SMTPAuthenticationError:
