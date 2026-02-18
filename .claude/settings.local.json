@@ -16,7 +16,8 @@
       "Bash(for pkg in arrow emoji mutagen odf requests yt_dlp)",
       "Bash(do echo \"=== $pkg ===\")",
       "Bash(done)",
-      "Bash(flake8:*)"
+      "Bash(flake8:*)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []
