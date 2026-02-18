@@ -119,6 +119,7 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
         '--merge-output-format', 'mp4',
         '--embed-metadata',
         '--add-metadata',
+        '--embed-thumbnail',  # Embed YouTube thumbnail as cover art in MP4
         '--parse-metadata', 'webpage_url:%(meta_comment)s',  # Store URL in comment metadata
         '-o', output_template,
         sanitized_url

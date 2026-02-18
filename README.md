@@ -4,7 +4,7 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 
 ## Features
 
-- Download YouTube videos and playlists as MP4 files with embedded URL metadata
+- Download YouTube videos and playlists as MP4 files with embedded URL metadata and thumbnail (cover art)
 - **Download ERTFlix programs** (Greek public broadcaster) using token API URLs
 - Extract audio as MP3, M4A, and/or FLAC with embedded metadata and thumbnails
 - Split videos by chapters automatically
@@ -146,7 +146,7 @@ The tool supports different types of YouTube URLs, each with different behavior:
 ### Single Video Without Chapters
 **URL format:** `https://youtube.com/watch?v=VIDEO_ID`
 
-Downloads a single video file. If `--with-audio` is specified, extracts audio with metadata (title, uploader, thumbnail).
+Downloads a single video file with embedded thumbnail (cover art). If `--with-audio` is specified, extracts audio with metadata (title, uploader, thumbnail).
 
 **Example:**
 ```bash

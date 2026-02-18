@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-02-18-1051] - Embed Thumbnail in Downloaded Videos
+
+### Added
+- **Embedded thumbnail in MP4 video downloads**: yt-dlp now embeds the YouTube thumbnail as cover art directly into the MP4 container
+  - Windows Explorer displays the video thumbnail instead of the generic player icon
+  - Implemented by adding `--embed-thumbnail` flag to `run_yt_dlp()` in `funcs_for_main_yt_dlp/download.py`
+  - Chapter remuxing (`remux_video_chapters`) preserves the embedded thumbnail automatically via stream copy
+  - Audio downloads (`extract_single_format`) already had `--embed-thumbnail` — no change needed there
+
 ## [2026-02-16-1738] - Enhanced Notification System
 
 ### Added
