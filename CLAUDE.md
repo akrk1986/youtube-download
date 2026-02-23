@@ -28,8 +28,11 @@ The codebase uses a modular package-based architecture. All helper functions are
 
 **Packages:**
 
-- `funcs_for_main_yt_dlp/` - Main script helpers (7 modules, ~1000 lines)
-  - `download.py` - Core yt-dlp download and audio extraction functions
+- `funcs_for_main_yt_dlp/` - Main script helpers (10 modules, ~1000 lines)
+  - `_download_common.py` - Shared `DownloadOptions` dataclass, helpers, progress state
+  - `download_video.py` - Video download (`run_yt_dlp`, `VIDEO_FORMAT_FALLBACKS`)
+  - `download_audio.py` - Audio extraction (`extract_single_format`, `extract_audio_with_ytdlp`)
+  - `chapter_remux.py` - Chapter remux post-processing (`remux_video_chapters`)
   - `audio_processing.py` - Audio tag processing coordination
   - `file_organization.py` - File organization and sanitization
   - `external_tools.py` - External tool path detection (ffmpeg, yt-dlp)
@@ -283,7 +286,7 @@ The download functions implement automatic format fallback to handle videos wher
 
 ### Key Components
 - `is_format_error()` in `funcs_utils/yt_dlp_utils.py` - Detects format-related errors
-- `VIDEO_FORMAT_FALLBACKS` in `funcs_yt_dlp_download.py` - List of formats to try
+- `VIDEO_FORMAT_FALLBACKS` in `funcs_for_main_yt_dlp/download_video.py` - List of formats to try
 - `_SilentLogger` in `funcs_video_info/metadata.py` - Suppresses yt-dlp library error output
 - `--no-warnings` and `--ignore-config` flags added to yt-dlp commands
 
@@ -376,7 +379,7 @@ $env:YTDLP_RETRIES="50"
 python main-yt-dlp.py --only-audio "URL"
 ```
 
-**Implementation:** `_get_download_retries()` in `funcs_yt_dlp_download.py` validates the value and raises `ValueError` if not a positive integer.
+**Implementation:** `_get_download_retries()` in `funcs_for_main_yt_dlp/_download_common.py` validates the value and raises `ValueError` if not a positive integer.
 
 ### NOTIFICATIONS
 Controls whether Slack and/or Gmail notifications are sent.
