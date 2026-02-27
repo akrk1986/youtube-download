@@ -344,7 +344,7 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
 
     # Create chapters CSV for user reference (always when split_chapters is active)
     if args.split_chapters and has_chapters:
-        chapters_dir = Path('chapters')
+        chapters_dir = Path('yt-chapters')
         chapters_dir.mkdir(parents=True, exist_ok=True)
         create_chapters_csv(video_info=video_info, output_dir=chapters_dir, video_title=video_title or 'Unknown')
 
