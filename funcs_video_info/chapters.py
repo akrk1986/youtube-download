@@ -259,6 +259,11 @@ def create_chapters_csv(video_info: dict, output_dir: Path | str, video_title: s
             end_seconds = chapter.get('end_time', 0)
             title = chapter.get('title', '')
 
+            # Normalize title to a valid filename on Linux and Windows, truncated to 60 chars
+            song_name = (sanitize_string(dirty_string=title) or '').strip()
+            if len(song_name) > 60:
+                song_name = song_name[:60].rstrip()
+
             # Convert seconds to HHMMSS format
             start_time = _seconds_to_hhmmss(seconds=start_seconds)
             end_time = _seconds_to_hhmmss(seconds=end_seconds)
@@ -268,7 +273,7 @@ def create_chapters_csv(video_info: dict, output_dir: Path | str, video_title: s
                 start_time,                # start time
                 '',                        # album art timestamp (empty — LosslessCut-csv auto-selects)
                 end_time,                  # end time
-                title,                     # song name
+                song_name,                 # song name (sanitized, max 60 chars)
                 '',                        # original song name (empty for user to fill)
                 '',                        # artist name (empty for user to fill)
                 '',                        # album name (empty for user to fill)
