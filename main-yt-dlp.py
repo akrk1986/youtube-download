@@ -35,7 +35,7 @@ except ImportError:
     pass
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-02-27-1827'
+VERSION = '2026-02-27-2106'
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,33 @@ def _cleanup_leftover_files(video_folder: Path) -> None:
 
     if removed_count > 0:
         logger.info(f'Cleaned up {removed_count} leftover file(s) from previous cancelled downloads')
+
+
+def _check_output_dirs_empty(
+    only_audio: bool,
+    need_audio: bool,
+    audio_formats: list[str]
+) -> None:
+    """Abort if any output directory is non-empty (for split-chapters runs)."""
+    dirs_to_check: list[Path] = []
+
+    if not only_audio:
+        dirs_to_check.append(Path(VIDEO_OUTPUT_DIR))
+
+    if need_audio:
+        for fmt in audio_formats:
+            dirs_to_check.append(Path(get_audio_dir_for_format(audio_format=fmt)))
+
+    non_empty = [d for d in dirs_to_check if d.exists() and any(d.iterdir())]
+
+    if non_empty:
+        dir_list = ', '.join(f"'{d}'" for d in non_empty)
+        logger.error(
+            f'Output director{"ies" if len(non_empty) > 1 else "y"} {dir_list} '
+            f'is not empty. Copy any files you want to keep to another location, '
+            f'then clear the director{"ies" if len(non_empty) > 1 else "y"} and run again.'
+        )
+        sys.exit(1)
 
 
 def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
@@ -223,6 +250,15 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
     last_url_file.write_text(args.video_url)
 
     video_folder = Path(VIDEO_OUTPUT_DIR).resolve()
+
+    # Pre-flight check for --split-chapters: abort if output dirs are non-empty
+    if args.split_chapters:
+        _check_output_dirs_empty(
+            only_audio=args.only_audio,
+            need_audio=need_audio,
+            audio_formats=audio_formats
+        )
+
     if not args.only_audio:
         video_folder.mkdir(parents=True, exist_ok=True)
         _cleanup_leftover_files(video_folder=video_folder)
@@ -306,10 +342,14 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
         custom_album=custom_album
     )
 
+    # Create chapters CSV for user reference (always when split_chapters is active)
+    if args.split_chapters and has_chapters:
+        chapters_dir = Path('chapters')
+        chapters_dir.mkdir(parents=True, exist_ok=True)
+        create_chapters_csv(video_info=video_info, output_dir=chapters_dir, video_title=video_title or 'Unknown')
+
     # Download videos if requested
     if not args.only_audio:
-        if args.split_chapters and has_chapters:
-            create_chapters_csv(video_info=video_info, output_dir=video_folder, video_title=video_title or 'Unknown')
         run_yt_dlp(opts=download_opts, video_folder=video_folder, get_subs=args.subs, write_json=args.json)
         if args.split_chapters and has_chapters:
             remux_video_chapters(ffmpeg_path=get_ffmpeg_path(), video_folder=video_folder,

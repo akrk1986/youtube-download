@@ -226,6 +226,7 @@ def create_chapters_csv(video_info: dict, output_dir: Path | str, video_title: s
         # Write header with new column format
         writer.writerow([
             'start time',
+            'album art timestamp',
             'end time',
             'song name',
             'original song name',
@@ -265,6 +266,7 @@ def create_chapters_csv(video_info: dict, output_dir: Path | str, video_title: s
             # Write row with empty fields for user to fill in later
             writer.writerow([
                 start_time,                # start time
+                '',                        # album art timestamp (empty — LosslessCut-csv auto-selects)
                 end_time,                  # end time
                 title,                     # song name
                 '',                        # original song name (empty for user to fill)
