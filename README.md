@@ -624,7 +624,23 @@ This happens automatically - no configuration needed. The cleanup ensures a clea
 
 ## Installation
 
-### Install Python Dependencies
+### Activate Shared Virtual Environment
+
+The shared virtual environment is located at the `PycharmProjects` root and contains the combined dependencies for both `LosslessCut-csv` and `youtube-download`.
+
+**Linux/WSL**:
+```bash
+source ../.venv-linux/bin/activate
+```
+
+**Windows**:
+```cmd
+..\.venv-3.14\Scripts\activate
+```
+
+> **Note**: The shared venv uses Python 3.14 on Windows and system Python on Linux/WSL. No `pip install` step is required — packages are pre-installed.
+
+### Install Python Dependencies (first-time setup only)
 ```bash
 pip install -r requirements.txt
 ```

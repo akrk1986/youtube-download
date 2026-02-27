@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-02-27-1827] - Shared Virtual Environment
+
+### Added
+- **Shared virtual environment** at the `PycharmProjects` root level, replacing per-project venvs for both `LosslessCut-csv` and `youtube-download`
+  - Windows: `C:\Users\user\PycharmProjects\.venv-3.14\` (Python 3.14)
+  - Linux/WSL: `/mnt/c/Users/user/PycharmProjects/.venv-linux\` (system Python)
+  - Combined `requirements.txt` at `PycharmProjects\requirements.txt`
+- Updated `README.md` installation section to reference the shared venv
+
 ## [2026-02-18-1051] - Embed Thumbnail in Downloaded Videos
 
 ### Added
