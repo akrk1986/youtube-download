@@ -254,7 +254,7 @@ def create_chapters_csv(video_info: dict, output_dir: Path | str, video_title: s
             year = upload_date[:4] if len(upload_date) >= 4 else ''
 
         # Write chapter data
-        for chapter in chapters:
+        for i, chapter in enumerate(chapters):
             start_seconds = chapter.get('start_time', 0)
             end_seconds = chapter.get('end_time', 0)
             title = chapter.get('title', '')
@@ -268,15 +268,18 @@ def create_chapters_csv(video_info: dict, output_dir: Path | str, video_title: s
             start_time = _seconds_to_hhmmss(seconds=start_seconds)
             end_time = _seconds_to_hhmmss(seconds=end_seconds)
 
-            # Write row with empty fields for user to fill in later
+            # First row: placeholder artist/album for user to fill in; subsequent rows: '-'
+            artist_name = 'Artist-name' if i == 0 else '-'
+            album_name = 'Album-name' if i == 0 else '-'
+
             writer.writerow([
                 start_time,                # start time
                 '',                        # album art timestamp (empty — LosslessCut-csv auto-selects)
                 end_time,                  # end time
                 song_name,                 # song name (sanitized, max 60 chars)
                 '',                        # original song name (empty for user to fill)
-                '',                        # artist name (empty for user to fill)
-                '',                        # album name (empty for user to fill)
+                artist_name,               # artist name
+                album_name,                # album name
                 year,                      # year (from video upload date if available)
                 '',                        # composer (empty for user to fill)
                 ''                         # comments (empty for user to fill)

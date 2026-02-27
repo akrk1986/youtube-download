@@ -2,12 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2026-02-27-2106] - LosslessCut-csv Format + Output Dir Checks + chapters/ Directory
+## [2026-02-27-2128] - LosslessCut-csv Format + Output Dir Checks + yt-chapters/ Directory
 
 ### Changed
 - **CSV format updated** to match LosslessCut-csv input format:
   - `album art timestamp` column added as column 2 (between `start time` and `end time`)
   - Each data row has an empty field for this column (LosslessCut-csv auto-selects)
+  - `song name` field is sanitized to a valid filename (Linux + Windows), stripped of whitespace, and truncated to 60 characters
+  - `artist name` and `album name` are mandatory in LosslessCut-csv: first row gets `Artist-name` / `Album-name` as placeholders; subsequent rows get `-`
   - File: `funcs_video_info/chapters.py`
 
 ### Added
@@ -15,10 +17,10 @@ All notable changes to this project will be documented in this file.
   - Aborts with a clear error if any output directory is non-empty before starting
   - Prevents mixing chapters from different videos in the same output directory
   - New helper `_check_output_dirs_empty()` in `main-yt-dlp.py`
-- **Dedicated `chapters/` output directory** for the segments CSV file:
-  - CSV is now written to `chapters/segments-hms-full.txt` instead of `yt-videos/`
+- **Dedicated `yt-chapters/` output directory** for the segments CSV file:
+  - CSV is now written to `yt-chapters/segments-hms-full.txt` instead of `yt-videos/`
   - The directory is created automatically when needed
-  - `chapters/` is excluded from git (added to `.gitignore`)
+  - `yt-chapters/` is excluded from git (added to `.gitignore`)
   - CSV is now created for both video and audio-only runs (`--only-audio --split-chapters` now also produces the CSV)
 
 ## [2026-02-27-1827] - Shared Virtual Environment
