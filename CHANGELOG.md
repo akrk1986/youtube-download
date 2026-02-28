@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-02-28-1504] - Add --list-chapters-only Flag
+
+### Added
+- **`--list-chapters-only` flag**: lists chapters, creates segments CSV in `yt-chapters/`, downloads the video, then stops — skipping chapter remux, audio extraction, file organization, and audio tagging
+  - Aborts with a clear error if the video has no chapters
+  - Aborts with a clear error if a playlist URL is provided
+  - Mutually exclusive with `--with-audio`, `--only-audio`, `--subs`, `--split-chapters`
+  - Files: `main-yt-dlp.py`, `Tests/conftest.py`
+
 ## [2026-02-27-2128] - LosslessCut-csv Format + Output Dir Checks + yt-chapters/ Directory
 
 ### Changed
