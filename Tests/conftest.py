@@ -69,7 +69,8 @@ def sample_args() -> argparse.Namespace:
         artist=None,
         album=None,
         with_audio=False,
-        only_audio=False
+        only_audio=False,
+        list_chapters_only=False
     )
 
 

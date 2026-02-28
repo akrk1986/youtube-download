@@ -126,6 +126,9 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument('--album',
                         help='Custom album tag (ignored for playlists)')
     parser.add_argument('--version', action='version', version=f'%(prog)s {VERSION}')
+    parser.add_argument('--list-chapters-only', action='store_true',
+                        help='List chapters, create segments CSV, then download video and stop. '
+                             'Aborts if the video has no chapters.')
 
     audio_group = parser.add_mutually_exclusive_group()
     audio_group.add_argument('--with-audio', action='store_true',
@@ -162,6 +165,21 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             seen.add(fmt)
             deduplicated_formats.append(fmt)
     audio_formats = deduplicated_formats
+
+    # Validate --list-chapters-only mutual exclusivity
+    if args.list_chapters_only:
+        conflicting = []
+        if args.with_audio:
+            conflicting.append('--with-audio')
+        if args.only_audio:
+            conflicting.append('--only-audio')
+        if args.subs:
+            conflicting.append('--subs')
+        if args.split_chapters:
+            conflicting.append('--split-chapters')
+        if conflicting:
+            logger.error('--list-chapters-only cannot be combined with: %s', ', '.join(conflicting))
+            sys.exit(1)
 
     # ERTFlix program mode: force video-only, no audio extraction
     if args.ertflix_program:
@@ -269,6 +287,11 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             audio_dir.mkdir(parents=True, exist_ok=True)
 
     url_is_playlist = is_playlist(url=args.video_url)
+
+    if args.list_chapters_only and url_is_playlist:
+        logger.error('--list-chapters-only does not support playlist URLs. Provide a single video URL.')
+        sys.exit(1)
+
     uploader_name = None  # Initialize uploader name for chapter processing
     video_title = None  # Initialize video title for chapter processing
 
@@ -321,12 +344,17 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             if video_title and video_title not in ('NA', ''):
                 logger.debug(f"Video title for chapters: '{video_title}'")
 
-            # Display chapters and build filename mapping if split-chapters is requested
-            if args.split_chapters:
+            # Display chapters and build filename mapping if split-chapters or list-chapters-only is requested
+            if args.split_chapters or args.list_chapters_only:
                 chapter_name_map = display_chapters_and_confirm(video_info=video_info)
     else:
         logger.info('URL is a playlist, not extracting chapters')
         has_chapters = False
+
+    # --list-chapters-only requires the video to have chapters
+    if args.list_chapters_only and not has_chapters:
+        logger.error('--list-chapters-only: video has no chapters. Aborting.')
+        sys.exit(1)
 
     # Create download options dataclass for common parameters
     download_opts = DownloadOptions(
@@ -342,8 +370,8 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
         custom_album=custom_album
     )
 
-    # Create chapters CSV for user reference (always when split_chapters is active)
-    if args.split_chapters and has_chapters:
+    # Create chapters CSV for user reference (always when split_chapters or list_chapters_only is active)
+    if (args.split_chapters or args.list_chapters_only) and has_chapters:
         chapters_dir = Path('yt-chapters')
         chapters_dir.mkdir(parents=True, exist_ok=True)
         create_chapters_csv(video_info=video_info, output_dir=chapters_dir, video_title=video_title or 'Unknown')
@@ -351,6 +379,9 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
     # Download videos if requested
     if not args.only_audio:
         run_yt_dlp(opts=download_opts, video_folder=video_folder, get_subs=args.subs, write_json=args.json)
+        if args.list_chapters_only:
+            logger.info('--list-chapters-only: chapters CSV created and video downloaded. Done.')
+            return
         if args.split_chapters and has_chapters:
             remux_video_chapters(ffmpeg_path=get_ffmpeg_path(), video_folder=video_folder,
                                  chapters=video_info.get('chapters', []),
@@ -424,6 +455,7 @@ def main() -> None:
         'video_url': args.video_url,
         'audio_format': args.audio_format,
         'split_chapters': args.split_chapters,
+        'list_chapters_only': args.list_chapters_only,
         'video_download_timeout': args.video_download_timeout,
         'subs': args.subs,
         'json': args.json,
