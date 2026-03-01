@@ -103,7 +103,7 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument('video_url', nargs='?', help='Playlist/video URL')
     parser.add_argument('--audio-format', default=DEFAULT_AUDIO_FORMAT,
                         help='Audio format for extraction: mp3, m4a, flac, or comma-separated list '
-                             f'(e.g., mp3,m4a). (default: {DEFAULT_AUDIO_FORMAT})')
+                             '(e.g., mp3,m4a). (default: %(default)s)')
     parser.add_argument('--split-chapters', action='store_true', help='Split to chapters')
     parser.add_argument('--video-download-timeout', type=int,
                         help='Timeout in seconds for video downloads. If specified, applies to all sites. '
@@ -141,16 +141,17 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
-                  initial_video_count: int, initial_audio_count: int,
-                  notifiers: list | None = None, notif_msg_suffix: str = '') -> None:
-    """Execute the main download logic."""
+def _parse_and_validate_audio_formats(audio_format_str: str) -> list[str]:
+    """Parse comma-separated audio formats, validate, and deduplicate.
 
-    # Parse and validate audio formats
-    audio_formats_str = args.audio_format
-    audio_formats = [fmt.strip() for fmt in audio_formats_str.split(',')]
+    Args:
+        audio_format_str: Comma-separated audio format string (e.g., 'mp3,m4a')
 
-    # Validate each format
+    Returns:
+        Deduplicated list of valid format strings
+    """
+    audio_formats = [fmt.strip() for fmt in audio_format_str.split(',')]
+
     invalid_formats = [fmt for fmt in audio_formats if fmt not in VALID_AUDIO_FORMATS]
     if invalid_formats:
         logger.error(f"Invalid audio format(s): {', '.join(invalid_formats)}")
@@ -158,54 +159,29 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
         sys.exit(1)
 
     # Remove duplicates while preserving order
-    seen = set()
-    deduplicated_formats = []
+    seen: set[str] = set()
+    deduplicated: list[str] = []
     for fmt in audio_formats:
         if fmt not in seen:
             seen.add(fmt)
-            deduplicated_formats.append(fmt)
-    audio_formats = deduplicated_formats
+            deduplicated.append(fmt)
+    return deduplicated
 
-    # Validate --list-chapters-only mutual exclusivity
-    if args.list_chapters_only:
-        conflicting = []
-        if args.with_audio:
-            conflicting.append('--with-audio')
-        if args.only_audio:
-            conflicting.append('--only-audio')
-        if args.subs:
-            conflicting.append('--subs')
-        if args.split_chapters:
-            conflicting.append('--split-chapters')
-        if conflicting:
-            logger.error('--list-chapters-only cannot be combined with: %s', ', '.join(conflicting))
-            sys.exit(1)
 
-    # ERTFlix program mode: force video-only, no audio extraction
-    if args.ertflix_program:
-        logger.info('ERTFlix program mode: downloading video only (audio extraction disabled)')
-        need_audio = False
-        args.only_audio = False  # Don't delete video
-        args.with_audio = False  # Don't extract audio
-    else:
-        logger.info(f'Requested audio formats: {", ".join(audio_formats)}')
-        need_audio = args.with_audio or args.only_audio
+def _resolve_url(args: argparse.Namespace, yt_dlp_exe: str) -> str:
+    """Resolve the video URL from arguments, interactive input, or --rerun.
 
-    # Detect platform and set appropriate executable path
+    Handles --rerun flag, interactive URL prompting (3 retries), ERTFlix timeout
+    detection (sets args.video_download_timeout as side effect), URL validation
+    and resolution, and saves the resolved URL for future --rerun.
 
-    yt_dlp_exe = get_ytdlp_path()
-    ytdlp_version = get_ytdlp_version(ytdlp_path=yt_dlp_exe)
+    Args:
+        args: Parsed command-line arguments (modified in place for timeout/URL)
+        yt_dlp_exe: Path to yt-dlp executable
 
-    # Handle artists.json path relative to script location, not current working directory
-    script_dir = Path(__file__).parent
-    artists_json = script_dir / 'Data' / 'artists.json'
-
-    # Validate artists.json exists
-    if not artists_json.exists():
-        logger.error(f"Artists database not found at '{artists_json}'")
-        logger.error('Please ensure file exists in the project directory')
-        sys.exit(1)
-
+    Returns:
+        Resolved URL string
+    """
     # Handle --rerun flag: load URL from previous run if requested
     last_url_file = Path('Data') / 'last_url.txt'
     if args.rerun and not args.video_url:
@@ -216,10 +192,8 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             logger.error('No previous URL found in Data/last_url.txt')
             sys.exit(1)
 
-    # Get URL first (but don't resolve yet) to check if it's ERTFlix
-    # In interactive mode, this prompts for URL
+    # In interactive mode, prompt for URL
     if not args.video_url:
-        # Import here to avoid issues before URL is obtained
         from funcs_video_info import validate_video_url
         for attempt in range(3):  # MAX_URL_RETRIES
             url_input = input('Enter the YouTube URL: ').strip()
@@ -239,13 +213,219 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
     from funcs_for_main_yt_dlp import is_ertflix_token_url
     from funcs_video_info import get_timeout_for_url
     if is_ertflix_token_url(url=args.video_url) and args.video_download_timeout is None:
-        # Get timeout based on original ERTFlix domain, not future CDN domain
         original_timeout = get_timeout_for_url(url=args.video_url)
         args.video_download_timeout = original_timeout
         logger.info(f'ERTFlix URL detected, using timeout: {original_timeout}s (based on original domain)')
 
     # Validate and resolve URL (ERTFlix token URLs get resolved to playback URLs)
-    args.video_url = validate_and_get_url(provided_url=args.video_url, ytdlp_path=Path(yt_dlp_exe))
+    resolved_url = validate_and_get_url(provided_url=args.video_url, ytdlp_path=Path(yt_dlp_exe))
+
+    # Save URL for future --rerun
+    last_url_file.parent.mkdir(exist_ok=True)
+    last_url_file.write_text(resolved_url)
+
+    return resolved_url
+
+
+def _get_custom_metadata(
+    args: argparse.Namespace,
+    url_is_playlist: bool
+) -> tuple[str | None, str | None, str | None]:
+    """Handle --title, --artist, --album options with interactive prompts.
+
+    Prompts user if value starts with 'ask'/'prompt'. Warns and clears
+    if used with a playlist.
+
+    Args:
+        args: Parsed command-line arguments
+        url_is_playlist: Whether the URL is a playlist
+
+    Returns:
+        Tuple of (custom_title, custom_artist, custom_album)
+    """
+    custom_title = args.title
+    if custom_title:
+        if custom_title.lower().startswith(('ask', 'prompt')):
+            custom_title = input('Enter custom title : ').strip() or None
+        if custom_title and url_is_playlist:
+            logger.warning('--title is ignored for playlists')
+            custom_title = None
+
+    custom_artist = args.artist
+    if custom_artist:
+        if custom_artist.lower().startswith(('ask', 'prompt')):
+            custom_artist = input('Enter custom artist: ').strip() or None
+        if custom_artist and url_is_playlist:
+            logger.warning('--artist is ignored for playlists')
+            custom_artist = None
+
+    custom_album = args.album
+    if custom_album:
+        if custom_album.lower().startswith(('ask', 'prompt')):
+            custom_album = input('Enter custom album : ').strip() or None
+        if custom_album and url_is_playlist:
+            logger.warning('--album is ignored for playlists')
+            custom_album = None
+
+    return custom_title, custom_artist, custom_album
+
+
+def _detect_chapters(
+    yt_dlp_exe: str,
+    video_url: str,
+    video_download_timeout: int | None,
+    url_is_playlist: bool,
+    show_chapters: bool
+) -> tuple[bool, dict | None, str | None, str | None, dict[int, str]]:
+    """Detect chapters and fetch video info if chapters exist.
+
+    Args:
+        yt_dlp_exe: Path to yt-dlp executable
+        video_url: Video URL to check
+        video_download_timeout: Timeout for video downloads
+        url_is_playlist: Whether the URL is a playlist
+        show_chapters: Whether to display chapters and build name map
+
+    Returns:
+        Tuple of (has_chapters, video_info, uploader_name, video_title, chapter_name_map)
+    """
+    if url_is_playlist:
+        logger.info('URL is a playlist, not extracting chapters')
+        return False, None, None, None, {}
+
+    chapters_count = get_chapter_count(
+        ytdlp_exe=Path(yt_dlp_exe),
+        playlist_url=video_url,
+        video_download_timeout=video_download_timeout
+    )
+    has_chapters = chapters_count > 0
+
+    if not has_chapters:
+        return False, None, None, None, {}
+
+    logger.info(f'Video has {chapters_count} chapters')
+    video_info = get_video_info(
+        yt_dlp_path=Path(yt_dlp_exe),
+        url=video_url,
+        video_download_timeout=video_download_timeout
+    )
+    uploader_name = video_info.get('uploader')
+    video_title = video_info.get('title')
+    if uploader_name and uploader_name not in ('NA', ''):
+        logger.debug(f"Uploader for chapters: '{uploader_name}'")
+    if video_title and video_title not in ('NA', ''):
+        logger.debug(f"Video title for chapters: '{video_title}'")
+
+    chapter_name_map: dict[int, str] = {}
+    if show_chapters:
+        chapter_name_map = display_chapters_and_confirm(video_info=video_info)
+
+    return has_chapters, video_info, uploader_name, video_title, chapter_name_map
+
+
+def _validate_list_chapters_only(args: argparse.Namespace) -> None:
+    """Validate --list-chapters-only is not combined with conflicting flags.
+
+    Args:
+        args: Parsed command-line arguments
+    """
+    if not args.list_chapters_only:
+        return
+
+    conflicting = []
+    if args.with_audio:
+        conflicting.append('--with-audio')
+    if args.only_audio:
+        conflicting.append('--only-audio')
+    if args.subs:
+        conflicting.append('--subs')
+    if args.split_chapters:
+        conflicting.append('--split-chapters')
+    if conflicting:
+        logger.error('--list-chapters-only cannot be combined with: %s', ', '.join(conflicting))
+        sys.exit(1)
+
+
+def _determine_audio_mode(args: argparse.Namespace, audio_formats: list[str]) -> bool:
+    """Determine whether audio extraction is needed.
+
+    Handles ERTFlix program mode (forces video-only) and normal mode.
+
+    Args:
+        args: Parsed command-line arguments (modified in place for ERTFlix mode)
+        audio_formats: List of requested audio formats
+
+    Returns:
+        True if audio extraction is needed
+    """
+    if args.ertflix_program:
+        logger.info('ERTFlix program mode: downloading video only (audio extraction disabled)')
+        args.only_audio = False
+        args.with_audio = False
+        return False
+
+    logger.info(f'Requested audio formats: {", ".join(audio_formats)}')
+    return args.with_audio or args.only_audio
+
+
+def _count_new_files(
+    only_audio: bool,
+    need_audio: bool,
+    audio_formats: list[str],
+    initial_video_count: int,
+    initial_audio_count: int
+) -> tuple[int, int]:
+    """Count newly created video and audio files since download started.
+
+    Args:
+        only_audio: Whether only audio was requested (skip video counting)
+        need_audio: Whether audio extraction was requested
+        audio_formats: List of audio formats to count
+        initial_video_count: File count before download started
+        initial_audio_count: File count before download started
+
+    Returns:
+        Tuple of (new_video_count, new_audio_count)
+    """
+    video_count = 0
+    audio_count = 0
+    if not only_audio:
+        final_video_count = count_files(
+            directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv']
+        )
+        video_count = final_video_count - initial_video_count
+    if need_audio:
+        final_audio_count = 0
+        for audio_format in audio_formats:
+            audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
+            final_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+        audio_count = final_audio_count - initial_audio_count
+    return video_count, audio_count
+
+
+def _execute_main(args: argparse.Namespace, args_dict: dict, start_time: float, session_id: str,
+                  initial_video_count: int, initial_audio_count: int,
+                  notifiers: list | None = None, notif_msg_suffix: str = '') -> None:
+    """Execute the main download logic."""
+
+    audio_formats = _parse_and_validate_audio_formats(audio_format_str=args.audio_format)
+    _validate_list_chapters_only(args=args)
+    need_audio = _determine_audio_mode(args=args, audio_formats=audio_formats)
+
+    # Detect platform and set appropriate executable path
+    yt_dlp_exe = get_ytdlp_path()
+    ytdlp_version = get_ytdlp_version(ytdlp_path=yt_dlp_exe)
+
+    # Handle artists.json path relative to script location, not current working directory
+    script_dir = Path(__file__).parent
+    artists_json = script_dir / 'Data' / 'artists.json'
+    if not artists_json.exists():
+        logger.error(f"Artists database not found at '{artists_json}'")
+        logger.error('Please ensure file exists in the project directory')
+        sys.exit(1)
+
+    # Resolve URL (handles --rerun, interactive input, ERTFlix timeout, validation)
+    args.video_url = _resolve_url(args=args, yt_dlp_exe=yt_dlp_exe)
     logger.info(f'Processing URL: {args.video_url}')
 
     # Send start notification
@@ -263,10 +443,6 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
             )
         )
 
-    # Save URL for future --rerun
-    last_url_file.parent.mkdir(exist_ok=True)
-    last_url_file.write_text(args.video_url)
-
     video_folder = Path(VIDEO_OUTPUT_DIR).resolve()
 
     # Pre-flight check for --split-chapters: abort if output dirs are non-empty
@@ -281,7 +457,6 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
         video_folder.mkdir(parents=True, exist_ok=True)
         _cleanup_leftover_files(video_folder=video_folder)
     if need_audio:
-        # Create audio directories for each requested format
         for audio_format in audio_formats:
             audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
             audio_dir.mkdir(parents=True, exist_ok=True)
@@ -292,64 +467,19 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
         logger.error('--list-chapters-only does not support playlist URLs. Provide a single video URL.')
         sys.exit(1)
 
-    uploader_name = None  # Initialize uploader name for chapter processing
-    video_title = None  # Initialize video title for chapter processing
+    # Get custom metadata (--title, --artist, --album)
+    custom_title, custom_artist, custom_album = _get_custom_metadata(
+        args=args, url_is_playlist=url_is_playlist
+    )
 
-    # Handle --title option
-    custom_title = args.title
-    if custom_title:
-        # If title starts with 'ask' or 'prompt', prompt user for the actual title
-        if custom_title.lower().startswith(('ask', 'prompt')):
-            custom_title = input('Enter custom title : ').strip() or None
-
-        # Warn if --title is used with a playlist
-        if custom_title and url_is_playlist:
-            logger.warning('--title is ignored for playlists')
-            custom_title = None
-
-    # Handle --artist option
-    custom_artist = args.artist
-    if custom_artist:
-        if custom_artist.lower().startswith(('ask', 'prompt')):
-            custom_artist = input('Enter custom artist: ').strip() or None
-        if custom_artist and url_is_playlist:
-            logger.warning('--artist is ignored for playlists')
-            custom_artist = None
-
-    # Handle --album option
-    custom_album = args.album
-    if custom_album:
-        if custom_album.lower().startswith(('ask', 'prompt')):
-            custom_album = input('Enter custom album : ').strip() or None
-        if custom_album and url_is_playlist:
-            logger.warning('--album is ignored for playlists')
-            custom_album = None
-
-    chapter_name_map = {}
-
-    if not url_is_playlist:
-        chapters_count = get_chapter_count(ytdlp_exe=Path(yt_dlp_exe), playlist_url=args.video_url,
-                                            video_download_timeout=args.video_download_timeout)
-        has_chapters = chapters_count > 0
-
-        # Get uploader and title information for chapter processing
-        if has_chapters:
-            logger.info(f'Video has {chapters_count} chapters')
-            video_info = get_video_info(yt_dlp_path=Path(yt_dlp_exe), url=args.video_url,
-                                        video_download_timeout=args.video_download_timeout)
-            uploader_name = video_info.get('uploader')
-            video_title = video_info.get('title')
-            if uploader_name and uploader_name not in ('NA', ''):
-                logger.debug(f"Uploader for chapters: '{uploader_name}'")
-            if video_title and video_title not in ('NA', ''):
-                logger.debug(f"Video title for chapters: '{video_title}'")
-
-            # Display chapters and build filename mapping if split-chapters or list-chapters-only is requested
-            if args.split_chapters or args.list_chapters_only:
-                chapter_name_map = display_chapters_and_confirm(video_info=video_info)
-    else:
-        logger.info('URL is a playlist, not extracting chapters')
-        has_chapters = False
+    # Detect chapters and fetch video info
+    has_chapters, video_info, uploader_name, video_title, chapter_name_map = _detect_chapters(
+        yt_dlp_exe=yt_dlp_exe,
+        video_url=args.video_url,
+        video_download_timeout=args.video_download_timeout,
+        url_is_playlist=url_is_playlist,
+        show_chapters=args.split_chapters or args.list_chapters_only
+    )
 
     # --list-chapters-only requires the video to have chapters
     if args.list_chapters_only and not has_chapters:
@@ -389,7 +519,6 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
 
     # Download audios if requested
     if need_audio:
-        # Run yt-dlp to download videos, and let yt-dlp extract audio and add tags
         extract_audio_with_ytdlp(opts=download_opts, audio_formats=audio_formats)
 
     # Organize chapter files and sanitize filenames
@@ -416,18 +545,12 @@ def _execute_main(args, args_dict: dict, start_time: float, session_id: str,
     # Send success notification
     if notifiers:
         elapsed_time = format_elapsed_time(time.time() - start_time)
-        # Count newly created files (difference between final and initial counts)
-        video_count = 0
-        audio_count = 0
-        if not args.only_audio:
-            final_video_count = count_files(directory=video_folder, extensions=['.mp4', '.webm', '.mkv'])
-            video_count = final_video_count - initial_video_count
-        if need_audio:
-            final_audio_count = 0
-            for audio_format in audio_formats:
-                audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
-                final_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
-            audio_count = final_audio_count - initial_audio_count
+        video_count, audio_count = _count_new_files(
+            only_audio=args.only_audio, need_audio=need_audio,
+            audio_formats=audio_formats,
+            initial_video_count=initial_video_count,
+            initial_audio_count=initial_audio_count
+        )
         send_all_notifications(
             notifiers=notifiers,
             data=NotificationData(
@@ -535,21 +658,15 @@ def main() -> None:
                       notifiers=notifiers, notif_msg_suffix=notif_msg_suffix)
     except KeyboardInterrupt:
         logger.warning('Download cancelled by user (CTRL-C)')
-        # Send cancellation notification
         if notifiers:
             elapsed_time = format_elapsed_time(time.time() - start_time)
-            # Count newly created files before cancellation (difference between final and initial counts)
-            video_count = 0
-            audio_count = 0
-            if not args.only_audio:
-                final_video_count = count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
-                video_count = final_video_count - initial_video_count
-            if args.with_audio or args.only_audio:
-                final_audio_count = 0
-                for audio_format in audio_formats:
-                    audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
-                    final_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
-                audio_count = final_audio_count - initial_audio_count
+            need_audio = args.with_audio or args.only_audio
+            video_count, audio_count = _count_new_files(
+                only_audio=args.only_audio, need_audio=need_audio,
+                audio_formats=audio_formats,
+                initial_video_count=initial_video_count,
+                initial_audio_count=initial_audio_count
+            )
             send_all_notifications(
                 notifiers=notifiers,
                 data=NotificationData(
@@ -567,21 +684,15 @@ def main() -> None:
         sys.exit(130)  # Standard exit code for CTRL-C
     except Exception as e:
         logger.exception(f'Download failed: {e}')
-        # Send failure notification
         if notifiers:
             elapsed_time = format_elapsed_time(time.time() - start_time)
-            # Count newly created files before failure (difference between final and initial counts)
-            video_count = 0
-            audio_count = 0
-            if not args.only_audio:
-                final_video_count = count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
-                video_count = final_video_count - initial_video_count
-            if args.with_audio or args.only_audio:
-                final_audio_count = 0
-                for audio_format in audio_formats:
-                    audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
-                    final_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
-                audio_count = final_audio_count - initial_audio_count
+            need_audio = args.with_audio or args.only_audio
+            video_count, audio_count = _count_new_files(
+                only_audio=args.only_audio, need_audio=need_audio,
+                audio_formats=audio_formats,
+                initial_video_count=initial_video_count,
+                initial_audio_count=initial_audio_count
+            )
             send_all_notifications(
                 notifiers=notifiers,
                 data=NotificationData(

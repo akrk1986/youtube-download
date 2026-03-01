@@ -70,6 +70,7 @@ def sample_args() -> argparse.Namespace:
         album=None,
         with_audio=False,
         only_audio=False,
+        ertflix_program=False,
         list_chapters_only=False
     )
 
