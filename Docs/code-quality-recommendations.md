@@ -99,11 +99,11 @@ Added log file limit (MAX_LOG_FILES=5) with automatic cleanup.
 - Silently ignores deletion errors (locked files, permissions)
 
 ### 8. ✓ Function complexity
-**Status:** Completed
+**Status:** Completed (further improved 2026-03-01)
 
 Refactored `main()` function in main-yt-dlp.py to reduce complexity.
 
-**What was done:**
+**What was done (initial):**
 - Created `funcs_for_main_yt_dlp.py` with extracted helper functions:
   - `validate_and_get_url()` - URL validation with retry mechanism
   - `organize_and_sanitize_files()` - File organization and sanitization
@@ -111,6 +111,16 @@ Refactored `main()` function in main-yt-dlp.py to reduce complexity.
 - Reduced `main()` from 179 lines to 124 lines
 - All internal functions renamed to use underscore prefix (_run_yt_dlp, _extract_audio_with_ytdlp)
 - Improved testability and code organization
+
+**Further refactoring (2026-03-01, commit `ee4f104`):**
+- Extracted 7 private helper functions from `_execute_main()`, reducing it from ~300 to ~160 lines:
+  - `_parse_and_validate_audio_formats()` — format parsing, validation, deduplication
+  - `_resolve_url()` — `--rerun`, interactive input, ERTFlix timeout, URL resolution
+  - `_get_custom_metadata()` — `--title`/`--artist`/`--album` prompting + playlist warnings
+  - `_detect_chapters()` — chapter detection, video info fetch, display
+  - `_validate_list_chapters_only()` — mutual exclusivity validation
+  - `_determine_audio_mode()` — ERTFlix mode + need_audio determination
+  - `_count_new_files()` — file counting for notifications (deduplicated from 3 copies)
 
 ### 9. ✓ Type hint inconsistency
 **Status:** Completed
