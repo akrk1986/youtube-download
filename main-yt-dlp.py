@@ -368,6 +368,133 @@ def _determine_audio_mode(args: argparse.Namespace, audio_formats: list[str]) ->
     return args.with_audio or args.only_audio
 
 
+def _build_notifiers() -> tuple[list, str]:
+    """Build notification handlers based on NOTIFICATIONS env var.
+
+    Returns:
+        Tuple of (notifiers list, notif_msg_suffix string)
+    """
+    notifiers: list = []
+    notifications_enabled = os.getenv('NOTIFICATIONS', '').strip().upper()
+
+    if notifications_enabled in ('', 'N', 'NO'):
+        logger.info('Notifications disabled (NOTIFICATIONS env var: empty/N/NO)')
+    elif notifications_enabled == 'S':
+        _slack = SlackNotifier(webhook_url=SLACK_WEBHOOK)
+        if _slack.is_configured():
+            notifiers.append(_slack)
+            logger.debug('Slack notifications enabled (Gmail disabled)')
+        else:
+            logger.warning('Slack requested but not configured')
+    elif notifications_enabled == 'G':
+        _gmail = GmailNotifier(gmail_params=GMAIL_PARAMS)
+        if _gmail.is_configured():
+            notifiers.append(_gmail)
+            logger.debug('Gmail notifications enabled (Slack disabled)')
+        else:
+            logger.warning('Gmail requested but not configured')
+    elif notifications_enabled == 'ALL':
+        _slack = SlackNotifier(webhook_url=SLACK_WEBHOOK)
+        if _slack.is_configured():
+            notifiers.append(_slack)
+        _gmail = GmailNotifier(gmail_params=GMAIL_PARAMS)
+        if _gmail.is_configured():
+            notifiers.append(_gmail)
+        if notifiers:
+            logger.debug('Both Slack and Gmail notifications enabled')
+    else:
+        logger.warning(f'Invalid NOTIFICATIONS value: "{notifications_enabled}". '
+                       f'Expected: empty/N/NO (none), S (Slack), G (Gmail), ALL (both). '
+                       f'Defaulting to no notifications.')
+
+    notif_msg_suffix = os.getenv('NOTIF_MSG', '').strip()
+    if notif_msg_suffix:
+        logger.debug(f'Notification message suffix: "{notif_msg_suffix}"')
+
+    return notifiers, notif_msg_suffix
+
+
+def _count_initial_files(
+    only_audio: bool,
+    with_audio: bool,
+    audio_formats: list[str]
+) -> tuple[int, int]:
+    """Count existing video and audio files before download starts.
+
+    Args:
+        only_audio: Whether only audio was requested (skip video counting)
+        with_audio: Whether audio extraction was requested
+        audio_formats: List of audio format strings
+
+    Returns:
+        Tuple of (initial_video_count, initial_audio_count)
+    """
+    initial_video_count = 0
+    initial_audio_count = 0
+    if not only_audio:
+        initial_video_count = count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
+    if with_audio or only_audio:
+        for audio_format in audio_formats:
+            audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
+            initial_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+    return initial_video_count, initial_audio_count
+
+
+def _send_completion_notification(
+    notifiers: list,
+    status: str,
+    url: str,
+    args_dict: dict,
+    session_id: str,
+    start_time: float,
+    only_audio: bool,
+    need_audio: bool,
+    audio_formats: list[str],
+    initial_video_count: int,
+    initial_audio_count: int,
+    notif_msg_suffix: str = '',
+    failure_reason: str | None = None
+) -> None:
+    """Send completion notification (success/cancelled/failure) with file counts.
+
+    Args:
+        notifiers: List of notification handlers
+        status: Notification status ('success', 'cancelled', 'failure')
+        url: The video URL
+        args_dict: Arguments dictionary for notification
+        session_id: Session identifier
+        start_time: Download start time (epoch seconds)
+        only_audio: Whether only audio was requested
+        need_audio: Whether audio extraction was requested
+        audio_formats: List of audio format strings
+        initial_video_count: File count before download started
+        initial_audio_count: File count before download started
+        notif_msg_suffix: Optional suffix for notification messages
+        failure_reason: Error message (only for failure status)
+    """
+    elapsed_time = format_elapsed_time(time.time() - start_time)
+    video_count, audio_count = _count_new_files(
+        only_audio=only_audio, need_audio=need_audio,
+        audio_formats=audio_formats,
+        initial_video_count=initial_video_count,
+        initial_audio_count=initial_audio_count
+    )
+    send_all_notifications(
+        notifiers=notifiers,
+        data=NotificationData(
+            status=status,
+            url=url,
+            args_dict=args_dict,
+            session_id=session_id,
+            elapsed_time=elapsed_time,
+            video_count=video_count,
+            audio_count=audio_count,
+            failure_reason=failure_reason,
+            notif_msg_suffix=notif_msg_suffix
+        )
+    )
+
+
 def _count_new_files(
     only_audio: bool,
     need_audio: bool,
@@ -403,8 +530,7 @@ def _count_new_files(
     return video_count, audio_count
 
 
-def _execute_main(args: argparse.Namespace, args_dict: dict, start_time: float, session_id: str,
-                  initial_video_count: int, initial_audio_count: int,
+def _execute_main(args: argparse.Namespace, args_dict: dict, session_id: str,
                   notifiers: list | None = None, notif_msg_suffix: str = '') -> None:
     """Execute the main download logic."""
 
@@ -542,28 +668,6 @@ def _execute_main(args: argparse.Namespace, args_dict: dict, start_time: float, 
             original_names=original_names
         )
 
-    # Send success notification
-    if notifiers:
-        elapsed_time = format_elapsed_time(time.time() - start_time)
-        video_count, audio_count = _count_new_files(
-            only_audio=args.only_audio, need_audio=need_audio,
-            audio_formats=audio_formats,
-            initial_video_count=initial_video_count,
-            initial_audio_count=initial_audio_count
-        )
-        send_all_notifications(
-            notifiers=notifiers,
-            data=NotificationData(
-                status='success',
-                url=args.video_url,
-                args_dict=args_dict,
-                session_id=session_id,
-                elapsed_time=elapsed_time,
-                video_count=video_count,
-                audio_count=audio_count,
-                notif_msg_suffix=notif_msg_suffix
-            )
-        )
     logger.info('Download completed successfully')
 
 
@@ -573,7 +677,7 @@ def main() -> None:
     # Setup logging (must be done early)
     setup_logging(verbose=args.verbose, log_to_file=not args.no_log_file, show_urls=args.show_urls)
 
-    # Store args as dict for Slack notification
+    # Store args as dict for notification messages
     args_dict = {
         'video_url': args.video_url,
         'audio_format': args.audio_format,
@@ -590,123 +694,45 @@ def main() -> None:
         'rerun': args.rerun
     }
 
-    # Generate session ID for Slack notifications
     session_id = generate_session_id()
-
-    # Record start time
     start_time = time.time()
 
-    # Count existing files before download to track only newly created files
-    audio_formats_str = args.audio_format
-    audio_formats = [fmt.strip() for fmt in audio_formats_str.split(',')]
-    initial_video_count = 0
-    initial_audio_count = 0
-    if not args.only_audio:
-        initial_video_count = count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
-    if args.with_audio or args.only_audio:
-        for audio_format in audio_formats:
-            audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
-            initial_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
+    audio_formats = [fmt.strip() for fmt in args.audio_format.split(',')]
+    initial_video_count, initial_audio_count = _count_initial_files(
+        only_audio=args.only_audio, with_audio=args.with_audio, audio_formats=audio_formats
+    )
+    notifiers, notif_msg_suffix = _build_notifiers()
 
-    # Build notifiers list (check NOTIFICATIONS env var)
-    notifiers: list = []
-    notifications_enabled = os.getenv('NOTIFICATIONS', '').strip().upper()
-
-    if notifications_enabled in ('', 'N', 'NO'):
-        # No notifications (empty string treated same as N/NO)
-        logger.info('Notifications disabled (NOTIFICATIONS env var: empty/N/NO)')
-    elif notifications_enabled == 'S':
-        # Slack only
-        _slack = SlackNotifier(webhook_url=SLACK_WEBHOOK)
-        if _slack.is_configured():
-            notifiers.append(_slack)
-            logger.debug('Slack notifications enabled (Gmail disabled)')
-        else:
-            logger.warning('Slack requested but not configured')
-    elif notifications_enabled == 'G':
-        # Gmail only
-        _gmail = GmailNotifier(gmail_params=GMAIL_PARAMS)
-        if _gmail.is_configured():
-            notifiers.append(_gmail)
-            logger.debug('Gmail notifications enabled (Slack disabled)')
-        else:
-            logger.warning('Gmail requested but not configured')
-    elif notifications_enabled == 'ALL':
-        # Both
-        _slack = SlackNotifier(webhook_url=SLACK_WEBHOOK)
-        if _slack.is_configured():
-            notifiers.append(_slack)
-        _gmail = GmailNotifier(gmail_params=GMAIL_PARAMS)
-        if _gmail.is_configured():
-            notifiers.append(_gmail)
-        if notifiers:
-            logger.debug('Both Slack and Gmail notifications enabled')
-    else:
-        # Invalid value - log warning, disable notifications
-        logger.warning(f'Invalid NOTIFICATIONS value: "{notifications_enabled}". '
-                       f'Expected: empty/N/NO (none), S (Slack), G (Gmail), ALL (both). '
-                       f'Defaulting to no notifications.')
-
-    # Get NOTIF_MSG suffix (if set)
-    notif_msg_suffix = os.getenv('NOTIF_MSG', '').strip()
-    if notif_msg_suffix:
-        logger.debug(f'Notification message suffix: "{notif_msg_suffix}"')
+    # Common kwargs for _send_completion_notification
+    notif_kwargs = dict(
+        notifiers=notifiers,
+        url=args.video_url or 'N/A',
+        args_dict=args_dict,
+        session_id=session_id,
+        start_time=start_time,
+        only_audio=args.only_audio,
+        need_audio=args.with_audio or args.only_audio,
+        audio_formats=audio_formats,
+        initial_video_count=initial_video_count,
+        initial_audio_count=initial_audio_count,
+        notif_msg_suffix=notif_msg_suffix
+    )
 
     try:
-        _execute_main(args=args, args_dict=args_dict, start_time=start_time, session_id=session_id,
-                      initial_video_count=initial_video_count, initial_audio_count=initial_audio_count,
+        _execute_main(args=args, args_dict=args_dict, session_id=session_id,
                       notifiers=notifiers, notif_msg_suffix=notif_msg_suffix)
+        if notifiers:
+            _send_completion_notification(status='success', **notif_kwargs)
     except KeyboardInterrupt:
         logger.warning('Download cancelled by user (CTRL-C)')
         if notifiers:
-            elapsed_time = format_elapsed_time(time.time() - start_time)
-            need_audio = args.with_audio or args.only_audio
-            video_count, audio_count = _count_new_files(
-                only_audio=args.only_audio, need_audio=need_audio,
-                audio_formats=audio_formats,
-                initial_video_count=initial_video_count,
-                initial_audio_count=initial_audio_count
-            )
-            send_all_notifications(
-                notifiers=notifiers,
-                data=NotificationData(
-                    status='cancelled',
-                    url=args.video_url or 'N/A',
-                    args_dict=args_dict,
-                    session_id=session_id,
-                    elapsed_time=elapsed_time,
-                    video_count=video_count,
-                    audio_count=audio_count,
-                    notif_msg_suffix=notif_msg_suffix
-                )
-            )
+            _send_completion_notification(status='cancelled', **notif_kwargs)
         logger.info('Exiting...')
         sys.exit(130)  # Standard exit code for CTRL-C
     except Exception as e:
         logger.exception(f'Download failed: {e}')
         if notifiers:
-            elapsed_time = format_elapsed_time(time.time() - start_time)
-            need_audio = args.with_audio or args.only_audio
-            video_count, audio_count = _count_new_files(
-                only_audio=args.only_audio, need_audio=need_audio,
-                audio_formats=audio_formats,
-                initial_video_count=initial_video_count,
-                initial_audio_count=initial_audio_count
-            )
-            send_all_notifications(
-                notifiers=notifiers,
-                data=NotificationData(
-                    status='failure',
-                    url=args.video_url or 'N/A',
-                    args_dict=args_dict,
-                    session_id=session_id,
-                    elapsed_time=elapsed_time,
-                    video_count=video_count,
-                    audio_count=audio_count,
-                    failure_reason=str(e),
-                    notif_msg_suffix=notif_msg_suffix
-                )
-            )
+            _send_completion_notification(status='failure', failure_reason=str(e), **notif_kwargs)
         sys.exit(1)
 
 

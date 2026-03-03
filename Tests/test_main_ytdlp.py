@@ -162,10 +162,7 @@ class TestAudioFormatValidation:
                 main_module._execute_main(
                     args=sample_args,
                     args_dict={},
-                    start_time=0,
-                    session_id='test-session',
-                    initial_video_count=0,
-                    initial_audio_count=0
+                    session_id='test-session'
                 )
             assert exc_info.value.code == 1
 
@@ -530,10 +527,7 @@ class TestMainExecution:
             main_module._execute_main(
                 args=sample_args,
                 args_dict={'video_url': sample_args.video_url, 'with_audio': True},
-                start_time=0,
-                session_id='test-session',
-                initial_video_count=0,
-                initial_audio_count=0
+                session_id='test-session'
             )
 
     def test_only_audio_skips_video_retention(self, tmp_path, sample_args, mock_video_info_no_chapters):
@@ -569,10 +563,7 @@ class TestMainExecution:
             main_module._execute_main(
                 args=sample_args,
                 args_dict={'video_url': sample_args.video_url, 'only_audio': True},
-                start_time=0,
-                session_id='test-session',
-                initial_video_count=0,
-                initial_audio_count=0
+                session_id='test-session'
             )
 
             # run_yt_dlp should NOT be called when only_audio is True
@@ -613,10 +604,7 @@ class TestMainExecution:
             main_module._execute_main(
                 args=sample_args,
                 args_dict={'video_url': sample_args.video_url},
-                start_time=0,
-                session_id='test-session',
-                initial_video_count=0,
-                initial_audio_count=0
+                session_id='test-session'
             )
 
             # Verify extract_audio_with_ytdlp was called

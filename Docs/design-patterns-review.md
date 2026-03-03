@@ -47,18 +47,14 @@ No circular dependencies. Clean package hierarchy: `main` → `funcs_for_main_yt
 
 ---
 
-### 2. God Function — `main()` (High Priority)
+### ~~2. God Function — `main()` (High Priority)~~ ✅ RESOLVED
 
-**`main-yt-dlp.py:447`** — ~153 lines handling:
-- Logging setup
-- Args dict building
-- Initial file counting
-- Notifier construction
-- 3 exception branches (success, KeyboardInterrupt, Exception) with near-identical notification logic
+**Status:** Fixed. Extracted 3 private helper functions, reducing `main()` from ~140 lines to ~65 lines:
+- `_build_notifiers()` — notifier construction based on `NOTIFICATIONS` env var
+- `_count_initial_files()` — pre-download file counting
+- `_send_completion_notification()` — consolidated success/cancelled/failure notification logic (was duplicated 3x)
 
-**Applies:** SRP, Function Size
-
-**Suggested fix:** Extract `_build_notifiers()`, `_count_initial_files()`, `_send_completion_notification()`.
+Also moved the success notification out of `_execute_main()` into `main()`, simplifying `_execute_main()`'s signature by removing 3 parameters (`start_time`, `initial_video_count`, `initial_audio_count`).
 
 ---
 
@@ -178,7 +174,7 @@ In addition to the architectural issues above, the following project convention 
 | Priority | Issue | Principle | Status |
 |---|---|---|---|
 | ~~High~~ | ~~`_execute_main()` ~300-line god function~~ | ~~SRP, Function Size~~ | ✅ Resolved |
-| High | `main()` ~153-line function with duplicated notification logic | SRP, Function Size | Open |
+| ~~High~~ | ~~`main()` ~153-line function with duplicated notification logic~~ | ~~SRP, Function Size~~ | ✅ Resolved |
 | High | `download_video.py` / `download_audio.py` ~60% duplication | Rule of Three, DRY | Open |
 | ~~Medium~~ | ~~Notification file-count logic duplicated 3x in `main()`~~ | ~~Rule of Three~~ | ✅ Resolved |
 | Medium | `chapters.py` filename mapping computed twice | SRP, DRY | Open |
@@ -194,4 +190,4 @@ In addition to the architectural issues above, the following project convention 
 
 ## Overall Assessment
 
-The architecture is solid — good package boundaries, no circular dependencies, strong type safety, appropriate use of strategy pattern for audio handlers and notifications. The `_execute_main()` god function (previously ~300 lines) has been refactored into ~160 lines of orchestration with 7 focused helper functions. The remaining weaknesses are **`main()` at ~153 lines with duplicated notification logic** and **structural duplication** in the download and audio processing modules. None of these are fundamental design flaws; they're the natural result of organic growth and can be addressed incrementally.
+The architecture is solid — good package boundaries, no circular dependencies, strong type safety, appropriate use of strategy pattern for audio handlers and notifications. Both god functions have been resolved: `_execute_main()` (previously ~300 lines) refactored into ~160 lines with 7 helpers, and `main()` (previously ~140 lines) refactored into ~65 lines with 3 helpers. The remaining weaknesses are **structural duplication** in the download and audio processing modules. None of these are fundamental design flaws; they're the natural result of organic growth and can be addressed incrementally.
