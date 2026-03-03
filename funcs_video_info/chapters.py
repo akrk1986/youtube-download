@@ -35,6 +35,14 @@ def _seconds_to_hhmmss(seconds: float) -> str:
     return f'{hours:02d}{minutes:02d}{secs:02d}'
 
 
+def _sanitize_chapter_title(title: str, max_len: int, fallback: str = '') -> str:
+    """Sanitize and truncate a chapter/video title."""
+    sanitized = (sanitize_string(dirty_string=title) or fallback).strip()
+    if len(sanitized) > max_len:
+        sanitized = sanitized[:max_len].rstrip()
+    return sanitized
+
+
 def _build_filename_mapping(video_info: dict) -> dict[int, str]:
     """Build mapping of chapter numbers to normalized filenames without extension.
 
@@ -44,16 +52,12 @@ def _build_filename_mapping(video_info: dict) -> dict[int, str]:
     video_title = video_info.get('title', 'Unknown')
     chapters = video_info.get('chapters', [])
 
-    base_name = sanitize_string(dirty_string=video_title) or 'Unknown'
-    if len(base_name) > _MAX_NAME_WITHOUT_EXT:
-        base_name = base_name[:_MAX_NAME_WITHOUT_EXT].rstrip()
+    base_name = _sanitize_chapter_title(video_title, _MAX_NAME_WITHOUT_EXT, fallback='Unknown')
     mapping = {0: base_name}
 
     for i, chapter in enumerate(chapters, 1):
         title = chapter.get('title', f'Chapter {i}')
-        sanitized = sanitize_string(dirty_string=title) or f'Chapter {i}'
-        if len(sanitized) > _MAX_CHAPTER_TITLE_LEN:
-            sanitized = sanitized[:_MAX_CHAPTER_TITLE_LEN].rstrip()
+        sanitized = _sanitize_chapter_title(title, _MAX_CHAPTER_TITLE_LEN, fallback=f'Chapter {i}')
         mapping[i] = f'{sanitized} - {i:03d}'
 
     return mapping
@@ -260,9 +264,7 @@ def create_chapters_csv(video_info: dict, output_dir: Path | str, video_title: s
             title = chapter.get('title', '')
 
             # Normalize title to a valid filename on Linux and Windows, truncated to 60 chars
-            song_name = (sanitize_string(dirty_string=title) or '').strip()
-            if len(song_name) > 60:
-                song_name = song_name[:60].rstrip()
+            song_name = _sanitize_chapter_title(title, 60)
 
             # Convert seconds to HHMMSS format
             start_time = _seconds_to_hhmmss(seconds=start_seconds)

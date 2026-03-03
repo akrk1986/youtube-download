@@ -25,6 +25,23 @@ def _get_external_paths() -> tuple[str, str, str]:
     return 'ffmpeg', 'ffprobe', 'yt-dlp'
 
 
+def _verify_tool_path(tool_path: str, version_flag: str, install_hint: str) -> str:
+    """Verify an external tool exists and return its path, or exit with error."""
+    if platform.system() == 'Windows':
+        if Path(tool_path).exists():
+            return tool_path
+        logger.error(f"Executable not found at path '{tool_path}'")
+        sys.exit(1)
+
+    try:
+        subprocess.run([tool_path, version_flag], capture_output=True, check=True)
+        return tool_path
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        logger.error(f'{tool_path} not found in PATH: {e}')
+        logger.error(install_hint)
+        sys.exit(1)
+
+
 def get_ffmpeg_path() -> str:
     """
     Determine ffmpeg path based on the operating system.
@@ -33,23 +50,7 @@ def get_ffmpeg_path() -> str:
         str: Path to ffmpeg executable.
     """
     ffmpeg_path, _, _ = _get_external_paths()
-
-    # Windows
-    if platform.system() == 'Windows':
-        if Path(ffmpeg_path).exists():
-            return ffmpeg_path
-        logger.error(f"ffmpeg executable not found at path '{ffmpeg_path}'")
-        logger.error(f"Please ensure ffmpeg is installed in '{ffmpeg_path}'")
-        sys.exit(1)
-
-    # Linux/WSL
-    try:
-        subprocess.run([ffmpeg_path, '-version'], capture_output=True, check=True)
-        return ffmpeg_path
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        logger.error(f'ffmpeg not found in PATH: {e}')
-        logger.error("Install with: 'sudo apt install ffmpeg'")
-        sys.exit(1)
+    return _verify_tool_path(ffmpeg_path, '-version', "Install with: 'sudo apt install ffmpeg'")
 
 
 def get_ytdlp_path() -> str:
@@ -60,23 +61,7 @@ def get_ytdlp_path() -> str:
         str: Path to yt-dlp executable.
     """
     _, _, yt_dlp_path = _get_external_paths()
-
-    # Windows
-    if platform.system() == 'Windows':
-        if Path(yt_dlp_path).exists():
-            return yt_dlp_path
-        logger.error(f"yt-dlp executable not found at path '{yt_dlp_path}'")
-        logger.error(f"Please ensure yt-dlp is installed in '{yt_dlp_path}'")
-        sys.exit(1)
-
-    # Linux/WSL
-    try:
-        subprocess.run([yt_dlp_path, '--version'], capture_output=True, check=True)
-        return yt_dlp_path
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        logger.error(f'yt-dlp not found in PATH: {e}')
-        logger.error('Install with: pip install yt-dlp')
-        sys.exit(1)
+    return _verify_tool_path(yt_dlp_path, '--version', 'Install with: pip install yt-dlp')
 
 
 def get_ytdlp_version(ytdlp_path: str) -> str:
