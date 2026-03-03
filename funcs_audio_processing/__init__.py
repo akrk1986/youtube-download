@@ -34,6 +34,8 @@ def set_artists_for_format(
         original_names: Optional mapping of
             final_path -> original_ytdlp_filename
     """
+    if audio_format not in _HANDLER_MAP:
+        raise ValueError(f'Unknown audio format {audio_format!r}. Expected one of: {list(_HANDLER_MAP)}')
     handler_cls = _HANDLER_MAP[audio_format]
     set_artists_in_audio_files(
         audio_folder=audio_folder,
@@ -63,6 +65,8 @@ def set_chapter_tags_for_format(
     Returns:
         Number of files whose title was modified
     """
+    if audio_format not in _HANDLER_MAP:
+        raise ValueError(f'Unknown audio format {audio_format!r}. Expected one of: {list(_HANDLER_MAP)}')
     handler_cls = _HANDLER_MAP[audio_format]
     return set_tags_in_chapter_audio_files(
         audio_folder=audio_folder,

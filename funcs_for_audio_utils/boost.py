@@ -40,22 +40,22 @@ def detect_audio_levels(
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True)
-        output = result.stderr
+    except (OSError, subprocess.SubprocessError) as e:
+        raise RuntimeError(f'Error running ffmpeg: {e}')
 
-        # Parse mean_volume and max_volume from output
-        mean_match = re.search(r'mean_volume:\s*([-\d.]+)\s*dB', output)
-        max_match = re.search(r'max_volume:\s*([-\d.]+)\s*dB', output)
+    output = result.stderr
 
-        if not mean_match or not max_match:
-            raise RuntimeError('Failed to parse volume information')
+    # Parse mean_volume and max_volume from output
+    mean_match = re.search(r'mean_volume:\s*([-\d.]+)\s*dB', output)
+    max_match = re.search(r'max_volume:\s*([-\d.]+)\s*dB', output)
 
-        mean_volume = float(mean_match.group(1))
-        max_volume = float(max_match.group(1))
+    if not mean_match or not max_match:
+        raise RuntimeError('Failed to parse volume information')
 
-        return mean_volume, max_volume
+    mean_volume = float(mean_match.group(1))
+    max_volume = float(max_match.group(1))
 
-    except Exception as e:
-        raise RuntimeError(f'Error detecting audio levels: {e}')
+    return mean_volume, max_volume
 
 
 def calculate_boost_value(max_volume_db: float, target_db: float = TARGET_PEAK_DB) -> float:

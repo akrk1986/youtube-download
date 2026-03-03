@@ -151,6 +151,24 @@ In addition to the architectural issues above, the following project convention 
 
 ---
 
+## Post-Review Anti-Pattern Fixes (2026-03-03)
+
+After the design pattern refactoring, the `python-anti-patterns` skill checklist identified two additional issues in the changed code:
+
+### Bare `except Exception` Catching Its Own Exception (`boost.py`)
+
+`detect_audio_levels()` raised `RuntimeError('Failed to parse volume information')` inside a `try` block, which was then caught by `except Exception as e` and re-wrapped as `RuntimeError('Error detecting audio levels: RuntimeError: Failed to parse volume information')`. This double-wrapping obscured the real error.
+
+**Fix:** The `try`/`except` now only wraps the `subprocess.run()` call, catching only `OSError` and `subprocess.SubprocessError`. The parse failure raises `RuntimeError` directly outside the `try` block.
+
+### Missing Input Validation on Dispatch Dict Lookup (`funcs_audio_processing/__init__.py`)
+
+`set_artists_for_format()` and `set_chapter_tags_for_format()` called `_HANDLER_MAP[audio_format]` without validation, raising a cryptic `KeyError` for unknown format strings.
+
+**Fix:** Both functions now check `audio_format not in _HANDLER_MAP` and raise `ValueError` with a clear message listing valid options.
+
+---
+
 ## Overall Assessment
 
 The architecture is solid — good package boundaries, no circular dependencies, strong type safety, appropriate use of strategy pattern for audio handlers and notifications. All 11 issues from the review have been resolved. Key improvements: god functions broken down (items #1-#2), code duplication eliminated (items #3-#6, #9), over-engineering flattened (item #7), dead code removed (item #10), hard-coded dependencies made injectable (item #11), and convention violations fixed.
