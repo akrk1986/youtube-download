@@ -3,7 +3,6 @@
 Comprehensive pytest tests for main-yt-dlp.py.
 Tests argument parsing, validation, and main execution flow.
 """
-import argparse
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -16,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Import after path setup
 # Note: We import parse_arguments directly, but need to patch module-level imports
 # for _execute_main and main
-from project_defs import DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS
+from project_defs import DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS  # noqa: E402
 
 
 class TestParseArguments:
