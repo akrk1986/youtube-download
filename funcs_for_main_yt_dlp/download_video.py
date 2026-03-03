@@ -5,15 +5,14 @@ from pathlib import Path
 
 from funcs_for_main_yt_dlp._download_common import (
     DownloadOptions,
+    _append_common_flags,
+    _build_output_template,
     _get_download_retries,
-    _quote_if_needed,
-    progress_log_state,
+    _run_yt_dlp_subprocess,
 )
-from funcs_utils import (get_cookie_args, is_format_error, sanitize_string,
-                         sanitize_url_for_subprocess)
-from funcs_video_info import get_timeout_for_url, get_video_info
-from project_defs import (YT_DLP_IS_PLAYLIST_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG,
-                          YT_DLP_WRITE_JSON_FLAG)
+from funcs_utils import is_format_error, sanitize_url_for_subprocess
+from funcs_video_info import get_timeout_for_url
+from project_defs import YT_DLP_WRITE_JSON_FLAG
 
 logger = logging.getLogger(__name__)
 
@@ -32,23 +31,7 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
     # Get appropriate timeout based on URL domain
     timeout = get_timeout_for_url(url=opts.url, video_download_timeout=opts.video_download_timeout)
 
-    # Determine output filename template
-    # For single videos, use custom title if provided, otherwise get and sanitize the video title
-    # For playlists, use yt-dlp template
-    video_folder_path = Path(video_folder)
-    if opts.is_it_playlist:
-        output_template = str(video_folder_path / '%(title)s.%(ext)s')
-    elif opts.custom_title:
-        sanitized_title = sanitize_string(dirty_string=opts.custom_title)
-        output_template = str(video_folder_path / f'{sanitized_title}.%(ext)s')
-        logger.debug(f"Using custom title: '{opts.custom_title}' -> '{sanitized_title}'")
-    else:
-        video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url,
-                                    video_download_timeout=opts.video_download_timeout)
-        video_title = video_info.get('title', 'untitled')
-        sanitized_title = sanitize_string(dirty_string=video_title)
-        output_template = str(video_folder_path / f'{sanitized_title}.%(ext)s')
-        logger.debug(f"Sanitized video title: '{video_title}' -> '{sanitized_title}'")
+    output_template, sanitized_title = _build_output_template(opts=opts, output_folder=video_folder)
 
     # Build base command (format will be inserted during retry loop)
     format_placeholder = '__FORMAT__'
@@ -67,19 +50,12 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
         sanitized_url
     ]
 
-    # Add cookie arguments if configured via environment variable
-    cookie_args = get_cookie_args()
-    if cookie_args:
-        base_cmd[1:1] = cookie_args
+    # Add shared flags (cookies, playlist, split-chapters, progress, custom metadata)
+    _append_common_flags(cmd=base_cmd, opts=opts, sanitized_title=sanitized_title)
 
-    if opts.is_it_playlist:
-        base_cmd[1:1] = [YT_DLP_IS_PLAYLIST_FLAG]
+    # Add video-specific flags
     if write_json:
         base_cmd[1:1] = [YT_DLP_WRITE_JSON_FLAG]
-    if opts.split_chapters and opts.has_chapters:
-        base_cmd[1:1] = [YT_DLP_SPLIT_CHAPTERS_FLAG]
-        # Chapter titles often contain ':' which is invalid on NTFS (/mnt/c/)
-        base_cmd[1:1] = ['--windows-filenames']
     if get_subs:
         # Extract subtitles in Greek, English, Hebrew
         base_cmd[1:1] = [
@@ -87,22 +63,6 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
             '--sub-lang', 'el,en,he',
             '--convert-subs', 'srt'
         ]
-    if opts.show_progress:
-        base_cmd[1:1] = ['--progress']
-    if opts.custom_title:
-        # Set the title metadata tag to the custom title
-        base_cmd[1:1] = ['--replace-in-metadata', 'title', '.+', sanitized_title]
-    if opts.custom_artist or opts.custom_album:
-        # Set metadata tags using ffmpeg postprocessor args
-        ffmpeg_metadata = []
-        if opts.custom_artist:
-            quoted_artist = _quote_if_needed(opts.custom_artist)
-            ffmpeg_metadata.extend(['-metadata', f'artist={quoted_artist}',
-                                    '-metadata', f'album_artist={quoted_artist}'])
-        if opts.custom_album:
-            quoted_album = _quote_if_needed(opts.custom_album)
-            ffmpeg_metadata.extend(['-metadata', f'album={quoted_album}'])
-        base_cmd[1:1] = ['--postprocessor-args', 'ffmpeg:' + ' '.join(ffmpeg_metadata)]
 
     # Find the index of the format placeholder (after -f flag)
     format_index = base_cmd.index(format_placeholder)
@@ -116,31 +76,11 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
         yt_dlp_cmd[format_index] = format_str
 
         logger.debug(f'Trying format: {format_str}')
-        logger.info(f'Command: {yt_dlp_cmd}')
 
         try:
-            if opts.show_progress:
-                # Create Logs directory if it doesn't exist, set up log file for download progress (very verbose)
-                logs_dir = Path('Logs')
-                logs_dir.mkdir(exist_ok=True)
-                log_file = logs_dir / 'yt-dlp-progress.log'
-
-                # First write overwrites, subsequent writes append
-                mode = 'w' if not progress_log_state.initialized else 'a'
-                progress_log_state.initialized = True
-
-                with open(log_file, mode, encoding='utf-8') as f:
-                    # Capture stderr separately to detect format errors
-                    _ = subprocess.run(yt_dlp_cmd, check=True, stdout=f,
-                                       stderr=subprocess.PIPE, text=True, timeout=timeout)
-                logger.info(f'Video download completed successfully. Progress logged to {log_file}')
-                logger.info(f'Downloaded from URL: {opts.url}')
-            else:
-                result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=timeout)
-                logger.info('Video download completed successfully')
-                logger.info(f'Downloaded from URL: {opts.url}')
-                if result.stdout:
-                    logger.debug(f'yt-dlp output: {result.stdout}')
+            _run_yt_dlp_subprocess(cmd=yt_dlp_cmd, timeout=timeout,
+                                   show_progress=opts.show_progress,
+                                   label='Video download', url=opts.url)
             return  # Success, exit function
 
         except subprocess.TimeoutExpired:

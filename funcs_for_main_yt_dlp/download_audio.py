@@ -5,16 +5,15 @@ from pathlib import Path
 
 from funcs_for_main_yt_dlp._download_common import (
     DownloadOptions,
+    _append_common_flags,
+    _build_output_template,
     _get_download_retries,
-    _quote_if_needed,
-    progress_log_state,
+    _run_yt_dlp_subprocess,
 )
 from funcs_for_main_yt_dlp.file_organization import get_audio_dir_for_format
-from funcs_utils import (get_cookie_args, is_format_error, sanitize_string,
-                         sanitize_url_for_subprocess)
+from funcs_utils import is_format_error, sanitize_url_for_subprocess
 from funcs_video_info import get_timeout_for_url, get_video_info
-from project_defs import (DEFAULT_AUDIO_QUALITY, YT_DLP_IS_PLAYLIST_FLAG,
-                          YT_DLP_SPLIT_CHAPTERS_FLAG)
+from project_defs import DEFAULT_AUDIO_QUALITY
 
 logger = logging.getLogger(__name__)
 
@@ -36,22 +35,7 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
     # For FLAC (lossless), use best quality (0); for lossy formats use default quality
     audio_quality = '0' if format_type == 'flac' else DEFAULT_AUDIO_QUALITY
 
-    # Determine output filename template
-    # For single videos, use custom title if provided, otherwise get and sanitize the video title
-    # For playlists, use yt-dlp template
-    if opts.is_it_playlist:
-        output_template = str(output_folder_path / '%(title)s.%(ext)s')
-    elif opts.custom_title:
-        sanitized_title = sanitize_string(dirty_string=opts.custom_title)
-        output_template = str(output_folder_path / f'{sanitized_title}.%(ext)s')
-        logger.debug(f"Using custom title: '{opts.custom_title}' -> '{sanitized_title}'")
-    else:
-        video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url,
-                                    video_download_timeout=opts.video_download_timeout)
-        video_title = video_info.get('title', 'untitled')
-        sanitized_title = sanitize_string(dirty_string=video_title)
-        output_template = str(output_folder_path / f'{sanitized_title}.%(ext)s')
-        logger.debug(f"Sanitized audio title: '{video_title}' -> '{sanitized_title}'")
+    output_template, sanitized_title = _build_output_template(opts=opts, output_folder=output_folder)
 
     download_retries = _get_download_retries()
     yt_dlp_cmd: list[str | Path] = [
@@ -69,68 +53,25 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
         sanitized_url
     ]
 
-    # Add cookie arguments if configured via environment variable
-    cookie_args = get_cookie_args()
-    if cookie_args:
-        yt_dlp_cmd[1:1] = cookie_args
+    # Add shared flags (cookies, playlist, split-chapters, progress, custom metadata)
+    _append_common_flags(cmd=yt_dlp_cmd, opts=opts, sanitized_title=sanitized_title)
 
-    if opts.is_it_playlist:
-        yt_dlp_cmd[1:1] = [YT_DLP_IS_PLAYLIST_FLAG]
+    # Add audio-specific flags
     if artist_pat and album_artist_pat:
         yt_dlp_cmd[1:1] = ['--parse-metadata', artist_pat,
                            '--parse-metadata', album_artist_pat,
                            ]
-    if opts.split_chapters and opts.has_chapters:
-        yt_dlp_cmd[1:1] = [YT_DLP_SPLIT_CHAPTERS_FLAG]
-        # Chapter titles often contain ':' which is invalid on NTFS (/mnt/c/)
-        yt_dlp_cmd[1:1] = ['--windows-filenames']
-    if opts.show_progress:
-        yt_dlp_cmd[1:1] = ['--progress']
-    if opts.custom_title:
-        # Set the title metadata tag to the custom title
-        yt_dlp_cmd[1:1] = ['--replace-in-metadata', 'title', '.+', sanitized_title]
-    if opts.custom_artist or opts.custom_album:
-        # Set metadata tags using ffmpeg postprocessor args
-        ffmpeg_metadata = []
-        if opts.custom_artist:
-            quoted_artist = _quote_if_needed(opts.custom_artist)
-            ffmpeg_metadata.extend(['-metadata', f'artist={quoted_artist}',
-                                    '-metadata', f'album_artist={quoted_artist}'])
-        if opts.custom_album:
-            quoted_album = _quote_if_needed(opts.custom_album)
-            ffmpeg_metadata.extend(['-metadata', f'album={quoted_album}'])
-        yt_dlp_cmd[1:1] = ['--postprocessor-args', 'ffmpeg:' + ' '.join(ffmpeg_metadata)]
 
     logger.info(f'Downloading and extracting {format_type.upper()} audio with yt-dlp')
     logger.info(f'Using timeout of {timeout} seconds for {format_type.upper()} audio download')
-    logger.info(f'Command: {yt_dlp_cmd}')
 
     # Run download with error handling
     # Note: In playlists, some videos may be unavailable, which is not considered an error
     try:
-        if opts.show_progress:
-            # Create Logs directory if it doesn't exist
-            log_dir = Path('Logs')
-            log_dir.mkdir(exist_ok=True)
-            log_file = log_dir / 'yt-dlp-progress.log'
-
-            # First write overwrites, subsequent writes append
-            mode = 'w' if not progress_log_state.initialized else 'a'
-            progress_log_state.initialized = True
-
-            with open(log_file, mode, encoding='utf-8') as f:
-                # Capture stderr separately to detect format errors
-                _ = subprocess.run(
-                    yt_dlp_cmd, check=True, stdout=f,
-                    stderr=subprocess.PIPE, text=True, timeout=timeout)
-            logger.info(f'{format_type.upper()} audio download completed successfully. Progress logged to {log_file}')
-            logger.info(f'Downloaded from URL: {opts.url}')
-        else:
-            result = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, timeout=timeout)
-            logger.info(f'{format_type.upper()} audio download completed successfully')
-            logger.info(f'Downloaded from URL: {opts.url}')
-            if result.stdout:
-                logger.debug(f'yt-dlp output: {result.stdout}')
+        _run_yt_dlp_subprocess(cmd=yt_dlp_cmd, timeout=timeout,
+                               show_progress=opts.show_progress,
+                               label=f'{format_type.upper()} audio download',
+                               url=opts.url)
     except subprocess.TimeoutExpired:
         logger.error(f"{format_type.upper()} audio download timed out after {timeout} seconds for URL '{opts.url}'")
         if not opts.is_it_playlist:
