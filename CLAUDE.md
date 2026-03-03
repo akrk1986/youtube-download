@@ -55,12 +55,10 @@ The codebase uses a modular package-based architecture. All helper functions are
   - `security.py` - Security helpers for subprocess calls
   - `artist_search.py` - Greek artist name matching and search variants
 
-- `funcs_audio_processing/` - Audio tag processing (5 modules, 486 lines)
+- `funcs_audio_processing/` - Audio tag processing (3 modules, ~350 lines)
+  - `__init__.py` - Dispatch dict (`_HANDLER_MAP`) + `set_artists_for_format()` / `set_chapter_tags_for_format()` + backward-compat aliases
   - `unified.py` - Unified audio tag processing across formats
   - `common.py` - Common audio tag processing functions
-  - `mp3.py` - MP3 ID3v2 tag processing and artist detection
-  - `m4a.py` - M4A MP4/iTunes metadata processing
-  - `flac.py` - FLAC Vorbis Comments processing
 
 - `funcs_audio_tag_handlers/` - Tag handler classes (4 modules, 425 lines)
   - `base.py` - Abstract base class (AudioTagHandler) - strategy pattern
@@ -68,8 +66,8 @@ The codebase uses a modular package-based architecture. All helper functions are
   - `m4a_handler.py` - M4ATagHandler for MP4/iTunes metadata
   - `flac_handler.py` - FLACTagHandler for Vorbis Comments
 
-- `funcs_for_audio_utils/` - Audio utilities (2 modules, 408 lines)
-  - `boost.py` - Audio volume boosting with ffmpeg
+- `funcs_for_audio_utils/` - Audio utilities (2 modules, ~400 lines)
+  - `boost.py` - Audio volume boosting with ffmpeg (single `AudioBooster` class with `preserve_video` flag)
   - `conversion.py` - Audio format conversion utilities (MP3 ↔ M4A)
 
 - `funcs_notifications/` - Notification handlers (4 modules, 353 lines)
@@ -338,7 +336,7 @@ The project uses multiple linting and type checking tools to maintain code quali
 - **Type hints**: All functions have proper type annotations
 
 ### Linting Tools
-- **flake8**: PEP 8 compliance, unused import detection
+- **flake8**: PEP 8 compliance, unused import detection (config: `.flake8`, `max-line-length = 120`)
 - **pylint**: Code quality metrics, unused variable detection
 - **isort**: Import statement ordering
 - **mypy**: Static type checking
