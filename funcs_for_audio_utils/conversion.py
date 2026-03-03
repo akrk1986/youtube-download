@@ -62,7 +62,8 @@ def get_ffprobe_path() -> str:
     """Get the path to ffprobe executable."""
     return _get_ffmpeg_tool_path('ffprobe')
 
-def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None) -> Path | None:
+def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None,
+                       ffmpeg_path: str | None = None) -> Path | None:
     """
     Convert MP3 file to M4A format using ffmpeg.
 
@@ -70,6 +71,8 @@ def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None)
         mp3_file (Path or str): Path to source MP3 file
         m4a_file (Path or str, optional): Path to output M4A file.
                                           If not provided, uses same basename as source.
+        ffmpeg_path (str, optional): Path to ffmpeg executable.
+                                     If not provided, auto-detected.
 
     Returns:
         Path: Path to created M4A file if successful, None otherwise
@@ -86,7 +89,8 @@ def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None)
     else:
         m4a_file = Path(m4a_file)
 
-    ffmpeg_path = get_ffmpeg_path()
+    if ffmpeg_path is None:
+        ffmpeg_path = get_ffmpeg_path()
 
     try:
         cmd = [
@@ -117,7 +121,8 @@ def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None)
         print(f'Error converting {mp3_file.name} to M4A: {error_msg}')
         return None
 
-def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None) -> Path | None:
+def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None,
+                       ffmpeg_path: str | None = None) -> Path | None:
     """
     Convert M4A file to MP3 format using ffmpeg.
 
@@ -125,6 +130,8 @@ def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None)
         m4a_file (Path or str): Path to source M4A file
         mp3_file (Path or str, optional): Path to output MP3 file.
                                           If not provided, uses same basename as source.
+        ffmpeg_path (str, optional): Path to ffmpeg executable.
+                                     If not provided, auto-detected.
 
     Returns:
         Path: Path to created MP3 file if successful, None otherwise
@@ -141,7 +148,8 @@ def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None)
     else:
         mp3_file = Path(mp3_file)
 
-    ffmpeg_path = get_ffmpeg_path()
+    if ffmpeg_path is None:
+        ffmpeg_path = get_ffmpeg_path()
 
     try:
         cmd = [

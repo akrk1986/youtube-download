@@ -98,8 +98,7 @@ def sanitize_string(dirty_string: str) -> str:
     # Reconstruct filename
     if has_extension and name_part:
         return f'{name_part}.{extension}'
-    elif has_extension:
-        # If name_part is empty, but we had an extension, keep the extension
+    if has_extension:
         return f'untitled.{extension}'
     return name_part
 

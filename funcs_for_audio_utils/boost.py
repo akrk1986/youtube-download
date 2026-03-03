@@ -2,22 +2,24 @@
 import re
 import subprocess
 import sys
-from abc import ABC, abstractmethod
 from pathlib import Path
 
 from funcs_for_main_yt_dlp import get_ffmpeg_path
 
-
-FFMPEG_EXE = get_ffmpeg_path()
 TARGET_PEAK_DB = -0.5  # Target peak level (with safety margin to avoid clipping)
 
 
-def detect_audio_levels(input_file: Path) -> tuple[float, float]:
+def detect_audio_levels(
+        input_file: Path,
+        ffmpeg_exe: str | None = None
+) -> tuple[float, float]:
     """
     Detect audio levels using ffmpeg volumedetect filter.
 
     Args:
         input_file: Path to the input audio/video file.
+        ffmpeg_exe: Path to ffmpeg executable.
+            If None, auto-detected via get_ffmpeg_path().
 
     Returns:
         tuple: (mean_volume_db, max_volume_db)
@@ -25,8 +27,11 @@ def detect_audio_levels(input_file: Path) -> tuple[float, float]:
     Raises:
         RuntimeError: If unable to detect audio levels.
     """
+    if ffmpeg_exe is None:
+        ffmpeg_exe = get_ffmpeg_path()
+
     cmd = [
-        FFMPEG_EXE,
+        ffmpeg_exe,
         '-i', str(input_file),
         '-af', 'volumedetect',
         '-f', 'null',
@@ -73,23 +78,29 @@ def calculate_boost_value(max_volume_db: float, target_db: float = TARGET_PEAK_D
     return linear_gain
 
 
-class AudioBooster(ABC):
-    """Abstract base class for audio volume boosting."""
+class AudioBooster:
+    """Audio volume booster using ffmpeg."""
 
-    def __init__(self, ffmpeg_exe: str = FFMPEG_EXE):
+    def __init__(self, ffmpeg_exe: str | None = None,
+                 preserve_video: bool = False) -> None:
         """
         Initialize the audio booster.
 
         Args:
             ffmpeg_exe: Path to ffmpeg executable.
+                If None, auto-detected via get_ffmpeg_path().
+            preserve_video: If True, copy video stream
+                without re-encoding (for MP4/M4A with cover art).
         """
+        if ffmpeg_exe is None:
+            ffmpeg_exe = get_ffmpeg_path()
         self.ffmpeg_exe = ffmpeg_exe
+        self.preserve_video = preserve_video
 
-    @abstractmethod
     def _build_ffmpeg_command(self, input_file: Path, output_file: Path,
                               use_loudnorm: bool, boost_value: float) -> list[str]:
         """
-        Build the ffmpeg command for this audio format.
+        Build the ffmpeg command.
 
         Args:
             input_file: Path to the input file.
@@ -100,10 +111,26 @@ class AudioBooster(ABC):
         Returns:
             list: ffmpeg command as list of strings.
         """
-        pass
+        if use_loudnorm:
+            audio_filter = 'loudnorm=I=-16:TP=-1.5:LRA=11'
+        else:
+            audio_filter = f'volume={boost_value}'
+
+        cmd = [
+            self.ffmpeg_exe,
+            '-y',
+            '-i', str(input_file),
+            '-af', audio_filter,
+        ]
+
+        if self.preserve_video:
+            cmd.extend(['-c:v', 'copy'])
+
+        cmd.append(str(output_file))
+        return cmd
 
     def boost_volume(self, input_file: Path, use_loudnorm: bool = False,
-                    boost_value: float = 3.0) -> Path:
+                     boost_value: float = 3.0) -> Path:
         """
         Boost audio volume using ffmpeg loudnorm filter or volume multiplier.
 
@@ -145,50 +172,3 @@ class AudioBooster(ABC):
         except subprocess.CalledProcessError as e:
             print(f'Error running ffmpeg: {e}')
             raise
-
-
-class MP3Booster(AudioBooster):
-    """Audio booster for MP3 files."""
-
-    def _build_ffmpeg_command(self, input_file: Path, output_file: Path,
-                              use_loudnorm: bool, boost_value: float) -> list[str]:
-        """Build the ffmpeg command for MP3 files."""
-        # Build audio filter based on mode
-        if use_loudnorm:
-            audio_filter = 'loudnorm=I=-16:TP=-1.5:LRA=11'
-        else:
-            audio_filter = f'volume={boost_value}'
-
-        cmd = [
-            self.ffmpeg_exe,
-            '-y',
-            '-i', str(input_file),
-            '-af', audio_filter,
-            str(output_file)
-        ]
-
-        return cmd
-
-
-class MP4Booster(AudioBooster):
-    """Audio booster for MP4/M4A files."""
-
-    def _build_ffmpeg_command(self, input_file: Path, output_file: Path,
-                              use_loudnorm: bool, boost_value: float) -> list[str]:
-        """Build the ffmpeg command for MP4/M4A files."""
-        # Build audio filter based on mode
-        if use_loudnorm:
-            audio_filter = 'loudnorm=I=-16:TP=-1.5:LRA=11'
-        else:
-            audio_filter = f'volume={boost_value}'
-
-        cmd = [
-            self.ffmpeg_exe,
-            '-y',
-            '-i', str(input_file),
-            '-af', audio_filter,
-            '-c:v', 'copy',  # Copy video stream without re-encoding
-            str(output_file)
-        ]
-
-        return cmd

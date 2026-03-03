@@ -5,8 +5,7 @@ import sys
 from pathlib import Path
 
 from funcs_for_audio_utils import (
-    MP3Booster,
-    MP4Booster,
+    AudioBooster,
     TARGET_PEAK_DB,
     calculate_boost_value,
     detect_audio_levels,
@@ -103,7 +102,7 @@ def main() -> None:
 
             # Apply boost using appropriate booster class
             if file_extension == '.mp3':
-                booster = MP3Booster()
+                booster = AudioBooster()
                 booster.boost_volume(
                     input_file=media_file,
                     use_loudnorm=use_loudnorm,
@@ -111,7 +110,7 @@ def main() -> None:
                 )
                 mp3_count += 1
             elif file_extension in ['.mp4', '.m4a']:
-                booster = MP4Booster()
+                booster = AudioBooster(preserve_video=True)
                 booster.boost_volume(
                     input_file=media_file,
                     use_loudnorm=use_loudnorm,

@@ -2,7 +2,7 @@
 import logging
 import sys
 from pathlib import Path
-from datetime import datetime
+import arrow
 
 from project_defs import MAX_LOG_FILES, GLOB_LOG_FILES
 
@@ -29,7 +29,9 @@ def _cleanup_old_logs(log_dir: Path) -> None:
                 # Silently ignore errors (file might be locked, etc.)
                 pass
 
-def setup_logging(verbose: bool = False, log_to_file: bool = True, show_urls: bool = False) -> None:
+def setup_logging(verbose: bool = False, log_to_file: bool = True,
+                  show_urls: bool = False,
+                  log_dir: Path | None = None) -> None:
     """
     Configure logging for the entire application.
 
@@ -39,12 +41,16 @@ def setup_logging(verbose: bool = False, log_to_file: bool = True, show_urls: bo
     Args:
         verbose: If True, set log level to DEBUG; otherwise INFO
         log_to_file: If True, also write logs to file in Logs/ directory
-        show_urls: If True, allow urllib3/requests to log URLs (may expose Slack webhook)
+        show_urls: If True, allow urllib3/requests to log URLs
+            (may expose Slack webhook)
+        log_dir: Directory for log files. If None, defaults to
+            funcs_utils/Logs/.
     """
     level = logging.DEBUG if verbose else logging.INFO
 
     # Create Logs directory if it doesn't exist
-    log_dir = Path(__file__).parent / 'Logs'
+    if log_dir is None:
+        log_dir = Path(__file__).parent / 'Logs'
     log_dir.mkdir(exist_ok=True)
 
     # Configure formatters
@@ -71,7 +77,7 @@ def setup_logging(verbose: bool = False, log_to_file: bool = True, show_urls: bo
         # Clean up old log files to maintain MAX_LOG_FILES limit
         _cleanup_old_logs(log_dir)
 
-        log_filename = f'yt-dlp_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
+        log_filename = f'yt-dlp_{arrow.now().format("YYYYMMDD_HHmmss")}.log'
         log_path = log_dir / log_filename
 
         file_handler = logging.FileHandler(log_path, encoding='utf-8')

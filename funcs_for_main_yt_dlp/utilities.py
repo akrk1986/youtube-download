@@ -11,10 +11,9 @@ def format_elapsed_time(seconds: float) -> str:
 
     if hours > 0:
         return f'{hours}h {minutes}m {secs}s'
-    elif minutes > 0:
+    if minutes > 0:
         return f'{minutes}m {secs}s'
-    else:
-        return f'{secs}s'
+    return f'{secs}s'
 
 
 def generate_session_id() -> str:

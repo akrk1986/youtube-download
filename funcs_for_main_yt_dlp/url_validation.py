@@ -53,18 +53,23 @@ def validate_and_get_url(provided_url: str, ytdlp_path: Path | None = None) -> s
                 sys.exit(1)
         # Should never reach here, but mypy needs this
         sys.exit(1)
-    else:
-        # CLI mode: validate provided URL
-        is_valid, error_msg = validate_video_url(url=provided_url)
-        if not is_valid:
-            logger.error(f'Invalid URL: {error_msg}')
+
+    # CLI mode: validate provided URL
+    is_valid, error_msg = validate_video_url(url=provided_url)
+    if not is_valid:
+        logger.error(f'Invalid URL: {error_msg}')
+        sys.exit(1)
+
+    # Check if it's an ERTFlix token URL and resolve if needed
+    if is_ertflix_token_url(url=provided_url):
+        if not ytdlp_path:
+            logger.error(
+                'ytdlp_path required for ERTFlix token resolution'
+            )
             sys.exit(1)
+        return resolve_ertflix_token_url(
+            token_url=provided_url,
+            ytdlp_path=ytdlp_path
+        )
 
-        # Check if it's an ERTFlix token URL and resolve if needed
-        if is_ertflix_token_url(url=provided_url):
-            if not ytdlp_path:
-                logger.error('ytdlp_path required for ERTFlix token resolution')
-                sys.exit(1)
-            return resolve_ertflix_token_url(token_url=provided_url, ytdlp_path=ytdlp_path)
-
-        return provided_url
+    return provided_url

@@ -113,7 +113,7 @@ def _extract_urls_from_text(text: str) -> List[str]:
     # Filter URLs to only include those from valid domains
     valid_urls = []
     for url in cleaned_urls:
-        if _is_valid_domain(url=url):
+        if is_valid_domain_url(url=url):
             valid_urls.append(url)
 
     return valid_urls
@@ -145,19 +145,6 @@ def is_valid_domain_url(url: str) -> bool:
     except Exception:
         # If URL parsing fails, skip this URL
         return False
-
-
-def _is_valid_domain(url: str) -> bool:
-    """
-    Internal wrapper for is_valid_domain_url.
-
-    Args:
-        url: URL to check
-
-    Returns:
-        True if the URL's domain matches one of the valid domains, False otherwise
-    """
-    return is_valid_domain_url(url=url)
 
 
 def print_urls_from_file(file_path: str) -> None:
