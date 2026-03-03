@@ -2,10 +2,10 @@
 Audio conversion functions using ffmpeg.
 Handles conversion between MP3 and M4A formats.
 """
+import platform
 import subprocess
 import sys
 from pathlib import Path
-import platform
 
 from project_defs import FFMPEG_TIMEOUT_SECONDS
 
@@ -54,13 +54,16 @@ def _get_ffmpeg_tool_path(tool_name: str) -> str:
         print(f'Error: {tool_name} not found. Please install it (as root).')
         sys.exit(1)
 
+
 def get_ffmpeg_path() -> str:
     """Get the path to ffmpeg executable."""
     return _get_ffmpeg_tool_path('ffmpeg')
 
+
 def get_ffprobe_path() -> str:
     """Get the path to ffprobe executable."""
     return _get_ffmpeg_tool_path('ffprobe')
+
 
 def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None,
                        ffmpeg_path: str | None = None) -> Path | None:
@@ -120,6 +123,7 @@ def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None,
         error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else 'Unknown error'
         print(f'Error converting {mp3_file.name} to M4A: {error_msg}')
         return None
+
 
 def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None,
                        ffmpeg_path: str | None = None) -> Path | None:

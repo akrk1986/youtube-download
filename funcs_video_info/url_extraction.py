@@ -4,13 +4,12 @@ URL extraction utilities for text and ODF files.
 
 import re
 from pathlib import Path
-from typing import List
 from urllib.parse import urlparse
 
 from project_defs import VALID_DOMAINS_ALL
 
 
-def extract_urls_from_file(file_path: str) -> List[str]:
+def extract_urls_from_file(file_path: str) -> list[str]:
     """
     Extract all URLs from a text file (.txt) or ODF file (.odt).
 
@@ -87,7 +86,7 @@ def _extract_text_from_odt(file_path: str) -> str:
     return '\n'.join(all_text)
 
 
-def _extract_urls_from_text(text: str) -> List[str]:
+def _extract_urls_from_text(text: str) -> list[str]:
     """
     Extract all URLs from text using regex, filtered by VALID_DOMAINS_ALL.
 

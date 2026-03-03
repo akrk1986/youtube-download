@@ -19,9 +19,7 @@ def process_audio_tags(
         has_chapters: bool,
         uploader_name: str | None,
         video_title: str | None,
-        original_names: (
-            dict[str, dict[str, str]] | None
-        ) = None
+        original_names: dict[str, dict[str, str]] | None = None
 ) -> None:
     """
     Process audio file tags based on formats.
