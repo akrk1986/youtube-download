@@ -17,7 +17,8 @@
       "Bash(do echo \"=== $pkg ===\")",
       "Bash(done)",
       "Bash(flake8:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(git status:*)"
     ],
     "deny": [],
     "ask": []
