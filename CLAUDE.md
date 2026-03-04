@@ -310,6 +310,13 @@ The project uses a three-tier testing approach:
   - Contains ~40 standalone test/utility scripts
   - Includes test fixtures and data files
 
+### CHANGELOG Rule
+
+Every commit that modifies project files (excluding docs-only changes) must have a corresponding entry in `CHANGELOG.md`:
+- Use the actual commit timestamp: `git log -1 --format=%cd --date=format:'%Y-%m-%d-%H%M'`
+- Record under `### Added`, `### Changed`, or `### Fixed` as appropriate
+- Can be included in the same commit or a follow-up commit
+
 ### General Notes
 - Documentation is minimal - mainly workflow guides in `Docs/`
 - Beta features and experiments are in `Beta/` directory
