@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-03-04-1303] - ERTFlix Tests Rewrite + Code Style Fixes
+
+### Fixed
+- **ERTFlix token handler tests**: rewrote `TestResolveErtflixTokenUrl` to match the current URL-parsing implementation (8 obsolete subprocess-mocking tests replaced with 4 accurate tests). The handler no longer calls yt-dlp as a subprocess — it extracts the playback URL directly from the `content_URL` query parameter.
+  - File: `Tests/test_ertflix_token_handler.py`
+
+### Changed
+- **Code style fixes** across recently refactored modules:
+  - `funcs_audio_processing/__init__.py`: replaced deprecated `from typing import Type` with built-in `type[]` (Python 3.9+)
+  - `funcs_for_audio_utils/boost.py`: fixed function signature indentation to hanging-indent style
+  - `funcs_for_audio_utils/conversion.py`: removed redundant type annotations from `Args:` docstrings; dropped unnecessary `_ = subprocess.run(...)` discards
+  - `funcs_video_info/url_extraction.py`: widened `file_path` parameters to `Path | str`; replaced `open()` with `Path.read_text()`
+- **CLAUDE.md**: updated test counts (101 total: 37 main, 19 security, 10 ertflix, 35 notifications)
+- **Docs/CHANGELOG.md**: renamed to `Docs/CHANGELOG-old.md`
+
 ## [2026-02-28-1504] - Add --list-chapters-only Flag
 
 ### Added
