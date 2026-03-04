@@ -81,8 +81,10 @@ def calculate_boost_value(max_volume_db: float, target_db: float = TARGET_PEAK_D
 class AudioBooster:
     """Audio volume booster using ffmpeg."""
 
-    def __init__(self, ffmpeg_exe: str | None = None,
-                 preserve_video: bool = False) -> None:
+    def __init__(
+            self, ffmpeg_exe: str | None = None,
+            preserve_video: bool = False
+    ) -> None:
         """
         Initialize the audio booster.
 
@@ -97,8 +99,10 @@ class AudioBooster:
         self.ffmpeg_exe = ffmpeg_exe
         self.preserve_video = preserve_video
 
-    def _build_ffmpeg_command(self, input_file: Path, output_file: Path,
-                              use_loudnorm: bool, boost_value: float) -> list[str]:
+    def _build_ffmpeg_command(
+            self, input_file: Path, output_file: Path,
+            use_loudnorm: bool, boost_value: float
+    ) -> list[str]:
         """
         Build the ffmpeg command.
 
@@ -129,8 +133,10 @@ class AudioBooster:
         cmd.append(str(output_file))
         return cmd
 
-    def boost_volume(self, input_file: Path, use_loudnorm: bool = False,
-                     boost_value: float = 3.0) -> Path:
+    def boost_volume(
+            self, input_file: Path, use_loudnorm: bool = False,
+            boost_value: float = 3.0
+    ) -> Path:
         """
         Boost audio volume using ffmpeg loudnorm filter or volume multiplier.
 

@@ -205,11 +205,11 @@ The project has three categories of tests:
 
 **Pytest tests** (in `Tests/` directory):
 ```bash
-pytest Tests/                                    # Run all pytest tests (71 tests)
-pytest Tests/test_main_ytdlp.py                  # Main script tests (30 tests)
+pytest Tests/                                    # Run all pytest tests (101 tests)
+pytest Tests/test_main_ytdlp.py                  # Main script tests (37 tests)
 pytest Tests/test_security_measures.py           # Security tests (19 tests)
-pytest Tests/test_ertflix_token_handler.py       # ERTFlix token handler tests (15 tests)
-pytest Tests/test_ertflix_token_handler.py       # ERTFlix integration tests (7 tests)
+pytest Tests/test_ertflix_token_handler.py       # ERTFlix token handler tests (10 tests)
+pytest Tests/test_notifications.py               # Notification tests (35 tests)
 ```
 
 **End-to-end tests** (in `Tests/` directory):

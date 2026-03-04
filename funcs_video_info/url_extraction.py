@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 from project_defs import VALID_DOMAINS_ALL
 
 
-def extract_urls_from_file(file_path: str) -> list[str]:
+def extract_urls_from_file(file_path: Path | str) -> list[str]:
     """
     Extract all URLs from a text file (.txt) or ODF file (.odt).
 
@@ -44,7 +44,7 @@ def extract_urls_from_file(file_path: str) -> list[str]:
     return urls
 
 
-def _extract_text_from_txt(file_path: str) -> str:
+def _extract_text_from_txt(file_path: Path | str) -> str:
     """
     Extract text content from a plain text file.
 
@@ -54,11 +54,10 @@ def _extract_text_from_txt(file_path: str) -> str:
     Returns:
         Text content of the file
     """
-    with open(file_path, 'r', encoding='utf-8') as f:
-        return f.read()
+    return Path(file_path).read_text(encoding='utf-8')
 
 
-def _extract_text_from_odt(file_path: str) -> str:
+def _extract_text_from_odt(file_path: Path | str) -> str:
     """
     Extract text content from an ODF (.odt) file.
 
@@ -146,7 +145,7 @@ def is_valid_domain_url(url: str) -> bool:
         return False
 
 
-def print_urls_from_file(file_path: str) -> None:
+def print_urls_from_file(file_path: Path | str) -> None:
     """
     Extract and print all URLs from a file.
 

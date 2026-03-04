@@ -18,10 +18,10 @@ def _get_ffmpeg_tool_path(tool_name: str) -> str:
     Aborts if tool is not found.
 
     Args:
-        tool_name (str): Name of the tool ('ffmpeg' or 'ffprobe')
+        tool_name: Name of the tool ('ffmpeg' or 'ffprobe')
 
     Returns:
-        str: Path to the tool executable
+        Path to the tool executable
     """
     if platform.system() == 'Windows':
         # Try system-installed tool first
@@ -71,14 +71,14 @@ def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None,
     Convert MP3 file to M4A format using ffmpeg.
 
     Args:
-        mp3_file (Path or str): Path to source MP3 file
-        m4a_file (Path or str, optional): Path to output M4A file.
-                                          If not provided, uses same basename as source.
-        ffmpeg_path (str, optional): Path to ffmpeg executable.
-                                     If not provided, auto-detected.
+        mp3_file: Path to source MP3 file
+        m4a_file: Path to output M4A file.
+            If not provided, uses same basename as source.
+        ffmpeg_path: Path to ffmpeg executable.
+            If not provided, auto-detected.
 
     Returns:
-        Path: Path to created M4A file if successful, None otherwise
+        Path to created M4A file if successful, None otherwise
     """
     mp3_file = Path(mp3_file)
 
@@ -108,7 +108,7 @@ def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None,
         ]
 
         print(f'  Converting MP3 to M4A with timeout of {FFMPEG_TIMEOUT_SECONDS} seconds')
-        _ = subprocess.run(
+        subprocess.run(
             cmd,
             capture_output=True,
             check=True,
@@ -131,14 +131,14 @@ def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None,
     Convert M4A file to MP3 format using ffmpeg.
 
     Args:
-        m4a_file (Path or str): Path to source M4A file
-        mp3_file (Path or str, optional): Path to output MP3 file.
-                                          If not provided, uses same basename as source.
-        ffmpeg_path (str, optional): Path to ffmpeg executable.
-                                     If not provided, auto-detected.
+        m4a_file: Path to source M4A file
+        mp3_file: Path to output MP3 file.
+            If not provided, uses same basename as source.
+        ffmpeg_path: Path to ffmpeg executable.
+            If not provided, auto-detected.
 
     Returns:
-        Path: Path to created MP3 file if successful, None otherwise
+        Path to created MP3 file if successful, None otherwise
     """
     m4a_file = Path(m4a_file)
 
@@ -170,7 +170,7 @@ def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None,
         ]
 
         print(f'  Converting M4A to MP3 with timeout of {FFMPEG_TIMEOUT_SECONDS} seconds')
-        _ = subprocess.run(
+        subprocess.run(
             cmd,
             capture_output=True,
             check=True,

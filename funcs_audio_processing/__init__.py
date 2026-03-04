@@ -1,6 +1,5 @@
 """Audio tag processing package."""
 from pathlib import Path
-from typing import Type
 
 from funcs_audio_tag_handlers import (
     AudioTagHandler,
@@ -12,7 +11,7 @@ from funcs_audio_processing.unified import (
 )
 
 # Dispatch map: audio format string -> handler class
-_HANDLER_MAP: dict[str, Type[AudioTagHandler]] = {
+_HANDLER_MAP: dict[str, type[AudioTagHandler]] = {
     'mp3': MP3TagHandler,
     'm4a': M4ATagHandler,
     'flac': FLACTagHandler,
