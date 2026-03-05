@@ -3,6 +3,8 @@ import csv
 import logging
 import re
 from pathlib import Path
+from typing import Any
+
 from funcs_video_info import get_video_info
 from project_defs import CHAPTER_TIMESTAMP_PATTERNS, SAFE_FILENAME_PATTERN, WHITESPACE_TO_UNDERSCORE_PATTERN
 
@@ -22,7 +24,7 @@ def _parse_time_to_seconds(time_str: str) -> int:
         raise ValueError(f'Invalid time format: {time_str}')
 
 
-def _extract_chapters_from_description(description: str) -> list[dict]:
+def _extract_chapters_from_description(description: str) -> list[dict[str, Any]]:
     """Extract chapters from video description using regex patterns."""
     chapters = []
 

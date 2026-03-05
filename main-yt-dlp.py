@@ -5,6 +5,7 @@ import os
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 from funcs_for_main_yt_dlp import (DownloadOptions, count_files,
                                    extract_audio_with_ytdlp,
@@ -14,7 +15,8 @@ from funcs_for_main_yt_dlp import (DownloadOptions, count_files,
                                    organize_and_sanitize_files,
                                    process_audio_tags, remux_video_chapters,
                                    run_yt_dlp, validate_and_get_url)
-from funcs_notifications import (GmailNotifier, NotificationData, SlackNotifier,
+from funcs_notifications import (GmailNotifier, NotificationData,
+                                 NotificationHandler, SlackNotifier,
                                  send_all_notifications)
 from funcs_video_info import (create_chapters_csv,
                               display_chapters_and_confirm, get_chapter_count,
@@ -276,7 +278,7 @@ def _detect_chapters(
     video_download_timeout: int | None,
     url_is_playlist: bool,
     show_chapters: bool
-) -> tuple[bool, dict | None, str | None, str | None, dict[int, str]]:
+) -> tuple[bool, dict[str, Any] | None, str | None, str | None, dict[int, str]]:
     """Detect chapters and fetch video info if chapters exist.
 
     Args:
@@ -368,13 +370,13 @@ def _determine_audio_mode(args: argparse.Namespace, audio_formats: list[str]) ->
     return args.with_audio or args.only_audio
 
 
-def _build_notifiers() -> tuple[list, str]:
+def _build_notifiers() -> tuple[list[NotificationHandler], str]:
     """Build notification handlers based on NOTIFICATIONS env var.
 
     Returns:
         Tuple of (notifiers list, notif_msg_suffix string)
     """
-    notifiers: list = []
+    notifiers: list[NotificationHandler] = []
     notifications_enabled = os.getenv('NOTIFICATIONS', '').strip().upper()
 
     if notifications_enabled in ('', 'N', 'NO'):
@@ -441,10 +443,10 @@ def _count_initial_files(
 
 
 def _send_completion_notification(
-    notifiers: list,
+    notifiers: list[NotificationHandler],
     status: str,
     url: str,
-    args_dict: dict,
+    args_dict: dict[str, str],
     session_id: str,
     start_time: float,
     only_audio: bool,
@@ -530,8 +532,8 @@ def _count_new_files(
     return video_count, audio_count
 
 
-def _execute_main(args: argparse.Namespace, args_dict: dict, session_id: str,
-                  notifiers: list | None = None, notif_msg_suffix: str = '') -> None:
+def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_id: str,
+                  notifiers: list[NotificationHandler] | None = None, notif_msg_suffix: str = '') -> None:
     """Execute the main download logic."""
 
     audio_formats = _parse_and_validate_audio_formats(audio_format_str=args.audio_format)
@@ -627,7 +629,7 @@ def _execute_main(args: argparse.Namespace, args_dict: dict, session_id: str,
     )
 
     # Create chapters CSV for user reference (always when split_chapters or list_chapters_only is active)
-    if (args.split_chapters or args.list_chapters_only) and has_chapters:
+    if (args.split_chapters or args.list_chapters_only) and has_chapters and video_info is not None:
         chapters_dir = Path('yt-chapters')
         chapters_dir.mkdir(parents=True, exist_ok=True)
         create_chapters_csv(video_info=video_info, output_dir=chapters_dir, video_title=video_title or 'Unknown')
@@ -638,7 +640,7 @@ def _execute_main(args: argparse.Namespace, args_dict: dict, session_id: str,
         if args.list_chapters_only:
             logger.info('--list-chapters-only: chapters CSV created and video downloaded. Done.')
             return
-        if args.split_chapters and has_chapters:
+        if args.split_chapters and has_chapters and video_info is not None:
             remux_video_chapters(ffmpeg_path=get_ffmpeg_path(), video_folder=video_folder,
                                  chapters=video_info.get('chapters', []),
                                  video_title=video_title)

@@ -1,7 +1,7 @@
 """Shared message formatting for notification handlers."""
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -9,14 +9,14 @@ class NotificationData:
     """Data for building notification messages."""
     status: str
     url: str
-    args_dict: dict
+    args_dict: dict[str, str]
     session_id: str
-    elapsed_time: Optional[str] = None
+    elapsed_time: str | None = None
     video_count: int = 0
     audio_count: int = 0
-    failure_reason: Optional[str] = None
-    script_version: Optional[str] = None
-    ytdlp_version: Optional[str] = None
+    failure_reason: str | None = None
+    script_version: str | None = None
+    ytdlp_version: str | None = None
     notif_msg_suffix: str = ''
 
 
@@ -38,7 +38,7 @@ def _get_status_display(status: str) -> tuple[str, str]:
     return emoji, word
 
 
-def _format_param_lines(status: str, args_dict: dict) -> list[tuple[str, str]]:
+def _format_param_lines(status: str, args_dict: dict[str, str]) -> list[tuple[str, str]]:
     """Return list of (key, value) tuples for display parameters."""
     param_lines: list[tuple[str, str]] = []
 

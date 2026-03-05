@@ -18,6 +18,7 @@ _invalid_windows_chars = set('<>:"/\\|?*')
 _invalid_linux_chars = set('/')
 _control_chars = set(chr(i) for i in range(32))  # ASCII control chars 0-31
 
+
 def _is_valid_filename(filename: str) -> bool:
     if not filename:
         return False
@@ -33,8 +34,10 @@ def _is_valid_filename(filename: str) -> bool:
         return False
     return True
 
+
 def _remove_emojis(text: str) -> str:
     return ''.join(c for c in text if not unicodedata.category(c).startswith('So'))
+
 
 def _sanitize_filename(filename: str) -> str:
     # List of common Unicode slashes and solidus-like characters

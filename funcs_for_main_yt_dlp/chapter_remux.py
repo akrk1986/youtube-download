@@ -3,8 +3,10 @@ import logging
 import re
 import subprocess
 from pathlib import Path
+from typing import Any
 
 from funcs_audio_processing.common import sanitize_album_name
+
 from project_defs import FFMPEG_TIMEOUT_SECONDS, GLOB_MP4_FILES
 
 logger = logging.getLogger(__name__)
@@ -14,7 +16,7 @@ _VIDEO_CHAPTER_PATTERN = re.compile(r'^.*?\s*-\s*(\d{3})\s+.+')
 
 
 def remux_video_chapters(ffmpeg_path: str, video_folder: Path,
-                         chapters: list[dict] | None = None,
+                         chapters: list[dict[str, Any]] | None = None,
                          video_title: str | None = None) -> None:
     """Remux split video chapter files to fix duration metadata and set chapter tags.
 

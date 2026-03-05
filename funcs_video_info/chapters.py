@@ -4,6 +4,7 @@ import json
 import logging
 import subprocess
 from pathlib import Path
+from typing import Any
 
 from funcs_utils import get_cookie_args, sanitize_string, sanitize_url_for_subprocess
 from funcs_video_info.url_validation import get_timeout_for_url
@@ -43,7 +44,7 @@ def _sanitize_chapter_title(title: str, max_len: int, fallback: str = '') -> str
     return sanitized
 
 
-def _build_filename_mapping(video_info: dict) -> dict[int, str]:
+def _build_filename_mapping(video_info: dict[str, Any]) -> dict[int, str]:
     """Build mapping of chapter numbers to normalized filenames without extension.
 
     Key 0 is the base video title. Keys 1..N are chapter titles with ' - NNN' suffix.
@@ -135,7 +136,7 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str, video_download_timeout
         return 0
 
 
-def display_chapters_and_confirm(video_info: dict) -> dict[int, str]:
+def display_chapters_and_confirm(video_info: dict[str, Any]) -> dict[int, str]:
     """
     Display chapter list with timing information and build filename mapping.
 
@@ -201,7 +202,7 @@ def display_chapters_and_confirm(video_info: dict) -> dict[int, str]:
     return mapping
 
 
-def create_chapters_csv(video_info: dict, output_dir: Path | str, video_title: str) -> None:
+def create_chapters_csv(video_info: dict[str, Any], output_dir: Path | str, video_title: str) -> None:
     """
     Create a CSV file with chapter information instead of downloading video chapters.
 

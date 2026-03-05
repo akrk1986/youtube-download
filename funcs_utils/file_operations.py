@@ -30,7 +30,7 @@ def _resolve_dest_name(media_file: Path, chapter_name_map: dict[int, str] | None
     return media_file.name
 
 
-def organize_media_files(video_dir: Path, chapter_name_map: dict[int, str] | None = None) -> dict:
+def organize_media_files(video_dir: Path, chapter_name_map: dict[int, str] | None = None) -> dict[str, Any]:
     """
     Move all MP3/M4A/FLAC files to their respective directories and all MP4 files to video directory.
     - MP3 files -> yt-audio/
@@ -118,7 +118,7 @@ def organize_media_files(video_dir: Path, chapter_name_map: dict[int, str] | Non
     return moved_files
 
 
-def organize_media_files_silent() -> dict:
+def organize_media_files_silent() -> dict[str, Any]:
     """
     Same as organize_media_files() but without print statements.
     Returns only the summary dictionary.

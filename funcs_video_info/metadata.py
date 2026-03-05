@@ -33,7 +33,7 @@ class _SilentLogger:
             logger.debug(f'yt-dlp error: {msg}')
 
 
-def get_video_info(yt_dlp_path: Path, url: str, video_download_timeout: int | None = None) -> dict:
+def get_video_info(yt_dlp_path: Path, url: str, video_download_timeout: int | None = None) -> dict[str, Any]:
     """Get video information using yt-dlp by requesting the meta-data as JSON, w/o download of the video."""
     # Security: Validate URL before passing to subprocess
     sanitized_url = sanitize_url_for_subprocess(url=url)

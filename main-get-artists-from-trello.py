@@ -2,6 +2,7 @@
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 
 def capitalize_greek_name(name: str) -> str:
@@ -33,7 +34,7 @@ def parse_card_name(card_name: str) -> tuple[str, str, bool]:
     greek = capitalize_greek_name(name=greek.strip())
     return greek, english.strip(), warning
 
-def extract_artists(trello_data: dict) -> tuple[list[dict[str, str]], int, int]:
+def extract_artists(trello_data: dict[str, Any]) -> tuple[list[dict[str, str]], int, int]:
     """
     Extracts artists from Trello JSON export.
     Returns the list of artists, number of lists, and number of cards.
