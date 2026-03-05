@@ -341,6 +341,8 @@ The project uses multiple linting and type checking tools to maintain code quali
 - **Path handling**: All path/directory operations use `pathlib.Path` instead of `os` module
 - **Function signatures**: Use `Path | str` for parameters that accept both types
 - **Type hints**: All functions have proper type annotations
+- **Modern union syntax**: Use `X | None` instead of `Optional[X]`, use `X | Y` instead of `Union[X, Y]`
+- **Parameterized generics**: Use `dict[str, Any]` not bare `dict`, `list[str]` not bare `list`
 
 ### Linting Tools
 - **flake8**: PEP 8 compliance, unused import detection (config: `.flake8`, `max-line-length = 120`)
@@ -355,6 +357,12 @@ The project uses multiple linting and type checking tools to maintain code quali
 - Use `Path.mkdir()` instead of `os.makedirs()`
 - Use `Path / 'file'` instead of `os.path.join()`
 - **Exception**: `os.getenv()` is acceptable for environment variables (not a path operation)
+
+### Blank Line Rules (PEP 8)
+- **2 blank lines** before and after top-level function and class definitions
+- **2 blank lines** after the last top-level function/class (before `if __name__`)
+- **1 blank line** between methods inside a class
+- **Maximum 2** consecutive blank lines allowed
 
 ### Code Organization
 - No unused imports or variables

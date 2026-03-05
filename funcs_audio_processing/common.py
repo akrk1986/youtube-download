@@ -76,6 +76,7 @@ def _sanitize_filename(filename: str) -> str:
         sanitized = f'_{sanitized}'
     return sanitized
 
+
 def extract_chapter_info(file_name: str) -> tuple[str | None, str | None, str | None]:
     """Given a file name which is an MP3/MP4 chapter, extract relevant parts:
     - file name
@@ -99,6 +100,7 @@ def extract_chapter_info(file_name: str) -> tuple[str | None, str | None, str | 
     extracted_file_name = _sanitize_filename(filename=extracted_file_name)
 
     return song_name, extracted_file_name, song_number
+
 
 def sanitize_album_name(title: str) -> str:
     """Sanitize video title to use as album name.

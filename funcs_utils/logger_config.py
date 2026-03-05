@@ -29,6 +29,7 @@ def _cleanup_old_logs(log_dir: Path) -> None:
                 # Silently ignore errors (file might be locked, etc.)
                 pass
 
+
 def setup_logging(verbose: bool = False, log_to_file: bool = True,
                   show_urls: bool = False,
                   log_dir: Path | None = None) -> None:

@@ -4,11 +4,13 @@ import re
 from pathlib import Path
 from funcs_utils import remove_diacritics
 
+
 def load_artists(artists_json_path: Path) -> list[dict[str, str]]:
     """Load artists from a JSON file."""
     with artists_json_path.open('r', encoding='utf-8') as f:
         data = json.load(f)
     return data['artists']
+
 
 def _artist_search_variants(full_name: str) -> list[str]:
     """Generate all search variants for a given full name, including last name only."""
@@ -30,6 +32,7 @@ def _artist_search_variants(full_name: str) -> list[str]:
         # Single name, just use as is
         variants.add(full_name.strip())
     return list(variants)
+
 
 def find_artists_in_string(text: str, artists: list[dict[str, str]]) -> tuple[int, str]:
     """

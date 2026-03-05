@@ -2,7 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-03-05-1139] - Type Safety Review + PEP 8 Blank Lines
+
+### Changed
+- **Type annotations**: replaced bare `dict`/`list` with parameterized generics (`dict[str, Any]`, `list[NotificationHandler]`) across 9 files
+- **Modern union syntax**: replaced `Optional[str]` with `str | None` in `funcs_notifications/message_builder.py`
+- **Type narrowing**: added explicit `video_info is not None` guards in `main-yt-dlp.py` to fix mypy `union-attr` errors
+- **PEP 8 blank lines**: fixed all E302/E303/E305 violations — added missing 2-blank-line separators between top-level functions in 5 files (`common.py`, `unified.py`, `artist_search.py`, `logger_config.py`, `main-get-artists-from-trello.py`)
+- **CLAUDE.md**: documented type annotation conventions (modern union syntax, parameterized generics) and PEP 8 blank line rules
+
 ## [2026-03-04-1303] - ERTFlix Tests Rewrite + Code Style Fixes
+
 
 ### Fixed
 - **ERTFlix token handler tests**: rewrote `TestResolveErtflixTokenUrl` to match the current URL-parsing implementation (8 obsolete subprocess-mocking tests replaced with 4 accurate tests). The handler no longer calls yt-dlp as a subprocess — it extracts the playback URL directly from the `content_URL` query parameter.

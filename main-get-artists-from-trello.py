@@ -14,6 +14,7 @@ def capitalize_greek_name(name: str) -> str:
         return ' '.join(word.capitalize() for word in name.split())
     return name
 
+
 def parse_card_name(card_name: str) -> tuple[str, str, bool]:
     """
     Splits the card name into Greek and English names.
@@ -33,6 +34,7 @@ def parse_card_name(card_name: str) -> tuple[str, str, bool]:
         warning = True
     greek = capitalize_greek_name(name=greek.strip())
     return greek, english.strip(), warning
+
 
 def extract_artists(trello_data: dict[str, Any]) -> tuple[list[dict[str, str]], int, int]:
     """
@@ -64,6 +66,7 @@ def extract_artists(trello_data: dict[str, Any]) -> tuple[list[dict[str, str]], 
         artists.append(artist)
     return artists, len(list_id_to_name), card_count
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description='Extract artists from Trello JSON export.')
     parser.add_argument(
@@ -90,6 +93,7 @@ def main() -> None:
         json.dump(output, f, ensure_ascii=False, indent=2)
 
     print(f'\nFound {num_lists} lists and {num_cards} cards.')
+
 
 if __name__ == '__main__':
     main()
