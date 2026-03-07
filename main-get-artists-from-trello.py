@@ -1,8 +1,11 @@
-"""Convert export from a Trello board to a simpler JSON."""
+"""Convert export from the Greek artists Trello board to a simpler JSON."""
 import argparse
 import json
 from pathlib import Path
 from typing import Any
+
+
+VERSION: str = '2025-11-15'
 
 
 def capitalize_greek_name(name: str) -> str:
