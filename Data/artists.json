@@ -67,7 +67,7 @@
     },
     {
       "Greek name": "Ελεάνα Παπαϊωάννου",
-      "English name": "Eliana Papaioannou",
+      "English name": "Eleana Papaioannou",
       "List": "Favorites"
     },
     {
@@ -251,23 +251,8 @@
       "List": "Female Singers - Tier 1"
     },
     {
-      "Greek name": "Κωνσταντίνα",
-      "English name": "Κonstantina",
-      "List": "Female Singers - Tier 1"
-    },
-    {
       "Greek name": "Μαρία Ιωαννίδου",
       "English name": "Maria Yoannidou",
-      "List": "Female Singers - Tier 1"
-    },
-    {
-      "Greek name": "Μαρία Σεϊτανίδου",
-      "English name": "Maria Seitanidou",
-      "List": "Female Singers - Tier 1"
-    },
-    {
-      "Greek name": "Μαριάννα Λούμα",
-      "English name": "Marianna Louma",
       "List": "Female Singers - Tier 1"
     },
     {
@@ -293,11 +278,6 @@
     {
       "Greek name": "Σταυρούλα Εσαμπαλίδη",
       "English name": "Stavroula Esabalidi",
-      "List": "Female Singers - Tier 1"
-    },
-    {
-      "Greek name": "Χριστίνα Μαραγκόζη",
-      "English name": "Christina Maragozi",
       "List": "Female Singers - Tier 1"
     },
     {
@@ -366,16 +346,6 @@
       "List": "Female Singers - Tier 2"
     },
     {
-      "Greek name": "Κατερίνα Κούκα",
-      "English name": "Katerina Kouka",
-      "List": "Female Singers - Tier 2"
-    },
-    {
-      "Greek name": "Κατερίνα Παπουτσάκη",
-      "English name": "Katerina Papoutsaki",
-      "List": "Female Singers - Tier 2"
-    },
-    {
       "Greek name": "Κατερινα Τσιριδου",
       "English name": "Katerina Tsiridou",
       "List": "Female Singers - Tier 2"
@@ -383,6 +353,11 @@
     {
       "Greek name": "Κέλλυ Βουδούρη",
       "English name": "Kelly Voudouri",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Κωνσταντίνα",
+      "English name": "Κonstantina",
       "List": "Female Singers - Tier 2"
     },
     {
@@ -401,8 +376,13 @@
       "List": "Female Singers - Tier 2"
     },
     {
-      "Greek name": "Μαριαλένα Ροζάκη",
-      "English name": "Marialena Rozaki",
+      "Greek name": "Μαριάνα Κατσιμίχα",
+      "English name": "Mariana Katsimiha",
+      "List": "Female Singers - Tier 2"
+    },
+    {
+      "Greek name": "Μαριάννα Λούμα",
+      "English name": "Marianna Louma",
       "List": "Female Singers - Tier 2"
     },
     {
@@ -461,6 +441,11 @@
       "List": "Female Singers - Tier 2"
     },
     {
+      "Greek name": "Χριστίνα Μαραγκόζη",
+      "English name": "Christina Maragozi",
+      "List": "Female Singers - Tier 2"
+    },
+    {
       "Greek name": "Αποστολία Ζώη",
       "English name": "Apostolia Zoi",
       "List": "Female Singers - Tier 3"
@@ -501,6 +486,16 @@
       "List": "Female Singers - Tier 3"
     },
     {
+      "Greek name": "Κατερίνα Κούκα",
+      "English name": "Katerina Kouka",
+      "List": "Female Singers - Tier 3"
+    },
+    {
+      "Greek name": "Κατερίνα Παπουτσάκη",
+      "English name": "Katerina Papoutsaki",
+      "List": "Female Singers - Tier 3"
+    },
+    {
       "Greek name": "Λένα Αλκαίου",
       "English name": "Lena Alkaiou",
       "List": "Female Singers - Tier 3"
@@ -508,6 +503,11 @@
     {
       "Greek name": "Λυδία Μαύρου",
       "English name": "Lydia Mavrou",
+      "List": "Female Singers - Tier 3"
+    },
+    {
+      "Greek name": "Μαριαλένα Ροζάκη",
+      "English name": "Marialena Rozaki",
       "List": "Female Singers - Tier 3"
     },
     {
