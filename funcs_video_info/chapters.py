@@ -111,11 +111,11 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str, video_download_timeout
                         except json.JSONDecodeError:
                             continue
                 else:
-                    # No valid JSON found
-                    raise
+                    logger.warning(f"Failed to parse video info JSON for URL '{playlist_url}': {e}")
+                    return 0
             else:
-                # Re-raise if it's not an "Extra data" error
-                raise
+                logger.warning(f"Failed to parse video info JSON for URL '{playlist_url}': {e}")
+                return 0
 
         chapters = video_info.get('chapters')
         # Handle cases where chapters is None or not a list
@@ -127,9 +127,6 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str, video_download_timeout
         return 0
     except subprocess.CalledProcessError as e:
         logger.warning(f"Failed to get chapter count for URL '{playlist_url}': {e.stderr}")
-        return 0
-    except json.JSONDecodeError as e:
-        logger.warning(f"Failed to parse video info JSON for URL '{playlist_url}': {e}")
         return 0
     except (KeyError, TypeError) as e:
         logger.debug(f'No chapters found in video info: {e}')
