@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-03-08-1923] - Linting Orchestration Script
+
+### Added
+- **`run-linters.py`**: new script that runs any of 10 linting tools (ruff, mypy, bandit, pydoclint, pylint, vulture, radon, pyupgrade, eslint, jshint) via `--tool <name>`; `--list` prints tool names for Claude sub-agent discovery
+- **CLAUDE.md**: new "Linting" section documents all tools and the Claude parallel sub-agent workflow
+
+### Fixed
+- Pre-existing ruff E501/F401 violations in `file_organization.py`, `main-yt-dlp.py`, and `Tests-Standalone/scrape-with-selenium.py`
+
 ## [2026-03-08-1837] - pydoclint Docstring Fixes
 
 ### Fixed
