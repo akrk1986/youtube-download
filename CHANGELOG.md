@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-03-08-1708] - Ruff Linter Setup + Lint Fixes
+
+### Added
+- **`ruff.toml`**: ruff linter configuration (`line-length = 120`, rules E/W/F, `Beta/` and `.venv-*` excluded, I001 import-sorting suppressed)
+- **`ruff` package**: added to `requirements.txt`
+
+### Fixed
+- **F401** (unused imports): removed or `# noqa`-suppressed unused imports across 12 files including `ertflix_token_handler.py`, `e2e_main.py`, standalone test scripts
+- **F541** (f-strings without placeholders): removed `f` prefix from ~30 plain strings across test and main scripts
+- **E501** (lines too long): wrapped long lines in `unified.py`, `chapter_remux.py`, `main-convert.py`, `main-yt-dlp.py`, and multiple standalone test files
+- **W292** (no newline at end of file): added missing trailing newlines in 10 standalone test files
+- **W293** (blank lines with whitespace): stripped trailing whitespace from blank lines in `main_greek_search.py` and `main-boost-mp3-or-mp4.py`
+- **F841** (unused variables): replaced unused `result` with `_` in `test_rerun.py`; removed `as e` from 3 bare exception handlers
+- **E402** (import not at top): moved `import smtplib` to top of `test_gmail_auth.py`
+
 ## [2026-03-05-1139] - Type Safety Review + PEP 8 Blank Lines
 
 ### Changed

@@ -5,6 +5,7 @@ mutagen
 mypy
 odfpy
 pylint
+ruff
 pytest
 requests
 types-requests
