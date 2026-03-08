@@ -9,8 +9,8 @@ import shutil
 
 sys.path.append('..')
 
-from mutagen.id3 import ID3, ID3NoHeaderError
-from mutagen.id3 import TIT2, TPE1, TPE2, TALB, TDRC, TRCK, TENC, TSSE, COMM, TXXX, APIC, TCOM
+from mutagen.id3 import ID3
+from mutagen.id3 import TIT2, TPE1, TPE2, TALB, TDRC, TRCK, TENC, TSSE, COMM, TXXX, TCOM
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -162,7 +162,7 @@ def clone_structure(template_file: Path, source_file: Path, output_file: Path) -
                 text = get_text('TENC') or ['']
                 new_frame = TENC(encoding=ENCODING_UTF16, text=text)
                 output_id3.add(new_frame)
-                logger.debug(f'Added TENC (encoding=UTF-16)')
+                logger.debug('Added TENC (encoding=UTF-16)')
                 processed_frame_types.add('TENC')
 
             elif frame_id == 'TSSE':

@@ -138,7 +138,8 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     audio_group.add_argument('--only-audio', action='store_true',
                              help='Delete video files after extraction')
     audio_group.add_argument('--ertflix-program', action='store_true',
-                             help='ERTFlix program mode: download video only (resolves token URLs, ignores audio flags)')
+                             help='ERTFlix program mode: download video only (resolves token URLs, ignores audio flags)'
+                             )
 
     return parser.parse_args(argv)
 

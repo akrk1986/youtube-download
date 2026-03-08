@@ -1,0 +1,26 @@
+line-length = 120
+
+exclude = [
+    ".venv-linux",
+    ".venv-3.14",
+    ".venv-windows",
+    ".venv",
+    "Beta",
+    ".git",
+    ".idea",
+    ".pytest_cache",
+    ".mypy_cache",
+    "__pycache__",
+    "node_modules",
+]
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+]
+ignore = [
+    "I001",  # import block sorting (isort)
+]

@@ -41,7 +41,7 @@ def test_sanitize_string():
         print(f"  Expected: '{expected}'")
         print(f"  Result:   '{result}'")
         if result != expected:
-            print(f'  ❌ MISMATCH!')
+            print('  ❌ MISMATCH!')
         print()
 
 if __name__ == '__main__':

@@ -47,22 +47,22 @@ def test_url_validation_in_main():
                 failed += 1
                 print(f'\n{status}: {description}')
                 print(f'  URL: {url}')
-                print(f'  Expected: Should be rejected')
+                print('  Expected: Should be rejected')
                 print(f'  Got: Was accepted (returned: {result})')
-        except SystemExit as e:
+        except SystemExit:
             if not should_pass:
                 status = '✓ PASS'
                 passed += 1
                 print(f'\n{status}: {description}')
                 print(f'  URL: {url}')
-                print(f'  Result: Correctly rejected')
+                print('  Result: Correctly rejected')
             else:
                 status = '✗ FAIL'
                 failed += 1
                 print(f'\n{status}: {description}')
                 print(f'  URL: {url}')
-                print(f'  Expected: Should be accepted')
-                print(f'  Got: Was rejected')
+                print('  Expected: Should be accepted')
+                print('  Got: Was rejected')
 
     # Summary
     print('\n' + '=' * 80)

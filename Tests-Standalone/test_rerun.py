@@ -18,7 +18,7 @@ def test_rerun_saves_url():
     # Run the script with a test URL (use --version to exit immediately after URL validation)
     test_url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
     cmd = f'source .venv-linux/bin/activate && python main-yt-dlp.py "{test_url}" --version'
-    result = os.system(cmd)
+    _ = os.system(cmd)
 
     # Check if file was created
     assert last_url_file.exists(), 'Data/last_url.txt was not created'

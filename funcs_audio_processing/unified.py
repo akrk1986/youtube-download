@@ -119,7 +119,9 @@ def set_tags_in_chapter_audio_files(
             continue
         except Exception as e:
             # Unexpected error
-            logger.error(f"Unexpected error reading audio chapter file '{audio_file.name}' in folder '{audio_folder}': {e}")
+            logger.error(
+                f"Unexpected error reading audio chapter file '{audio_file.name}' in folder '{audio_folder}': {e}"
+            )
             continue
 
         original_filename = original_names.get(str(audio_file), audio_file.name)

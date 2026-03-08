@@ -12,8 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3, TENC
-from mutagen.mp4 import MP4
+from mutagen.id3 import ID3
 
 from funcs_audio_tag_handlers import MP3TagHandler, M4ATagHandler
 
@@ -84,7 +83,8 @@ def test_m4a_original_filename():
 
     # Verify the ©lyr tag was set
     assert handler.TAG_LYRICS in mock_audio, 'No ©lyr tag found'
-    assert mock_audio[handler.TAG_LYRICS] == [test_filename], f"Expected '{test_filename}', got '{mock_audio[handler.TAG_LYRICS]}'"
+    assert mock_audio[handler.TAG_LYRICS] == [test_filename], \
+        f"Expected '{test_filename}', got '{mock_audio[handler.TAG_LYRICS]}'"
 
     print(f'✓ M4A: Original filename stored in ©lyr tag: {mock_audio[handler.TAG_LYRICS][0]}')
 

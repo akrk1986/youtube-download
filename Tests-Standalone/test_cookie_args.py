@@ -26,7 +26,8 @@ def test_chrome_browser():
     os.environ['YTDLP_USE_COOKIES'] = 'chrome'
     result = get_cookie_args()
     print(f"YTDLP_USE_COOKIES='chrome': {result}")
-    assert result == ['--cookies-from-browser', 'chrome', '--no-cache-dir', '--sleep-requests', '1'], f'Expected chrome args with no-cache and sleep, got {result}'
+    expected = ['--cookies-from-browser', 'chrome', '--no-cache-dir', '--sleep-requests', '1']
+    assert result == expected, f'Expected chrome args with no-cache and sleep, got {result}'
 
 
 def test_chrome_uppercase():
@@ -34,7 +35,8 @@ def test_chrome_uppercase():
     os.environ['YTDLP_USE_COOKIES'] = 'CHROME'
     result = get_cookie_args()
     print(f"YTDLP_USE_COOKIES='CHROME': {result}")
-    assert result == ['--cookies-from-browser', 'chrome', '--no-cache-dir', '--sleep-requests', '1'], f'Expected chrome args with no-cache and sleep, got {result}'
+    expected = ['--cookies-from-browser', 'chrome', '--no-cache-dir', '--sleep-requests', '1']
+    assert result == expected, f'Expected chrome args with no-cache and sleep, got {result}'
 
 
 def test_firefox_browser():
@@ -42,7 +44,8 @@ def test_firefox_browser():
     os.environ['YTDLP_USE_COOKIES'] = 'firefox'
     result = get_cookie_args()
     print(f"YTDLP_USE_COOKIES='firefox': {result}")
-    assert result == ['--cookies-from-browser', 'firefox', '--no-cache-dir', '--sleep-requests', '1'], f'Expected firefox args with no-cache and sleep, got {result}'
+    expected = ['--cookies-from-browser', 'firefox', '--no-cache-dir', '--sleep-requests', '1']
+    assert result == expected, f'Expected firefox args with no-cache and sleep, got {result}'
 
 
 def test_any_other_value():
@@ -50,7 +53,8 @@ def test_any_other_value():
     os.environ['YTDLP_USE_COOKIES'] = 'yes'
     result = get_cookie_args()
     print(f"YTDLP_USE_COOKIES='yes': {result}")
-    assert result == ['--cookies-from-browser', 'firefox', '--no-cache-dir', '--sleep-requests', '1'], f'Expected firefox args with no-cache and sleep (default), got {result}'
+    expected = ['--cookies-from-browser', 'firefox', '--no-cache-dir', '--sleep-requests', '1']
+    assert result == expected, f'Expected firefox args with no-cache and sleep (default), got {result}'
 
 
 def test_empty_string():

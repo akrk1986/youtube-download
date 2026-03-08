@@ -70,7 +70,10 @@ def remux_video_chapters(ffmpeg_path: str, video_folder: Path,
                     duration_args = ['-t', str(end_time - start_time)]
 
         try:
-            cmd = [ffmpeg_path, '-y', '-i', str(mp4_file), '-c', 'copy'] + duration_args + metadata_args + [str(temp_file)]
+            cmd = (
+                [ffmpeg_path, '-y', '-i', str(mp4_file), '-c', 'copy']
+                + duration_args + metadata_args + [str(temp_file)]
+            )
             subprocess.run(cmd, capture_output=True, check=True, timeout=FFMPEG_TIMEOUT_SECONDS,
                            encoding='utf-8', errors='replace')
             temp_file.replace(mp4_file)

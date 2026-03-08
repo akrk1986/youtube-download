@@ -139,7 +139,7 @@ def main():
 
     if chromedriver_path and chromedriver_path.exists():
         print(f'\n✓ Success! ChromeDriver installed at: {chromedriver_path}')
-        print(f'\nTo use it, set the environment variable:')
+        print('\nTo use it, set the environment variable:')
         print(f'export CHROMEDRIVER_PATH="{chromedriver_path}"')
     else:
         print('\n✗ Failed to download chromedriver')

@@ -57,7 +57,8 @@ def fix_mp3_files_in_folder(folder_path: Path, recursive: bool = False) -> dict:
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description='Fix MP3 encoding for Turkish/Greek/Hebrew characters by forcing UTF-16 encoding on all text frames.'
+        description='Fix MP3 encoding for Turkish/Greek/Hebrew characters'
+        ' by forcing UTF-16 encoding on all text frames.'
     )
     parser.add_argument(
         'folder',

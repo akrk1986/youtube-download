@@ -15,7 +15,7 @@ def main():
     print(f"Testing URL: {url3}")
 
     # Verify it's actually a playlist
-    print(f"\n🔍 Analyzing URL...")
+    print("\n🔍 Analyzing URL...")
     try:
         is_url3_playlist = is_playlist(url3)
         if is_url3_playlist:
@@ -26,7 +26,7 @@ def main():
         print(f"❌ Error checking URL: {e}")
 
     # Show current file counts before test
-    print(f"\n📁 Files before test:")
+    print("\n📁 Files before test:")
     _show_file_counts()
 
     # Run Test 3: Playlist with both video and audio in both formats
@@ -50,7 +50,7 @@ def main():
             print("❌ TEST 3 FAILED")
 
         # Show files after test
-        print(f"\n📁 Files after Test 3:")
+        print("\n📁 Files after Test 3:")
         _show_file_counts()
 
         return result.returncode == 0

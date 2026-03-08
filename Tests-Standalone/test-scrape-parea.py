@@ -131,12 +131,12 @@ def try_api_endpoints(series_id: str, series_slug: str) -> None:
                         for key in ['episodes', 'vods', 'items', 'data', 'results']:
                             if key in data:
                                 print(f'  Found "{key}" with {len(data[key])} items')
-                except Exception as e:
+                except Exception:
                     print(f'  Response length: {len(response.text)} chars')
             else:
                 print(f'  Status: {response.status_code}')
         except requests.Timeout:
-            print(f'  TIMEOUT')
+            print('  TIMEOUT')
         except Exception as e:
             print(f'  Error: {type(e).__name__}')
 

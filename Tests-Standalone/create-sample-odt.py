@@ -5,7 +5,6 @@ Create a sample ODT file with URLs for testing.
 from odf.opendocument import OpenDocumentText
 from odf.text import P
 from odf.style import Style, TextProperties, ParagraphProperties
-from odf import style
 
 
 def create_sample_odt(output_path: str) -> None:
@@ -51,7 +50,8 @@ def create_sample_odt(output_path: str) -> None:
         '- yt-dlp GitHub: https://github.com/yt-dlp/yt-dlp',
         '- ODF Toolkit: https://odfpy.readthedocs.io/en/latest/',
         '',
-        'Multiple URLs in one paragraph: Check out https://www.example.com and also visit https://test.example.org for more info.',
+        'Multiple URLs in one paragraph: Check out https://www.example.com'
+        ' and also visit https://test.example.org for more info.',
         '',
         'Some URLs with paths:',
         'https://en.wikipedia.org/wiki/OpenDocument',

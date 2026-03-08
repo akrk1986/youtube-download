@@ -48,29 +48,36 @@ def test_csv_generation():
 
     # Verify header
     expected_header = 'start time,end time,song name,original song name,artist name,album name,year,composer,comments'
-    assert lines[0].strip() == expected_header, f'Header is incorrect. Expected: {expected_header}, Got: {lines[0].strip()}'
+    assert lines[0].strip() == expected_header, \
+        f'Header is incorrect. Expected: {expected_header}, Got: {lines[0].strip()}'
 
     # Verify comment lines with metadata
     expected_comment1 = "# Title: 'Test Video with Chapters'"
-    assert lines[1].strip() == expected_comment1, f'Title comment line incorrect. Expected: {expected_comment1}, Got: {lines[1].strip()}'
+    assert lines[1].strip() == expected_comment1, \
+        f'Title comment line incorrect. Expected: {expected_comment1}, Got: {lines[1].strip()}'
 
     expected_comment2 = "# Artist/Uploader: 'Test Channel'"
-    assert lines[2].strip() == expected_comment2, f'Artist comment line incorrect. Expected: {expected_comment2}, Got: {lines[2].strip()}'
+    assert lines[2].strip() == expected_comment2, \
+        f'Artist comment line incorrect. Expected: {expected_comment2}, Got: {lines[2].strip()}'
 
     expected_comment3 = '# URL: https://youtube.com/watch?v=test123'
-    assert lines[3].strip() == expected_comment3, f'URL comment line incorrect. Expected: {expected_comment3}, Got: {lines[3].strip()}'
+    assert lines[3].strip() == expected_comment3, \
+        f'URL comment line incorrect. Expected: {expected_comment3}, Got: {lines[3].strip()}'
 
     # Verify first chapter (9 columns total = 8 commas, year should be populated)
     expected_line1 = '000000,000300,Introduction,,,,2023,,'
-    assert lines[4].strip() == expected_line1, f'First chapter line incorrect. Expected: {expected_line1}, Got: {lines[4].strip()}'
+    assert lines[4].strip() == expected_line1, \
+        f'First chapter line incorrect. Expected: {expected_line1}, Got: {lines[4].strip()}'
 
     # Verify second chapter
     expected_line2 = '000300,000700,Main Content,,,,2023,,'
-    assert lines[5].strip() == expected_line2, f'Second chapter line incorrect. Expected: {expected_line2}, Got: {lines[5].strip()}'
+    assert lines[5].strip() == expected_line2, \
+        f'Second chapter line incorrect. Expected: {expected_line2}, Got: {lines[5].strip()}'
 
     # Verify third chapter (over 1 hour)
     expected_line3 = '000700,010205,Conclusion - Final Thoughts,,,,2023,,'
-    assert lines[6].strip() == expected_line3, f'Third chapter line incorrect. Expected: {expected_line3}, Got: {lines[6].strip()}'
+    assert lines[6].strip() == expected_line3, \
+        f'Third chapter line incorrect. Expected: {expected_line3}, Got: {lines[6].strip()}'
 
     # Clean up
     csv_path.unlink()
@@ -117,7 +124,8 @@ def test_csv_generation_no_date():
 
     # Verify chapter has empty year field
     expected_line = '000000,000140,Chapter 1,,,,,,'
-    assert lines[4].strip() == expected_line, f'Chapter line incorrect. Expected: {expected_line}, Got: {lines[4].strip()}'
+    assert lines[4].strip() == expected_line, \
+        f'Chapter line incorrect. Expected: {expected_line}, Got: {lines[4].strip()}'
 
     # Clean up
     csv_path.unlink()

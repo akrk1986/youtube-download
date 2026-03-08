@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.append('..')
 
-from mutagen.id3 import ID3, ID3NoHeaderError, TIT2, TPE1, TPE2, TALB, TDRC, TRCK, COMM
+from mutagen.id3 import ID3, ID3NoHeaderError, TIT2, TPE1, TPE2, TALB, TDRC, TRCK
 from project_defs import GLOB_MP3_FILES, GLOB_MP3_FILES_UPPER
 import logging
 

@@ -92,7 +92,8 @@ def extract_m4a_tags(file_path: Path) -> dict[str, str] | None:
             'albumartist': audio.get('aART', [''])[0] if audio.get('aART') else '',
             'date': year,
             'album': audio.get('\xa9alb', [''])[0] if audio.get('\xa9alb') else '',
-            'tracknumber': str(audio.get('trkn', [(0, 0)])[0][0]) if audio.get('trkn') and audio.get('trkn')[0][0] > 0 else '',
+            'tracknumber': str(audio.get('trkn', [(0, 0)])[0][0])
+            if audio.get('trkn') and audio.get('trkn')[0][0] > 0 else '',
             'comment': audio.get('\xa9cmt', [''])[0] if audio.get('\xa9cmt') else '',
             'composer': audio.get('\xa9wrt', [''])[0] if audio.get('\xa9wrt') else '',
             'encodedby': unsyncedlyrics

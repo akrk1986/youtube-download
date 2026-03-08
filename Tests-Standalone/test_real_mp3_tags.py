@@ -23,7 +23,7 @@ def download_test_video():
     with tempfile.TemporaryDirectory() as tmpdir:
         output_path = Path(tmpdir) / 'test_video.mp3'
 
-        print(f'Downloading test video from YouTube...')
+        print('Downloading test video from YouTube...')
         print(f'URL: {test_url}')
         print(f'Output: {output_path}\n')
 

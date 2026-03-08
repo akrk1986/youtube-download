@@ -14,7 +14,6 @@ Usage:
 
 import argparse
 import json
-import platform
 import shutil
 import subprocess
 import sys
@@ -28,7 +27,6 @@ import arrow
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from funcs_for_main_yt_dlp.external_tools import get_ffmpeg_path, get_ytdlp_path
-from funcs_video_info.chapters import get_chapter_count
 from e2e_config import DEFAULT_TIMEOUTS, E2E_TEST_CASES
 
 # State file location
@@ -433,7 +431,7 @@ def _run_test_suite(resume: bool = False) -> None:
     total_urls = sum(len(urls) for urls in E2E_TEST_CASES.values())
     total_use_cases = len(E2E_TEST_CASES)
 
-    print(f'\nLoaded test cases:')
+    print('\nLoaded test cases:')
     for use_case, urls in E2E_TEST_CASES.items():
         if urls:
             print(f'  {use_case}: {len(urls)} URL(s)')
@@ -482,7 +480,7 @@ def _run_test_suite(resume: bool = False) -> None:
         state = {
             'test_results': [],
         }
-        print(f'\nResume mode: No (fresh run)')
+        print('\nResume mode: No (fresh run)')
         print(f'State file: {STATE_FILE}')
         _cleanup_output_dirs()
         _save_state(state)
@@ -594,7 +592,7 @@ def _run_test_suite(resume: bool = False) -> None:
     failed = sum(1 for t in test_results if t['status'] == 'failed')
     skipped = sum(1 for t in test_results if t['status'] == 'skipped')
 
-    print(f'\nFinal summary:')
+    print('\nFinal summary:')
     print(f'  Total tests: {len(test_results)}')
     print(f'  ✅ Succeeded: {succeeded}')
     print(f'  ❌ Failed: {failed}')

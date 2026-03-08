@@ -3,6 +3,7 @@
 Test Gmail authentication with detailed error reporting.
 Run this to diagnose Gmail notification issues.
 """
+import smtplib
 import sys
 from pathlib import Path
 
@@ -32,7 +33,6 @@ for key in required_keys:
             print(f'   ✅ {key}: {value}')
 
 print('\n2. Testing SMTP connection...')
-import smtplib
 try:
     server = smtplib.SMTP('smtp.gmail.com', 587, timeout=15)
     print('   ✅ Connected to smtp.gmail.com:587')
@@ -42,7 +42,8 @@ try:
 
     print('\n3. Testing authentication...')
     print(f'   Using email: {GMAIL_PARAMS["sender_email"]}')
-    print(f'   Using password: {"*" * len(GMAIL_PARAMS["sender_app_password"])} ({len(GMAIL_PARAMS["sender_app_password"])} chars)')
+    pwd_len = len(GMAIL_PARAMS['sender_app_password'])
+    print(f'   Using password: {"*" * pwd_len} ({pwd_len} chars)')
 
     server.login(GMAIL_PARAMS['sender_email'], GMAIL_PARAMS['sender_app_password'])
     print('   ✅ Authentication successful!')

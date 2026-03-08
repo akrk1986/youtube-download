@@ -94,7 +94,7 @@ def main():
         url2 = VIDEO_WITH_CHAPTERS
         url3 = VIDEO_PLAYLIST
 
-        print(f"\nLoaded test URLs:")
+        print("\nLoaded test URLs:")
         print(f"1. Simple single video: {url1}")
         print(f"2. Video with chapters: {url2}")
         print(f"3. Playlist: {url3}")
@@ -111,7 +111,7 @@ def main():
     print(f"\nCurrent working directory: {os.getcwd()}")
 
     # Clean up output directories at start
-    print(f"\n🧹 Cleaning up output directories...")
+    print("\n🧹 Cleaning up output directories...")
     video_dir = Path("../yt-videos")
     audio_dir = Path("../yt-audio")
 
@@ -172,18 +172,18 @@ def main():
         # Check if commands are available in PATH
         try:
             subprocess.run([yt_dlp_exe, "--version"], capture_output=True, check=True)
-            print(f"✅ YT-DLP found in PATH")
+            print("✅ YT-DLP found in PATH")
         except (subprocess.CalledProcessError, FileNotFoundError):
-            print(f"❌ YT-DLP not found in PATH. Tests may fail!")
+            print("❌ YT-DLP not found in PATH. Tests may fail!")
 
         try:
             subprocess.run([ffmpeg_exe, "-version"], capture_output=True, check=True)
-            print(f"✅ FFMPEG found in PATH")
+            print("✅ FFMPEG found in PATH")
         except (subprocess.CalledProcessError, FileNotFoundError):
-            print(f"❌ FFMPEG not found in PATH. Tests may fail!")
+            print("❌ FFMPEG not found in PATH. Tests may fail!")
 
     # Test 1: Simple single video (extract audio as MP3)
-    print(f"\n🔍 Analyzing URL1 for chapters...")
+    print("\n🔍 Analyzing URL1 for chapters...")
     try:
         is_url1_playlist = is_playlist(url1)
         if not is_url1_playlist:
@@ -204,11 +204,11 @@ def main():
     results.append(("Test 1 (Single Video -> Video + Both Audio Formats)", result1))
 
     # Show files after Test 1
-    print(f"\n📁 Files after Test 1:")
+    print("\n📁 Files after Test 1:")
     _show_file_counts()
 
     # Test 2: Video with chapters (extract video only)
-    print(f"\n🔍 Analyzing URL2 for chapters...")
+    print("\n🔍 Analyzing URL2 for chapters...")
     try:
         is_url2_playlist = is_playlist(url2)
         if not is_url2_playlist:
@@ -238,11 +238,11 @@ def main():
         results.append(("Test 2 (Chapters Video -> Video Only)", False))
 
     # Show files after Test 2
-    print(f"\n📁 Files after Test 2:")
+    print("\n📁 Files after Test 2:")
     _show_file_counts()
 
     # Test 3: Playlist (extract audio as M4A)
-    print(f"\n🔍 Analyzing URL3...")
+    print("\n🔍 Analyzing URL3...")
     try:
         is_url3_playlist = is_playlist(url3)
         if is_url3_playlist:
@@ -274,7 +274,7 @@ def main():
     print(f"\nOverall: {passed}/{len(results)} tests passed")
 
     # Check output directories
-    print(f"\n📁 Output directories:")
+    print("\n📁 Output directories:")
     video_dir = Path("../yt-videos")
     audio_dir = Path("../yt-audio")
 
@@ -295,7 +295,7 @@ def main():
         if len(mp3_files) + len(m4a_files) > 5:
             print(f"  ... and {len(mp3_files) + len(m4a_files) - 5} more")
 
-    print(f"\n🎉 Test suite completed!")
+    print("\n🎉 Test suite completed!")
 
 if __name__ == '__main__':
     main()

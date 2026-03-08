@@ -1,13 +1,10 @@
 """ERTFlix token API URL resolution for authenticated content access."""
-import json
 import logging
-import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse, unquote
 
-from funcs_utils import get_cookie_args, sanitize_url_for_subprocess
-from project_defs import SUBPROCESS_TIMEOUT_OTHER_SITES
+from funcs_utils import sanitize_url_for_subprocess
 
 logger = logging.getLogger(__name__)
 

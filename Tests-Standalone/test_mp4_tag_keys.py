@@ -35,8 +35,8 @@ def test_mp4_tag_keys():
                 print(f"✗ {key}: {value} - Error: {e}")
 
         # Try to save (without actual file)
-        print(f"\nTag keys validation complete.")
-        print(f"All expected MP4 atom tags are supported by mutagen.")
+        print("\nTag keys validation complete.")
+        print("All expected MP4 atom tags are supported by mutagen.")
 
     except Exception as e:
         print(f"Error during MP4 tag testing: {e}")

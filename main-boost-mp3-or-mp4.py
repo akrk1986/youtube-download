@@ -44,7 +44,7 @@ def main() -> None:
 
     # Find all MP3/MP4/M4A files in directory (case-insensitive)
     # Exclude files already ending with '-boost'
-    
+
     supported_extensions = {'.mp3', '.mp4', '.m4a'}
     media_files = [
         f for f in args.input_dir.iterdir()
@@ -68,7 +68,7 @@ def main() -> None:
 
     print(f'Found {len(media_files)} candidate file(s) to process')
     if use_loudnorm:
-        print(f'Mode: loudnorm')
+        print('Mode: loudnorm')
     else:
         print(f'Mode: auto-calculated volume boost (target: {TARGET_PEAK_DB} dB)')
     print('-' * 60)
@@ -85,7 +85,7 @@ def main() -> None:
                 print(f'  Using manual boost: {actual_boost:.2f}x')
             else:
                 # Auto-detect levels and calculate boost
-                print(f'  Detecting audio levels...')
+                print('  Detecting audio levels...')
                 mean_vol, max_vol = detect_audio_levels(input_file=media_file)
                 print(f'  Current levels: mean={mean_vol:.1f} dB, max={max_vol:.1f} dB')
 

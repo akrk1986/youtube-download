@@ -11,7 +11,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from funcs_notifications import GmailNotifier, SlackNotifier, send_all_notifications
+from funcs_notifications import GmailNotifier, SlackNotifier
 
 
 def test_notifications_env_var() -> None:

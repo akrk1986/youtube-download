@@ -18,8 +18,6 @@ try:
     from selenium.webdriver.chrome.options import Options
     from selenium.webdriver.chrome.service import Service
     from selenium.webdriver.common.by import By
-    from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.support.ui import WebDriverWait
     from webdriver_manager.chrome import ChromeDriverManager
 except ImportError as e:
     print(f'Error: Required package not found: {e}')
@@ -65,7 +63,9 @@ def extract_urls_with_selenium(page_url: str, url_pattern: str, wait_seconds: in
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    user_agent = ('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+                  ' AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    chrome_options.add_argument(user_agent)
 
     # Check if running in WSL and use Windows Chrome if available
     chromedriver_path = None
@@ -119,7 +119,7 @@ def extract_urls_with_selenium(page_url: str, url_pattern: str, wait_seconds: in
                     if href not in seen:
                         seen.add(href)
                         matched_urls.append((href, text))
-            except Exception as e:
+            except Exception:
                 # Ignore stale elements
                 continue
 
