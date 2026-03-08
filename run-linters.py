@@ -26,8 +26,11 @@ EXCLUDED_DIRS = [
 
 TOOLS = [
     'ruff', 'mypy', 'bandit', 'pydoclint', 'pylint',
-    'vulture', 'radon', 'pyupgrade', 'eslint', 'jshint',
+    'vulture', 'pyupgrade', 'eslint', 'jshint',
 ]
+
+# radon is informational only; excluded from default runs, opt-in via --tool radon or --with-radon
+ALL_TOOLS = TOOLS + ['radon']
 
 
 @dataclass
@@ -389,14 +392,17 @@ _TOOL_RUNNERS = {
 def main() -> None:
     """Entry point."""
     parser = argparse.ArgumentParser(description='Run linter tools, optionally grouping output by source file.')
-    parser.add_argument('--tool', choices=TOOLS, metavar='TOOL', help='Tool to run (use --list to see available tools)')
+    parser.add_argument('--tool', choices=ALL_TOOLS, metavar='TOOL',
+                        help='Tool to run (use --list to see available tools)')
     parser.add_argument('--list', action='store_true', help='Print all available tool names')
     parser.add_argument('--group-by-files', action='store_true',
                         help='Group findings by source file instead of by tool')
+    parser.add_argument('--with-radon', action='store_true',
+                        help='Include radon in the run (informational only, excluded by default)')
     args = parser.parse_args()
 
     if args.list:
-        for tool in TOOLS:
+        for tool in ALL_TOOLS:
             print(tool)
         sys.exit(0)
 
@@ -407,7 +413,10 @@ def main() -> None:
         sys.exit(0)
 
     if args.group_by_files:
-        tools_to_run = [args.tool] if args.tool else TOOLS
+        if args.tool:
+            tools_to_run = [args.tool]
+        else:
+            tools_to_run = TOOLS + (['radon'] if args.with_radon else [])
         all_issues: list[Issue] = []
         rc_map: dict[str, int] = {}
         for name in tools_to_run:
