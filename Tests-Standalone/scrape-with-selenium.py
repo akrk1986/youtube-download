@@ -10,7 +10,6 @@ import argparse
 import re
 import time
 from pathlib import Path
-from typing import List, Tuple
 
 # Note: Requires selenium and webdriver-manager
 try:

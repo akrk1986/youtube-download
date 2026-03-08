@@ -293,7 +293,8 @@ def _detect_chapters(
         show_chapters: Whether to display chapters and build name map
 
     Returns:
-        tuple[bool, dict[str, Any] | None, str | None, str | None, dict[int, str]]: Tuple of (has_chapters, video_info, uploader_name, video_title, chapter_name_map)
+        tuple[bool, dict[str, Any] | None, str | None, str | None, dict[int, str]]:
+            Tuple of (has_chapters, video_info, uploader_name, video_title, chapter_name_map)
     """
     if url_is_playlist:
         logger.info('URL is a playlist, not extracting chapters')

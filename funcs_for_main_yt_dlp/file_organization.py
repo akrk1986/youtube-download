@@ -45,7 +45,8 @@ def organize_and_sanitize_files(video_folder: Path, audio_formats: list[str],
         chapter_name_map: Optional mapping of chapter numbers to normalized filenames
 
     Returns:
-        dict[str, dict[str, str]]: dict with 'mp3', 'm4a', and 'flac' keys, each containing a mapping of final_path -> original_ytdlp_filename
+        dict[str, dict[str, str]]: dict with 'mp3', 'm4a', and 'flac' keys,
+            each containing a mapping of final_path -> original_ytdlp_filename
     """
     original_names_mp3 = {}
     original_names_m4a = {}

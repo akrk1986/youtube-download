@@ -528,3 +528,45 @@ If you get "Authentication failed" errors:
 python Tests-Standalone/test_gmail_auth.py
 ```
 This will test your Gmail configuration and show specific error messages.
+
+## Linting
+
+The project uses `run-linters.py` (project root) to run all linting tools. Each tool can be run individually or all in parallel via Claude sub-agents.
+
+### Available Tools
+
+| Tool | Purpose |
+|------|---------|
+| `ruff` | Style + unused imports (replaces flake8 + isort) |
+| `mypy` | Static type checking |
+| `bandit` | Security scanning |
+| `pydoclint` | Docstring linting |
+| `pylint` | Code quality |
+| `vulture` | Dead code detection |
+| `radon` | Cyclomatic complexity (informational only) |
+| `pyupgrade` | Syntax modernisation (modifies files in place) |
+| `eslint` | JavaScript linting (`JS-files/`) |
+| `jshint` | JavaScript linting (`JS-files/`) |
+
+### Running a Single Tool
+```bash
+source .venv-linux/bin/activate && python run-linters.py --tool ruff
+```
+
+### List All Tools
+```bash
+python run-linters.py --list
+```
+
+### Running All Linters (Claude Sub-Agent Workflow)
+
+When asked to "run linters" or "lint the code", Claude should:
+1. Call `python run-linters.py --list` to get tool names
+2. Spawn **one `general-purpose` sub-agent per tool in parallel** (single message, multiple Agent tool calls)
+3. Each sub-agent runs: `source .venv-linux/bin/activate && python run-linters.py --tool <name>`
+4. Report pass/fail summary after all sub-agents complete
+
+### Notes
+- `radon` always exits 0 (complexity is informational)
+- `pyupgrade` modifies files in place; exit code 1 means files were changed (review + commit required)
+- `flake8` and `isort` are obsolete — replaced by `ruff`
