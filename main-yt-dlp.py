@@ -37,7 +37,7 @@ except ImportError:
     pass
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-03-08-1708'
+VERSION = '2026-03-08-1837'
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +99,9 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
 
     Args:
         argv: Command-line arguments to parse. If None, uses sys.argv.
+
+    Returns:
+        argparse.Namespace: Parsed command-line arguments
     """
     parser = argparse.ArgumentParser(
         description='Download YouTube playlist/video, optionally with subtitles.')
@@ -151,7 +154,7 @@ def _parse_and_validate_audio_formats(audio_format_str: str) -> list[str]:
         audio_format_str: Comma-separated audio format string (e.g., 'mp3,m4a')
 
     Returns:
-        Deduplicated list of valid format strings
+        list[str]: Deduplicated list of valid format strings
     """
     audio_formats = [fmt.strip() for fmt in audio_format_str.split(',')]
 
@@ -183,7 +186,7 @@ def _resolve_url(args: argparse.Namespace, yt_dlp_exe: str) -> str:
         yt_dlp_exe: Path to yt-dlp executable
 
     Returns:
-        Resolved URL string
+        str: Resolved URL string
     """
     # Handle --rerun flag: load URL from previous run if requested
     last_url_file = Path('Data') / 'last_url.txt'
@@ -244,7 +247,7 @@ def _get_custom_metadata(
         url_is_playlist: Whether the URL is a playlist
 
     Returns:
-        Tuple of (custom_title, custom_artist, custom_album)
+        tuple[str | None, str | None, str | None]: Tuple of (custom_title, custom_artist, custom_album)
     """
     custom_title = args.title
     if custom_title:
@@ -290,7 +293,7 @@ def _detect_chapters(
         show_chapters: Whether to display chapters and build name map
 
     Returns:
-        Tuple of (has_chapters, video_info, uploader_name, video_title, chapter_name_map)
+        tuple[bool, dict[str, Any] | None, str | None, str | None, dict[int, str]]: Tuple of (has_chapters, video_info, uploader_name, video_title, chapter_name_map)
     """
     if url_is_playlist:
         logger.info('URL is a playlist, not extracting chapters')
@@ -359,7 +362,7 @@ def _determine_audio_mode(args: argparse.Namespace, audio_formats: list[str]) ->
         audio_formats: List of requested audio formats
 
     Returns:
-        True if audio extraction is needed
+        bool: True if audio extraction is needed
     """
     if args.ertflix_program:
         logger.info('ERTFlix program mode: downloading video only (audio extraction disabled)')
@@ -375,7 +378,7 @@ def _build_notifiers() -> tuple[list[NotificationHandler], str]:
     """Build notification handlers based on NOTIFICATIONS env var.
 
     Returns:
-        Tuple of (notifiers list, notif_msg_suffix string)
+        tuple[list[NotificationHandler], str]: Tuple of (notifiers list, notif_msg_suffix string)
     """
     notifiers: list[NotificationHandler] = []
     notifications_enabled = os.getenv('NOTIFICATIONS', '').strip().upper()
@@ -430,7 +433,7 @@ def _count_initial_files(
         audio_formats: List of audio format strings
 
     Returns:
-        Tuple of (initial_video_count, initial_audio_count)
+        tuple[int, int]: Tuple of (initial_video_count, initial_audio_count)
     """
     initial_video_count = 0
     initial_audio_count = 0
@@ -515,7 +518,7 @@ def _count_new_files(
         initial_audio_count: File count before download started
 
     Returns:
-        Tuple of (new_video_count, new_audio_count)
+        tuple[int, int]: Tuple of (new_video_count, new_audio_count)
     """
     video_count = 0
     audio_count = 0

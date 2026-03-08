@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-03-08-1837] - pydoclint Docstring Fixes
+
+### Fixed
+- **DOC203** (return type mismatch): Added type prefixes to Returns sections across 30+ functions in `funcs_for_main_yt_dlp/`, `funcs_utils/`, `funcs_audio_processing/`, `funcs_notifications/`, `funcs_video_info/`, `main-yt-dlp.py`, `main-qb-notify.py`
+- **DOC101/103** (missing args): Added missing `video_dir`/`chapter_name_map` to `organize_media_files` and `data` to `MessageBuilder.build_message`
+- **DOC111** (type hints in docstring args): Removed type hints from Args sections in `greek_search` and `get_chapter_count`
+- **DOC201** (no return section): Added Returns section to `parse_arguments`
+- **DOC501/503** (missing Raises): Added `Raises` sections to `_extract_text_from_odt` (ImportError) and `get_timeout_for_url` (ValueError)
+- **DOC502** (spurious Raises): Removed erroneous `SystemExit` Raises section from `validate_and_get_url` (uses `sys.exit()`, not `raise`)
+- **pyproject.toml**: Added `allow-init-docstring = true` to suppress DOC301 globally (policy: document `__init__` args at the function, not the class)
+
 ## [2026-03-08-1708] - Ruff Linter Setup + Lint Fixes
 
 ### Added

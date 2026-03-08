@@ -52,7 +52,7 @@ def _get_download_retries() -> str:
     """Get download retry count from YTDLP_RETRIES env var, defaulting to 100.
 
     Returns:
-        Retry count as a string (positive integer, default '100')
+        str: Retry count as a string (positive integer, default '100')
 
     Raises:
         ValueError: If YTDLP_RETRIES is set but not a positive integer

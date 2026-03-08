@@ -35,7 +35,7 @@ def test_csv_generation():
     assert csv_path.exists(), f'CSV file not created at {csv_path}'
 
     # Read and verify content
-    with open(csv_path, 'r', encoding='utf-8') as f:
+    with open(csv_path, encoding='utf-8') as f:
         lines = f.readlines()
 
     print(f'\n✓ CSV file created: {csv_path}')
@@ -112,7 +112,7 @@ def test_csv_generation_no_date():
     assert csv_path.exists(), f'CSV file not created at {csv_path}'
 
     # Read and verify content
-    with open(csv_path, 'r', encoding='utf-8') as f:
+    with open(csv_path, encoding='utf-8') as f:
         lines = f.readlines()
 
     print(f'\n✓ CSV file created without date: {csv_path}')

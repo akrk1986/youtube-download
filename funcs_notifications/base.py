@@ -21,5 +21,5 @@ class NotificationHandler(ABC):
             data: NotificationData object containing all notification information
 
         Returns:
-            True if notification was sent successfully, False otherwise
+            bool: True if notification was sent successfully, False otherwise
         """

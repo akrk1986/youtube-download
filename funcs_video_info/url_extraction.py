@@ -17,7 +17,7 @@ def extract_urls_from_file(file_path: Path | str) -> list[str]:
         file_path: Path to the file to extract URLs from
 
     Returns:
-        List of URLs found in the file
+        list[str]: List of URLs found in the file
 
     Raises:
         FileNotFoundError: If the file does not exist
@@ -52,7 +52,7 @@ def _extract_text_from_txt(file_path: Path | str) -> str:
         file_path: Path to the text file
 
     Returns:
-        Text content of the file
+        str: Text content of the file
     """
     return Path(file_path).read_text(encoding='utf-8')
 
@@ -65,7 +65,10 @@ def _extract_text_from_odt(file_path: Path | str) -> str:
         file_path: Path to the ODT file
 
     Returns:
-        Text content of the file
+        str: Text content of the file
+
+    Raises:
+        ImportError: If the odfpy package is not installed
     """
     try:
         from odf import text, teletype  # type: ignore[import-untyped]
@@ -93,7 +96,7 @@ def _extract_urls_from_text(text: str) -> list[str]:
         text: Text content to extract URLs from
 
     Returns:
-        List of URLs found in the text that match valid domains
+        list[str]: List of URLs found in the text that match valid domains
     """
     # Regex pattern to match URLs
     # Matches http://, https://, and www. URLs
@@ -128,7 +131,7 @@ def is_valid_domain_url(url: str) -> bool:
         url: URL to check
 
     Returns:
-        True if the URL's domain matches one of the valid domains, False otherwise
+        bool: True if the URL's domain matches one of the valid domains, False otherwise
     """
     try:
         parsed = urlparse(url)

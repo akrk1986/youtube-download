@@ -40,7 +40,7 @@ class GmailNotifier(NotificationHandler):
             data: NotificationData object containing all notification information
 
         Returns:
-            True if notification was sent successfully, False otherwise
+            bool: True if notification was sent successfully, False otherwise
         """
         if not self.is_configured():
             logger.debug('Gmail not configured, skipping notification')

@@ -44,7 +44,7 @@ def _send_slack_message(webhook_url: str, message: str) -> bool:
         message: The message text to send.
 
     Returns:
-        True if successful, False otherwise.
+        bool: True if successful, False otherwise.
     """
     payload = {"text": message}
 
@@ -67,7 +67,7 @@ def _build_notification_message(torrent: TorrentInfo) -> str:
         torrent: Information about the completed torrent.
 
     Returns:
-        Formatted message string.
+        str: Formatted message string.
     """
     return (
         f":white_check_mark: *Torrent Complete*\n"

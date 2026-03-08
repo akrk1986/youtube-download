@@ -20,10 +20,7 @@ def validate_and_get_url(provided_url: str, ytdlp_path: Path | None = None) -> s
         ytdlp_path: Path to yt-dlp executable (required for ERTFlix token resolution)
 
     Returns:
-        Validated URL (or resolved playback URL for ERTFlix token URLs)
-
-    Raises:
-        SystemExit: If URL validation fails after max retries
+        str: Validated URL (or resolved playback URL for ERTFlix token URLs)
     """
     # Import here to avoid circular imports
     from funcs_for_main_yt_dlp.ertflix_token_handler import (

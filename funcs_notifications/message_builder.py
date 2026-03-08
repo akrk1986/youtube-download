@@ -64,8 +64,11 @@ class MessageBuilder(ABC):
     def build_message(self, data: NotificationData) -> Any:
         """Build a notification message from data.
 
+        Args:
+            data: NotificationData object containing all notification information
+
         Returns:
-            Message in format specific to the builder (str for Slack, EmailMessage for Email).
+            Any: Message in format specific to the builder (str for Slack, EmailMessage for Email).
         """
         pass
 

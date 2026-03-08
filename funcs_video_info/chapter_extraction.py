@@ -66,7 +66,7 @@ def extract_youtube_chapters(yt_dlp_path: Path, url: str, video_download_timeout
         video_download_timeout: Optional timeout override in seconds
 
     Returns:
-        Path to the created CSV file if successful, None if no chapters found
+        str | None: Path to the created CSV file if successful, None if no chapters found
     """
     # Get video information
     video_info = get_video_info(yt_dlp_path=yt_dlp_path, url=url, video_download_timeout=video_download_timeout)

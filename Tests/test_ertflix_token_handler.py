@@ -52,7 +52,7 @@ class TestResolveErtflixTokenUrl:
     in the token URL.
     """
 
-    _BASE_TOKEN_URL = 'https://api.ertflix.opentv.com/urlbuilder/v1/playout/content/token'
+    _BASE_TOKEN_URL = 'https://api.ertflix.opentv.com/urlbuilder/v1/playout/content/token'  # nosec B105 - URL, not a password
 
     def _make_token_url(self, content_url: str | None = None, content_id: str = 'TEST') -> str:
         """Build a token URL, optionally embedding a content_URL parameter."""

@@ -16,7 +16,10 @@ def get_audio_dir_for_format(audio_format: str) -> str:
         audio_format: Audio format ('mp3', 'm4a', or 'flac')
 
     Returns:
-        Directory path for the format
+        str: Directory path for the format
+
+    Raises:
+        ValueError: If audio_format is not one of the supported formats.
     """
     if audio_format == 'mp3':
         return AUDIO_OUTPUT_DIR
@@ -42,7 +45,7 @@ def organize_and_sanitize_files(video_folder: Path, audio_formats: list[str],
         chapter_name_map: Optional mapping of chapter numbers to normalized filenames
 
     Returns:
-        dict with 'mp3', 'm4a', and 'flac' keys, each containing a mapping of final_path -> original_ytdlp_filename
+        dict[str, dict[str, str]]: dict with 'mp3', 'm4a', and 'flac' keys, each containing a mapping of final_path -> original_ytdlp_filename
     """
     original_names_mp3 = {}
     original_names_m4a = {}

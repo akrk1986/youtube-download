@@ -24,6 +24,9 @@ def get_timeout_for_url(url: str, video_download_timeout: int | None = None) -> 
 
     Returns:
         int: Timeout in seconds
+
+    Raises:
+        ValueError: If the URL cannot be parsed
     """
     # If user specified a timeout, use it for all sites
     if video_download_timeout is not None:

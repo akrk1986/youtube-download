@@ -20,7 +20,7 @@ def is_ertflix_token_url(url: str) -> bool:
         url: The URL to check
 
     Returns:
-        True if URL is an ERTFlix token API URL, False otherwise
+        bool: True if URL is an ERTFlix token API URL, False otherwise
     """
     return 'api.ertflix.opentv.com/urlbuilder/v1/playout/content/token' in url
 
@@ -43,10 +43,7 @@ def resolve_ertflix_token_url(token_url: str, ytdlp_path: Path) -> str:
         ytdlp_path: Path to yt-dlp executable (unused, kept for compatibility)
 
     Returns:
-        Resolved playback URL (the decoded content_URL parameter)
-
-    Raises:
-        SystemExit: If token URL is invalid or missing content_URL parameter
+        str: Resolved playback URL (the decoded content_URL parameter)
     """
     logger.info('ERTFlix token API URL detected, extracting playback URL...')
 

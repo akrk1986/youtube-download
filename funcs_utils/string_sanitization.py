@@ -123,8 +123,8 @@ def greek_search(big_string: str, sub_string: str) -> bool:
     Check if sub_string appears in big_string (case-insensitive), ignoring Greek diacritics (=letters with accents).
 
     Args:
-        big_string (str): The string to search in
-        sub_string (str): The string to search for
+        big_string: The string to search in
+        sub_string: The string to search for
 
     Returns:
         bool: True if sub_string_x is found in big_string_x (ignoring diacritics), False otherwise

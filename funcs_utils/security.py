@@ -17,7 +17,7 @@ def sanitize_url_for_subprocess(url: str) -> str:
         url: The URL to sanitize
 
     Returns:
-        The original URL if safe
+        str: The original URL if safe
 
     Raises:
         ValueError: If URL contains suspicious characters

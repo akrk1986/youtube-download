@@ -16,7 +16,7 @@ _windows_reserved_names = {
 
 _invalid_windows_chars = set('<>:"/\\|?*')
 _invalid_linux_chars = set('/')
-_control_chars = set(chr(i) for i in range(32))  # ASCII control chars 0-31
+_control_chars = {chr(i) for i in range(32)}  # ASCII control chars 0-31
 
 
 def _is_valid_filename(filename: str) -> bool:
@@ -59,7 +59,7 @@ def _sanitize_filename(filename: str) -> str:
     filename = re.sub(rf'\s*{slash_pattern}\s*', '-', filename)
     # Remove other invalid Windows characters and ASCII control chars
     invalid_chars = set('<>:"|?*')
-    control_chars = set(chr(i) for i in range(32))
+    control_chars = {chr(i) for i in range(32)}
     sanitized = ''.join(
         c for c in filename
         if c not in invalid_chars and c not in control_chars
@@ -109,7 +109,7 @@ def sanitize_album_name(title: str) -> str:
         title: The video title to sanitize
 
     Returns:
-        Sanitized title limited to 64 characters, with emojis and special characters removed
+        str: Sanitized title limited to 64 characters, with emojis and special characters removed
     """
     if not title:
         return ''

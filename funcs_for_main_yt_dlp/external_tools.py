@@ -13,7 +13,7 @@ def _get_external_paths() -> tuple[str, str, str]:
     Determine yt-dlp, ffmpeg and ffprobe paths based on the operating system.
 
     Returns:
-        tuple: Tuple of (ffmpeg_path, ffprobe_path, yt_dlp_path).
+        tuple[str, str, str]: Tuple of (ffmpeg_path, ffprobe_path, yt_dlp_path).
     """
     system = platform.system()
 

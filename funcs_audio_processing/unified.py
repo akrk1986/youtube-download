@@ -103,7 +103,7 @@ def set_tags_in_chapter_audio_files(
         original_names: Optional mapping of final_path -> original_ytdlp_filename
 
     Returns:
-        Number of files whose title was modified
+        int: Number of files whose title was modified
     """
     ctr = 0
 

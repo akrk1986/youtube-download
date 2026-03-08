@@ -32,6 +32,9 @@ def set_artists_for_format(
         artists_json: Path to artists database JSON file
         original_names: Optional mapping of
             final_path -> original_ytdlp_filename
+
+    Raises:
+        ValueError: If audio_format is not one of the supported formats.
     """
     if audio_format not in _HANDLER_MAP:
         raise ValueError(f'Unknown audio format {audio_format!r}. Expected one of: {list(_HANDLER_MAP)}')
@@ -62,7 +65,10 @@ def set_chapter_tags_for_format(
             final_path -> original_ytdlp_filename
 
     Returns:
-        Number of files whose title was modified
+        int: Number of files whose title was modified
+
+    Raises:
+        ValueError: If audio_format is not one of the supported formats.
     """
     if audio_format not in _HANDLER_MAP:
         raise ValueError(f'Unknown audio format {audio_format!r}. Expected one of: {list(_HANDLER_MAP)}')

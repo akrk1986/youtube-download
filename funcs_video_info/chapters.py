@@ -69,9 +69,9 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str, video_download_timeout
     Get the number of chapters in a YouTube video using yt-dlp.
 
     Args:
-        ytdlp_exe (Path): path to yt-dlp executable
-        playlist_url (str): YouTube video URL
-        video_download_timeout (int | None): Optional timeout override in seconds
+        ytdlp_exe: path to yt-dlp executable
+        playlist_url: YouTube video URL
+        video_download_timeout: Optional timeout override in seconds
 
     Returns:
         int: Number of chapters (0 if none or error)

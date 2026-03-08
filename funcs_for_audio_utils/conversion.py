@@ -21,7 +21,7 @@ def _get_ffmpeg_tool_path(tool_name: str) -> str:
         tool_name: Name of the tool ('ffmpeg' or 'ffprobe')
 
     Returns:
-        Path to the tool executable
+        str: Path to the tool executable
     """
     if platform.system() == 'Windows':
         # Try system-installed tool first
@@ -78,7 +78,7 @@ def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None,
             If not provided, auto-detected.
 
     Returns:
-        Path to created M4A file if successful, None otherwise
+        Path | None: Path to created M4A file if successful, None otherwise
     """
     mp3_file = Path(mp3_file)
 
@@ -138,7 +138,7 @@ def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None,
             If not provided, auto-detected.
 
     Returns:
-        Path to created MP3 file if successful, None otherwise
+        Path | None: Path to created MP3 file if successful, None otherwise
     """
     m4a_file = Path(m4a_file)
 

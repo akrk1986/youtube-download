@@ -39,8 +39,12 @@ def organize_media_files(video_dir: Path, chapter_name_map: dict[int, str] | Non
     - MP4 files -> yt-videos/
     Creates the directories if they don't exist.
 
+    Args:
+        video_dir: Path to the video output directory
+        chapter_name_map: Optional mapping of chapter numbers to normalized filenames
+
     Returns:
-        dict: Summary with moved files counts, any errors, and original_names mapping.
+        dict[str, Any]: Summary with moved files counts, any errors, and original_names mapping.
               original_names maps final_path -> original_filename_before_move
     """
     current_dir = Path.cwd()
@@ -169,7 +173,7 @@ def sanitize_filenames_in_folder(folder_path: Path,
         original_names: Optional mapping of current_path -> original_filename to preserve through renames
 
     Returns:
-        dict mapping final_path -> original_ytdlp_filename (before any renames)
+        dict[str, str]: dict mapping final_path -> original_ytdlp_filename (before any renames)
     """
     ctr = 0
     result_mapping = {}

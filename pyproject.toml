@@ -1,0 +1,5 @@
+[tool.pydoclint]
+style = 'google'
+arg-type-hints-in-signature = true
+arg-type-hints-in-docstring = false
+allow-init-docstring = true

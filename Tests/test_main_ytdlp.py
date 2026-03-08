@@ -326,7 +326,7 @@ class TestGmailNotifications:
 
         params = {
             'sender_email': 'sender@gmail.com',
-            'sender_app_password': 'xxxx xxxx xxxx xxxx',
+            'sender_app_password': 'xxxx xxxx xxxx xxxx',  # nosec B105 - test placeholder
             'recipient_email': 'recipient@gmail.com',
         }
         notifier = GmailNotifier(gmail_params=params)
@@ -389,7 +389,7 @@ class TestGmailNotifications:
 
         params = {
             'sender_email': 'sender@gmail.com',
-            'sender_app_password': 'bad-password',
+            'sender_app_password': 'bad-password',  # nosec B105 - test placeholder
             'recipient_email': 'recipient@gmail.com',
         }
         notifier = GmailNotifier(gmail_params=params)
@@ -416,7 +416,7 @@ class TestGmailNotifications:
 
         params = {
             'sender_email': 'sender@gmail.com',
-            'sender_app_password': 'xxxx xxxx xxxx xxxx',
+            'sender_app_password': 'xxxx xxxx xxxx xxxx',  # nosec B105 - test placeholder
             'recipient_email': 'recipient@gmail.com',
         }
         notifier = GmailNotifier(gmail_params=params)
@@ -468,7 +468,7 @@ class TestSendAllNotifications:
         slack = SlackNotifier(webhook_url='https://hooks.slack.com/services/TEST/WEBHOOK/URL')
         gmail = GmailNotifier(gmail_params={
             'sender_email': 'sender@gmail.com',
-            'sender_app_password': 'xxxx xxxx xxxx xxxx',
+            'sender_app_password': 'xxxx xxxx xxxx xxxx',  # nosec B105 - test placeholder
             'recipient_email': 'recipient@gmail.com',
         })
 
@@ -492,7 +492,7 @@ class TestSendAllNotifications:
 class TestMainExecution:
     """Test main execution flow."""
 
-    def test_single_video_download_flow(self, tmp_path, sample_args, mock_video_info_no_chapters):
+    def test_single_video_download_flow(self, tmp_path, sample_args):
         """Test single video download execution flow."""
         from importlib import import_module
         main_module = import_module('main-yt-dlp')
@@ -529,7 +529,7 @@ class TestMainExecution:
                 session_id='test-session'
             )
 
-    def test_only_audio_skips_video_retention(self, tmp_path, sample_args, mock_video_info_no_chapters):
+    def test_only_audio_skips_video_retention(self, tmp_path, sample_args):
         """Test that --only-audio skips video file retention."""
         from importlib import import_module
         main_module = import_module('main-yt-dlp')

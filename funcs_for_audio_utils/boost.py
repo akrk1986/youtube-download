@@ -22,7 +22,7 @@ def detect_audio_levels(
             If None, auto-detected via get_ffmpeg_path().
 
     Returns:
-        tuple: (mean_volume_db, max_volume_db)
+        tuple[float, float]: (mean_volume_db, max_volume_db)
 
     Raises:
         RuntimeError: If unable to detect audio levels.
@@ -113,7 +113,7 @@ class AudioBooster:
             boost_value: Volume multiplier value.
 
         Returns:
-            list: ffmpeg command as list of strings.
+            list[str]: ffmpeg command as list of strings.
         """
         if use_loudnorm:
             audio_filter = 'loudnorm=I=-16:TP=-1.5:LRA=11'

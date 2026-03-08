@@ -42,7 +42,7 @@ PROGRAM_CONFIGS = {
 }
 
 
-def extract_urls_with_selenium(page_url: str, url_pattern: str, wait_seconds: int = 10) -> List[Tuple[str, str]]:
+def extract_urls_with_selenium(page_url: str, url_pattern: str, wait_seconds: int = 10) -> list[tuple[str, str]]:
     """
     Extract URLs using Selenium to render JavaScript.
 
@@ -130,7 +130,7 @@ def extract_urls_with_selenium(page_url: str, url_pattern: str, wait_seconds: in
             driver.quit()
 
 
-def save_urls_to_file(urls: List[Tuple[str, str]], output_path: Path) -> None:
+def save_urls_to_file(urls: list[tuple[str, str]], output_path: Path) -> None:
     """Save URLs and their text to a file."""
     with output_path.open('w', encoding='utf-8') as f:
         for url, text in urls:
