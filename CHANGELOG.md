@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-03-08-1924] - run-linters.py: --group-by-files mode
+
+### Added
+- **`run-linters.py`**: new `--group-by-files` flag that re-groups linting findings by source file instead of by tool
+  - Works with `--tool <name>` (one tool) or alone (all tools sequentially)
+  - New `Issue` dataclass (`filename`, `tool`, `text`)
+  - `_run_tool_capture()` — silent variant of `_run_tool` that returns `(exit_code, output)`
+  - Per-tool output parsers: `_parse_line_colon` (mypy/pylint/vulture/jshint), `_parse_ruff`, `_parse_bandit`, `_parse_radon`, `_parse_eslint`, `_parse_pyupgrade`
+  - `_run_tool_grouped()` and `_print_grouped_by_files()` — grouped execution and display
+  - `_build_cmd()` — centralised command builder (refactors all `run_*` functions to use it)
+  - Fixed pydoclint parser: uses `_parse_radon` (bare filename + indented issues format)
+
 ## [2026-03-08-1923] - Linting Orchestration Script
 
 ### Added
