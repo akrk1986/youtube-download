@@ -1,7 +1,6 @@
 arrow
 bandit
 emoji
-flake8
 mutagen
 mypy
 odfpy
