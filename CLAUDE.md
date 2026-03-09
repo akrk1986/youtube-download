@@ -345,9 +345,7 @@ The project uses multiple linting and type checking tools to maintain code quali
 - **Parameterized generics**: Use `dict[str, Any]` not bare `dict`, `list[str]` not bare `list`
 
 ### Linting Tools
-- **flake8**: PEP 8 compliance, unused import detection (config: `.flake8`, `max-line-length = 120`)
 - **pylint**: Code quality metrics, unused variable detection
-- **isort**: Import statement ordering
 - **mypy**: Static type checking
 
 ### Path Handling Convention
@@ -569,4 +567,4 @@ When asked to "run linters" or "lint the code", Claude should:
 ### Notes
 - `radon` always exits 0 (complexity is informational)
 - `pyupgrade` modifies files in place; exit code 1 means files were changed (review + commit required)
-- `flake8` and `isort` are obsolete — replaced by `ruff`
+- `flake8` and `isort` were removed — replaced by `ruff`

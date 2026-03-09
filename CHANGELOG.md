@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-03-09-1831] - Remove flake8 (replaced by ruff)
+
+### Changed
+- **`requirements.txt`**: removed `flake8` package (replaced by `ruff`)
+- **`.flake8`**: deleted config file (no longer needed)
+- **`CLAUDE.md`**: removed flake8 and isort from linting tools list (replaced by `ruff`)
+
 ## [2026-03-09-1817] - Security Review Fixes
 
 ### Fixed
