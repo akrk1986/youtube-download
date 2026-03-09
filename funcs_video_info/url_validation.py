@@ -1,6 +1,5 @@
 """URL validation and timeout utilities."""
 import logging
-import urllib.error
 from urllib.parse import urlparse
 
 from funcs_video_info.url_extraction import is_valid_domain_url
@@ -24,35 +23,26 @@ def get_timeout_for_url(url: str, video_download_timeout: int | None = None) -> 
 
     Returns:
         int: Timeout in seconds
-
-    Raises:
-        ValueError: If the URL cannot be parsed
     """
     # If user specified a timeout, use it for all sites
     if video_download_timeout is not None:
         return video_download_timeout
 
-    try:
-        parsed = urlparse(url)
+    parsed = urlparse(url)
 
-        # Check if it's a YouTube or Facebook domain
-        if any(domain in parsed.netloc for domain in VALID_YOUTUBE_DOMAINS):
-            return SUBPROCESS_TIMEOUT_YOUTUBE
-
-        if any(domain in parsed.netloc for domain in VALID_FACEBOOK_DOMAINS):
-            return SUBPROCESS_TIMEOUT_FACEBOOK
-
-        # Check if it's another valid domain
-        if any(domain in parsed.netloc for domain in VALID_OTHER_DOMAINS):
-            return SUBPROCESS_TIMEOUT_OTHER_SITES
-
-        # Default to YouTube timeout for unknown domains
+    # Check if it's a YouTube or Facebook domain
+    if any(domain in parsed.netloc for domain in VALID_YOUTUBE_DOMAINS):
         return SUBPROCESS_TIMEOUT_YOUTUBE
 
-    except urllib.error.URLError:
-        # If parsing fails, abort
-        raise ValueError(f"URL '{url}' cannot be parsed, aborting")
-    # abort on any other exception
+    if any(domain in parsed.netloc for domain in VALID_FACEBOOK_DOMAINS):
+        return SUBPROCESS_TIMEOUT_FACEBOOK
+
+    # Check if it's another valid domain
+    if any(domain in parsed.netloc for domain in VALID_OTHER_DOMAINS):
+        return SUBPROCESS_TIMEOUT_OTHER_SITES
+
+    # Default to YouTube timeout for unknown domains
+    return SUBPROCESS_TIMEOUT_YOUTUBE
 
 
 def validate_video_url(url: str) -> tuple[bool, str]:
@@ -83,5 +73,5 @@ def validate_video_url(url: str) -> tuple[bool, str]:
                     f"Invalid domain '{parsed.netloc}'. Must be a YouTube, Facebook or other supported video site URL")
         return True, ''
 
-    except Exception as e:
+    except (ValueError, AttributeError) as e:
         return False, f'Invalid URL format: {e}'

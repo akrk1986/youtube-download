@@ -157,6 +157,19 @@ class TestPathValidation:
         # Should not raise - we're just validating structure, not existence
         validate_file_path_security(nonexistent, expected_parent=parent_dir)
 
+    def test_path_prefix_bypass(self, tmp_path):
+        """Path whose name is a prefix of parent dir name should be rejected."""
+        # e.g. expected_parent = yt-audio, file is in yt-audio2 (a sibling, not a child)
+        parent_dir = tmp_path / 'yt-audio'
+        sibling_dir = tmp_path / 'yt-audio2'
+        parent_dir.mkdir()
+        sibling_dir.mkdir()
+        file_in_sibling = sibling_dir / 'malicious.mp3'
+        file_in_sibling.touch()
+
+        with pytest.raises(ValueError, match='outside expected directory'):
+            validate_file_path_security(file_in_sibling, expected_parent=parent_dir)
+
     def test_symlink_traversal_attempt(self, tmp_path):
         """Symlinks that escape expected directory should be caught."""
         import platform

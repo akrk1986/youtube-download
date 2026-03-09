@@ -51,7 +51,7 @@ def validate_file_path_security(file_path: Path, expected_parent: Path | None = 
         # If expected parent provided, ensure file is within it
         if expected_parent:
             expected_parent_resolved = expected_parent.resolve()
-            if not str(resolved_path).startswith(str(expected_parent_resolved)):
+            if not resolved_path.is_relative_to(expected_parent_resolved):
                 raise ValueError(f'Path {file_path} is outside expected directory {expected_parent}')
 
     except (OSError, RuntimeError) as e:

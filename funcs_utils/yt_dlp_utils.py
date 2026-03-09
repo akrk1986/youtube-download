@@ -40,8 +40,10 @@ def get_cookie_args() -> list[str]:
     # Determine browser based on environment variable value
     if cookie_env.lower() == 'chrome':
         browser = 'chrome'
+    elif cookie_env.lower() == 'firefox':
+        browser = 'firefox'
     else:
-        # Default to Firefox for any other non-empty value
+        logger.warning(f"Unrecognized YTDLP_USE_COOKIES value '{cookie_env}', defaulting to firefox")
         browser = 'firefox'
 
     logger.info(f"Using cookies from {browser} browser (YTDLP_USE_COOKIES={cookie_env})")
