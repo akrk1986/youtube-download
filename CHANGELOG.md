@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-03-09-1817] - Security Review Fixes
+
+### Fixed
+- **`funcs_utils/security.py`**: replace `str.startswith()` with `Path.is_relative_to()` in `validate_file_path_security()` — fixes path-prefix bypass where a sibling directory (e.g. `yt-audio2`) could falsely pass the parent check for `yt-audio`
+- **`funcs_video_info/url_validation.py`**: remove dead `except urllib.error.URLError` block in `get_timeout_for_url()` (urlparse never raises it); narrow broad `except Exception` to `except (ValueError, AttributeError)` in `validate_video_url()`
+- **`funcs_utils/yt_dlp_utils.py`**: log a warning when `YTDLP_USE_COOKIES` is set to an unrecognized browser value instead of silently defaulting to Firefox
+
+### Added
+- **`Tests/test_security_measures.py`**: new `test_path_prefix_bypass` test covering the path-prefix fix (20 security tests, was 19)
+
 ## [2026-03-08-1924] - run-linters.py: --group-by-files mode
 
 ### Added
