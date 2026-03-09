@@ -61,8 +61,9 @@ def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
         return ['mypy', '.'], False
     if name == 'bandit':
         exclude_str = ','.join([
-            '.venv-linux', '.venv-3.14', '.venv-windows', '.venv',
-            'Beta', 'Tests-Standalone', 'node_modules',
+            './.venv-linux', './.venv-3.14', './.venv-windows', './.venv',
+            './Tests/.venv-linux',
+            './Beta', './Tests-Standalone', './node_modules',
         ])
         return ['bandit', '-r', '.', '-x', exclude_str, '--skip', 'B101'], False
     if name == 'pydoclint':
