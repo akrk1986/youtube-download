@@ -1,3 +1,6 @@
+[tool.mypy]
+exclude = ['Beta/', 'Tests/', 'Tests-Standalone/']
+
 [tool.pydoclint]
 style = 'google'
 arg-type-hints-in-signature = true
