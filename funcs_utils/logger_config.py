@@ -25,9 +25,9 @@ def _cleanup_old_logs(log_dir: Path) -> None:
         for old_log in log_files[files_to_keep:]:
             try:
                 old_log.unlink()
-            except Exception:
-                # Silently ignore errors (file might be locked, etc.)
-                pass
+            except OSError:
+                # File might be locked or already deleted
+                pass  # nosec B110
 
 
 def setup_logging(verbose: bool = False, log_to_file: bool = True,
