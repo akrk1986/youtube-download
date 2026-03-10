@@ -7,22 +7,19 @@ Usage:
     python run-linters.py --tool <name> --group-by-files Run one tool, group output by file
     python run-linters.py --group-by-files               Run all tools, group output by file
     python run-linters.py --list                         Print all tool names (one per line)
-    python run-linters.py                                Print usage
+    python run-linters.py                                Run all tools (raw output, radon excluded)
 """
 
 import argparse
+import hashlib
 import re
-import subprocess
+import subprocess  # nosec B404
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-
-EXCLUDED_DIRS = [
-    '.venv-linux', '.venv-3.14', '.venv-windows', '.venv',
-    'Beta', 'node_modules', '.git', '.idea', '.pytest_cache', '.mypy_cache',
-]
+from project_defs import EXCLUDED_DIRS
 
 TOOLS = [
     'ruff', 'mypy', 'bandit', 'pydoclint', 'pylint',
@@ -31,6 +28,9 @@ TOOLS = [
 
 # radon is informational only; excluded from default runs, opt-in via --tool radon or --with-radon
 ALL_TOOLS = TOOLS + ['radon']
+
+# Pre-run file hashes for pyupgrade change detection (populated by run_pyupgrade)
+_PYUPGRADE_PRE_HASHES: dict[str, str] = {}
 
 
 @dataclass
@@ -51,6 +51,14 @@ def _collect_py_files(root: Path, excluded: list[str]) -> list[str]:
             continue
         files.append(str(f))
     return sorted(files)
+
+
+def _has_js_files(root: Path) -> bool:
+    """Return True if any .js files exist outside excluded directories."""
+    for f in root.rglob('*.js'):
+        if not any(ex in f.parts for ex in EXCLUDED_DIRS):
+            return True
+    return False
 
 
 def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
@@ -105,7 +113,7 @@ def _run_tool(name: str, cmd: list[str], cwd: Path, always_pass: bool = False) -
     """Run a tool command and print its output. Return exit code."""
     print(f'=== {name} ===')
     print(f'Command: {" ".join(cmd)}')
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)  # nosec B603
     if result.stdout:
         print(result.stdout, end='')
     if result.stderr:
@@ -121,7 +129,7 @@ def _run_tool(name: str, cmd: list[str], cwd: Path, always_pass: bool = False) -
 
 def _run_tool_capture(_name: str, cmd: list[str], cwd: Path, always_pass: bool = False) -> tuple[int, str]:
     """Run a tool command and return (exit_code, combined_output). stdout + stderr combined."""
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)  # nosec B603
     output = result.stdout
     if result.stderr:
         output = output + result.stderr
@@ -217,14 +225,30 @@ def _parse_eslint(output: str, tool: str, root: Path) -> list[Issue]:
     return issues
 
 
+def _hash_files(files: list[str]) -> dict[str, str]:
+    """Return a mapping of filepath -> MD5 hash for the given files."""
+    hashes = {}
+    for path in files:
+        try:
+            hashes[path] = hashlib.md5(Path(path).read_bytes()).hexdigest()  # nosec B324
+        except OSError:
+            pass
+    return hashes
+
+
 def _parse_pyupgrade(_output: str, tool: str, root: Path) -> list[Issue]:
-    """Parse pyupgrade result by checking git diff --name-only for modified files."""
-    diff_result = subprocess.run(['git', 'diff', '--name-only'], capture_output=True, text=True, cwd=root)
+    """Parse pyupgrade result using pre/post file hashes to detect modifications."""
+    # Hashes were captured before pyupgrade ran; compare to current state
+    py_files = _collect_py_files(root, EXCLUDED_DIRS)
     issues = []
-    for line in diff_result.stdout.splitlines():
-        filename = line.strip()
-        if filename:
-            issues.append(Issue(filename=filename, tool=tool, text='modified by pyupgrade (review and commit)'))
+    for path in py_files:
+        try:
+            current_hash = hashlib.md5(Path(path).read_bytes()).hexdigest()  # nosec B324
+            rel = str(Path(path).relative_to(root))
+            if _PYUPGRADE_PRE_HASHES.get(path) != current_hash:
+                issues.append(Issue(filename=rel, tool=tool, text='modified by pyupgrade (review and commit)'))
+        except OSError:
+            pass
     return issues
 
 
@@ -244,6 +268,8 @@ _PARSERS: dict[str, Callable[[str, str, Path], list[Issue]]] = {
 
 def _run_tool_grouped(name: str, root: Path) -> tuple[int, list[Issue]]:
     """Run one tool, parse its output, return (exit_code, issues)."""
+    if name in ('eslint', 'jshint') and not _has_js_files(root):
+        return 0, []
     cmd, always_pass = _build_cmd(name, root)
     rc, output = _run_tool_capture(name, cmd, root, always_pass)
     parser = _PARSERS[name]
@@ -340,24 +366,30 @@ def run_radon(root: Path) -> int:
 
 
 def run_pyupgrade(root: Path) -> int:
-    """Run pyupgrade and check for modifications via git diff."""
+    """Run pyupgrade and detect modifications by comparing file hashes before and after."""
+    global _PYUPGRADE_PRE_HASHES  # pylint: disable=global-statement
     print('=== pyupgrade ===')
     py_files = _collect_py_files(root, EXCLUDED_DIRS)
     if not py_files:
         print('[pyupgrade] No .py files found')
         return 0
     print(f'Command: pyupgrade --py311-plus <{len(py_files)} files>')
-    result = subprocess.run(['pyupgrade', '--py311-plus'] + py_files, capture_output=True, text=True, cwd=root)
+    _PYUPGRADE_PRE_HASHES = _hash_files(py_files)
+    result = subprocess.run(['pyupgrade', '--py311-plus'] + py_files, capture_output=True, text=True, cwd=root)  # nosec B603
     if result.stdout:
         print(result.stdout, end='')
     if result.stderr:
         print(result.stderr, end='', file=sys.stderr)
 
-    # Check if any files were modified
-    diff_result = subprocess.run(['git', 'diff', '--exit-code'], capture_output=True, text=True, cwd=root)
-    if diff_result.returncode != 0:
+    modified = [
+        str(Path(f).relative_to(root))
+        for f in py_files
+        if _hash_files([f]).get(f) != _PYUPGRADE_PRE_HASHES.get(f)
+    ]
+    if modified:
         print('pyupgrade modified the following files (review and commit):')
-        print(diff_result.stdout, end='')
+        for f in modified:
+            print(f'  {f}')
         print('[pyupgrade] FAIL (files were modified)')
         return 1
     print('[pyupgrade] PASS')
@@ -366,12 +398,18 @@ def run_pyupgrade(root: Path) -> int:
 
 def run_eslint(root: Path) -> int:
     """Run eslint on JS-files/ directory."""
+    if not _has_js_files(root):
+        print('[eslint] skipped (no JS files found)')
+        return 0
     cmd, always_pass = _build_cmd('eslint', root)
     return _run_tool('eslint', cmd, cwd=root, always_pass=always_pass)
 
 
 def run_jshint(root: Path) -> int:
     """Run jshint on JS-files/ directory."""
+    if not _has_js_files(root):
+        print('[jshint] skipped (no JS files found)')
+        return 0
     cmd, always_pass = _build_cmd('jshint', root)
     return _run_tool('jshint', cmd, cwd=root, always_pass=always_pass)
 
@@ -410,8 +448,13 @@ def main() -> None:
     root = Path(__file__).parent.resolve()
 
     if not args.tool and not args.group_by_files:
-        parser.print_help()
-        sys.exit(0)
+        overall_rc = 0
+        for name in TOOLS:
+            runner = _TOOL_RUNNERS[name]
+            rc = runner(root)
+            if rc != 0:
+                overall_rc = 1
+        sys.exit(overall_rc)
 
     if args.group_by_files:
         if args.tool:

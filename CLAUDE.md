@@ -566,5 +566,8 @@ When asked to "run linters" or "lint the code", Claude should:
 
 ### Notes
 - `radon` always exits 0 (complexity is informational)
-- `pyupgrade` modifies files in place; exit code 1 means files were changed (review + commit required)
+- `pyupgrade` detects modifications via file hashes (not `git diff`); exit code 1 means files were changed (review + commit required)
+- `eslint` and `jshint` are skipped automatically when no JS files are found
+- `EXCLUDED_DIRS` is defined in `project_defs.py` — edit there to change which directories are excluded from linting
+- Running with no arguments runs all tools sequentially (radon excluded)
 - `flake8` and `isort` were removed — replaced by `ruff`

@@ -1,5 +1,11 @@
 """Project-wide constants and configuration values for the YouTube downloader application."""
 
+# Linting: directories excluded from all linter scans
+EXCLUDED_DIRS = [
+    '.venv-linux', '.venv-3.14', '.venv-windows', '.venv',
+    'Beta', 'node_modules', '.git', '.idea', '.pytest_cache', '.mypy_cache',
+]
+
 # Audio processing constants
 DEFAULT_AUDIO_QUALITY = '192k'
 DEFAULT_AUDIO_FORMAT = 'mp3'
