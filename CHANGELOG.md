@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-03-10-1818] - Sync run-linters improvements from LosslessCut-csv
+
+### Changed
+- **`pyproject.toml`**: added `[tool.bandit]` section with `exclude_dirs` and `skips = ['B101']` — bandit config now centralised alongside other tool configs
+- **`run-linters.py`**: simplified bandit command to `bandit -r . -c pyproject.toml` (dropped inline `-x` and `--skip` flags); removed unused `root: Path` parameter from `_print_grouped_by_files()`
+- **`CLAUDE.md`**: noted that bandit exclusions are configured in `pyproject.toml`
+
 ## [2026-03-09-1831] - Remove flake8 (replaced by ruff)
 
 ### Changed
