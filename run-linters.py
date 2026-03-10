@@ -68,12 +68,7 @@ def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
     if name == 'mypy':
         return ['mypy', '.'], False
     if name == 'bandit':
-        exclude_str = ','.join([
-            './.venv-linux', './.venv-3.14', './.venv-windows', './.venv',
-            './Tests/.venv-linux',
-            './Beta', './Tests-Standalone', './node_modules',
-        ])
-        return ['bandit', '-r', '.', '-x', exclude_str, '--skip', 'B101'], False
+        return ['bandit', '-r', '.', '-c', 'pyproject.toml'], False
     if name == 'pydoclint':
         targets = [
             'funcs_for_main_yt_dlp/', 'funcs_video_info/', 'funcs_utils/',
@@ -277,7 +272,7 @@ def _run_tool_grouped(name: str, root: Path) -> tuple[int, list[Issue]]:
     return rc, issues
 
 
-def _print_grouped_by_files(issues: list[Issue], rc_map: dict[str, int], root: Path) -> None:
+def _print_grouped_by_files(issues: list[Issue], rc_map: dict[str, int]) -> None:
     """Print issues grouped by source filename, then show a summary."""
     file_issues: dict[str, list[Issue]] = {}
     no_file_issues: list[Issue] = []
@@ -467,7 +462,7 @@ def main() -> None:
             rc, issues = _run_tool_grouped(name, root)
             rc_map[name] = rc
             all_issues.extend(issues)
-        _print_grouped_by_files(all_issues, rc_map, root)
+        _print_grouped_by_files(all_issues, rc_map)
         overall_rc = 0 if all(rc == 0 for rc in rc_map.values()) else 1
         sys.exit(overall_rc)
 
