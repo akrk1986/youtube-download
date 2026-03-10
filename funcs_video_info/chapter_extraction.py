@@ -94,7 +94,7 @@ def extract_youtube_chapters(yt_dlp_path: Path, url: str, video_download_timeout
     csv_filename = f'{safe_title}_chapters.csv'
 
     # Write chapters to CSV
-    with open(csv_filename, 'w', newline='', encoding='utf-8') as csvfile:
+    with Path(csv_filename).open('w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(['Chapter #', 'Start (seconds)', 'End (seconds)', 'Chapter Name'])
 

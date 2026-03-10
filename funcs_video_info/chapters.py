@@ -222,7 +222,7 @@ def create_chapters_csv(video_info: dict[str, Any], output_dir: Path | str, vide
 
     logger.info(f"Creating chapters CSV file: '{csv_path}'")
 
-    with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
+    with csv_path.open('w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
 
         # Write header with new column format

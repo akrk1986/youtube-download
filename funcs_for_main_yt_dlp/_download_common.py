@@ -150,7 +150,7 @@ def _run_yt_dlp_subprocess(cmd: list[str | Path], timeout: int,
         mode = 'w' if not progress_log_state.initialized else 'a'
         progress_log_state.initialized = True
 
-        with open(log_file, mode, encoding='utf-8') as f:
+        with log_file.open(mode, encoding='utf-8') as f:
             _ = subprocess.run(cmd, check=True, stdout=f,
                                stderr=subprocess.PIPE, text=True, timeout=timeout)
         logger.info(f'{label} completed successfully. Progress logged to {log_file}')
