@@ -548,7 +548,7 @@ The project uses `run-linters.py` (project root) to run all linting tools. Each 
 
 ### Running a Single Tool
 ```bash
-source .venv/bin/activate && python run-linters.py --tool ruff
+source .venv-linux/bin/activate && python run-linters.py --tool ruff
 ```
 
 ### List All Tools
@@ -561,7 +561,7 @@ python run-linters.py --list
 When asked to "run linters" or "lint the code", Claude should:
 1. Call `python run-linters.py --list` to get tool names
 2. Spawn **one `general-purpose` sub-agent per tool in parallel** (single message, multiple Agent tool calls)
-3. Each sub-agent runs: `source .venv/bin/activate && python run-linters.py --tool <name>`
+3. Each sub-agent runs: `source .venv-linux/bin/activate && python run-linters.py --tool <name>`
 4. Report pass/fail summary after all sub-agents complete
 
 ### Notes
