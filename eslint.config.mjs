@@ -16,7 +16,8 @@ export default [
         Element: 'readonly',
         HTMLElement: 'readonly',
         Event: 'readonly',
-        Date: 'readonly'
+        Date: 'readonly',
+        PerformanceObserver: 'readonly'
       }
     },
     rules: {

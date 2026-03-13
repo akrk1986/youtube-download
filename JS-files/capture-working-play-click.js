@@ -21,6 +21,11 @@ const VERSION = '2026-02-15-1641';
 // Generate unique instance ID to detect multiple script runs
 const instanceId = Math.random().toString(36).substring(2, 9);
 
+// Detect browser — Chrome needs different handling due to Service Worker interception
+const isChrome = navigator.userAgent.includes('Chrome') && !navigator.userAgent.includes('Edg');
+const isFirefox = navigator.userAgent.includes('Firefox');
+console.log(`Browser: ${isChrome ? 'Chrome' : isFirefox ? 'Firefox' : 'Other'}`);
+
 // Check if script is already running
 if (window.__ertflixScriptInstanceId) {
     console.warn('⚠️  WARNING: Script appears to be already running!');
@@ -29,6 +34,21 @@ if (window.__ertflixScriptInstanceId) {
     console.warn('   This may cause duplicate captures. Consider reloading the page.');
 }
 window.__ertflixScriptInstanceId = instanceId;
+
+// Chrome uses Service Workers that intercept fetch before window.fetch sees it.
+// Unregister them so the token API calls go through regular fetch/XHR.
+// Firefox does not have this issue, so skip unregistration there.
+if (isChrome && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+        if (registrations.length === 0) {
+            console.log('ℹ️  Chrome: No service workers registered');
+        }
+        registrations.forEach(registration => {
+            console.log(`⚠️  Chrome: Unregistering service worker: ${registration.scope}`);
+            registration.unregister();
+        });
+    });
+}
 
 console.clear();
 console.log('='.repeat(80));
@@ -253,6 +273,39 @@ window.XMLHttpRequest.prototype.open = function(method, url, ...rest) {
 };
 
 console.log('✓ Network request monitor active');
+
+// Chrome fallback: PerformanceObserver catches requests that bypass fetch/XHR
+// (e.g., still-active service workers on the first click after unregistration).
+// Not needed in Firefox since window.fetch interception already works there.
+if (isChrome && typeof PerformanceObserver !== 'undefined') {
+    const perfObserver = new PerformanceObserver((list) => {
+        /* jshint loopfunc: true */
+        for (const entry of list.getEntries()) {
+            const url = entry.name;
+            if (url.includes('api.ertflix.opentv.com/urlbuilder/v1/playout/content/token')) {
+                if (captureActive && !tokenApiUrls.includes(url)) {
+                    console.log('\n' + '='.repeat(80));
+                    console.log('🔑 TOKEN API CALL DETECTED (PerformanceObserver - Chrome)');
+                    console.log('='.repeat(80));
+                    console.log(`\nToken API URL: ${url}\n`);
+                    tokenApiUrls.push(url);
+                    recordUrl('TOKEN_API', url);
+                    window.__ertflixTokenApiUrl = url;
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(url).then(() => {
+                            console.log('✓ Token API URL copied to clipboard!');
+                        }).catch(err => {
+                            console.log('⚠️  Could not copy to clipboard:', err.message);
+                        });
+                    }
+                    console.log('='.repeat(80));
+                }
+            }
+        }
+    });
+    perfObserver.observe({ entryTypes: ['resource'] });
+    console.log('✓ Chrome: PerformanceObserver fallback active (catches Service Worker requests)');
+}
 
 // =============================================================================
 // Intercept Shaka Player (if present)

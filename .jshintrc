@@ -11,6 +11,7 @@
     "console": true,
     "setTimeout": true,
     "URL": true,
-    "Blob": true
+    "Blob": true,
+    "PerformanceObserver": true
   }
 }
