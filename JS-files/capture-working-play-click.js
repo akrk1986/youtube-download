@@ -6,10 +6,12 @@
 // Instructions:
 // 1. Open the MAIN page with all 32 episodes
 // 2. Press F12 to open DevTools, then go to the Console tab
-//    IMPORTANT: Dock DevTools to the BOTTOM of the window (not the side).
-//    Use the ⋮ menu in DevTools > Dock side > Dock to bottom.
-//    Docking to the side narrows the main window and ERTFlix switches to a
-//    mobile view, replacing the episode page with a "use the app" screen.
+//    IMPORTANT: DevTools must NOT change the width of the main window.
+//    Use the ⋮ menu in DevTools > Dock side, and choose either:
+//      - "Dock to bottom"  (DevTools appears below the page), or
+//      - "Undock into separate window"  (DevTools in its own window)
+//    Do NOT dock to the left or right side — that narrows the main window
+//    and ERTFlix switches to a mobile view ("use the app" screen).
 //    This applies to both Chrome and Firefox.
 // 3. Clear the console window
 //    - Firefox: trash icon labeled 'clear the web console output'

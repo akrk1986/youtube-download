@@ -445,7 +445,7 @@ No API calls needed - just simple URL parsing!
 Use the browser console script to capture token API URLs from ERTFlix:
 
 1. **Navigate to ERTFlix video page** (e.g., `https://www.ertflix.gr/#/details/ERT_PS054741_E0`)
-2. **Open DevTools** (F12) — **dock to the bottom**, not the side. Docking to the side narrows the main window below ERTFlix's responsive breakpoint and replaces the episode page with a "use the mobile app" screen. Applies to both Chrome and Firefox.
+2. **Open DevTools** (F12) — DevTools must **not change the width** of the main window. Use the ⋮ menu in DevTools > Dock side and choose **"Dock to bottom"** or **"Undock into separate window"**. Docking to the left or right side narrows the main window below ERTFlix's responsive breakpoint and replaces the episode page with a "use the mobile app" screen. Applies to both Chrome and Firefox.
 3. **Go to Console tab and clear it** (Firefox: trash icon, Chrome: circle with diagonal line)
 4. **Load the capture script:**
    ```bash
@@ -530,7 +530,7 @@ The `capture-working-play-click.js` script provides:
 - ✅ **Multi-instance detection** warns if script run multiple times
 
 **Quick usage:**
-1. Open ERTFlix video page, press F12 — dock DevTools to the bottom (not the side)
+1. Open ERTFlix video page, press F12 — dock DevTools to the bottom or undock it (not to the side)
 2. Clear console (Firefox: trash icon, Chrome: circle icon)
 3. Paste script and press Enter
 4. Click Play button, wait 3 seconds

@@ -177,7 +177,7 @@ python main-yt-dlp.py --only-audio "TOKEN_URL"
 
 **Usage Instructions:**
 1. Navigate to ERTFlix video page (e.g., `https://www.ertflix.gr/#/details/ERT_PS054741_E0`)
-2. Open DevTools (F12) — **dock to the bottom**, not the side. Docking to the side narrows the main window below ERTFlix's responsive breakpoint and replaces the episode page with a "use the mobile app" screen. Applies to both Chrome and Firefox.
+2. Open DevTools (F12) — DevTools must **not change the width** of the main window. Use the ⋮ menu in DevTools > Dock side and choose **"Dock to bottom"** or **"Undock into separate window"**. Docking to the left or right side narrows the main window below ERTFlix's responsive breakpoint and replaces the episode page with a "use the mobile app" screen. Applies to both Chrome and Firefox.
 3. Go to the Console tab and clear it (Firefox: trash icon, Chrome: circle with diagonal line)
 4. Paste the script and press Enter
 5. Click any Play button
