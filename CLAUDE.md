@@ -177,8 +177,8 @@ python main-yt-dlp.py --only-audio "TOKEN_URL"
 
 **Usage Instructions:**
 1. Navigate to ERTFlix video page (e.g., `https://www.ertflix.gr/#/details/ERT_PS054741_E0`)
-2. Open browser console (F12)
-3. Clear console (Firefox: trash icon, Chrome: circle with diagonal line)
+2. Open DevTools (F12) — **dock to the bottom**, not the side. Docking to the side narrows the main window below ERTFlix's responsive breakpoint and replaces the episode page with a "use the mobile app" screen. Applies to both Chrome and Firefox.
+3. Go to the Console tab and clear it (Firefox: trash icon, Chrome: circle with diagonal line)
 4. Paste the script and press Enter
 5. Click any Play button
 6. Wait 3 seconds for automatic summary
