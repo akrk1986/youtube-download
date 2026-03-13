@@ -2,12 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2026-03-13-1734] - Fix ERTFlix token URL capture in Chrome
-
-### Fixed
-- **`JS-files/capture-working-play-click.js`**: Chrome intercepts fetch() via Service Workers before `window.fetch` sees it, causing the token API URL to never be captured. Added two Chrome-only fixes: (1) unregister active service workers at script start so subsequent requests go through regular fetch/XHR; (2) `PerformanceObserver` fallback that catches all network requests regardless of mechanism, including those still routed via service worker on the first click. Firefox path is unchanged. JS VERSION bumped to `2026-03-13-1734`.
-- **`.jshintrc`** / **`eslint.config.mjs`**: added `PerformanceObserver` to browser globals for both linters.
-
 ## [2026-03-10-1818] - Sync run-linters improvements from LosslessCut-csv
 
 ### Changed
