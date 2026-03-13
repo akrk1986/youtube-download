@@ -1,3 +1,27 @@
+[project]
+name = "youtube-download"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "arrow",
+    "bandit",
+    "emoji",
+    "mutagen",
+    "mypy",
+    "odfpy",
+    "pydoclint",
+    "pylint",
+    "pyupgrade",
+    "radon",
+    "ruff",
+    "pytest",
+    "requests",
+    "types-requests",
+    "types-yt-dlp",
+    "vulture",
+    "yt-dlp",
+]
+
 [tool.bandit]
 exclude_dirs = ['.venv-linux', '.venv-3.14', '.venv-windows', '.venv', 'Tests/.venv-linux', 'Beta', 'Tests-Standalone', 'node_modules']
 skips = ['B101']
