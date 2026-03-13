@@ -21,7 +21,7 @@
 (function() {
 
 // Version corresponds to the latest script update timestamp
-const VERSION = '2026-02-15-1641';
+const VERSION = '2026-03-13-1803';
 
 // Generate unique instance ID to detect multiple script runs
 const instanceId = Math.random().toString(36).substring(2, 9);

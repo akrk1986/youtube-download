@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-03-13-1803] - Fix ERTFlix mobile redirect when DevTools docked to side
+
+### Fixed
+- **`JS-files/capture-working-play-click.js`**: Added instruction to dock DevTools to the bottom (not the side). Docking to the side narrows the main window below ERTFlix's responsive breakpoint, causing it to show a mobile-app suggestion page instead of the episode list. Applies to both Chrome and Firefox. VERSION bumped to `2026-03-13-1803`.
+
 ## [2026-03-10-1818] - Sync run-linters improvements from LosslessCut-csv
 
 ### Changed
