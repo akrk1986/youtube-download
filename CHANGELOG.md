@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [TIMESTAMP] - main-convert.py: copy cover art when syncing tags
+
+### Added
+- **`main-convert.py`**: cover art (album artwork) is now copied from source to target file when syncing tags — previously only text tags were transferred
+  - New `_extract_cover_art(file_path, fmt)` helper reads `APIC` frame (MP3) or `covr` atom (M4A)
+  - New `_apply_cover_art(file_path, fmt, cover_data, mime)` helper writes the art after text tags are saved (so the ID3 save inside `apply_mp3_tags` does not overwrite the new `APIC` frame)
+- **`Docs/main-convert-README.md`**: updated features list, optional arguments (`--prefix`), tag mapping table (cover art row), default directories, and notes to reflect all current functionality
+
 ## [2026-03-13-1803] - Fix ERTFlix mobile redirect when DevTools docked to side
 
 ### Fixed

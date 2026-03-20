@@ -7,9 +7,12 @@
 ## Features
 
 - **Bidirectional tag copying**: MP3 ↔ M4A
+- **Cover art copying**: Embedded album art is copied along with text tags
 - **Automatic file conversion**: Optionally create missing target files using ffmpeg
 - **Original filename preservation**: Copies TENC (MP3) ↔ ©lyr (M4A) tags
 - **Date normalization**: Converts YYYYMMDD format to YYYY
+- **Artist/album-artist sync**: If only one of artist or album artist is set, the other is filled in automatically
+- **Filename prefix**: Optionally prepend a prefix to target filenames
 - **Flexible directory structure**: Supports custom directory layouts
 
 ## Usage
@@ -28,14 +31,15 @@ python main-convert.py --source {mp3|m4a} [OPTIONS]
 
 - `--create-missing-files`: Convert and create missing target files before copying tags
 - `--top-level-directory PATH`: Top-level directory containing MP3 and M4A subfolders
+- `--prefix PREFIX`: Prepend `<PREFIX> - ` to target filenames (if not already present)
 
 ### Directory Structure
 
 #### Default (without --top-level-directory)
 ```
 project/
-├── staging-mp3/       # MP3 source files
-└── staging-m4a/       # M4A target files
+├── yt-audio/       # MP3 files
+└── yt-audio-m4a/   # M4A files
 ```
 
 #### Custom (with --top-level-directory)
@@ -67,6 +71,11 @@ python main-convert.py --source mp3 --create-missing-files
 python main-convert.py --source mp3 --top-level-directory /path/to/audio-files
 ```
 
+### Prepend a prefix to target filenames
+```bash
+python main-convert.py --source m4a --prefix "2024"
+```
+
 ## Tag Mapping
 
 ### Standard Tags
@@ -87,6 +96,7 @@ python main-convert.py --source mp3 --top-level-directory /path/to/audio-files
 | Common Name | MP3 Tag | M4A Atom | Description |
 |-------------|---------|----------|-------------|
 | Original Filename | TENC | ©lyr | Original filename (without extension) |
+| Cover Art | APIC | covr | Embedded album artwork |
 
 **Note:** The `encodedby` field is mapped to:
 - **MP3**: TENC frame (Encoded by)
@@ -115,8 +125,8 @@ When using `--create-missing-files`, the script will:
 3. Copy tags to the newly converted file
 
 **Conversion functions:**
-- MP3 → M4A: Uses `convert_mp3_to_m4a()` from `funcs_audio_conversion.py`
-- M4A → MP3: Uses `convert_m4a_to_mp3()` from `funcs_audio_conversion.py`
+- MP3 → M4A: Uses `convert_mp3_to_m4a()` from `funcs_for_audio_utils/`
+- M4A → MP3: Uses `convert_m4a_to_mp3()` from `funcs_for_audio_utils/`
 
 ## Exit Codes
 
@@ -165,15 +175,15 @@ python main-convert.py --source m4a
 
 ### Process files in custom directory structure
 ```bash
-# Work with files in yt-audio directory structure
-python main-convert.py --source mp3 --top-level-directory yt-audio
+# Work with files in a custom directory structure
+python main-convert.py --source mp3 --top-level-directory /path/to/audio-files
 ```
 
 ## Notes
 
 - Only non-empty tag values are copied
 - Existing tags in target files are overwritten
-- Album artwork is not copied (must be embedded in original files)
+- Cover art (album artwork) is copied when present in the source file
 - Track numbers are converted between string (MP3) and tuple (M4A) formats
 - The script skips files that cannot be read or written
 
@@ -194,8 +204,7 @@ python main-convert.py --source mp3 --top-level-directory yt-audio
 ## Related Scripts
 
 - `main-yt-dlp.py`: Main YouTube downloader (generates tagged audio files)
-- `funcs_audio_conversion.py`: Audio conversion functions
-- `funcs_audio_tag_handlers.py`: Tag handler classes
+- `funcs_for_audio_utils/`: Audio conversion functions
 
 ## See Also
 

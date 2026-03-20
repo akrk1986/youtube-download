@@ -8,8 +8,8 @@ import sys
 import re
 from pathlib import Path
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3NoHeaderError, ID3, COMM, TENC
-from mutagen.mp4 import MP4
+from mutagen.id3 import ID3NoHeaderError, ID3, COMM, TENC, APIC
+from mutagen.mp4 import MP4, MP4Cover
 import arrow
 
 from funcs_for_audio_utils import convert_mp3_to_m4a, convert_m4a_to_mp3
@@ -185,6 +185,55 @@ def apply_m4a_tags(file_path: Path, tags: dict[str, str]) -> bool:
         print(f'Error writing M4A tags to {file_path}: {e}')
         return False
 
+def _extract_cover_art(file_path: Path, fmt: str) -> tuple[bytes, str] | None:
+    """Extract cover art from an audio file.
+
+    Returns:
+        Tuple of (image_bytes, mime_type) or None if not found.
+    """
+    try:
+        if fmt == 'm4a':
+            audio = MP4(file_path)
+            covers = audio.get('covr', [])
+            if not covers:
+                return None
+            cover = covers[0]
+            mime = 'image/png' if cover.imageformat == MP4Cover.FORMAT_PNG else 'image/jpeg'
+            return (bytes(cover), mime)
+        # mp3
+        id3 = ID3(file_path)
+        apic_frames = id3.getall('APIC')
+        if not apic_frames:
+            return None
+        apic = apic_frames[0]
+        return (apic.data, apic.mime)
+    except Exception:  # pylint: disable=broad-exception-caught
+        return None
+
+
+def _apply_cover_art(file_path: Path, fmt: str, cover_data: bytes, mime: str) -> None:
+    """Write cover art into an audio file.
+
+    Args:
+        file_path: Path to the target audio file.
+        fmt: Target format ('mp3' or 'm4a').
+        cover_data: Raw image bytes.
+        mime: MIME type string (e.g. 'image/jpeg').
+    """
+    try:
+        if fmt == 'mp3':
+            id3 = ID3(file_path)
+            id3.add(APIC(encoding=3, mime=mime, type=3, desc='', data=cover_data))
+            id3.save(file_path)
+        else:
+            audio = MP4(file_path)
+            imageformat = MP4Cover.FORMAT_PNG if mime == 'image/png' else MP4Cover.FORMAT_JPEG
+            audio['covr'] = [MP4Cover(cover_data, imageformat=imageformat)]
+            audio.save()
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        print(f'  Warning: could not write cover art to {file_path.name}: {e}')
+
+
 def _fill_missing_artist_tags(tags: dict[str, str]) -> None:
     """Copy artist to albumartist or vice versa if only one is set."""
     if tags.get('artist') and not tags.get('albumartist'):
@@ -239,6 +288,12 @@ def _process_file(
         success = apply_mp3_tags(file_path=target_file, tags=tags)
     else:
         success = apply_m4a_tags(file_path=target_file, tags=tags)
+
+    # Copy cover art after tags are written (so ID3 save in apply_mp3_tags doesn't overwrite APIC)
+    cover_art = _extract_cover_art(file_path=source_file, fmt=source_format)
+    if cover_art:
+        cover_data, mime = cover_art
+        _apply_cover_art(file_path=target_file, fmt=target_format, cover_data=cover_data, mime=mime)
 
     return success, False, converted
 
