@@ -83,7 +83,7 @@ def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
             'funcs_for_main_yt_dlp/', 'funcs_video_info/', 'funcs_utils/',
             'funcs_audio_processing/', 'funcs_audio_tag_handlers/',
             'funcs_for_audio_utils/', 'funcs_notifications/',
-            'main-yt-dlp.py', 'main-get-artists-from-trello.py',
+            'main-yt-dlp.py', 'main-get-artists-from-trello.py', 'main-convert.py',
         ]
         existing = [t for t in targets if (root / t).exists()]
         return ['pylint'] + existing + ['--ignore=Beta'], False

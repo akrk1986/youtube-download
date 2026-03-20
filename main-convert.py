@@ -330,22 +330,15 @@ def main() -> int:
     """Copy audio tags between source and target audio format directories."""
     args = parse_args()
 
-    # Map format to default output directory
-    default_dirs = {
-        'mp3': Path(AUDIO_OUTPUT_DIR),
-        'm4a': Path(AUDIO_OUTPUT_DIR_M4A),
-    }
-
     target_format = 'm4a' if args.source == 'mp3' else 'mp3'
 
     # Define directories
     if args.top_level_directory:
-        top_dir = args.top_level_directory
-        source_dir = top_dir / args.source.upper()
-        target_dir = top_dir / target_format.upper()
+        source_dir = args.top_level_directory / args.source.upper()
+        target_dir = args.top_level_directory / target_format.upper()
     else:
-        source_dir = default_dirs[args.source]
-        target_dir = default_dirs[target_format]
+        source_dir = Path(AUDIO_OUTPUT_DIR) if args.source == 'mp3' else Path(AUDIO_OUTPUT_DIR_M4A)
+        target_dir = Path(AUDIO_OUTPUT_DIR_M4A) if args.source == 'mp3' else Path(AUDIO_OUTPUT_DIR)
 
     # Check if directories exist
     if not source_dir.exists():
