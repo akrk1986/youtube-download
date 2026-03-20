@@ -263,6 +263,10 @@ def parse_args() -> argparse.Namespace:
                     parser.error(f"Directory '{p}' does not exist"),
         help='Top-level directory containing MP3 and M4A subfolders'
     )
+    parser.add_argument(
+        '--prefix',
+        help="Prepend '<prefix> - ' to the target filename if not already present"
+    )
 
     return parser.parse_args()
 
@@ -311,7 +315,10 @@ def main() -> int:
 
     for source_file in source_files:
         print(f'Processing: {source_file.name}')
-        target_file = target_dir / (source_file.stem + f'.{target_format}')
+        stem = source_file.stem
+        if args.prefix and not stem.lower().startswith(f'{args.prefix.lower()} - '):
+            stem = f'{args.prefix} - {stem}'
+        target_file = target_dir / (stem + f'.{target_format}')
         processed, warned, converted = _process_file(
             source_file=source_file,
             target_file=target_file,
