@@ -13,6 +13,7 @@ from mutagen.mp4 import MP4
 import arrow
 
 from funcs_for_audio_utils import convert_mp3_to_m4a, convert_m4a_to_mp3
+from project_defs import AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_M4A
 
 
 def normalize_year(year_str: str | int | None) -> str:
@@ -185,8 +186,9 @@ def apply_m4a_tags(file_path: Path, tags: dict[str, str]) -> bool:
         print(f'Error writing M4A tags to {file_path}: {e}')
         return False
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description='Copy audio tags between MP3 and M4A staging directories')
+def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description='Copy audio tags between MP3 and M4A directories')
     parser.add_argument(
         '--source',
         required=True,
@@ -205,18 +207,28 @@ def main() -> int:
         help='Top-level directory containing MP3 and M4A subfolders'
     )
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+
+    # Map format to default output directory
+    default_dirs = {
+        'mp3': Path(AUDIO_OUTPUT_DIR),
+        'm4a': Path(AUDIO_OUTPUT_DIR_M4A),
+    }
+
+    target_format = 'm4a' if args.source == 'mp3' else 'mp3'
 
     # Define directories
     if args.top_level_directory:
         top_dir = args.top_level_directory
         source_dir = top_dir / args.source.upper()
-        target_format = 'm4a' if args.source == 'mp3' else 'mp3'
         target_dir = top_dir / target_format.upper()
     else:
-        source_dir = Path(f'staging-{args.source}')
-        target_format = 'm4a' if args.source == 'mp3' else 'mp3'
-        target_dir = Path(f'staging-{target_format}')
+        source_dir = default_dirs[args.source]
+        target_dir = default_dirs[target_format]
 
     # Check if directories exist
     if not source_dir.exists():
