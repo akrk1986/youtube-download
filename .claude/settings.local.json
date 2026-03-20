@@ -19,7 +19,9 @@
       "Bash(flake8:*)",
       "Bash(wc:*)",
       "Bash(git status:*)",
-      "Bash(pylint main-convert.py)"
+      "Bash(pylint main-convert.py)",
+      "Bash(echo \"EXIT_CODE: $?\")",
+      "Bash(echo \"EXIT_CODE:$?\")"
     ],
     "deny": [],
     "ask": []
