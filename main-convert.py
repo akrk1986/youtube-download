@@ -29,13 +29,12 @@ def normalize_year(year_str: str | int | None) -> str:
             # YYYYMMDD format
             parsed_date = arrow.get(year_str, 'YYYYMMDD')
             return str(parsed_date.year)
-        elif len(year_str) == 4 and year_str.isdigit():
+        if len(year_str) == 4 and year_str.isdigit():
             # Already YYYY format
             return year_str
-        else:
-            # Try to parse as date
-            parsed_date = arrow.get(year_str)
-            return str(parsed_date.year)
+        # Try to parse as date
+        parsed_date = arrow.get(year_str)
+        return str(parsed_date.year)
     except (arrow.parser.ParserMatchError, arrow.parser.ParserError):
         # Fallback to regex extraction
         match = re.search(r'\d{4}', year_str)
@@ -76,7 +75,7 @@ def extract_mp3_tags(file_path: Path) -> dict[str, str] | None:
             'composer': audio.get('composer', [''])[0],
             'encodedby': encodedby
         }
-    except (ID3NoHeaderError, Exception) as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print(f'Error reading MP3 tags from {file_path}: {e}')
         return None
 
@@ -84,7 +83,9 @@ def extract_m4a_tags(file_path: Path) -> dict[str, str] | None:
     """Extract relevant tags from M4A file using MP4."""
     try:
         audio = MP4(file_path)
-        year = normalize_year(year_str=audio.get('\xa9day', [''])[0] if audio.get('\xa9day') else '')
+        year = normalize_year(
+            year_str=audio.get('\xa9day', [''])[0] if audio.get('\xa9day') else ''
+        )
         # Extract ©lyr (unsynced lyrics) tag - used to store original filename
         unsyncedlyrics = audio.get('\xa9lyr', [''])[0] if audio.get('\xa9lyr') else ''
         return {
@@ -99,7 +100,7 @@ def extract_m4a_tags(file_path: Path) -> dict[str, str] | None:
             'composer': audio.get('\xa9wrt', [''])[0] if audio.get('\xa9wrt') else '',
             'encodedby': unsyncedlyrics
         }
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print(f'Error reading M4A tags from {file_path}: {e}')
         return None
 
@@ -140,7 +141,7 @@ def apply_mp3_tags(file_path: Path, tags: dict[str, str]) -> bool:
             print(f'  Written tags: {", ".join(written_tags)}')
 
         return True
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print(f'Error writing MP3 tags to {file_path}: {e}')
         return False
 
@@ -180,9 +181,67 @@ def apply_m4a_tags(file_path: Path, tags: dict[str, str]) -> bool:
         if written_tags:
             print(f'  Written tags: {", ".join(written_tags)}')
         return True
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print(f'Error writing M4A tags to {file_path}: {e}')
         return False
+
+def _fill_missing_artist_tags(tags: dict[str, str]) -> None:
+    """Copy artist to albumartist or vice versa if only one is set."""
+    if tags.get('artist') and not tags.get('albumartist'):
+        tags['albumartist'] = tags['artist']
+    elif tags.get('albumartist') and not tags.get('artist'):
+        tags['artist'] = tags['albumartist']
+
+
+def _process_file(
+    source_file: Path,
+    target_file: Path,
+    source_format: str,
+    target_format: str,
+    create_missing_files: bool,
+) -> tuple[bool, bool, bool]:
+    """Process one file: optionally convert, extract tags, apply tags.
+
+    Returns:
+        Tuple of (processed, warned, converted) booleans.
+    """
+    converted = False
+    if not target_file.exists() or target_file.stat().st_size == 0:
+        if create_missing_files:
+            print(
+                f"  Target file '{target_file.name}' does not exist or is empty, converting..."
+            )
+            if source_format == 'mp3':
+                result = convert_mp3_to_m4a(mp3_file=source_file, m4a_file=target_file)
+            else:
+                result = convert_m4a_to_mp3(m4a_file=source_file, mp3_file=target_file)
+            if result is None:
+                print(f'  Failed to convert {source_file.name}')
+                return False, True, False
+            converted = True
+        else:
+            print(f"  WARNING: Target file '{target_file.name}' not found")
+            return False, True, False
+
+    # Extract tags from source file
+    if source_format == 'mp3':
+        tags = extract_mp3_tags(file_path=source_file)
+    else:
+        tags = extract_m4a_tags(file_path=source_file)
+
+    if tags is None:
+        return False, False, converted
+
+    _fill_missing_artist_tags(tags=tags)
+
+    # Apply tags to target file
+    if target_format == 'mp3':
+        success = apply_mp3_tags(file_path=target_file, tags=tags)
+    else:
+        success = apply_m4a_tags(file_path=target_file, tags=tags)
+
+    return success, False, converted
+
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
@@ -209,6 +268,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Copy audio tags between source and target audio format directories."""
     args = parse_args()
 
     # Map format to default output directory
@@ -251,56 +311,25 @@ def main() -> int:
 
     for source_file in source_files:
         print(f'Processing: {source_file.name}')
-
-        # Generate target file path with different extension
         target_file = target_dir / (source_file.stem + f'.{target_format}')
-
-        # Check if target file exists and is not empty
-        if not target_file.exists() or target_file.stat().st_size == 0:
-            if args.create_missing_files:
-                print(f"  Target file '{target_file.name}' does not exist or is empty, converting...")
-                # Convert source file to target format
-                if args.source == 'mp3':
-                    result = convert_mp3_to_m4a(mp3_file=source_file, m4a_file=target_file)
-                else:
-                    result = convert_m4a_to_mp3(m4a_file=source_file, mp3_file=target_file)
-
-                if result is None:
-                    print(f'  Failed to convert {source_file.name}')
-                    warning_count += 1
-                    continue
-                converted_count += 1
-            else:
-                print(f"  WARNING: Target file '{target_file.name}' not found")
-                warning_count += 1
-                continue
-
-        # Extract tags from source file
-        if args.source == 'mp3':
-            tags = extract_mp3_tags(file_path=source_file)
-        else:
-            tags = extract_m4a_tags(file_path=source_file)
-
-        if tags is None:
-            continue
-
-        # If artist is set but albumartist is not, or vice versa, copy between them
-        if tags.get('artist') and not tags.get('albumartist'):
-            tags['albumartist'] = tags['artist']
-        elif tags.get('albumartist') and not tags.get('artist'):
-            tags['artist'] = tags['albumartist']
-
-        # Apply tags to target file
-        if target_format == 'mp3':
-            success = apply_mp3_tags(file_path=target_file, tags=tags)
-        else:
-            success = apply_m4a_tags(file_path=target_file, tags=tags)
-
-        if success:
+        processed, warned, converted = _process_file(
+            source_file=source_file,
+            target_file=target_file,
+            source_format=args.source,
+            target_format=target_format,
+            create_missing_files=args.create_missing_files,
+        )
+        if processed:
             processed_count += 1
+        if warned:
+            warning_count += 1
+        if converted:
+            converted_count += 1
 
     print(
-        f'\nCompleted: {processed_count} files processed, {converted_count} files converted, {warning_count} warnings')
+        f'\nCompleted: {processed_count} files processed, '
+        f'{converted_count} files converted, {warning_count} warnings'
+    )
 
     # Return 1 if there were warnings (missing files, conversion failures, etc.)
     return 1 if warning_count > 0 else 0
