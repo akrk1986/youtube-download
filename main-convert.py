@@ -112,30 +112,28 @@ def apply_mp3_tags(file_path: Path, tags: dict[str, str]) -> bool:
         except ID3NoHeaderError:
             audio = EasyID3()
 
-        # Handle comment and encodedby separately with raw ID3
-        id3_audio = ID3(file_path)
-
         written_tags = []
-        special_tags_written = False
+        special_tags: dict[str, str] = {}
 
         for key, value in tags.items():
             if value:  # Only set non-empty values
-                if key == 'comment':
-                    # Set comment using raw ID3
-                    id3_audio.add(COMM(encoding=3, lang='eng', desc='', text=[value]))
-                    written_tags.append('comment')
-                    special_tags_written = True
-                elif key == 'encodedby':
-                    # Set TENC (encoded by) using raw ID3
-                    id3_audio.add(TENC(encoding=3, text=value))
-                    written_tags.append('encodedby')
-                    special_tags_written = True
+                if key in ('comment', 'encodedby'):
+                    special_tags[key] = value
                 else:
                     audio[key] = [value]
                     written_tags.append(key)
 
+        # Save EasyID3 tags first, then load ID3 fresh so it sees the saved state
         audio.save(file_path)
-        if special_tags_written:
+
+        if special_tags:
+            id3_audio = ID3(file_path)
+            if 'comment' in special_tags:
+                id3_audio.add(COMM(encoding=3, lang='eng', desc='', text=[special_tags['comment']]))
+                written_tags.append('comment')
+            if 'encodedby' in special_tags:
+                id3_audio.add(TENC(encoding=3, text=special_tags['encodedby']))
+                written_tags.append('encodedby')
             id3_audio.save(file_path)
 
         if written_tags:
@@ -285,6 +283,12 @@ def main() -> int:
 
         if tags is None:
             continue
+
+        # If artist is set but albumartist is not, or vice versa, copy between them
+        if tags.get('artist') and not tags.get('albumartist'):
+            tags['albumartist'] = tags['artist']
+        elif tags.get('albumartist') and not tags.get('artist'):
+            tags['artist'] = tags['albumartist']
 
         # Apply tags to target file
         if target_format == 'mp3':
