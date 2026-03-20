@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [TIMESTAMP] - main-convert.py: copy cover art when syncing tags
+## [2026-03-20-1703] - main-convert.py: copy cover art when syncing tags
 
 ### Added
 - **`main-convert.py`**: cover art (album artwork) is now copied from source to target file when syncing tags — previously only text tags were transferred
