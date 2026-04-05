@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-04-05-1200] - ertflix-auto.py: hands-off playback and dedicated profile
+
+### Added
+- **`ertflix-auto.py`**: expanded playback automation (Shaka / Video.js / generic overlay selectors, ``<video>`` click, ``HTMLVideoElement.play()``, Space key), retried every few seconds until the token request fires
+- **`ertflix-auto.py`**: default Playwright user data is a fixed directory under XDG data / ``AppData`` / ``Library`` (``ertflix-auto/firefox-profile``), not ``~/.mozilla/firefox``, to avoid extra profiles from mixing Playwright’s Firefox with a retail profile; ``--use-mozilla-default-profile`` restores the old ``profiles.ini`` behaviour
+
+### Changed
+- **`ertflix-auto.py`**: INFO logs before/after closing the browser when the token is captured; with ``--verbose``, suppress asyncio/playwright DEBUG noise and skip logging aborted ad/telemetry URLs (e.g. ``csi.gstatic.com``)
+
 ## [2026-03-20-1703] - main-convert.py: copy cover art when syncing tags
 
 ### Added
