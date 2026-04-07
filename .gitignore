@@ -4,6 +4,7 @@
 /yt-audio-m4a
 /yt-audio-flac
 .idea/workspace.xml
+.idea/shelf/
 *.mp3
 *.webm
 *.mp4
@@ -31,6 +32,7 @@ staging-mp4/
 .pyscn/
 Logs/
 git_excluded.py
+Data/trello - greek-music-artists.json
 # Node/npm (JavaScript linting tools)
 node_modules/
 package-lock.json

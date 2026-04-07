@@ -21,7 +21,8 @@
       "Bash(git status:*)",
       "Bash(pylint main-convert.py)",
       "Bash(echo \"EXIT_CODE: $?\")",
-      "Bash(echo \"EXIT_CODE:$?\")"
+      "Bash(echo \"EXIT_CODE:$?\")",
+      "Bash(git -C /mnt/c/Users/user/PycharmProjects/youtube-download log --all --oneline)"
     ],
     "deny": [],
     "ask": []

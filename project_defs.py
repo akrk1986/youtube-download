@@ -69,4 +69,4 @@ YT_DLP_SPLIT_CHAPTERS_FLAG = '--split-chapters'
 YT_DLP_IS_PLAYLIST_FLAG = '--yes-playlist'
 
 # Legacy constant (example playlist URL)
-GREEK_PLAYLIST_URL = 'https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE'
+GREEK_PLAYLIST_URL = 'https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'

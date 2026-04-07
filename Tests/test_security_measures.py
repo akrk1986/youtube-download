@@ -21,7 +21,7 @@ class TestURLSanitization:
         valid_urls = [
             'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
             'https://youtu.be/dQw4w9WgXcQ',
-            'https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE',
+            'https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
             'https://m.youtube.com/watch?v=dQw4w9WgXcQ',
             # URLs with ampersands in query strings (common in YouTube URLs)
             'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10s',
