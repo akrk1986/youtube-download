@@ -440,9 +440,52 @@ ERTFlix uses token API URLs that contain the actual playback URL as a URL-encode
 
 No API calls needed - just simple URL parsing!
 
-### Capturing Token URLs
+### Interactive Series Browser (`main-ertflix-series.py`)
 
-Use the browser console script to capture token API URLs from ERTFlix:
+The fastest way to download a Parea (or any ERTFlix series) episode — no DevTools, no manual console paste, no clipboard juggling. Drive Chromium to the series URL, pick season + episode via arrow-key menus, and the token URL is captured and handed off automatically.
+
+**One-time setup:**
+```bash
+uv sync                               # installs playwright, questionary, rich
+python -m playwright install chromium
+```
+
+**Usage:**
+```bash
+# Pick an episode interactively, then download video
+python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea
+
+# Same, audio-only as MP3 (unknown flags forward to main-yt-dlp.py)
+python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
+    --only-audio --audio-format mp3
+
+# With a program name — sets --title and NOTIF_MSG to "<program> S<NN>E<NN>"
+python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
+    --program Parea --only-audio --audio-format mp3
+# → hand-off includes: --title "Parea S02E26"   NOTIF_MSG="Parea S02E26"
+
+# Print the would-be hand-off command without running it
+python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
+    --program Parea --dry-run --only-audio
+
+# Force headless (default is headed so you can log in the first time)
+python main-ertflix-series.py --headless <URL>
+
+# Dump the rendered DOM + selector probes and exit (diagnostic)
+python main-ertflix-series.py --debug-dom <URL>
+```
+
+**Key features:**
+- **Persistent login**: Chromium profile is stored in `.ertflix-profile/` (gitignored). Log in once inside the headed window; cookies survive across runs. The script detects a redirect to the login/landing page and pauses so you can sign in before retrying.
+- **`--program` flag**: when provided, the hand-off includes `--title "<program> S<NN>E<NN>"` (zero-padded season + episode). The same string is set as `NOTIF_MSG` so Slack/Gmail notifications identify the episode. `NOTIFICATIONS=ALL` is set automatically.
+- **Numbering matches the page**: seasons and episodes are listed newest-to-oldest on ERTFlix, so the newest gets the highest index. `S02E26` means season 2's 26th (oldest) episode.
+- **Pass-through**: unknown flags go straight to `main-yt-dlp.py` — use `--only-audio`, `--audio-format`, `--split-chapters`, `--subs`, etc. exactly as you would on the main script.
+- **Fallback prompt**: on consoles where `prompt_toolkit` can't drive the TTY (e.g. PyCharm's Run console), the script falls back to a plain numbered `input()` list — the numbers you type match what the Rich table shows.
+- **Dry-run**: `--dry-run` prints the hand-off command using `shlex.join(...)` so you can copy-paste the command even when `--title` contains whitespace.
+
+### Capturing Token URLs (manual fallback)
+
+If you prefer the classic manual flow, use the browser console script to capture token API URLs from ERTFlix:
 
 1. **Navigate to ERTFlix video page** (e.g., `https://www.ertflix.gr/#/details/ERT_PS054741_E0`)
 2. **Open DevTools** (F12) — DevTools must **not change the width** of the main window. Use the ⋮ menu in DevTools > Dock side and choose **"Dock to bottom"** or **"Undock into separate window"**. Docking to the left or right side narrows the main window below ERTFlix's responsive breakpoint and replaces the episode page with a "use the mobile app" screen. Applies to both Chrome and Firefox.

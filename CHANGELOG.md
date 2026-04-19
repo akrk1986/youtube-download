@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-04-19-2157] - Interactive ERTFlix series browser (`main-ertflix-series.py`)
+
+### Added
+- **`main-ertflix-series.py`**: new top-level CLI that drives Chromium (via Playwright) to an ERTFlix series URL, scrapes seasons + episodes, prompts the user via arrow-key menus (with a numbered `input()` fallback for consoles where `prompt_toolkit` can't drive the TTY), captures the token API URL when Play is clicked, and hands off to `main-yt-dlp.py --ertflix-program`. Unknown flags are forwarded verbatim to the downloader.
+  - `--program <name>` — sets `--title "<program> S<NN>E<NN>"` on the hand-off and mirrors the same string into `NOTIF_MSG` for Slack/Gmail notifications (e.g. `Parea S02E08`). Greek program names work too.
+  - Always sets `NOTIFICATIONS=ALL` in the subprocess environment so the download emits start/success/failure notifications.
+  - `--headless`, `--debug-dom`, `--token-timeout`, `--dry-run`, `--verbose`, `--profile-dir`.
+  - Persistent Chromium profile at `.ertflix-profile/` (gitignored) — log in once, cookies survive across runs. `ensure_authenticated()` detects `#/landing` / `#/login` redirects and pauses the script so the user can sign in inside the headed window.
+  - Season + episode numbering mirrors the page's newest-to-oldest order: the newest season/episode receives the highest index, so `S02E26` refers to the 2nd season's 26th episode (oldest in that season).
+  - Dry-run uses `shlex.join()` for shell-safe quoting — the printed hand-off command is copy-paste-runnable even when `--title` contains whitespace.
+- **`funcs_ertflix_automation/`** package — `browser_session`, `dom_scraper`, `cli_prompts`, `handoff`, `errors`.
+- **`Tests/test_ertflix_automation.py`** — 10 pytest tests (argv builder, season/episode pickers, token-URL fragment constant).
+- **Dependencies**: `playwright`, `questionary`, `rich` added to `pyproject.toml` and `requirements.txt`. One-time install: `uv sync && python -m playwright install chromium`.
+- **`.gitignore`**: `.ertflix-profile/` and `Logs/ertflix-debug-*.html`.
+
+### Notes
+- Episodes are identified by their Play-button `aria-label` (i.e. the title shown in the UI), not by a regex against image URLs — the DOM-based scrape is resilient to ID naming-scheme changes on the ERTFlix side.
+- `discover_episodes` polls a single `page.evaluate(...)` snapshot until the set of hydrated titles is stable for several rounds, so all 25–30 cards are captured even when Angular renders them in bursts.
+- The browser interceptor attaches a `page.on('request', ...)` listener (observational) rather than `page.route()` — blocking the request would prevent ERTFlix from generating a token URL with a valid `content_URL`.
+
 ## [2026-03-20-1703] - main-convert.py: copy cover art when syncing tags
 
 ### Added

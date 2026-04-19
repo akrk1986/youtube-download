@@ -36,7 +36,7 @@ from funcs_ertflix_automation.dom_scraper import (click_episode_play,
 from funcs_utils import setup_logging
 from project_defs import VALID_OTHER_DOMAINS
 
-VERSION = '2026-04-19-1814'
+VERSION = '2026-04-19-2157'
 DEBUG_DOM_DIR = Path('Logs')
 
 logger = logging.getLogger(__name__)

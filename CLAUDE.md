@@ -20,6 +20,7 @@ The codebase follows a modular function-based architecture:
 
 ### Main Entry Points
 - `main-yt-dlp.py` - Primary CLI tool for downloading and processing YouTube content
+- `main-ertflix-series.py` - Interactive ERTFlix series browser (Playwright + Chromium): picks season/episode via arrow-key menus, captures the token API URL when Play is clicked, and hands off to `main-yt-dlp.py --ertflix-program`
 - `main-get-artists-from-trello.py` - Utility to convert Trello board data to artist JSON
 
 ### Core Function Modules and Packages
@@ -127,7 +128,60 @@ export YTDLP_USE_COOKIES=firefox
 python main-yt-dlp.py --ertflix-program "https://api.ertflix.opentv.com/..."
 ```
 
-### ERTFlix Support
+### ERTFlix Interactive Series Browser (`main-ertflix-series.py`)
+
+Top-level CLI that collapses the manual DevTools-console-paste dance into a single command. Drives Chromium via Playwright to an ERTFlix series page, scrapes seasons + episodes, lets the user pick via arrow-key menus, captures the token API URL when Play is clicked, then hands off to `main-yt-dlp.py --ertflix-program` as a subprocess.
+
+**Setup (one time):**
+```bash
+uv sync                                # installs playwright, questionary, rich
+python -m playwright install chromium  # downloads Chromium under ~/.cache/ms-playwright
+```
+
+**Usage:**
+```bash
+# Arrow-key pick + download (unknown flags forward to main-yt-dlp.py)
+python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
+    --only-audio --audio-format mp3
+
+# With program name: sets --title "Parea S02E26" and NOTIF_MSG to the same string
+python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
+    --program Parea --only-audio --audio-format mp3
+
+# Print would-be hand-off command (uses shlex.join for shell-safe quoting) and exit
+python main-ertflix-series.py <URL> --program Parea --dry-run --only-audio
+
+# Dump rendered DOM + selector probes to Logs/ for diagnosis
+python main-ertflix-series.py <URL> --debug-dom
+```
+
+**Flags:**
+- `--program <name>` — program label prepended to the `S<NN>E<NN>` formatter. Accepts Greek.
+- `--profile-dir <path>` — Chromium persistent user-data dir (default `.ertflix-profile/`, gitignored).
+- `--headless` — run Chromium without a visible window (default is headed so the user can log in).
+- `--debug-dom` — dump `Logs/ertflix-debug-<ts>.html` and exit before episode selection.
+- `--token-timeout <float>` — seconds to wait for the token URL after clicking Play (default 10).
+- `--dry-run` — log the hand-off argv + env overrides instead of invoking the subprocess.
+
+**Behavior notes:**
+- Seasons + episodes are numbered newest-to-oldest, matching the page order. `S02E26` = season 2, 26th episode (= the oldest in that season).
+- Episodes are identified by the Play-button's `aria-label` (the title shown in the UI), NOT by regex against image URLs. This is resilient to naming-scheme changes.
+- `discover_episodes` polls a single `page.evaluate(...)` snapshot until the set of hydrated titles stabilizes for several rounds — captures all 25–30 cards even when Angular renders them in bursts.
+- The token interceptor uses `page.on('request', ...)` (observational). Do NOT use `page.route()` — blocking the request prevents ERTFlix from generating a valid `content_URL`.
+- `ensure_authenticated()` detects a redirect to `#/landing` or `#/login` and pauses so the user can sign in inside the headed window, then re-navigates and waits for `.asset-card`.
+- When the console can't host `prompt_toolkit` (e.g. PyCharm Run console → `NoConsoleScreenBufferError`), falls back to a plain numbered `input()` prompt. The displayed numbers match the Rich table (not list position).
+- `NOTIFICATIONS=ALL` is always set in the subprocess environment. `NOTIF_MSG` is set only when `--program` is provided.
+
+**Package layout (`funcs_ertflix_automation/`):**
+- `browser_session.py` — Playwright lifecycle, persistent-context launch, token request interceptor, authentication-redirect detection.
+- `dom_scraper.py` — season/episode discovery + Play-button click.
+- `cli_prompts.py` — Rich tables + questionary selects with numbered-input fallback.
+- `handoff.py` — subprocess hand-off to `main-yt-dlp.py`; accepts `env_overrides` merged on top of `os.environ`.
+- `errors.py` — exception hierarchy (`ErtflixAutomationError`, `TokenCaptureTimeout`, `NoSeasonsOrEpisodesFound`, `BrowserLaunchFailed`).
+
+**Tests:** `Tests/test_ertflix_automation.py` (10 pytest tests — argv builder, pickers, token-URL fragment).
+
+### ERTFlix Support (manual token URL flow)
 
 The tool supports downloading from ERTFlix (Greek public broadcaster) using token API URLs:
 
