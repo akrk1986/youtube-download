@@ -1,5 +1,6 @@
 """Subprocess hand-off of a captured token URL to main-yt-dlp.py."""
 import logging
+import os
 import subprocess  # nosec B404
 import sys
 from pathlib import Path
@@ -30,12 +31,15 @@ def build_ytdlp_argv(token_url: str, passthrough_args: list[str],
     return [interpreter, str(script_path), '--ertflix-program', safe_url, *passthrough_args]
 
 
-def hand_off_to_ytdlp(token_url: str, passthrough_args: list[str]) -> int:
+def hand_off_to_ytdlp(token_url: str, passthrough_args: list[str],
+                      env_overrides: dict[str, str] | None = None) -> int:
     """Run `main-yt-dlp.py --ertflix-program <token>` and return its exit code.
 
     Args:
         token_url: The ERTFlix token API URL captured from the browser.
         passthrough_args: Extra CLI flags to forward to main-yt-dlp.py.
+        env_overrides: Extra environment variables to merge on top of
+            ``os.environ`` for the subprocess (e.g. ``NOTIF_MSG``).
 
     Returns:
         int: The child process exit code.
@@ -43,5 +47,10 @@ def hand_off_to_ytdlp(token_url: str, passthrough_args: list[str]) -> int:
     argv = build_ytdlp_argv(token_url=token_url, passthrough_args=passthrough_args)
     logger.info(f'Handing off to main-yt-dlp.py with {len(passthrough_args)} pass-through flag(s)')
     logger.debug(f'Subprocess argv: {argv}')
-    completed = subprocess.run(argv, check=False)  # nosec B603
+    env: dict[str, str] | None = None
+    if env_overrides:
+        env = dict(os.environ)
+        env.update(env_overrides)
+        logger.debug(f'Subprocess env overrides: {sorted(env_overrides.keys())}')
+    completed = subprocess.run(argv, check=False, env=env)  # nosec B603
     return completed.returncode

@@ -18,14 +18,16 @@ Example:
 """
 import argparse
 import logging
+import shlex
 import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
 from funcs_ertflix_automation import (DEFAULT_PROFILE_DIR, BrowserSession,
-                                      ErtflixAutomationError, dump_debug_dom,
-                                      hand_off_to_ytdlp, pick_episode,
-                                      pick_season, render_episodes_table,
+                                      ErtflixAutomationError, Season,
+                                      dump_debug_dom, hand_off_to_ytdlp,
+                                      pick_episode, pick_season,
+                                      render_episodes_table,
                                       render_seasons_table)
 from funcs_ertflix_automation.dom_scraper import (click_episode_play,
                                                   discover_episodes,
@@ -66,6 +68,10 @@ def parse_arguments(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
     parser.add_argument('--token-timeout', type=float, default=10.0,
                         help='Seconds to wait for the token URL after clicking Play '
                              '(default: %(default)s)')
+    parser.add_argument('--program',
+                        help='Program name (e.g. "Parea"). When provided, the hand-off '
+                             'sets --title "<program> S<NN>E<NN>" and NOTIF_MSG to the '
+                             'same string.')
     parser.add_argument('--dry-run', action='store_true',
                         help='Print the hand-off command instead of invoking main-yt-dlp.py')
     parser.add_argument('--verbose', '-v', action='store_true',
@@ -114,6 +120,7 @@ def main() -> int:
                 return 0
 
             seasons = discover_seasons(page=session.page)
+            chosen_season: Season | None = None
             if seasons:
                 render_seasons_table(seasons=seasons)
                 chosen_season = pick_season(seasons=seasons)
@@ -121,7 +128,7 @@ def main() -> int:
             else:
                 logger.info('No season selector detected; reading episodes directly.')
 
-            episodes = discover_episodes(page=session.page)
+            episodes = discover_episodes(page=session.page, debug_dump_dir=DEBUG_DOM_DIR)
             render_episodes_table(episodes=episodes)
             chosen_episode = pick_episode(episodes=episodes)
 
@@ -140,14 +147,28 @@ def main() -> int:
 
     logger.info(f'Captured token URL: {token_url[:120]}...')
 
+    env_overrides: dict[str, str] = {'NOTIFICATIONS': 'ALL'}
+    if args.program:
+        season_num = chosen_season.index if chosen_season is not None else 1
+        title_str = f'{args.program} S{season_num:02d}E{chosen_episode.index:02d}'
+        passthrough = ['--title', title_str, *passthrough]
+        env_overrides['NOTIF_MSG'] = title_str
+        logger.info(f'Using title and NOTIF_MSG: {title_str!r}')
+
     if args.dry_run:
         from funcs_ertflix_automation.handoff import build_ytdlp_argv
         argv = build_ytdlp_argv(token_url=token_url, passthrough_args=passthrough)
         logger.info('Dry run — would execute:')
-        logger.info(' '.join(argv))
+        logger.info(shlex.join(argv))
+        if env_overrides:
+            logger.info(f'With env overrides: {env_overrides}')
         return 0
 
-    return hand_off_to_ytdlp(token_url=token_url, passthrough_args=passthrough)
+    return hand_off_to_ytdlp(
+        token_url=token_url,
+        passthrough_args=passthrough,
+        env_overrides=env_overrides,
+    )
 
 
 if __name__ == '__main__':

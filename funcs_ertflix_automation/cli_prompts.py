@@ -18,6 +18,11 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
                               values: Sequence[T]) -> T:
     """Plain numbered input prompt — used when questionary can't drive the console.
 
+    Each label is expected to start with ``'<n>. '`` where ``<n>`` is the
+    user-facing number shown in the rich table. The prompt accepts that
+    number (not the list position), so the numbering stays consistent across
+    the table, questionary list, and fallback list.
+
     Args:
         prompt: Text shown before the numbered input.
         labels: Display labels (one per value, same length as ``values``).
@@ -26,20 +31,17 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
     Returns:
         The value at the chosen index.
     """
-    for idx, label in enumerate(labels, start=1):
-        print(f'  {idx}. {label}')
+    for label in labels:
+        print(f'  {label}')
     while True:
-        raw = input(f'{prompt} [1-{len(values)}]: ').strip()
+        raw = input(f'{prompt} ').strip()
         if not raw:
             raise KeyboardInterrupt('Selection cancelled (empty input)')
-        try:
-            choice = int(raw)
-        except ValueError:
-            print(f'Please enter a number between 1 and {len(values)}.')
-            continue
-        if 1 <= choice <= len(values):
-            return values[choice - 1]
-        print(f'Out of range. Enter 1-{len(values)}.')
+        for label, value in zip(labels, values):
+            prefix = label.split('.', 1)[0].strip()
+            if raw == prefix:
+                return value
+        print('Not a valid choice. Enter the number shown next to your choice.')
 
 
 def _select_or_fallback(prompt: str, labels: Sequence[str],
@@ -62,11 +64,8 @@ def _select_or_fallback(prompt: str, labels: Sequence[str],
         result = questionary.select(
             prompt, choices=choices, use_search_filter=use_search_filter,
         ).ask()
-    except Exception as exc:  # noqa: BLE001
-        logger.warning(
-            f'Interactive TUI unavailable ({exc.__class__.__name__}); '
-            'falling back to numbered prompt.'
-        )
+    except Exception:  # noqa: BLE001
+        logger.warning('Interactive TUI unavailable; falling back to numbered prompt.')
         return _fallback_numbered_prompt(
             prompt=prompt, labels=labels, values=values,
         )
@@ -99,10 +98,9 @@ def render_episodes_table(episodes: Sequence[Episode]) -> None:
     console = Console()
     table = Table(title='Available episodes')
     table.add_column('#', justify='right', style='cyan', no_wrap=True)
-    table.add_column('Episode ID', style='magenta', no_wrap=True)
     table.add_column('Title', style='white')
     for episode in episodes:
-        table.add_row(str(episode.index), episode.episode_id, episode.title)
+        table.add_row(str(episode.index), episode.title)
     console.print(table)
 
 
@@ -134,7 +132,7 @@ def pick_episode(episodes: Sequence[Episode]) -> Episode:
     """
     if not episodes:
         raise ValueError('pick_episode called with an empty episode list')
-    labels = [f'{e.index}. {e.episode_id} - {e.title}' for e in episodes]
+    labels = [f'{e.index}. {e.title}' for e in episodes]
     return _select_or_fallback(
         prompt='Choose episode (type to filter):',
         labels=labels,

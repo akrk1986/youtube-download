@@ -13,15 +13,6 @@ from funcs_ertflix_automation.errors import (NoSeasonsOrEpisodesFound,
                                              TokenCaptureTimeout)
 
 
-EPISODE_ID_REGEX = re.compile(r'ERT_[A-Z0-9_]+')
-
-PLAY_BUTTON_SELECTOR = (
-    'button[aria-label*="play" i], '
-    'button[aria-label*="Αναπαραγωγή" i], '
-    'button[class*="play" i], '
-    '.asset-card button'
-)
-
 SEASON_BUTTON_SELECTORS: list[str] = [
     '[role="tablist"] button',
     '[class*="season" i]',
@@ -30,6 +21,9 @@ SEASON_BUTTON_SELECTORS: list[str] = [
     'button[aria-label*="Κύκλος" i]',
     'nav button',
 ]
+
+ASSET_CARD_SELECTOR = '.asset-card'
+PLAY_BUTTON_IN_CARD_SELECTOR = '.asset-card button[aria-label]'
 
 logger = logging.getLogger(__name__)
 
@@ -45,26 +39,15 @@ class Season:
 
 @dataclass(frozen=True)
 class Episode:
-    """One episode card scraped from the currently-visible DOM."""
+    """One episode card scraped from the currently-visible DOM.
+
+    Identified by its play-button ``aria-label`` (which is the episode title
+    as shown in the UI) — this is stable across naming-scheme changes that
+    might affect internal ID formats.
+    """
 
     index: int
     title: str
-    episode_id: str
-
-
-def extract_episode_id(img_src: str | None) -> str | None:
-    """Return the first ERT_ID pattern found in an image src, or None.
-
-    Args:
-        img_src: The `src` or `data-src` attribute of a card image.
-
-    Returns:
-        str | None: The matched episode ID, or None if not present.
-    """
-    if not img_src:
-        return None
-    match = EPISODE_ID_REGEX.search(img_src)
-    return match.group(0) if match else None
 
 
 def discover_seasons(page: Page, debug_dom: bool = False) -> list[Season]:
@@ -78,7 +61,7 @@ def discover_seasons(page: Page, debug_dom: bool = False) -> list[Season]:
         list[Season]: Seasons in DOM order. Empty when the page has no seasons.
     """
     seen_labels: set[str] = set()
-    seasons: list[Season] = []
+    raw: list[tuple[str, str]] = []
 
     for selector in SEASON_BUTTON_SELECTORS:
         try:
@@ -95,18 +78,26 @@ def discover_seasons(page: Page, debug_dom: bool = False) -> list[Season]:
             if not _looks_like_season_label(label=label):
                 continue
             seen_labels.add(label)
-            seasons.append(Season(index=len(seasons) + 1, label=label, selector=selector))
+            raw.append((label, selector))
 
-    return seasons
+    total = len(raw)
+    return [
+        Season(index=total - offset, label=label, selector=selector)
+        for offset, (label, selector) in enumerate(raw)
+    ]
 
 
 def select_season(page: Page, season: Season, wait_ms: int = 15000) -> None:
     """Click the button whose text/aria-label matches the given season.
 
+    After the click, wait for the visible episode-title set to both (a) differ
+    from the pre-click set and (b) stop changing, so that ``discover_episodes``
+    reads the fully-hydrated new season.
+
     Args:
         page: Active Playwright page.
         season: The season to click.
-        wait_ms: Max time to wait for .asset-card elements to re-render.
+        wait_ms: Max time to wait for the episode list to re-render + settle.
     """
     logger.info(f'Selecting season {season.index}: {season.label}')
     handles = page.query_selector_all(season.selector)
@@ -120,19 +111,9 @@ def select_season(page: Page, season: Season, wait_ms: int = 15000) -> None:
             f'Could not re-locate season button {season.label!r}'
         )
 
-    pre_click_ids = _current_card_ids(page=page)
-    logger.debug(f'Pre-click episode IDs: {len(pre_click_ids)} found')
+    pre_click_titles = set(_current_episode_titles(page=page))
+    logger.debug(f'Pre-click episode titles: {len(pre_click_titles)} found')
     target.click()
-
-    deadline = time.monotonic() + (wait_ms / 1000.0)
-    while time.monotonic() < deadline:
-        current_ids = _current_card_ids(page=page)
-        if current_ids and current_ids != pre_click_ids:
-            logger.debug(f'Season DOM swapped (ids: {len(pre_click_ids)} -> {len(current_ids)})')
-            break
-        page.wait_for_timeout(250)
-    else:
-        logger.debug('Season DOM did not visibly change within timeout; proceeding anyway')
 
     try:
         page.wait_for_load_state('networkidle', timeout=wait_ms)
@@ -141,94 +122,86 @@ def select_season(page: Page, season: Season, wait_ms: int = 15000) -> None:
 
 
 _BROWSER_SCRAPE_SCRIPT = r'''
-async ({ maxRounds, settleMs, stepPx }) => {
-    const collected = new Map();
-    const seenOrder = [];
-    const EPISODE_RE = /ERT_[A-Z0-9_]+/;
-
-    const scrape = () => {
-        document.querySelectorAll('.asset-card').forEach(card => {
-            const img = card.querySelector('img');
-            const src = img ? (img.getAttribute('src') || img.getAttribute('data-src') || '') : '';
-            const match = EPISODE_RE.exec(src);
-            if (!match) return;
-            const id = match[0];
-            if (collected.has(id)) return;
-            const btn = card.querySelector('button[aria-label]');
-            const aria = btn ? btn.getAttribute('aria-label') : '';
-            const text = card.innerText ? card.innerText.split('\n')[0].trim() : '';
-            const title = (aria && aria.trim()) || text || id;
-            collected.set(id, title);
-            seenOrder.push(id);
-        });
-    };
-
-    const scrollAncestors = () => {
-        const cards = document.querySelectorAll('.asset-card');
-        if (cards.length === 0) return;
-        const last = cards[cards.length - 1];
-        last.scrollIntoView({ block: 'end', inline: 'end', behavior: 'instant' });
-        let el = last.parentElement;
-        while (el && el !== document.body) {
-            if (el.scrollHeight > el.clientHeight) el.scrollTop = el.scrollHeight;
-            if (el.scrollWidth > el.clientWidth) el.scrollLeft = el.scrollWidth;
-            el = el.parentElement;
-        }
-        window.scrollBy(0, stepPx);
-    };
-
-    window.scrollTo(0, 0);
-    await new Promise(r => setTimeout(r, settleMs));
-
-    let prev = -1;
-    let stable = 0;
-    for (let i = 0; i < maxRounds; i++) {
-        scrape();
-        if (collected.size === prev) {
-            stable++;
-            if (stable >= 4) break;
-        } else {
-            stable = 0;
-        }
-        prev = collected.size;
-        scrollAncestors();
-        await new Promise(r => setTimeout(r, settleMs));
-    }
-    scrape();
-    return seenOrder.map(id => ({ id, title: collected.get(id) }));
+() => {
+    const out = [];
+    const seen = new Set();
+    document.querySelectorAll('.asset-card').forEach(card => {
+        const btn = card.querySelector('button[aria-label]');
+        if (!btn) return;
+        const title = (btn.getAttribute('aria-label') || '').trim();
+        if (!title || seen.has(title)) return;
+        seen.add(title);
+        out.push({ title });
+    });
+    return out;
 }
 '''
 
 
-def discover_episodes(page: Page, max_scroll_rounds: int = 80,
-                      settle_ms: int = 300, step_px: int = 600) -> list[Episode]:
-    """Scroll inside the browser and collect every `.asset-card`.
+def discover_episodes(page: Page, stable_rounds_needed: int = 6,
+                      poll_ms: int = 600, max_wait_s: float = 30.0,
+                      min_wait_s: float = 4.0,
+                      debug_dump_dir: Path | None = None) -> list[Episode]:
+    """Poll the DOM until the set of visible episode titles stabilizes.
 
-    The whole scroll+scrape loop runs in the browser via ``page.evaluate`` to
-    avoid the per-round Python↔Chromium round-trip latency. Works with both
-    window-level scroll and inner scrollable containers.
+    Each episode is identified by its play-button ``aria-label`` (the title
+    displayed in the UI). Scrapes via ``page.evaluate`` on every tick so the
+    stability check tracks *hydrated cards* (those that already have their
+    aria-label set), not raw placeholder divs. A minimum wait floor prevents
+    exit during Angular's early-burst render.
 
     Args:
         page: Active Playwright page.
-        max_scroll_rounds: Safety cap on scroll iterations.
-        settle_ms: Wait between scroll steps so new cards can render.
-        step_px: Window scroll step per round.
+        stable_rounds_needed: Consecutive polls with no new titles to exit.
+        poll_ms: Poll interval.
+        max_wait_s: Hard cap.
+        min_wait_s: Minimum time before an early exit is allowed.
+        debug_dump_dir: If provided and the final list looks suspiciously
+            short, write a DOM dump here for diagnosis.
 
     Returns:
-        list[Episode]: Episodes in first-seen DOM order.
+        list[Episode]: Episodes in DOM order.
     """
-    raw = page.evaluate(
-        _BROWSER_SCRAPE_SCRIPT,
-        {'maxRounds': max_scroll_rounds, 'settleMs': settle_ms, 'stepPx': step_px},
-    )
-    logger.info(f'Collected {len(raw)} unique episodes from browser-side scroll')
+    start = time.monotonic()
+    deadline = start + max_wait_s
+    previous_titles: set[str] = set()
+    stable = 0
+    raw: list[dict[str, str]] = []
+    elapsed = 0.0
+    while time.monotonic() < deadline:
+        raw = page.evaluate(_BROWSER_SCRAPE_SCRIPT)
+        current_titles = {item['title'] for item in raw}
+        elapsed = time.monotonic() - start
+        if current_titles and current_titles == previous_titles and elapsed >= min_wait_s:
+            stable += 1
+            if stable >= stable_rounds_needed:
+                break
+        else:
+            stable = 0
+        previous_titles = current_titles
+        page.wait_for_timeout(poll_ms)
+    logger.info(f'Scraped {len(raw)} unique episodes from DOM (waited {elapsed:.1f}s)')
+
+    placeholder_count = _placeholder_card_count(page=page)
+    if placeholder_count > 0 and debug_dump_dir is not None:
+        logger.warning(
+            f'{placeholder_count} placeholder card(s) remain un-hydrated '
+            'after settle window — dumping DOM for diagnosis'
+        )
+        try:
+            dump_path = dump_debug_dom(page=page, out_dir=debug_dump_dir)
+            logger.warning(f'Post-season-click DOM dumped to {dump_path}')
+        except Exception as exc:  # noqa: BLE001
+            logger.debug(f'Post-season-click dump failed: {exc}')
+
+    total = len(raw)
     episodes: list[Episode] = [
-        Episode(index=idx, title=item['title'], episode_id=item['id'])
-        for idx, item in enumerate(raw, start=1)
+        Episode(index=total - offset, title=item['title'])
+        for offset, item in enumerate(raw)
     ]
     if not episodes:
         raise NoSeasonsOrEpisodesFound(
-            'No .asset-card elements with ERT_ IDs were found. '
+            'No episode cards with aria-label titles were found. '
             'Re-run with --debug-dom to inspect the page structure.'
         )
     return episodes
@@ -237,6 +210,10 @@ def discover_episodes(page: Page, max_scroll_rounds: int = 80,
 def click_episode_play(page: Page, episode: Episode, token_urls: list[str],
                        timeout_s: float = 10.0) -> str:
     """Click the Play button of the given episode and wait for the token URL.
+
+    Locates the play button by matching its ``aria-label`` against the episode
+    title. Falls back to positional Nth-card if the exact-title match misses
+    (in case the title includes characters that need escaping).
 
     Args:
         page: Active Playwright page.
@@ -247,18 +224,14 @@ def click_episode_play(page: Page, episode: Episode, token_urls: list[str],
     Returns:
         str: The captured token API URL.
     """
-    card = _card_for_episode_id(page=page, episode_id=episode.episode_id)
-    if card is None:
+    button = _find_play_button(page=page, episode=episode)
+    if button is None:
         raise NoSeasonsOrEpisodesFound(
-            f'Could not re-locate card for episode {episode.episode_id}'
+            f'Could not locate Play button for episode #{episode.index} '
+            f'({episode.title!r})'
         )
-    play_button = card.query_selector(PLAY_BUTTON_SELECTOR)
-    if play_button is None:
-        raise NoSeasonsOrEpisodesFound(
-            f'No Play button inside card for episode {episode.episode_id}'
-        )
-    logger.info(f'Clicking Play for {episode.episode_id} ({episode.title})')
-    play_button.click()
+    logger.info(f'Clicking Play for #{episode.index}: {episode.title}')
+    button.click()
 
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
@@ -331,48 +304,44 @@ def _looks_like_season_label(label: str) -> bool:
     lowered = label.lower()
     if any(word in lowered for word in ('season', 'κύκλος', 'σεζόν', 'κυκλος', 'σεζον')):
         return True
-    return bool(re.fullmatch(r'(?:[ΑΒΓΔΕΖΗΘΙΚΛ]\'?|\d{1,2})', label.strip()))
+    return bool(re.fullmatch(r"(?:[ΑΒΓΔΕΖΗΘΙΚΛ]\'?|\d{1,2})", label.strip()))
 
 
-def _episode_id_from_card(card: ElementHandle) -> str | None:
-    """Extract the ERT_ID from the first image inside a card."""
-    img = card.query_selector('img')
-    if img is None:
-        return None
-    src = img.get_attribute('src') or img.get_attribute('data-src')
-    return extract_episode_id(img_src=src)
-
-
-def _title_from_card(card: ElementHandle) -> str | None:
-    """Best-effort scrape of a human-readable title from a card."""
-    button = card.query_selector('button[aria-label]')
-    if button is not None:
-        aria = button.get_attribute('aria-label')
+def _current_episode_titles(page: Page) -> list[str]:
+    """Return ordered list of episode titles (aria-labels) currently in DOM."""
+    titles: list[str] = []
+    for card in page.query_selector_all(ASSET_CARD_SELECTOR):
+        btn = card.query_selector('button[aria-label]')
+        if btn is None:
+            continue
+        aria = btn.get_attribute('aria-label')
         if aria:
-            return aria.strip()
+            titles.append(aria.strip())
+    return titles
+
+
+def _placeholder_card_count(page: Page) -> int:
+    """Return the number of ``.asset-card`` divs that have no aria-label yet."""
+    total = len(page.query_selector_all(ASSET_CARD_SELECTOR))
+    hydrated = len(page.query_selector_all(PLAY_BUTTON_IN_CARD_SELECTOR))
+    return max(0, total - hydrated)
+
+
+def _find_play_button(page: Page, episode: Episode) -> ElementHandle | None:
+    """Resolve the play button for ``episode`` by aria-label, with a positional fallback."""
+    escaped = episode.title.replace('\\', '\\\\').replace('"', '\\"')
+    selector = f'.asset-card button[aria-label="{escaped}"]'
     try:
-        text = card.inner_text().strip()
-    except Exception:  # noqa: BLE001
-        return None
-    return text.splitlines()[0].strip() if text else None
-
-
-def _current_card_ids(page: Page) -> list[str]:
-    """Return the ordered list of episode IDs currently in the DOM."""
-    ids: list[str] = []
-    for card in page.query_selector_all('.asset-card'):
-        episode_id = _episode_id_from_card(card=card)
-        if episode_id:
-            ids.append(episode_id)
-    return ids
-
-
-def _card_for_episode_id(page: Page, episode_id: str) -> ElementHandle | None:
-    """Return the .asset-card whose image src contains the episode id."""
-    cards = page.query_selector_all('.asset-card')
-    for card in cards:
-        if _episode_id_from_card(card=card) == episode_id:
-            return card
+        button = page.query_selector(selector)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug(f'Exact-title selector failed ({exc}); falling back to index lookup')
+        button = None
+    if button is not None:
+        return button
+    cards = page.query_selector_all(ASSET_CARD_SELECTOR)
+    dom_position = len(cards) - episode.index
+    if 0 <= dom_position < len(cards):
+        return cards[dom_position].query_selector('button[aria-label]')
     return None
 
 

@@ -5,30 +5,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from funcs_ertflix_automation import (TOKEN_URL_FRAGMENT, Episode, Season,
-                                      build_ytdlp_argv, extract_episode_id,
-                                      pick_episode, pick_season)
-
-
-class TestExtractEpisodeId:
-    """Tests for extract_episode_id."""
-
-    def test_extracts_from_typical_image_src(self):
-        """ERT IDs embedded in image URLs are matched."""
-        src = 'https://imageservice.ertflix.opentv.com/images/v1/image/tvshow/ERT_PS054741_E14/foo.jpg'
-        assert extract_episode_id(img_src=src) == 'ERT_PS054741_E14'
-
-    def test_returns_none_for_non_matching(self):
-        """Unrelated URLs return None."""
-        assert extract_episode_id(img_src='https://example.com/cat.jpg') is None
-
-    def test_returns_none_for_none_input(self):
-        """None input returns None (no exception)."""
-        assert extract_episode_id(img_src=None) is None
-
-    def test_extracts_first_match(self):
-        """When multiple IDs appear, the first one wins."""
-        src = 'ERT_AAA_E1 and ERT_BBB_E2'
-        assert extract_episode_id(img_src=src) == 'ERT_AAA_E1'
+                                      build_ytdlp_argv, pick_episode,
+                                      pick_season)
 
 
 class TestBuildYtdlpArgv:
@@ -96,8 +74,8 @@ class TestPickEpisode:
     def test_returns_selected_episode(self):
         """ask() returning an Episode propagates to the caller."""
         episodes = [
-            Episode(index=1, title='Ep 1', episode_id='ERT_A_E1'),
-            Episode(index=2, title='Ep 2', episode_id='ERT_A_E2'),
+            Episode(index=1, title='Ep 1'),
+            Episode(index=2, title='Ep 2'),
         ]
         fake_question = MagicMock()
         fake_question.ask.return_value = episodes[0]
@@ -107,7 +85,7 @@ class TestPickEpisode:
 
     def test_cancel_raises_keyboard_interrupt(self):
         """ask() returning None raises KeyboardInterrupt."""
-        episodes = [Episode(index=1, title='Ep 1', episode_id='ERT_A_E1')]
+        episodes = [Episode(index=1, title='Ep 1')]
         fake_question = MagicMock()
         fake_question.ask.return_value = None
         with patch('funcs_ertflix_automation.cli_prompts.questionary.select',
