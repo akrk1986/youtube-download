@@ -36,3 +36,5 @@ Data/trello - greek-music-artists.json
 # Node/npm (JavaScript linting tools)
 node_modules/
 package-lock.json
+# ERTFlix browser-automation persistent Chromium profile
+.ertflix-profile/

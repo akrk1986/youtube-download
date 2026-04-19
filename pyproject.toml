@@ -20,6 +20,9 @@ dependencies = [
     "types-yt-dlp",
     "vulture",
     "yt-dlp",
+    "playwright>=1.58.0",
+    "questionary>=2.1.1",
+    "rich>=14.3.3",
 ]
 
 [tool.bandit]
