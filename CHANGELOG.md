@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [TIMESTAMP] - ERTFlix series browser: episode enrichment + UX improvements
+## [2026-04-20-1257] - ERTFlix series browser: episode enrichment + UX improvements
 
 ### Added
 - **Episode table** now shows four columns: `#`, `Duration`, `Title`, `Description` — `_BROWSER_SCRAPE_SCRIPT` traverses the sibling `.row` container to extract duration (`h4.clr-pri-text-f` first text node) and description (`p[aria-label]`). `Episode` dataclass gains `episode_id`, `duration`, `description` fields (default `''`).
