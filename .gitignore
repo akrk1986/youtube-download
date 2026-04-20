@@ -21,6 +21,7 @@
 .venv-3.14/
 .venv-windows/
 .old-venv-3.14/
+Tests/.venv-linux/
 Tests/Data/
 Tests/yt-audio/
 Tests/yt-videos/
