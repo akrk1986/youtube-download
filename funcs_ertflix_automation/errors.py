@@ -15,3 +15,7 @@ class NoSeasonsOrEpisodesFound(ErtflixAutomationError):
 
 class TokenCaptureTimeout(ErtflixAutomationError):
     """Raised when the token API URL is not observed within the timeout window."""
+
+
+class BackToSeasons(ErtflixAutomationError):
+    """Raised when the user requests to return to the season selection menu."""

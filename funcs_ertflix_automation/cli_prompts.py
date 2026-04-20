@@ -7,15 +7,20 @@ from rich.console import Console
 from rich.table import Table
 
 from funcs_ertflix_automation.dom_scraper import Episode, Season
+from funcs_ertflix_automation.errors import BackToSeasons
 
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 
+_QUIT = '__quit__'
+_BACK = '__back__'
+
 
 def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
-                              values: Sequence[T]) -> T:
+                              values: Sequence[T],
+                              back_key: str | None = None) -> T:
     """Plain numbered input prompt — used when questionary can't drive the console.
 
     Each label is expected to start with ``'<n>. '`` where ``<n>`` is the
@@ -23,10 +28,13 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
     number (not the list position), so the numbering stays consistent across
     the table, questionary list, and fallback list.
 
+    ``q`` and ``0`` always quit. ``back_key`` (if set) triggers back-to-seasons.
+
     Args:
         prompt: Text shown before the numbered input.
         labels: Display labels (one per value, same length as ``values``).
         values: The values parallel to ``labels``; the chosen value is returned.
+        back_key: Single character that triggers back-to-seasons (e.g. ``'s'``).
 
     Returns:
         The value at the chosen index.
@@ -34,9 +42,13 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
     for label in labels:
         print(f'  {label}')
     while True:
-        raw = input(f'{prompt} ').strip()
+        raw = input(f'{prompt} ').strip().lower()
         if not raw:
             raise KeyboardInterrupt('Selection cancelled (empty input)')
+        if raw in ('q', '0'):
+            raise KeyboardInterrupt('Quit')
+        if back_key and raw == back_key:
+            raise BackToSeasons('Back to season selection')
         for label, value in zip(labels, values):
             prefix = label.split('.', 1)[0].strip()
             if raw == prefix:
@@ -46,7 +58,8 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
 
 def _select_or_fallback(prompt: str, labels: Sequence[str],
                         values: Sequence[T],
-                        use_search_filter: bool = False) -> T:
+                        use_search_filter: bool = False,
+                        back_key: str | None = None) -> T:
     """Use questionary if available, otherwise fall back to numbered input.
 
     Args:
@@ -54,6 +67,7 @@ def _select_or_fallback(prompt: str, labels: Sequence[str],
         labels: Display labels parallel to ``values``.
         values: Values to choose from.
         use_search_filter: Pass through to questionary.select.
+        back_key: Character that triggers back-to-seasons in the fallback prompt.
 
     Returns:
         The selected value.
@@ -67,10 +81,14 @@ def _select_or_fallback(prompt: str, labels: Sequence[str],
     except Exception:  # noqa: BLE001
         logger.warning('Interactive TUI unavailable; falling back to numbered prompt.')
         return _fallback_numbered_prompt(
-            prompt=prompt, labels=labels, values=values,
+            prompt=prompt, labels=labels, values=values, back_key=back_key,
         )
     if result is None:
         raise KeyboardInterrupt(f'{prompt} cancelled')
+    if result == _QUIT:
+        raise KeyboardInterrupt('Quit')
+    if result == _BACK:
+        raise BackToSeasons('Back to season selection')
     return result
 
 
@@ -96,16 +114,25 @@ def render_episodes_table(episodes: Sequence[Episode]) -> None:
         episodes: Episodes to display.
     """
     console = Console()
-    table = Table(title='Available episodes')
-    table.add_column('#', justify='right', style='cyan', no_wrap=True)
-    table.add_column('Title', style='white')
+    table = Table(title='Available episodes', expand=True)
+    table.add_column('#', justify='right', style='cyan', no_wrap=True, min_width=3)
+    table.add_column('Duration', style='yellow', no_wrap=True)
+    table.add_column('Title', style='white', ratio=2)
+    table.add_column('Description', style='dim white', ratio=3)
     for episode in episodes:
-        table.add_row(str(episode.index), episode.title)
+        table.add_row(
+            str(episode.index),
+            episode.duration,
+            episode.title,
+            episode.description,
+        )
     console.print(table)
 
 
 def pick_season(seasons: Sequence[Season]) -> Season:
     """Prompt the user to choose a season via arrow-key select.
+
+    ``q`` or ``0`` quit the script (raises ``KeyboardInterrupt``).
 
     Args:
         seasons: Seasons to choose from (must be non-empty).
@@ -116,16 +143,24 @@ def pick_season(seasons: Sequence[Season]) -> Season:
     if not seasons:
         raise ValueError('pick_season called with an empty season list')
     labels = [f'{s.index}. {s.label}' for s in seasons]
-    return _select_or_fallback(
-        prompt='Choose season:', labels=labels, values=list(seasons),
+    labels.append('q/0. Quit')
+    values: list[Season | str] = [*seasons, _QUIT]
+    return _select_or_fallback(  # type: ignore[return-value]
+        prompt='Choose season (q/0 to quit):',
+        labels=labels,
+        values=values,
     )
 
 
-def pick_episode(episodes: Sequence[Episode]) -> Episode:
+def pick_episode(episodes: Sequence[Episode], has_seasons: bool = True) -> Episode:
     """Prompt the user to choose an episode via arrow-key select + type-to-filter.
+
+    ``q`` or ``0`` quit the script. ``s`` returns to the season selector
+    (only when ``has_seasons`` is True).
 
     Args:
         episodes: Episodes to choose from (must be non-empty).
+        has_seasons: Whether a season selector is available (shows ``s`` option).
 
     Returns:
         Episode: The selected episode.
@@ -133,9 +168,17 @@ def pick_episode(episodes: Sequence[Episode]) -> Episode:
     if not episodes:
         raise ValueError('pick_episode called with an empty episode list')
     labels = [f'{e.index}. {e.title}' for e in episodes]
-    return _select_or_fallback(
-        prompt='Choose episode (type to filter):',
+    values: list[Episode | str] = [*episodes]
+    if has_seasons:
+        labels.append('s. Back to season selection')
+        values.append(_BACK)
+    labels.append('q/0. Quit')
+    values.append(_QUIT)
+    hint = 'q/0 quit, s seasons' if has_seasons else 'q/0 quit'
+    return _select_or_fallback(  # type: ignore[return-value]
+        prompt=f'Choose episode — type to filter ({hint}):',
         labels=labels,
-        values=list(episodes),
+        values=values,
         use_search_filter=True,
+        back_key='s' if has_seasons else None,
     )

@@ -22,7 +22,8 @@ from funcs_ertflix_automation.dom_scraper import (ASSET_CARD_SELECTOR,
                                                   discover_seasons,
                                                   dump_debug_dom,
                                                   select_season)
-from funcs_ertflix_automation.errors import (BrowserLaunchFailed,
+from funcs_ertflix_automation.errors import (BackToSeasons,
+                                             BrowserLaunchFailed,
                                              ErtflixAutomationError,
                                              NoSeasonsOrEpisodesFound,
                                              TokenCaptureTimeout)
@@ -38,6 +39,7 @@ __all__ = [
     'Season',
     'Episode',
     'ErtflixAutomationError',
+    'BackToSeasons',
     'BrowserLaunchFailed',
     'NoSeasonsOrEpisodesFound',
     'TokenCaptureTimeout',

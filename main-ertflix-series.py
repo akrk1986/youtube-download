@@ -23,12 +23,15 @@ import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
+from playwright.sync_api import Page
+
 from funcs_ertflix_automation import (DEFAULT_PROFILE_DIR, BrowserSession,
-                                      ErtflixAutomationError, Season,
+                                      Episode, ErtflixAutomationError, Season,
                                       dump_debug_dom, hand_off_to_ytdlp,
                                       pick_episode, pick_season,
                                       render_episodes_table,
                                       render_seasons_table)
+from funcs_ertflix_automation.errors import BackToSeasons
 from funcs_ertflix_automation.dom_scraper import (click_episode_play,
                                                   discover_episodes,
                                                   discover_seasons,
@@ -80,6 +83,35 @@ def parse_arguments(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
     return parser.parse_known_args(argv)
 
 
+def _pick_season_and_episode(
+        page: Page, seasons: list[Season],
+) -> tuple[Season | None, Episode]:
+    """Loop season + episode selection, allowing back-navigation to seasons.
+
+    Args:
+        page: Active Playwright page.
+        seasons: Discovered seasons (may be empty when page has no selector).
+
+    Returns:
+        tuple[Season | None, Episode]: Chosen season (None if no seasons) and episode.
+    """
+    chosen_season: Season | None = None
+    while True:
+        if seasons:
+            render_seasons_table(seasons=seasons)
+            chosen_season = pick_season(seasons=seasons)
+            select_season(page=page, season=chosen_season)
+        else:
+            logger.info('No season selector detected; reading episodes directly.')
+        episodes = discover_episodes(page=page, debug_dump_dir=DEBUG_DOM_DIR)
+        render_episodes_table(episodes=episodes)
+        try:
+            chosen_episode = pick_episode(episodes=episodes, has_seasons=bool(seasons))
+            return chosen_season, chosen_episode
+        except BackToSeasons:
+            continue
+
+
 def _validate_series_url(url: str) -> None:
     """Abort unless the URL points at an ERTFlix domain.
 
@@ -114,23 +146,19 @@ def main() -> int:
             token_urls = session.install_token_interceptor()
             session.ensure_authenticated()
 
+            print('\n>>> The page is loaded in Chromium.')
+            print('>>> If you want to change the page language, do so now in the browser.')
+            input('>>> Press Enter when ready... ')
+
             if args.debug_dom:
                 dump_path = dump_debug_dom(page=session.page, out_dir=DEBUG_DOM_DIR)
                 logger.info(f'Debug dump written to {dump_path}. Exiting.')
                 return 0
 
             seasons = discover_seasons(page=session.page)
-            chosen_season: Season | None = None
-            if seasons:
-                render_seasons_table(seasons=seasons)
-                chosen_season = pick_season(seasons=seasons)
-                select_season(page=session.page, season=chosen_season)
-            else:
-                logger.info('No season selector detected; reading episodes directly.')
-
-            episodes = discover_episodes(page=session.page, debug_dump_dir=DEBUG_DOM_DIR)
-            render_episodes_table(episodes=episodes)
-            chosen_episode = pick_episode(episodes=episodes)
+            chosen_season, chosen_episode = _pick_season_and_episode(
+                page=session.page, seasons=seasons,
+            )
 
             token_url = click_episode_play(
                 page=session.page,

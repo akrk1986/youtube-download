@@ -166,6 +166,9 @@ python main-ertflix-series.py <URL> --debug-dom
 **Behavior notes:**
 - Seasons + episodes are numbered newest-to-oldest, matching the page order. `S02E26` = season 2, 26th episode (= the oldest in that season).
 - Episodes are identified by the Play-button's `aria-label` (the title shown in the UI), NOT by regex against image URLs. This is resilient to naming-scheme changes.
+- The episode table shows four columns: `#`, `Duration`, `Title`, `Description` — scraped from the sibling DOM elements of each `.asset-card`.
+- After the page loads, the script pauses and notifies the user that now is the time to switch the page language in the browser if desired, before pressing Enter to continue scraping.
+- In the season picker, `q`/`0` quits. In the episode picker, `q`/`0` quits and `s` returns to the season selector.
 - `discover_episodes` polls a single `page.evaluate(...)` snapshot until the set of hydrated titles stabilizes for several rounds — captures all 25–30 cards even when Angular renders them in bursts.
 - The token interceptor uses `page.on('request', ...)` (observational). Do NOT use `page.route()` — blocking the request prevents ERTFlix from generating a valid `content_URL`.
 - `ensure_authenticated()` detects a redirect to `#/landing` or `#/login` and pauses so the user can sign in inside the headed window, then re-navigates and waits for `.asset-card`.
@@ -174,10 +177,10 @@ python main-ertflix-series.py <URL> --debug-dom
 
 **Package layout (`funcs_ertflix_automation/`):**
 - `browser_session.py` — Playwright lifecycle, persistent-context launch, token request interceptor, authentication-redirect detection.
-- `dom_scraper.py` — season/episode discovery + Play-button click.
-- `cli_prompts.py` — Rich tables + questionary selects with numbered-input fallback.
+- `dom_scraper.py` — season/episode discovery + Play-button click. `Episode` dataclass has `index`, `title`, `episode_id`, `duration`, `description`.
+- `cli_prompts.py` — Rich tables + questionary selects with numbered-input fallback. `pick_season` / `pick_episode` support `q`/`0` quit and `s` back-to-seasons navigation.
 - `handoff.py` — subprocess hand-off to `main-yt-dlp.py`; accepts `env_overrides` merged on top of `os.environ`.
-- `errors.py` — exception hierarchy (`ErtflixAutomationError`, `TokenCaptureTimeout`, `NoSeasonsOrEpisodesFound`, `BrowserLaunchFailed`).
+- `errors.py` — exception hierarchy (`ErtflixAutomationError`, `BackToSeasons`, `TokenCaptureTimeout`, `NoSeasonsOrEpisodesFound`, `BrowserLaunchFailed`).
 
 **Tests:** `Tests/test_ertflix_automation.py` (10 pytest tests — argv builder, pickers, token-URL fragment).
 

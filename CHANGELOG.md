@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [TIMESTAMP] - ERTFlix series browser: episode enrichment + UX improvements
+
+### Added
+- **Episode table** now shows four columns: `#`, `Duration`, `Title`, `Description` — `_BROWSER_SCRAPE_SCRIPT` traverses the sibling `.row` container to extract duration (`h4.clr-pri-text-f` first text node) and description (`p[aria-label]`). `Episode` dataclass gains `episode_id`, `duration`, `description` fields (default `''`).
+- **Language change window**: after the page loads and before scraping begins, the script notifies the user that now is the time to switch the page language in the browser if desired, then waits for Enter.
+- **Navigation in pickers**: `q`/`0` quits from either picker; `s` in the episode picker goes back to the season selector. `BackToSeasons` exception added to `errors.py`.
+
+### Fixed
+- Season selector no longer matches episode play buttons whose titles contain the word "season" — removed `button[aria-label*="season" i]` from `SEASON_BUTTON_SELECTORS` (season pickers are `<div>` elements, not `<button>`s); dropped the `button` prefix from the two Greek-word selectors for the same reason.
+
+### Changed
+- `main()` season+episode selection loop extracted into `_pick_season_and_episode()` helper to reduce local-variable and statement counts (pylint 9.08 → 9.26).
+
 ## [2026-04-19-2157] - Interactive ERTFlix series browser (`main-ertflix-series.py`)
 
 ### Added

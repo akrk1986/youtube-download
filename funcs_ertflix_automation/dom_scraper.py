@@ -16,9 +16,8 @@ from funcs_ertflix_automation.errors import (NoSeasonsOrEpisodesFound,
 SEASON_BUTTON_SELECTORS: list[str] = [
     '[role="tablist"] button',
     '[class*="season" i]',
-    'button[aria-label*="season" i]',
-    'button[aria-label*="Σεζόν" i]',
-    'button[aria-label*="Κύκλος" i]',
+    '[aria-label*="Σεζόν" i]',
+    '[aria-label*="Κύκλος" i]',
     'nav button',
 ]
 
@@ -48,6 +47,9 @@ class Episode:
 
     index: int
     title: str
+    episode_id: str = ''
+    duration: str = ''
+    description: str = ''
 
 
 def discover_seasons(page: Page, debug_dom: bool = False) -> list[Season]:
@@ -131,7 +133,22 @@ _BROWSER_SCRAPE_SCRIPT = r'''
         const title = (btn.getAttribute('aria-label') || '').trim();
         if (!title || seen.has(title)) return;
         seen.add(title);
-        out.push({ title });
+        const img = card.querySelector('img[data-src]');
+        const imgSrc = img ? img.getAttribute('data-src') || '' : '';
+        const idMatch = imgSrc.match(/tvshow\/(ERT_[A-Z0-9_-]+)\//);
+        const episodeId = idMatch ? idMatch[1] : '';
+        const row = card.closest('.row');
+        let duration = '';
+        let description = '';
+        if (row) {
+            const durEl = row.querySelector('h4.clr-pri-text-f');
+            if (durEl && durEl.childNodes[0]) {
+                duration = (durEl.childNodes[0].textContent || '').trim();
+            }
+            const descEl = row.querySelector('p[aria-label]');
+            description = descEl ? (descEl.getAttribute('aria-label') || '').trim() : '';
+        }
+        out.push({ title, episodeId, duration, description });
     });
     return out;
 }
@@ -196,7 +213,13 @@ def discover_episodes(page: Page, stable_rounds_needed: int = 6,
 
     total = len(raw)
     episodes: list[Episode] = [
-        Episode(index=total - offset, title=item['title'])
+        Episode(
+            index=total - offset,
+            title=item['title'],
+            episode_id=item.get('episodeId', ''),
+            duration=item.get('duration', ''),
+            description=item.get('description', ''),
+        )
         for offset, item in enumerate(raw)
     ]
     if not episodes:

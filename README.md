@@ -477,6 +477,9 @@ python main-ertflix-series.py --debug-dom <URL>
 
 **Key features:**
 - **Persistent login**: Chromium profile is stored in `.ertflix-profile/` (gitignored). Log in once inside the headed window; cookies survive across runs. The script detects a redirect to the login/landing page and pauses so you can sign in before retrying.
+- **Language change window**: after the page loads the script pauses and notifies you that now is the time to switch the page language in the browser if you wish, before pressing Enter to continue scraping.
+- **Episode table**: shows four columns — `#`, `Duration`, `Title`, `Description` — so you can identify the episode before selecting it.
+- **Navigation**: in the season picker, `q`/`0` quits. In the episode picker, `q`/`0` quits and `s` goes back to the season selector.
 - **`--program` flag**: when provided, the hand-off includes `--title "<program> S<NN>E<NN>"` (zero-padded season + episode). The same string is set as `NOTIF_MSG` so Slack/Gmail notifications identify the episode. `NOTIFICATIONS=ALL` is set automatically.
 - **Numbering matches the page**: seasons and episodes are listed newest-to-oldest on ERTFlix, so the newest gets the highest index. `S02E26` means season 2's 26th (oldest) episode.
 - **Pass-through**: unknown flags go straight to `main-yt-dlp.py` — use `--only-audio`, `--audio-format`, `--split-chapters`, `--subs`, etc. exactly as you would on the main script.
