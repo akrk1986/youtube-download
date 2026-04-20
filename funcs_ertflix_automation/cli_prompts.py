@@ -6,7 +6,8 @@ import questionary
 from rich.console import Console
 from rich.table import Table
 
-from funcs_ertflix_automation.dom_scraper import Episode, Season
+from funcs_ertflix_automation.episode_scraper import Episode
+from funcs_ertflix_automation.season_scraper import Season
 from funcs_ertflix_automation.errors import BackToSeasons
 
 
@@ -71,7 +72,8 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
         print(f'Number out of range — enter a number between {lo} and {hi}.')
 
 
-def _select_or_fallback(prompt: str, labels: Sequence[str],
+def _select_or_fallback(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+        prompt: str, labels: Sequence[str],
                         values: Sequence[T],
                         use_search_filter: bool = False,
                         back_key: str | None = None,

@@ -33,11 +33,11 @@ from funcs_ertflix_automation import (DEFAULT_PROFILE_DIR, BrowserSession,
                                       render_episodes_table,
                                       render_seasons_table)
 from funcs_ertflix_automation.errors import BackToSeasons
-from funcs_ertflix_automation.dom_scraper import (click_episode_play,
-                                                  discover_episodes,
-                                                  discover_seasons,
-                                                  extract_player_info,
-                                                  select_season)
+from funcs_ertflix_automation.episode_scraper import discover_episodes
+from funcs_ertflix_automation.player_scraper import (click_episode_play,
+                                                     extract_player_info)
+from funcs_ertflix_automation.season_scraper import discover_seasons, select_season
+from funcs_ertflix_automation.handoff import build_ytdlp_argv
 from funcs_utils import setup_logging
 from project_defs import VALID_OTHER_DOMAINS
 
@@ -158,6 +158,44 @@ def _validate_series_url(url: str) -> None:
         sys.exit(1)
 
 
+def _execute_handoff(args: argparse.Namespace, token_url: str,
+                     chosen_season: Season | None, chosen_episode: Episode,
+                     passthrough: list[str]) -> int:
+    """Build env overrides + title, then hand off to main-yt-dlp.py.
+
+    Args:
+        args: Parsed CLI arguments.
+        token_url: Captured ERTFlix token API URL.
+        chosen_season: Selected season (None when page has no season selector).
+        chosen_episode: Selected episode.
+        passthrough: Extra args forwarded to main-yt-dlp.py.
+
+    Returns:
+        int: Process exit code.
+    """
+    env_overrides: dict[str, str] = {'NOTIFICATIONS': 'ALL'}
+    if args.program:
+        season_num = chosen_season.index if chosen_season is not None else 1
+        title_str = f'{args.program} S{season_num:02d}E{chosen_episode.index:02d}'
+        passthrough = ['--title', title_str, *passthrough]
+        env_overrides['NOTIF_MSG'] = title_str
+        logger.info(f'Using title and NOTIF_MSG: {title_str!r}')
+
+    if args.dry_run:
+        argv = build_ytdlp_argv(token_url=token_url, passthrough_args=passthrough)
+        logger.info('Dry run — would execute:')
+        logger.info(shlex.join(argv))
+        if env_overrides:
+            logger.info(f'With env overrides: {env_overrides}')
+        return 0
+
+    return hand_off_to_ytdlp(
+        token_url=token_url,
+        passthrough_args=passthrough,
+        env_overrides=env_overrides,
+    )
+
+
 def main() -> int:
     """Script entry point.
 
@@ -229,28 +267,12 @@ def main() -> int:
         return 1
 
     logger.info(f'Captured token URL: {token_url[:120]}...')
-
-    env_overrides: dict[str, str] = {'NOTIFICATIONS': 'ALL'}
-    if args.program:
-        season_num = chosen_season.index if chosen_season is not None else 1
-        title_str = f'{args.program} S{season_num:02d}E{chosen_episode.index:02d}'
-        passthrough = ['--title', title_str, *passthrough]
-        env_overrides['NOTIF_MSG'] = title_str
-        logger.info(f'Using title and NOTIF_MSG: {title_str!r}')
-
-    if args.dry_run:
-        from funcs_ertflix_automation.handoff import build_ytdlp_argv
-        argv = build_ytdlp_argv(token_url=token_url, passthrough_args=passthrough)
-        logger.info('Dry run — would execute:')
-        logger.info(shlex.join(argv))
-        if env_overrides:
-            logger.info(f'With env overrides: {env_overrides}')
-        return 0
-
-    return hand_off_to_ytdlp(
+    return _execute_handoff(
+        args=args,
         token_url=token_url,
-        passthrough_args=passthrough,
-        env_overrides=env_overrides,
+        chosen_season=chosen_season,
+        chosen_episode=chosen_episode,
+        passthrough=passthrough,
     )
 
 

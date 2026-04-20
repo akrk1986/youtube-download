@@ -3,7 +3,9 @@
 Modules:
     errors: Exception hierarchy.
     browser_session: Playwright lifecycle and token interception.
-    dom_scraper: Season/episode discovery and Play-button click.
+    season_scraper: Season discovery and selection.
+    episode_scraper: Episode DOM scraping and debug DOM dump.
+    player_scraper: Play-button click and episode info extraction.
     cli_prompts: Rich tables + questionary select menus.
     handoff: Subprocess hand-off to main-yt-dlp.py.
 """
@@ -13,15 +15,14 @@ from funcs_ertflix_automation.browser_session import (DEFAULT_PROFILE_DIR,
 from funcs_ertflix_automation.cli_prompts import (pick_episode, pick_season,
                                                   render_episodes_table,
                                                   render_seasons_table)
-from funcs_ertflix_automation.dom_scraper import (ASSET_CARD_SELECTOR,
-                                                  PLAY_BUTTON_IN_CARD_SELECTOR,
-                                                  SEASON_BUTTON_SELECTORS,
-                                                  Episode, Season,
-                                                  click_episode_play,
-                                                  discover_episodes,
-                                                  discover_seasons,
-                                                  dump_debug_dom,
-                                                  select_season)
+from funcs_ertflix_automation.episode_scraper import (Episode, discover_episodes,
+                                                      dump_debug_dom)
+from funcs_ertflix_automation.player_scraper import click_episode_play
+from funcs_ertflix_automation.season_scraper import (ASSET_CARD_SELECTOR,
+                                                     PLAY_BUTTON_IN_CARD_SELECTOR,
+                                                     SEASON_BUTTON_SELECTORS,
+                                                     Season, discover_seasons,
+                                                     select_season)
 from funcs_ertflix_automation.errors import (BackToSeasons,
                                              BrowserLaunchFailed,
                                              ErtflixAutomationError,
