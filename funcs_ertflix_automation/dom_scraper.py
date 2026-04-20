@@ -23,6 +23,9 @@ SEASON_BUTTON_SELECTORS: list[str] = [
 
 ASSET_CARD_SELECTOR = '.asset-card'
 PLAY_BUTTON_IN_CARD_SELECTOR = '.asset-card button[aria-label]'
+INFO_BUTTON_SELECTOR = 'button#more'
+INFO_DIALOG_SELECTOR = 'mat-dialog-container'
+INFO_DIALOG_CLOSE_SELECTOR = 'mat-dialog-container button'
 
 logger = logging.getLogger(__name__)
 
@@ -306,6 +309,69 @@ def dump_debug_dom(page: Page, out_dir: Path) -> Path:
     out_path.write_text('\n'.join(lines), encoding='utf-8')
     logger.info(f'Wrote debug DOM dump to {out_path}')
     return out_path
+
+
+_INFO_EXTRACT_SCRIPT = '''
+() => {
+    const d = document.querySelector('mat-dialog-container');
+    if (!d) return null;
+    const headings = Array.from(d.querySelectorAll('h1,h2,h3,h4'))
+        .map(el => el.textContent.trim()).filter(Boolean);
+    const paras = Array.from(d.querySelectorAll('p'))
+        .map(el => el.textContent.trim()).filter(Boolean);
+    return { headings, paras };
+}
+'''
+
+
+def extract_player_info(page: Page, out_file: Path,
+                        timeout_s: float = 10.0) -> bool:
+    """Click the player info button, extract popup text, save to file, close popup.
+
+    Args:
+        page: Active Playwright page on the episode details/player page.
+        out_file: File to write the extracted text to (created or overwritten).
+        timeout_s: Max seconds to wait for the info button and dialog to appear.
+
+    Returns:
+        bool: True if text was extracted and saved; False if info button not found.
+    """
+    timeout_ms = int(timeout_s * 1000)
+    try:
+        page.wait_for_selector(INFO_BUTTON_SELECTOR, timeout=timeout_ms)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(f'Info button not found: {exc}')
+        return False
+    try:
+        page.click(INFO_BUTTON_SELECTOR)
+        page.wait_for_selector(INFO_DIALOG_SELECTOR, timeout=timeout_ms)
+        result = page.evaluate(_INFO_EXTRACT_SCRIPT)
+        if not result:
+            logger.warning('Info dialog appeared but contained no extractable text')
+            return False
+        lines: list[str] = []
+        for heading in result.get('headings') or []:
+            lines.append(heading)
+        if lines:
+            lines.append('')
+        for para in result.get('paras') or []:
+            lines.append(para)
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+        out_file.write_text('\n'.join(lines), encoding='utf-8')
+        logger.info(f'Episode info saved to {out_file}')
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(f'Failed to extract info dialog text: {exc}')
+        return False
+    finally:
+        try:
+            close_btn = page.query_selector(INFO_DIALOG_CLOSE_SELECTOR)
+            if close_btn:
+                close_btn.click()
+            else:
+                page.keyboard.press('Escape')
+        except Exception:  # noqa: BLE001
+            pass
+    return True
 
 
 def _label_for_button(handle: ElementHandle) -> str:

@@ -35,6 +35,7 @@ from funcs_ertflix_automation.errors import BackToSeasons
 from funcs_ertflix_automation.dom_scraper import (click_episode_play,
                                                   discover_episodes,
                                                   discover_seasons,
+                                                  extract_player_info,
                                                   select_season)
 from funcs_utils import setup_logging
 from project_defs import VALID_OTHER_DOMAINS
@@ -68,6 +69,9 @@ def parse_arguments(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
                         help='Run Chromium without a visible window')
     parser.add_argument('--debug-dom', action='store_true',
                         help='Dump the rendered DOM + selector probes to Logs/ and exit')
+    parser.add_argument('--debug-dom-player', action='store_true',
+                        help='Pick season + episode, click Play, dump the player DOM to '
+                             'Logs/ and exit (used to discover player info-button selectors)')
     parser.add_argument('--token-timeout', type=float, default=10.0,
                         help='Seconds to wait for the token URL after clicking Play '
                              '(default: %(default)s)')
@@ -165,6 +169,16 @@ def main() -> int:
                 episode=chosen_episode,
                 token_urls=token_urls,
                 timeout_s=args.token_timeout,
+            )
+
+            if args.debug_dom_player:
+                dump_path = dump_debug_dom(page=session.page, out_dir=DEBUG_DOM_DIR)
+                logger.info(f'Player DOM dump written to {dump_path}. Exiting.')
+                return 0
+
+            extract_player_info(
+                page=session.page,
+                out_file=DEBUG_DOM_DIR / 'episode-info.txt',
             )
     except KeyboardInterrupt:
         logger.info('Cancelled by user.')
