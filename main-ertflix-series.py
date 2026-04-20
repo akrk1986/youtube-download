@@ -20,6 +20,7 @@ import argparse
 import logging
 import shlex
 import sys
+import textwrap
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -79,6 +80,9 @@ def parse_arguments(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
                         help='Program name (e.g. "Parea"). When provided, the hand-off '
                              'sets --title "<program> S<NN>E<NN>" and NOTIF_MSG to the '
                              'same string.')
+    parser.add_argument('--get-info', action='store_true',
+                        help='Click Play, mute video, extract episode info popup to '
+                             'Logs/episode-info.txt and print it to the console')
     parser.add_argument('--dry-run', action='store_true',
                         help='Print the hand-off command instead of invoking main-yt-dlp.py')
     parser.add_argument('--verbose', '-v', action='store_true',
@@ -114,6 +118,26 @@ def _pick_season_and_episode(
             return chosen_season, chosen_episode
         except BackToSeasons:
             continue
+
+
+def _print_info_file(path: Path, width: int = 80) -> None:
+    """Print the contents of the episode-info file with line wrapping.
+
+    Args:
+        path: Path to the info text file.
+        width: Maximum line width before wrapping.
+    """
+    try:
+        text = path.read_text(encoding='utf-8')
+    except OSError:
+        return
+    print()
+    for line in text.splitlines():
+        if line:
+            print(textwrap.fill(line, width=width))
+        else:
+            print()
+    print()
 
 
 def _validate_series_url(url: str) -> None:
@@ -171,15 +195,32 @@ def main() -> int:
                 timeout_s=args.token_timeout,
             )
 
+            if args.get_info or args.debug_dom_player:
+                try:
+                    session.page.evaluate('''() => {
+                        document.querySelectorAll("video").forEach(v => v.muted = true);
+                        new MutationObserver(() => {
+                            document.querySelectorAll("video").forEach(v => v.muted = true);
+                        }).observe(document.body, { childList: true, subtree: true });
+                    }'''
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
+
             if args.debug_dom_player:
                 dump_path = dump_debug_dom(page=session.page, out_dir=DEBUG_DOM_DIR)
                 logger.info(f'Player DOM dump written to {dump_path}. Exiting.')
                 return 0
 
-            extract_player_info(
-                page=session.page,
-                out_file=DEBUG_DOM_DIR / 'episode-info.txt',
-            )
+            if args.get_info:
+                print('Note: episode video will play for ~30 seconds and then '
+                      'the browser window will be closed. Then the script will resume.')
+                info_file = DEBUG_DOM_DIR / 'episode-info.txt'
+                extract_player_info(page=session.page, out_file=info_file)
+                print('─' * 60)
+                print('Episode info from player:')
+                _print_info_file(info_file)
+                print('─' * 60)
     except KeyboardInterrupt:
         logger.info('Cancelled by user.')
         return 130

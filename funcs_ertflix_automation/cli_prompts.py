@@ -20,7 +20,8 @@ _BACK = '__back__'
 
 def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
                               values: Sequence[T],
-                              back_key: str | None = None) -> T:
+                              back_key: str | None = None,
+                              header: str = '') -> T:
     """Plain numbered input prompt — used when questionary can't drive the console.
 
     Each label is expected to start with ``'<n>. '`` where ``<n>`` is the
@@ -35,12 +36,23 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
         labels: Display labels (one per value, same length as ``values``).
         values: The values parallel to ``labels``; the chosen value is returned.
         back_key: Single character that triggers back-to-seasons (e.g. ``'s'``).
+        header: Optional header line printed before the item list.
 
     Returns:
         The value at the chosen index.
     """
+    if header:
+        print(header)
     for label in labels:
         print(f'  {label}')
+    index_map: dict[int, T] = {}
+    for label, value in zip(labels, values):
+        prefix = label.split('.', 1)[0].strip()
+        try:
+            index_map[int(prefix)] = value
+        except ValueError:
+            pass
+    lo, hi = (min(index_map), max(index_map)) if index_map else (1, 1)
     while True:
         raw = input(f'{prompt} ').strip().lower()
         if not raw:
@@ -49,17 +61,21 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
             raise KeyboardInterrupt('Quit')
         if back_key and raw == back_key:
             raise BackToSeasons('Back to season selection')
-        for label, value in zip(labels, values):
-            prefix = label.split('.', 1)[0].strip()
-            if raw == prefix:
-                return value
-        print('Not a valid choice. Enter the number shown next to your choice.')
+        try:
+            num = int(raw)
+        except ValueError:
+            print(f'Enter a number between {lo} and {hi}.')
+            continue
+        if num in index_map:
+            return index_map[num]
+        print(f'Number out of range — enter a number between {lo} and {hi}.')
 
 
 def _select_or_fallback(prompt: str, labels: Sequence[str],
                         values: Sequence[T],
                         use_search_filter: bool = False,
-                        back_key: str | None = None) -> T:
+                        back_key: str | None = None,
+                        fallback_header: str = '') -> T:
     """Use questionary if available, otherwise fall back to numbered input.
 
     Args:
@@ -68,6 +84,7 @@ def _select_or_fallback(prompt: str, labels: Sequence[str],
         values: Values to choose from.
         use_search_filter: Pass through to questionary.select.
         back_key: Character that triggers back-to-seasons in the fallback prompt.
+        fallback_header: Header line printed above the item list in fallback mode.
 
     Returns:
         The selected value.
@@ -79,9 +96,10 @@ def _select_or_fallback(prompt: str, labels: Sequence[str],
             prompt, choices=choices, use_search_filter=use_search_filter,
         ).ask()
     except Exception:  # noqa: BLE001
-        logger.warning('Interactive TUI unavailable; falling back to numbered prompt.')
+        logger.debug('Interactive TUI unavailable; falling back to numbered prompt.')
         return _fallback_numbered_prompt(
             prompt=prompt, labels=labels, values=values, back_key=back_key,
+            header=fallback_header,
         )
     if result is None:
         raise KeyboardInterrupt(f'{prompt} cancelled')
@@ -149,6 +167,7 @@ def pick_season(seasons: Sequence[Season]) -> Season:
         prompt='Choose season (q/0 to quit):',
         labels=labels,
         values=values,
+        fallback_header='Seasons to select from:',
     )
 
 
@@ -181,4 +200,5 @@ def pick_episode(episodes: Sequence[Episode], has_seasons: bool = True) -> Episo
         values=values,
         use_search_filter=True,
         back_key='s' if has_seasons else None,
+        fallback_header='Episodes to select from:',
     )

@@ -59,6 +59,18 @@ class BrowserSession:
                  _exc_val: BaseException | None,
                  _exc_tb: TracebackType | None) -> None:
         """Close the browser context and stop Playwright."""
+        if self._page is not None:
+            try:
+                self._page.evaluate(
+                    "() => document.querySelectorAll('video').forEach(v => {"
+                    " v.muted = true; v.pause(); v.removeAttribute('src'); v.load(); })"
+                )
+            except Exception as exc:
+                logger.debug(f'Video teardown failed: {exc}')
+            try:
+                self._page.goto('about:blank', timeout=3000)
+            except Exception as exc:
+                logger.debug(f'about:blank navigation failed: {exc}')
         if self._context is not None:
             try:
                 self._context.close()

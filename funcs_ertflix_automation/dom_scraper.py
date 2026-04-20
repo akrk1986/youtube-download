@@ -104,7 +104,8 @@ def select_season(page: Page, season: Season, wait_ms: int = 15000) -> None:
         season: The season to click.
         wait_ms: Max time to wait for the episode list to re-render + settle.
     """
-    logger.info(f'Selecting season {season.index}: {season.label}')
+    logger.info(f"Selected season {season.index}: '{season.label}'")
+    logger.info('Retrieving list of episodes (will take a few seconds)...')
     handles = page.query_selector_all(season.selector)
     target: ElementHandle | None = None
     for handle in handles:
@@ -256,7 +257,7 @@ def click_episode_play(page: Page, episode: Episode, token_urls: list[str],
             f'Could not locate Play button for episode #{episode.index} '
             f'({episode.title!r})'
         )
-    logger.info(f'Clicking Play for #{episode.index}: {episode.title}')
+    logger.info(f'Selected episode #{episode.index}: {episode.title}')
     button.click()
 
     deadline = time.monotonic() + timeout_s
