@@ -5,25 +5,26 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any
 
-from funcs_for_main_yt_dlp import (DownloadOptions, count_files,
+from funcs_for_main_yt_dlp import (DownloadOptions, check_output_dirs_empty,
+                                   cleanup_leftover_files, count_initial_files,
+                                   count_new_files, determine_audio_mode,
                                    extract_audio_with_ytdlp,
                                    format_elapsed_time, generate_session_id,
-                                   get_audio_dir_for_format, get_ffmpeg_path,
-                                   get_ytdlp_path, get_ytdlp_version,
-                                   organize_and_sanitize_files,
-                                   process_audio_tags, remux_video_chapters,
-                                   run_yt_dlp, validate_and_get_url)
+                                   get_audio_dir_for_format, get_custom_metadata,
+                                   get_ffmpeg_path, get_ytdlp_path,
+                                   get_ytdlp_version, organize_and_sanitize_files,
+                                   parse_and_validate_audio_formats,
+                                   parse_arguments, process_audio_tags,
+                                   remux_video_chapters, run_yt_dlp,
+                                   validate_and_get_url,
+                                   validate_list_chapters_only)
 from funcs_notifications import (GmailNotifier, NotificationData,
                                  NotificationHandler, SlackNotifier,
                                  send_all_notifications)
-from funcs_video_info import (create_chapters_csv,
-                              display_chapters_and_confirm, get_chapter_count,
-                              get_video_info, is_playlist)
+from funcs_video_info import (create_chapters_csv, detect_chapters, is_playlist)
 from funcs_utils import setup_logging
-from project_defs import (DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS,
-                          VIDEO_OUTPUT_DIR)
+from project_defs import VIDEO_OUTPUT_DIR
 
 SLACK_WEBHOOK: str | None = None
 GMAIL_PARAMS: dict[str, str] | None = None
@@ -40,138 +41,6 @@ except ImportError:
 VERSION = '2026-03-09-1817'
 
 logger = logging.getLogger(__name__)
-
-
-def _cleanup_leftover_files(video_folder: Path) -> None:
-    """Remove leftover *.ytdl and *.part files from cancelled downloads.
-
-    Args:
-        video_folder: Path to the video output directory
-    """
-    if not video_folder.exists():
-        return
-
-    leftover_patterns = ['*.ytdl', '*.part']
-    removed_count = 0
-
-    for pattern in leftover_patterns:
-        for leftover_file in video_folder.glob(pattern):
-            try:
-                leftover_file.unlink()
-                logger.debug(f"Removed leftover file: {leftover_file.name}")
-                removed_count += 1
-            except Exception as e:
-                logger.warning(f"Failed to remove {leftover_file.name}: {e}")
-
-    if removed_count > 0:
-        logger.info(f'Cleaned up {removed_count} leftover file(s) from previous cancelled downloads')
-
-
-def _check_output_dirs_empty(
-    only_audio: bool,
-    need_audio: bool,
-    audio_formats: list[str]
-) -> None:
-    """Abort if any output directory is non-empty (for split-chapters runs)."""
-    dirs_to_check: list[Path] = []
-
-    if not only_audio:
-        dirs_to_check.append(Path(VIDEO_OUTPUT_DIR))
-
-    if need_audio:
-        for fmt in audio_formats:
-            dirs_to_check.append(Path(get_audio_dir_for_format(audio_format=fmt)))
-
-    non_empty = [d for d in dirs_to_check if d.exists() and any(d.iterdir())]
-
-    if non_empty:
-        dir_list = ', '.join(f"'{d}'" for d in non_empty)
-        logger.error(
-            f'Output director{"ies" if len(non_empty) > 1 else "y"} {dir_list} '
-            f'is not empty. Copy any files you want to keep to another location, '
-            f'then clear the director{"ies" if len(non_empty) > 1 else "y"} and run again.'
-        )
-        sys.exit(1)
-
-
-def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
-    """Parse and return command-line arguments.
-
-    Args:
-        argv: Command-line arguments to parse. If None, uses sys.argv.
-
-    Returns:
-        argparse.Namespace: Parsed command-line arguments
-    """
-    parser = argparse.ArgumentParser(
-        description='Download YouTube playlist/video, optionally with subtitles.')
-    parser.add_argument('video_url', nargs='?', help='Playlist/video URL')
-    parser.add_argument('--audio-format', default=DEFAULT_AUDIO_FORMAT,
-                        help='Audio format for extraction: mp3, m4a, flac, or comma-separated list '
-                             '(e.g., mp3,m4a). (default: %(default)s)')
-    parser.add_argument('--split-chapters', action='store_true', help='Split to chapters')
-    parser.add_argument('--video-download-timeout', type=int,
-                        help='Timeout in seconds for video downloads. If specified, applies to all sites. '
-                             'If not specified, uses defaults: 300s for YouTube/Facebook, 3600s for other sites')
-    parser.add_argument('--subs', action='store_true', help='Download subtitles')
-    parser.add_argument('--json', action='store_true', help='Write JSON file')
-    parser.add_argument('--no-log-file', action='store_true', help='Disable logging to file')
-    parser.add_argument('--progress', action='store_true',
-                        help='Show yt-dlp progress bar and log output to Logs/yt-dlp.log')
-    parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose (DEBUG) logging')
-    parser.add_argument('--show-urls', action='store_true',
-                        help='Allow urllib3/requests to log URLs (WARNING: may expose Slack webhook URL)')
-    parser.add_argument('--rerun', action='store_true',
-                        help='Reuse URL from previous run (stored in Data/last_url.txt). '
-                             'Ignored if video_url is provided.')
-    parser.add_argument('--title',
-                        help='Custom title for output filename (ignored for playlists)')
-    parser.add_argument('--artist',
-                        help='Custom artist tag (ignored for playlists)')
-    parser.add_argument('--album',
-                        help='Custom album tag (ignored for playlists)')
-    parser.add_argument('--version', action='version', version=f'%(prog)s {VERSION}')
-    parser.add_argument('--list-chapters-only', action='store_true',
-                        help='List chapters, create segments CSV, then download video and stop. '
-                             'Aborts if the video has no chapters.')
-
-    audio_group = parser.add_mutually_exclusive_group()
-    audio_group.add_argument('--with-audio', action='store_true',
-                             help='Also extract audio (format specified by --audio-format)')
-    audio_group.add_argument('--only-audio', action='store_true',
-                             help='Delete video files after extraction')
-    audio_group.add_argument('--ertflix-program', action='store_true',
-                             help='ERTFlix program mode: download video only (resolves token URLs, ignores audio flags)'
-                             )
-
-    return parser.parse_args(argv)
-
-
-def _parse_and_validate_audio_formats(audio_format_str: str) -> list[str]:
-    """Parse comma-separated audio formats, validate, and deduplicate.
-
-    Args:
-        audio_format_str: Comma-separated audio format string (e.g., 'mp3,m4a')
-
-    Returns:
-        list[str]: Deduplicated list of valid format strings
-    """
-    audio_formats = [fmt.strip() for fmt in audio_format_str.split(',')]
-
-    invalid_formats = [fmt for fmt in audio_formats if fmt not in VALID_AUDIO_FORMATS]
-    if invalid_formats:
-        logger.error(f"Invalid audio format(s): {', '.join(invalid_formats)}")
-        logger.error(f"Valid formats are: {', '.join(sorted(VALID_AUDIO_FORMATS))}")
-        sys.exit(1)
-
-    # Remove duplicates while preserving order
-    seen: set[str] = set()
-    deduplicated: list[str] = []
-    for fmt in audio_formats:
-        if fmt not in seen:
-            seen.add(fmt)
-            deduplicated.append(fmt)
-    return deduplicated
 
 
 def _resolve_url(args: argparse.Namespace, yt_dlp_exe: str) -> str:
@@ -233,148 +102,6 @@ def _resolve_url(args: argparse.Namespace, yt_dlp_exe: str) -> str:
     return resolved_url
 
 
-def _get_custom_metadata(
-    args: argparse.Namespace,
-    url_is_playlist: bool
-) -> tuple[str | None, str | None, str | None]:
-    """Handle --title, --artist, --album options with interactive prompts.
-
-    Prompts user if value starts with 'ask'/'prompt'. Warns and clears
-    if used with a playlist.
-
-    Args:
-        args: Parsed command-line arguments
-        url_is_playlist: Whether the URL is a playlist
-
-    Returns:
-        tuple[str | None, str | None, str | None]: Tuple of (custom_title, custom_artist, custom_album)
-    """
-    custom_title = args.title
-    if custom_title:
-        if custom_title.lower().startswith(('ask', 'prompt')):
-            custom_title = input('Enter custom title : ').strip() or None
-        if custom_title and url_is_playlist:
-            logger.warning('--title is ignored for playlists')
-            custom_title = None
-
-    custom_artist = args.artist
-    if custom_artist:
-        if custom_artist.lower().startswith(('ask', 'prompt')):
-            custom_artist = input('Enter custom artist: ').strip() or None
-        if custom_artist and url_is_playlist:
-            logger.warning('--artist is ignored for playlists')
-            custom_artist = None
-
-    custom_album = args.album
-    if custom_album:
-        if custom_album.lower().startswith(('ask', 'prompt')):
-            custom_album = input('Enter custom album : ').strip() or None
-        if custom_album and url_is_playlist:
-            logger.warning('--album is ignored for playlists')
-            custom_album = None
-
-    return custom_title, custom_artist, custom_album
-
-
-def _detect_chapters(
-    yt_dlp_exe: str,
-    video_url: str,
-    video_download_timeout: int | None,
-    url_is_playlist: bool,
-    show_chapters: bool
-) -> tuple[bool, dict[str, Any] | None, str | None, str | None, dict[int, str]]:
-    """Detect chapters and fetch video info if chapters exist.
-
-    Args:
-        yt_dlp_exe: Path to yt-dlp executable
-        video_url: Video URL to check
-        video_download_timeout: Timeout for video downloads
-        url_is_playlist: Whether the URL is a playlist
-        show_chapters: Whether to display chapters and build name map
-
-    Returns:
-        tuple[bool, dict[str, Any] | None, str | None, str | None, dict[int, str]]:
-            Tuple of (has_chapters, video_info, uploader_name, video_title, chapter_name_map)
-    """
-    if url_is_playlist:
-        logger.info('URL is a playlist, not extracting chapters')
-        return False, None, None, None, {}
-
-    chapters_count = get_chapter_count(
-        ytdlp_exe=Path(yt_dlp_exe),
-        playlist_url=video_url,
-        video_download_timeout=video_download_timeout
-    )
-    has_chapters = chapters_count > 0
-
-    if not has_chapters:
-        return False, None, None, None, {}
-
-    logger.info(f'Video has {chapters_count} chapters')
-    video_info = get_video_info(
-        yt_dlp_path=Path(yt_dlp_exe),
-        url=video_url,
-        video_download_timeout=video_download_timeout
-    )
-    uploader_name = video_info.get('uploader')
-    video_title = video_info.get('title')
-    if uploader_name and uploader_name not in ('NA', ''):
-        logger.debug(f"Uploader for chapters: '{uploader_name}'")
-    if video_title and video_title not in ('NA', ''):
-        logger.debug(f"Video title for chapters: '{video_title}'")
-
-    chapter_name_map: dict[int, str] = {}
-    if show_chapters:
-        chapter_name_map = display_chapters_and_confirm(video_info=video_info)
-
-    return has_chapters, video_info, uploader_name, video_title, chapter_name_map
-
-
-def _validate_list_chapters_only(args: argparse.Namespace) -> None:
-    """Validate --list-chapters-only is not combined with conflicting flags.
-
-    Args:
-        args: Parsed command-line arguments
-    """
-    if not args.list_chapters_only:
-        return
-
-    conflicting = []
-    if args.with_audio:
-        conflicting.append('--with-audio')
-    if args.only_audio:
-        conflicting.append('--only-audio')
-    if args.subs:
-        conflicting.append('--subs')
-    if args.split_chapters:
-        conflicting.append('--split-chapters')
-    if conflicting:
-        logger.error('--list-chapters-only cannot be combined with: %s', ', '.join(conflicting))
-        sys.exit(1)
-
-
-def _determine_audio_mode(args: argparse.Namespace, audio_formats: list[str]) -> bool:
-    """Determine whether audio extraction is needed.
-
-    Handles ERTFlix program mode (forces video-only) and normal mode.
-
-    Args:
-        args: Parsed command-line arguments (modified in place for ERTFlix mode)
-        audio_formats: List of requested audio formats
-
-    Returns:
-        bool: True if audio extraction is needed
-    """
-    if args.ertflix_program:
-        logger.info('ERTFlix program mode: downloading video only (audio extraction disabled)')
-        args.only_audio = False
-        args.with_audio = False
-        return False
-
-    logger.info(f'Requested audio formats: {", ".join(audio_formats)}')
-    return args.with_audio or args.only_audio
-
-
 def _build_notifiers() -> tuple[list[NotificationHandler], str]:
     """Build notification handlers based on NOTIFICATIONS env var.
 
@@ -421,32 +148,6 @@ def _build_notifiers() -> tuple[list[NotificationHandler], str]:
     return notifiers, notif_msg_suffix
 
 
-def _count_initial_files(
-    only_audio: bool,
-    with_audio: bool,
-    audio_formats: list[str]
-) -> tuple[int, int]:
-    """Count existing video and audio files before download starts.
-
-    Args:
-        only_audio: Whether only audio was requested (skip video counting)
-        with_audio: Whether audio extraction was requested
-        audio_formats: List of audio format strings
-
-    Returns:
-        tuple[int, int]: Tuple of (initial_video_count, initial_audio_count)
-    """
-    initial_video_count = 0
-    initial_audio_count = 0
-    if not only_audio:
-        initial_video_count = count_files(directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv'])
-    if with_audio or only_audio:
-        for audio_format in audio_formats:
-            audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
-            initial_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
-    return initial_video_count, initial_audio_count
-
-
 def _send_completion_notification(
     notifiers: list[NotificationHandler],
     status: str,
@@ -480,11 +181,11 @@ def _send_completion_notification(
         failure_reason: Error message (only for failure status)
     """
     elapsed_time = format_elapsed_time(time.time() - start_time)
-    video_count, audio_count = _count_new_files(
+    video_count, audio_count = count_new_files(
         only_audio=only_audio, need_audio=need_audio,
         audio_formats=audio_formats,
         initial_video_count=initial_video_count,
-        initial_audio_count=initial_audio_count
+        initial_audio_count=initial_audio_count,
     )
     send_all_notifications(
         notifiers=notifiers,
@@ -502,48 +203,13 @@ def _send_completion_notification(
     )
 
 
-def _count_new_files(
-    only_audio: bool,
-    need_audio: bool,
-    audio_formats: list[str],
-    initial_video_count: int,
-    initial_audio_count: int
-) -> tuple[int, int]:
-    """Count newly created video and audio files since download started.
-
-    Args:
-        only_audio: Whether only audio was requested (skip video counting)
-        need_audio: Whether audio extraction was requested
-        audio_formats: List of audio formats to count
-        initial_video_count: File count before download started
-        initial_audio_count: File count before download started
-
-    Returns:
-        tuple[int, int]: Tuple of (new_video_count, new_audio_count)
-    """
-    video_count = 0
-    audio_count = 0
-    if not only_audio:
-        final_video_count = count_files(
-            directory=Path(VIDEO_OUTPUT_DIR), extensions=['.mp4', '.webm', '.mkv']
-        )
-        video_count = final_video_count - initial_video_count
-    if need_audio:
-        final_audio_count = 0
-        for audio_format in audio_formats:
-            audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
-            final_audio_count += count_files(directory=audio_dir, extensions=[f'.{audio_format}'])
-        audio_count = final_audio_count - initial_audio_count
-    return video_count, audio_count
-
-
 def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_id: str,
                   notifiers: list[NotificationHandler] | None = None, notif_msg_suffix: str = '') -> None:
     """Execute the main download logic."""
 
-    audio_formats = _parse_and_validate_audio_formats(audio_format_str=args.audio_format)
-    _validate_list_chapters_only(args=args)
-    need_audio = _determine_audio_mode(args=args, audio_formats=audio_formats)
+    audio_formats = parse_and_validate_audio_formats(audio_format_str=args.audio_format)
+    validate_list_chapters_only(args=args)
+    need_audio = determine_audio_mode(args=args, audio_formats=audio_formats)
 
     # Detect platform and set appropriate executable path
     yt_dlp_exe = get_ytdlp_path()
@@ -580,15 +246,15 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
 
     # Pre-flight check for --split-chapters: abort if output dirs are non-empty
     if args.split_chapters:
-        _check_output_dirs_empty(
+        check_output_dirs_empty(
             only_audio=args.only_audio,
             need_audio=need_audio,
-            audio_formats=audio_formats
+            audio_formats=audio_formats,
         )
 
     if not args.only_audio:
         video_folder.mkdir(parents=True, exist_ok=True)
-        _cleanup_leftover_files(video_folder=video_folder)
+        cleanup_leftover_files(video_folder=video_folder)
     if need_audio:
         for audio_format in audio_formats:
             audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
@@ -601,17 +267,17 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         sys.exit(1)
 
     # Get custom metadata (--title, --artist, --album)
-    custom_title, custom_artist, custom_album = _get_custom_metadata(
-        args=args, url_is_playlist=url_is_playlist
+    custom_title, custom_artist, custom_album = get_custom_metadata(
+        args=args, url_is_playlist=url_is_playlist,
     )
 
     # Detect chapters and fetch video info
-    has_chapters, video_info, uploader_name, video_title, chapter_name_map = _detect_chapters(
+    has_chapters, video_info, uploader_name, video_title, chapter_name_map = detect_chapters(
         yt_dlp_exe=yt_dlp_exe,
         video_url=args.video_url,
         video_download_timeout=args.video_download_timeout,
         url_is_playlist=url_is_playlist,
-        show_chapters=args.split_chapters or args.list_chapters_only
+        show_chapters=args.split_chapters or args.list_chapters_only,
     )
 
     # --list-chapters-only requires the video to have chapters
@@ -679,7 +345,7 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
 
 
 def main() -> None:
-    args = parse_arguments()
+    args = parse_arguments(version=VERSION)
 
     # Setup logging (must be done early)
     setup_logging(verbose=args.verbose, log_to_file=not args.no_log_file, show_urls=args.show_urls)
@@ -705,8 +371,8 @@ def main() -> None:
     start_time = time.time()
 
     audio_formats = [fmt.strip() for fmt in args.audio_format.split(',')]
-    initial_video_count, initial_audio_count = _count_initial_files(
-        only_audio=args.only_audio, with_audio=args.with_audio, audio_formats=audio_formats
+    initial_video_count, initial_audio_count = count_initial_files(
+        only_audio=args.only_audio, with_audio=args.with_audio, audio_formats=audio_formats,
     )
     notifiers, notif_msg_suffix = _build_notifiers()
 

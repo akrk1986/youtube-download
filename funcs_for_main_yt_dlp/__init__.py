@@ -30,14 +30,23 @@ from funcs_for_main_yt_dlp.external_tools import (
     quote_if_needed,
 )
 from funcs_for_main_yt_dlp.file_organization import (
+    check_output_dirs_empty,
+    cleanup_leftover_files,
     count_files,
+    count_initial_files,
+    count_new_files,
     get_audio_dir_for_format,
     organize_and_sanitize_files,
 )
 from funcs_for_main_yt_dlp.url_validation import validate_and_get_url
 from funcs_for_main_yt_dlp.utilities import (
+    determine_audio_mode,
     format_elapsed_time,
     generate_session_id,
+    get_custom_metadata,
+    parse_and_validate_audio_formats,
+    parse_arguments,
+    validate_list_chapters_only,
 )
 
 __all__ = [
@@ -57,11 +66,20 @@ __all__ = [
     'organize_and_sanitize_files',
     'get_audio_dir_for_format',
     'count_files',
+    'cleanup_leftover_files',
+    'check_output_dirs_empty',
+    'count_initial_files',
+    'count_new_files',
     # Audio processing
     'process_audio_tags',
     # Utilities
     'format_elapsed_time',
     'generate_session_id',
+    'parse_arguments',
+    'parse_and_validate_audio_formats',
+    'get_custom_metadata',
+    'validate_list_chapters_only',
+    'determine_audio_mode',
     # ERTFlix token handling
     'is_ertflix_token_url',
     'resolve_ertflix_token_url',

@@ -10,6 +10,7 @@ This package is organized into:
 from funcs_video_info.chapters import (
     _format_duration,
     create_chapters_csv,
+    detect_chapters,
     display_chapters_and_confirm,
     get_chapter_count,
 )
@@ -33,5 +34,6 @@ __all__ = [
     'get_chapter_count',
     'display_chapters_and_confirm',
     'create_chapters_csv',
+    'detect_chapters',
     '_format_duration',
 ]
