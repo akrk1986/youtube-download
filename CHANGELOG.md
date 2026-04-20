@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-04-20-2238] - Refactor main-yt-dlp.py: move helpers into support modules
+
+### Changed
+- **`main-yt-dlp.py`** reduced from 747 to 413 lines by moving 9 helper functions into existing modules:
+  - `funcs_for_main_yt_dlp/file_organization.py`: `cleanup_leftover_files`, `check_output_dirs_empty`, `count_initial_files`, `count_new_files`
+  - `funcs_for_main_yt_dlp/utilities.py`: `parse_arguments`, `parse_and_validate_audio_formats`, `get_custom_metadata`, `validate_list_chapters_only`, `determine_audio_mode`
+  - `funcs_video_info/chapters.py`: `detect_chapters` (formerly `_detect_chapters`)
+- `__init__.py` exports updated for both packages.
+- Test patches updated: `get_chapter_count` mock replaced with `detect_chapters` mock.
+- Pylint score: 8.78 → 8.79.
+
 ## [2026-04-20-2205] - ERTFlix: refactor dom_scraper into focused modules + UX polish
 
 ### Changed
