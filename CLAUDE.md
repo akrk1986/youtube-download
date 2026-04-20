@@ -177,7 +177,9 @@ python main-ertflix-series.py <URL> --debug-dom
 
 **Package layout (`funcs_ertflix_automation/`):**
 - `browser_session.py` — Playwright lifecycle, persistent-context launch, token request interceptor, authentication-redirect detection.
-- `dom_scraper.py` — season/episode discovery + Play-button click. `Episode` dataclass has `index`, `title`, `episode_id`, `duration`, `description`.
+- `season_scraper.py` — `Season` dataclass, `discover_seasons`, `select_season`, season-button selectors.
+- `episode_scraper.py` — `Episode` dataclass, `discover_episodes`, `dump_debug_dom`, DOM polling helper.
+- `player_scraper.py` — `click_episode_play`, `extract_player_info`, info-dialog selectors.
 - `cli_prompts.py` — Rich tables + questionary selects with numbered-input fallback. `pick_season` / `pick_episode` support `q`/`0` quit and `s` back-to-seasons navigation.
 - `handoff.py` — subprocess hand-off to `main-yt-dlp.py`; accepts `env_overrides` merged on top of `os.environ`.
 - `errors.py` — exception hierarchy (`ErtflixAutomationError`, `BackToSeasons`, `TokenCaptureTimeout`, `NoSeasonsOrEpisodesFound`, `BrowserLaunchFailed`).

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-04-20-2205] - ERTFlix: refactor dom_scraper into focused modules + UX polish
+
+### Changed
+- **`funcs_ertflix_automation/dom_scraper.py`** (445 lines) split into three focused modules:
+  - `season_scraper.py` — `Season` dataclass, `discover_seasons`, `select_season`, selectors.
+  - `episode_scraper.py` — `Episode` dataclass, `discover_episodes`, `dump_debug_dom`, polling helper.
+  - `player_scraper.py` — `click_episode_play`, `extract_player_info`, info-dialog selectors.
+- `__init__.py`, `cli_prompts.py`, and `main-ertflix-series.py` updated to import from the new modules.
+- `dom_scraper.py` removed.
+
 ## [2026-04-20-1257] - ERTFlix series browser: episode enrichment + UX improvements
 
 ### Added
@@ -25,7 +35,7 @@ All notable changes to this project will be documented in this file.
   - Persistent Chromium profile at `.ertflix-profile/` (gitignored) — log in once, cookies survive across runs. `ensure_authenticated()` detects `#/landing` / `#/login` redirects and pauses the script so the user can sign in inside the headed window.
   - Season + episode numbering mirrors the page's newest-to-oldest order: the newest season/episode receives the highest index, so `S02E26` refers to the 2nd season's 26th episode (oldest in that season).
   - Dry-run uses `shlex.join()` for shell-safe quoting — the printed hand-off command is copy-paste-runnable even when `--title` contains whitespace.
-- **`funcs_ertflix_automation/`** package — `browser_session`, `dom_scraper`, `cli_prompts`, `handoff`, `errors`.
+- **`funcs_ertflix_automation/`** package — `browser_session`, `season_scraper`, `episode_scraper`, `player_scraper`, `cli_prompts`, `handoff`, `errors`.
 - **`Tests/test_ertflix_automation.py`** — 10 pytest tests (argv builder, season/episode pickers, token-URL fragment constant).
 - **Dependencies**: `playwright`, `questionary`, `rich` added to `pyproject.toml` and `requirements.txt`. One-time install: `uv sync && python -m playwright install chromium`.
 - **`.gitignore`**: `.ertflix-profile/` and `Logs/ertflix-debug-*.html`.

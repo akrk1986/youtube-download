@@ -41,7 +41,7 @@ from funcs_ertflix_automation.handoff import build_ytdlp_argv
 from funcs_utils import setup_logging
 from project_defs import VALID_OTHER_DOMAINS
 
-VERSION = '2026-04-20-1257'
+VERSION = '2026-04-20-2205'
 DEBUG_DOM_DIR = Path('Logs')
 
 logger = logging.getLogger(__name__)
