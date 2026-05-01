@@ -404,8 +404,17 @@ The project uses multiple linting and type checking tools to maintain code quali
 - **Parameterized generics**: Use `dict[str, Any]` not bare `dict`, `list[str]` not bare `list`
 
 ### Linting Tools
-- **pylint**: Code quality metrics, unused variable detection
+- **ruff**: Style + unused imports
 - **mypy**: Static type checking
+- **ty**: Fast type checker (Astral; stricter than mypy)
+- **bandit**: Security scanning
+- **pip-audit**: Dependency CVE scanner
+- **deptry**: Unused/missing/misplaced dependency detection
+- **pylint**: Code quality metrics, unused variable detection
+- **pydoclint**: Docstring linting
+- **vulture**: Dead code detection
+- **pyupgrade**: Syntax modernisation (modifies files in place)
+- **eslint** / **jshint**: JavaScript linting (`JS-files/`)
 
 ### Path Handling Convention
 - **Use `pathlib.Path`** for all file/directory operations
@@ -596,7 +605,10 @@ The project uses `run-linters.py` (project root) to run all linting tools. Each 
 |------|---------|
 | `ruff` | Style + unused imports (replaces flake8 + isort) |
 | `mypy` | Static type checking |
+| `ty` | Fast type checker (Astral; stricter than mypy) |
 | `bandit` | Security scanning |
+| `pip-audit` | Dependency CVE scanning |
+| `deptry` | Unused/missing/misplaced dependency detection |
 | `pydoclint` | Docstring linting |
 | `pylint` | Code quality |
 | `vulture` | Dead code detection |
@@ -629,5 +641,7 @@ When asked to "run linters" or "lint the code", Claude should:
 - `eslint` and `jshint` are skipped automatically when no JS files are found
 - `EXCLUDED_DIRS` is defined in `project_defs.py` — edit there to change which directories are excluded from linting (most tools)
 - `bandit` exclusions and skips are configured in `[tool.bandit]` in `pyproject.toml`
+- `deptry` exclusions are configured in `[tool.deptry]` in `pyproject.toml`
+- `ty` exclude list is hardcoded in `_build_cmd()` in `run-linters.py` (mirrors bandit exclude pattern)
 - Running with no arguments runs all tools sequentially (radon excluded)
 - `flake8` and `isort` were removed — replaced by `ruff`
