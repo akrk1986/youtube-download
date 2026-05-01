@@ -5,10 +5,12 @@ requires-python = ">=3.12"
 dependencies = [
     "arrow",
     "bandit",
+    "deptry>=0.25.1",
     "emoji",
     "mutagen",
     "mypy",
     "odfpy",
+    "pip-audit>=2.10.0",
     "pydoclint",
     "pylint",
     "pyupgrade",
@@ -16,6 +18,7 @@ dependencies = [
     "ruff",
     "pytest",
     "requests",
+    "ty>=0.0.33",
     "types-requests",
     "types-yt-dlp",
     "vulture",
@@ -31,6 +34,9 @@ skips = ['B101']
 
 [tool.mypy]
 exclude = ['Beta/', 'Tests/', 'Tests-Standalone/']
+
+[tool.deptry]
+exclude = ['\.venv', 'Beta', 'Tests-Standalone', 'Tests']
 
 [tool.pydoclint]
 style = 'google'
