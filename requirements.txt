@@ -107,15 +107,16 @@ pydoclint==0.8.3
     # via youtube-download
 pyee==13.0.1
     # via playwright
-pygments==2.19.2
+pygments==2.20.0
     # via
     #   pytest
     #   rich
+    #   youtube-download
 pylint==4.0.5
     # via youtube-download
 pyparsing==3.3.2
     # via pip-requirements-parser
-pytest==9.0.2
+pytest==9.0.3
     # via youtube-download
 python-dateutil==2.9.0.post0
     # via arrow
@@ -127,7 +128,7 @@ questionary==2.1.1
     # via youtube-download
 radon==6.0.1
     # via youtube-download
-requests==2.32.5
+requests==2.33.1
     # via
     #   cachecontrol
     #   pip-audit
