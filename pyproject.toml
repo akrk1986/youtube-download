@@ -39,6 +39,13 @@ exclude = ['Beta/', 'Tests/', 'Tests-Standalone/']
 [tool.deptry]
 exclude = ['\.venv', 'Beta', 'Tests-Standalone', 'Tests']
 
+[tool.deptry.per_rule_ignores]
+DEP002 = [
+    "bandit", "deptry", "mypy", "pip-audit", "pydoclint", "pylint",
+    "pyupgrade", "pygments", "radon", "ruff", "pytest", "ty",
+    "types-requests", "types-yt-dlp", "vulture",
+]
+
 [tool.pydoclint]
 style = 'google'
 arg-type-hints-in-signature = true
