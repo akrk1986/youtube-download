@@ -1,6 +1,7 @@
 """Light TUI: rich tables for display + questionary selects for input."""
 import logging
-from typing import Sequence, TypeVar
+from typing import TypeVar
+from collections.abc import Sequence
 
 import questionary
 from rich.console import Console
