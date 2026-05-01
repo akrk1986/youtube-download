@@ -92,7 +92,7 @@ def analyze_page(url: str) -> None:
         print(f'Error: {e}')
 
 
-def try_api_endpoints(series_id: str, series_slug: str) -> None:
+def try_api_endpoints(series_id: str) -> None:
     """Try different API endpoint patterns to find episode data."""
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
@@ -152,4 +152,4 @@ if __name__ == '__main__':
     print('==' * 40)
     print('API Endpoint Discovery')
     print('==' * 40)
-    try_api_endpoints('ser.521736-parea-1', 'parea-1')
+    try_api_endpoints('ser.521736-parea-1')
