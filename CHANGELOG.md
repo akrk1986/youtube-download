@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-01-1453] - Add ty/pip-audit/deptry linters + pin uv files to LF
+
+### Added
+- **`run-linters.py`**: three new tools wired into the harness, mirroring sister project `LosslessCut-csv`:
+  - `ty` — Astral type checker (complements mypy)
+  - `pip-audit` — scans installed deps for known CVEs
+  - `deptry` — detects unused/missing/misplaced dependencies
+  - New parsers: `_parse_pip_audit`, `_parse_deptry` (ty reuses `_parse_line_colon`).
+  - New `_build_cmd` branches, runner functions, and dispatch entries in `_PARSERS` / `_TOOL_RUNNERS`.
+- **`pyproject.toml`**: added `ty>=0.0.33`, `pip-audit>=2.10.0`, `deptry>=0.25.1` to dependencies + new `[tool.deptry]` section with the standard exclude list.
+- **`.gitattributes`** (new file): pins `pyproject.toml`, `uv.lock`, and `requirements.txt` to LF line endings to prevent CRLF churn after `uv sync` / `uv add` / `uv export` on Windows-side checkouts.
+- `requirements.txt` and `uv.lock` regenerated.
+
+### Notes
+- New tools surface real findings (59 ty diagnostics, 35 bandit lows, 3 pip-audit CVEs, 14 deptry false-positives, etc.); these are not addressed in this commit. See `Logs/lint-reports-2026-05-01-1441/SUMMARY.md` for the triage backlog.
+
 ## [2026-04-20-2238] - Refactor main-yt-dlp.py: move helpers into support modules
 
 ### Changed
