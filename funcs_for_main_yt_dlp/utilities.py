@@ -34,8 +34,8 @@ def parse_arguments(argv: list[str] | None = None, version: str = '') -> argpars
     """Parse and return command-line arguments.
 
     Args:
-        version: Version string shown by --version.
         argv: Command-line arguments to parse. If None, uses sys.argv.
+        version: Version string shown by --version.
 
     Returns:
         argparse.Namespace: Parsed command-line arguments.
