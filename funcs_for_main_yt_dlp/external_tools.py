@@ -34,7 +34,7 @@ def _verify_tool_path(tool_path: str, version_flag: str, install_hint: str) -> s
         sys.exit(1)
 
     try:
-        subprocess.run([tool_path, version_flag], capture_output=True, check=True)
+        subprocess.run([tool_path, version_flag], capture_output=True, check=True)  # nosec B603
         return tool_path
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         logger.error(f'{tool_path} not found in PATH: {e}')
@@ -75,7 +75,7 @@ def get_ytdlp_version(ytdlp_path: str) -> str:
         str: Version string (e.g., '2024.12.23') or 'unknown' if version cannot be determined
     """
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603
             [ytdlp_path, '--version'],
             capture_output=True,
             text=True,

@@ -39,7 +39,7 @@ def detect_audio_levels(
     ]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True)  # nosec B603
     except (OSError, subprocess.SubprocessError) as e:
         raise RuntimeError(f'Error running ffmpeg: {e}')
 
@@ -172,7 +172,7 @@ class AudioBooster:
         print(f'Mode: {"loudnorm" if use_loudnorm else f"volume boost ({boost_value}x)"}')
 
         try:
-            subprocess.run(cmd, check=True)
+            subprocess.run(cmd, check=True)  # nosec B603
             print(f'Successfully created {output_file}')
             return output_file
         except subprocess.CalledProcessError as e:

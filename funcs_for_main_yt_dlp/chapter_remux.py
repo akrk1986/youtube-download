@@ -74,7 +74,7 @@ def remux_video_chapters(ffmpeg_path: str, video_folder: Path,
                 [ffmpeg_path, '-y', '-i', str(mp4_file), '-c', 'copy']
                 + duration_args + metadata_args + [str(temp_file)]
             )
-            subprocess.run(cmd, capture_output=True, check=True, timeout=FFMPEG_TIMEOUT_SECONDS,
+            subprocess.run(cmd, capture_output=True, check=True, timeout=FFMPEG_TIMEOUT_SECONDS,  # nosec B603
                            encoding='utf-8', errors='replace')
             temp_file.replace(mp4_file)
             logger.info(f"Remuxed '{mp4_file.name}'")

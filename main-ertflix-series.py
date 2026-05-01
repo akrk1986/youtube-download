@@ -242,7 +242,7 @@ def main() -> int:
                         }).observe(document.body, { childList: true, subtree: true });
                     }'''
                     )
-                except Exception:  # noqa: BLE001
+                except Exception:  # noqa: BLE001  # nosec B110
                     pass
 
             if args.debug_dom_player:

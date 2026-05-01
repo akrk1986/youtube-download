@@ -26,7 +26,7 @@ def _get_ffmpeg_tool_path(tool_name: str) -> str:
     if platform.system() == 'Windows':
         # Try system-installed tool first
         try:
-            subprocess.run(
+            subprocess.run(  # nosec B603
                 [tool_name, '-version'],
                 capture_output=True,
                 check=True
@@ -44,7 +44,7 @@ def _get_ffmpeg_tool_path(tool_name: str) -> str:
 
     # Non-Windows: verify system tool exists
     try:
-        subprocess.run(
+        subprocess.run(  # nosec B603
             [tool_name, '-version'],
             capture_output=True,
             check=True
@@ -108,7 +108,7 @@ def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None,
         ]
 
         print(f'  Converting MP3 to M4A with timeout of {FFMPEG_TIMEOUT_SECONDS} seconds')
-        subprocess.run(
+        subprocess.run(  # nosec B603
             cmd,
             capture_output=True,
             check=True,
@@ -170,7 +170,7 @@ def convert_m4a_to_mp3(m4a_file: Path | str, mp3_file: Path | str | None = None,
         ]
 
         print(f'  Converting M4A to MP3 with timeout of {FFMPEG_TIMEOUT_SECONDS} seconds')
-        subprocess.run(
+        subprocess.run(  # nosec B603
             cmd,
             capture_output=True,
             check=True,

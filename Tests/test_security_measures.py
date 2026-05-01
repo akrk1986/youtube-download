@@ -250,8 +250,8 @@ class TestShellMetacharactersCompatibility:
 
 if __name__ == '__main__':
     # Run tests with verbose output
-    import subprocess
-    result = subprocess.run(
+    import subprocess  # nosec B404
+    result = subprocess.run(  # nosec B603
         [sys.executable, '-m', 'pytest', __file__, '-v', '-s'],
         capture_output=False
     )

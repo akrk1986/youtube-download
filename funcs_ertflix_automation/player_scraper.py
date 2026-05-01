@@ -114,7 +114,7 @@ def extract_player_info(page: Page, out_file: Path,
                 close_btn.click()
             else:
                 page.keyboard.press('Escape')
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001  # nosec B110
             pass
     return True
 

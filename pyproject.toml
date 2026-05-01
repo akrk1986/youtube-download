@@ -31,7 +31,7 @@ dependencies = [
 
 [tool.bandit]
 exclude_dirs = ['.venv-linux', '.venv-3.14', '.venv-windows', '.venv', 'Tests/.venv-linux', 'Beta', 'Tests-Standalone', 'node_modules']
-skips = ['B101']
+skips = ['B101', 'B404']
 
 [tool.mypy]
 exclude = ['Beta/', 'Tests/', 'Tests-Standalone/']

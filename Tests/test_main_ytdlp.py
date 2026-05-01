@@ -701,8 +701,8 @@ class TestPlaylistHandling:
 
 if __name__ == '__main__':
     # Run tests with verbose output
-    import subprocess as sp
-    result = sp.run(
+    import subprocess as sp  # nosec B404
+    result = sp.run(  # nosec B603
         [sys.executable, '-m', 'pytest', __file__, '-v', '-s'],
         capture_output=False
     )
