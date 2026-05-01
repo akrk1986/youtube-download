@@ -2,6 +2,76 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-01-1453] - Add ty/pip-audit/deptry linters + pin uv files to LF
+
+### Added
+- **`run-linters.py`**: three new tools wired into the harness, mirroring sister project `LosslessCut-csv`:
+  - `ty` — Astral type checker (complements mypy)
+  - `pip-audit` — scans installed deps for known CVEs
+  - `deptry` — detects unused/missing/misplaced dependencies
+  - New parsers: `_parse_pip_audit`, `_parse_deptry` (ty reuses `_parse_line_colon`).
+  - New `_build_cmd` branches, runner functions, and dispatch entries in `_PARSERS` / `_TOOL_RUNNERS`.
+- **`pyproject.toml`**: added `ty>=0.0.33`, `pip-audit>=2.10.0`, `deptry>=0.25.1` to dependencies + new `[tool.deptry]` section with the standard exclude list.
+- **`.gitattributes`** (new file): pins `pyproject.toml`, `uv.lock`, and `requirements.txt` to LF line endings to prevent CRLF churn after `uv sync` / `uv add` / `uv export` on Windows-side checkouts.
+- `requirements.txt` and `uv.lock` regenerated.
+
+### Notes
+- New tools surface real findings (59 ty diagnostics, 35 bandit lows, 3 pip-audit CVEs, 14 deptry false-positives, etc.); these are not addressed in this commit. See `Logs/lint-reports-2026-05-01-1441/SUMMARY.md` for the triage backlog.
+
+## [2026-04-20-2238] - Refactor main-yt-dlp.py: move helpers into support modules
+
+### Changed
+- **`main-yt-dlp.py`** reduced from 747 to 413 lines by moving 9 helper functions into existing modules:
+  - `funcs_for_main_yt_dlp/file_organization.py`: `cleanup_leftover_files`, `check_output_dirs_empty`, `count_initial_files`, `count_new_files`
+  - `funcs_for_main_yt_dlp/utilities.py`: `parse_arguments`, `parse_and_validate_audio_formats`, `get_custom_metadata`, `validate_list_chapters_only`, `determine_audio_mode`
+  - `funcs_video_info/chapters.py`: `detect_chapters` (formerly `_detect_chapters`)
+- `__init__.py` exports updated for both packages.
+- Test patches updated: `get_chapter_count` mock replaced with `detect_chapters` mock.
+- Pylint score: 8.78 → 8.79.
+
+## [2026-04-20-2205] - ERTFlix: refactor dom_scraper into focused modules + UX polish
+
+### Changed
+- **`funcs_ertflix_automation/dom_scraper.py`** (445 lines) split into three focused modules:
+  - `season_scraper.py` — `Season` dataclass, `discover_seasons`, `select_season`, selectors.
+  - `episode_scraper.py` — `Episode` dataclass, `discover_episodes`, `dump_debug_dom`, polling helper.
+  - `player_scraper.py` — `click_episode_play`, `extract_player_info`, info-dialog selectors.
+- `__init__.py`, `cli_prompts.py`, and `main-ertflix-series.py` updated to import from the new modules.
+- `dom_scraper.py` removed.
+
+## [2026-04-20-1257] - ERTFlix series browser: episode enrichment + UX improvements
+
+### Added
+- **Episode table** now shows four columns: `#`, `Duration`, `Title`, `Description` — `_BROWSER_SCRAPE_SCRIPT` traverses the sibling `.row` container to extract duration (`h4.clr-pri-text-f` first text node) and description (`p[aria-label]`). `Episode` dataclass gains `episode_id`, `duration`, `description` fields (default `''`).
+- **Language change window**: after the page loads and before scraping begins, the script notifies the user that now is the time to switch the page language in the browser if desired, then waits for Enter.
+- **Navigation in pickers**: `q`/`0` quits from either picker; `s` in the episode picker goes back to the season selector. `BackToSeasons` exception added to `errors.py`.
+
+### Fixed
+- Season selector no longer matches episode play buttons whose titles contain the word "season" — removed `button[aria-label*="season" i]` from `SEASON_BUTTON_SELECTORS` (season pickers are `<div>` elements, not `<button>`s); dropped the `button` prefix from the two Greek-word selectors for the same reason.
+
+### Changed
+- `main()` season+episode selection loop extracted into `_pick_season_and_episode()` helper to reduce local-variable and statement counts (pylint 9.08 → 9.26).
+
+## [2026-04-19-2157] - Interactive ERTFlix series browser (`main-ertflix-series.py`)
+
+### Added
+- **`main-ertflix-series.py`**: new top-level CLI that drives Chromium (via Playwright) to an ERTFlix series URL, scrapes seasons + episodes, prompts the user via arrow-key menus (with a numbered `input()` fallback for consoles where `prompt_toolkit` can't drive the TTY), captures the token API URL when Play is clicked, and hands off to `main-yt-dlp.py --ertflix-program`. Unknown flags are forwarded verbatim to the downloader.
+  - `--program <name>` — sets `--title "<program> S<NN>E<NN>"` on the hand-off and mirrors the same string into `NOTIF_MSG` for Slack/Gmail notifications (e.g. `Parea S02E08`). Greek program names work too.
+  - Always sets `NOTIFICATIONS=ALL` in the subprocess environment so the download emits start/success/failure notifications.
+  - `--headless`, `--debug-dom`, `--token-timeout`, `--dry-run`, `--verbose`, `--profile-dir`.
+  - Persistent Chromium profile at `.ertflix-profile/` (gitignored) — log in once, cookies survive across runs. `ensure_authenticated()` detects `#/landing` / `#/login` redirects and pauses the script so the user can sign in inside the headed window.
+  - Season + episode numbering mirrors the page's newest-to-oldest order: the newest season/episode receives the highest index, so `S02E26` refers to the 2nd season's 26th episode (oldest in that season).
+  - Dry-run uses `shlex.join()` for shell-safe quoting — the printed hand-off command is copy-paste-runnable even when `--title` contains whitespace.
+- **`funcs_ertflix_automation/`** package — `browser_session`, `season_scraper`, `episode_scraper`, `player_scraper`, `cli_prompts`, `handoff`, `errors`.
+- **`Tests/test_ertflix_automation.py`** — 10 pytest tests (argv builder, season/episode pickers, token-URL fragment constant).
+- **Dependencies**: `playwright`, `questionary`, `rich` added to `pyproject.toml` and `requirements.txt`. One-time install: `uv sync && python -m playwright install chromium`.
+- **`.gitignore`**: `.ertflix-profile/` and `Logs/ertflix-debug-*.html`.
+
+### Notes
+- Episodes are identified by their Play-button `aria-label` (i.e. the title shown in the UI), not by a regex against image URLs — the DOM-based scrape is resilient to ID naming-scheme changes on the ERTFlix side.
+- `discover_episodes` polls a single `page.evaluate(...)` snapshot until the set of hydrated titles is stable for several rounds, so all 25–30 cards are captured even when Angular renders them in bursts.
+- The browser interceptor attaches a `page.on('request', ...)` listener (observational) rather than `page.route()` — blocking the request would prevent ERTFlix from generating a token URL with a valid `content_URL`.
+
 ## [2026-03-20-1703] - main-convert.py: copy cover art when syncing tags
 
 ### Added

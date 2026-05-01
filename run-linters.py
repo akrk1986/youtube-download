@@ -22,7 +22,7 @@ from pathlib import Path
 from project_defs import EXCLUDED_DIRS
 
 TOOLS = [
-    'ruff', 'mypy', 'bandit', 'pydoclint', 'pylint',
+    'ruff', 'mypy', 'ty', 'bandit', 'pip-audit', 'deptry', 'pydoclint', 'pylint',
     'vulture', 'pyupgrade', 'eslint', 'jshint',
 ]
 
@@ -67,8 +67,19 @@ def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
         return ['ruff', 'check', '.'], False
     if name == 'mypy':
         return ['mypy', '.'], False
+    if name == 'ty':
+        excludes = ['.venv-linux', '.venv-3.14', '.venv-windows', '.venv',
+                    'Beta', 'Tests/.venv-linux', 'Tests-Standalone', 'node_modules']
+        cmd = ['ty', 'check', '--output-format=concise']
+        for ex in excludes:
+            cmd.extend(['--exclude', ex])
+        return cmd, False
     if name == 'bandit':
         return ['bandit', '-r', '.', '-c', 'pyproject.toml'], False
+    if name == 'pip-audit':
+        return ['pip-audit', '--strict'], False
+    if name == 'deptry':
+        return ['deptry', '.', '--no-ansi'], False
     if name == 'pydoclint':
         targets = [
             'funcs_for_main_yt_dlp/', 'funcs_video_info/', 'funcs_utils/',
@@ -168,6 +179,40 @@ def _parse_ruff(output: str, tool: str, _root: Path) -> list[Issue]:
     return issues
 
 
+def _parse_pip_audit(output: str, tool: str, _root: Path) -> list[Issue]:
+    """Parse pip-audit tabular output. Each vuln row becomes an Issue with no file attribution."""
+    issues = []
+    in_table = False
+    for line in output.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith('---'):
+            in_table = True
+            continue
+        if in_table:
+            issues.append(Issue(filename='(no file)', tool=tool, text=stripped))
+        elif stripped.startswith('Found ') or stripped.startswith('No known'):
+            issues.append(Issue(filename='(no file)', tool=tool, text=stripped))
+    return issues
+
+
+def _parse_deptry(output: str, tool: str, _root: Path) -> list[Issue]:
+    """Parse deptry output. Issues are file:line:col: DEP00x format; success message forwarded."""
+    issues = []
+    file_pattern = re.compile(r'^([\w./\-]+\.py):')
+    for line in output.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith('Scanning '):
+            continue
+        m = file_pattern.match(line)
+        if m:
+            issues.append(Issue(filename=m.group(1), tool=tool, text=stripped))
+        else:
+            issues.append(Issue(filename='(no file)', tool=tool, text=stripped))
+    return issues
+
+
 def _parse_bandit(output: str, tool: str, _root: Path) -> list[Issue]:
     """Parse bandit output. Issues start with '>> Issue:' and end with a 'Location:' line."""
     issues = []
@@ -250,7 +295,10 @@ def _parse_pyupgrade(_output: str, tool: str, root: Path) -> list[Issue]:
 _PARSERS: dict[str, Callable[[str, str, Path], list[Issue]]] = {
     'ruff': _parse_ruff,
     'mypy': _parse_line_colon,
+    'ty': _parse_line_colon,
     'bandit': _parse_bandit,
+    'pip-audit': _parse_pip_audit,
+    'deptry': _parse_deptry,
     'pydoclint': _parse_radon,   # bare filename line, then indented issues (same format as radon)
     'pylint': _parse_line_colon,
     'vulture': _parse_line_colon,
@@ -330,10 +378,28 @@ def run_mypy(root: Path) -> int:
     return _run_tool('mypy', cmd, cwd=root, always_pass=always_pass)
 
 
+def run_ty(root: Path) -> int:
+    """Run ty type checker."""
+    cmd, always_pass = _build_cmd('ty', root)
+    return _run_tool('ty', cmd, cwd=root, always_pass=always_pass)
+
+
 def run_bandit(root: Path) -> int:
     """Run bandit security scanner."""
     cmd, always_pass = _build_cmd('bandit', root)
     return _run_tool('bandit', cmd, cwd=root, always_pass=always_pass)
+
+
+def run_pip_audit(root: Path) -> int:
+    """Run pip-audit dependency vulnerability scanner."""
+    cmd, always_pass = _build_cmd('pip-audit', root)
+    return _run_tool('pip-audit', cmd, cwd=root, always_pass=always_pass)
+
+
+def run_deptry(root: Path) -> int:
+    """Run deptry dependency consistency checker."""
+    cmd, always_pass = _build_cmd('deptry', root)
+    return _run_tool('deptry', cmd, cwd=root, always_pass=always_pass)
 
 
 def run_pydoclint(root: Path) -> int:
@@ -412,7 +478,10 @@ def run_jshint(root: Path) -> int:
 _TOOL_RUNNERS = {
     'ruff': run_ruff,
     'mypy': run_mypy,
+    'ty': run_ty,
     'bandit': run_bandit,
+    'pip-audit': run_pip_audit,
+    'deptry': run_deptry,
     'pydoclint': run_pydoclint,
     'pylint': run_pylint,
     'vulture': run_vulture,

@@ -1,0 +1,4 @@
+# uv rewrites these files with LF — pin to LF to avoid diff churn after uv add/lock/sync
+pyproject.toml   text eol=lf
+uv.lock          text eol=lf
+requirements.txt text eol=lf

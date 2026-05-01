@@ -22,7 +22,10 @@
       "Bash(pylint main-convert.py)",
       "Bash(echo \"EXIT_CODE: $?\")",
       "Bash(echo \"EXIT_CODE:$?\")",
-      "Bash(git -C /mnt/c/Users/user/PycharmProjects/youtube-download log --all --oneline)"
+      "Bash(git -C /mnt/c/Users/user/PycharmProjects/youtube-download log --all --oneline)",
+      "Bash(uv sync *)",
+      "Bash(uv export *)",
+      "Bash(git commit -m ' *)"
     ],
     "deny": [],
     "ask": []

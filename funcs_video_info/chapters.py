@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from funcs_utils import get_cookie_args, sanitize_string, sanitize_url_for_subprocess
+from funcs_video_info.metadata import get_video_info
 from funcs_video_info.url_validation import get_timeout_for_url
 
 logger = logging.getLogger(__name__)
@@ -286,3 +287,55 @@ def create_chapters_csv(video_info: dict[str, Any], output_dir: Path | str, vide
             ])
 
     logger.info(f"Chapters CSV was created successfully: '{csv_path}'")
+
+
+def detect_chapters(
+    yt_dlp_exe: str,
+    video_url: str,
+    video_download_timeout: int | None,
+    url_is_playlist: bool,
+    show_chapters: bool,
+) -> tuple[bool, dict[str, Any] | None, str | None, str | None, dict[int, str]]:
+    """Detect chapters and fetch video info if chapters exist.
+
+    Args:
+        yt_dlp_exe: Path to yt-dlp executable.
+        video_url: Video URL to check.
+        video_download_timeout: Timeout for video downloads in seconds.
+        url_is_playlist: Whether the URL is a playlist.
+        show_chapters: Whether to display chapters and build name map.
+
+    Returns:
+        tuple: (has_chapters, video_info, uploader_name, video_title, chapter_name_map)
+    """
+    if url_is_playlist:
+        logger.info('URL is a playlist, not extracting chapters')
+        return False, None, None, None, {}
+
+    chapters_count = get_chapter_count(
+        ytdlp_exe=Path(yt_dlp_exe),
+        playlist_url=video_url,
+        video_download_timeout=video_download_timeout,
+    )
+    has_chapters = chapters_count > 0
+    if not has_chapters:
+        return False, None, None, None, {}
+
+    logger.info(f'Video has {chapters_count} chapters')
+    video_info = get_video_info(
+        yt_dlp_path=Path(yt_dlp_exe),
+        url=video_url,
+        video_download_timeout=video_download_timeout,
+    )
+    uploader_name = video_info.get('uploader')
+    video_title = video_info.get('title')
+    if uploader_name and uploader_name not in ('NA', ''):
+        logger.debug(f"Uploader for chapters: '{uploader_name}'")
+    if video_title and video_title not in ('NA', ''):
+        logger.debug(f"Video title for chapters: '{video_title}'")
+
+    chapter_name_map: dict[int, str] = {}
+    if show_chapters:
+        chapter_name_map = display_chapters_and_confirm(video_info=video_info)
+
+    return has_chapters, video_info, uploader_name, video_title, chapter_name_map

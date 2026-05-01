@@ -511,7 +511,7 @@ class TestMainExecution:
              patch.object(main_module, 'get_ffmpeg_path', return_value='/usr/bin/ffmpeg'), \
              patch.object(main_module, 'validate_and_get_url', return_value=sample_args.video_url), \
              patch.object(main_module, 'is_playlist', return_value=False), \
-             patch.object(main_module, 'get_chapter_count', return_value=0), \
+             patch.object(main_module, 'detect_chapters', return_value=(False, None, None, None, {})), \
              patch.object(main_module, 'run_yt_dlp'), \
              patch.object(main_module, 'extract_audio_with_ytdlp'), \
              patch.object(main_module, 'organize_and_sanitize_files', return_value={}), \
@@ -548,7 +548,7 @@ class TestMainExecution:
              patch.object(main_module, 'get_ffmpeg_path', return_value='/usr/bin/ffmpeg'), \
              patch.object(main_module, 'validate_and_get_url', return_value=sample_args.video_url), \
              patch.object(main_module, 'is_playlist', return_value=False), \
-             patch.object(main_module, 'get_chapter_count', return_value=0), \
+             patch.object(main_module, 'detect_chapters', return_value=(False, None, None, None, {})), \
              patch.object(main_module, 'run_yt_dlp', run_yt_dlp_mock), \
              patch.object(main_module, 'extract_audio_with_ytdlp'), \
              patch.object(main_module, 'organize_and_sanitize_files', return_value={}), \
@@ -590,7 +590,7 @@ class TestMainExecution:
              patch.object(main_module, 'get_ffmpeg_path', return_value='/usr/bin/ffmpeg'), \
              patch.object(main_module, 'validate_and_get_url', return_value=sample_args.video_url), \
              patch.object(main_module, 'is_playlist', return_value=False), \
-             patch.object(main_module, 'get_chapter_count', return_value=0), \
+             patch.object(main_module, 'detect_chapters', return_value=(False, None, None, None, {})), \
              patch.object(main_module, 'extract_audio_with_ytdlp', extract_audio_mock), \
              patch.object(main_module, 'organize_and_sanitize_files', return_value={}), \
              patch.object(main_module, 'process_audio_tags'), \
