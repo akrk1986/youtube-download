@@ -71,10 +71,10 @@ def _extract_text_from_odt(file_path: Path | str) -> str:
         ImportError: If the odfpy package is not installed
     """
     try:
-        from odf import text, teletype  # type: ignore[import-untyped]
-        from odf.opendocument import load  # type: ignore[import-untyped]
+        from odf import text, teletype  # type: ignore[import-untyped]  # pylint: disable=import-outside-toplevel
+        from odf.opendocument import load  # type: ignore[import-untyped]  # pylint: disable=import-outside-toplevel
     except ImportError:
-        raise ImportError('odfpy package is required to read .odt files. Install it with: pip install odfpy')
+        raise ImportError('odfpy package is required to read .odt files. Install it with: pip install odfpy') from None
 
     doc = load(file_path)
     all_text = []

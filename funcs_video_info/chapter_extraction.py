@@ -17,11 +17,10 @@ def _parse_time_to_seconds(time_str: str) -> int:
     if len(parts) == 2:  # MM:SS
         minutes, seconds = map(int, parts)
         return minutes * 60 + seconds
-    elif len(parts) == 3:  # HH:MM:SS
+    if len(parts) == 3:  # HH:MM:SS
         hours, minutes, seconds = map(int, parts)
         return hours * 3600 + minutes * 60 + seconds
-    else:
-        raise ValueError(f'Invalid time format: {time_str}')
+    raise ValueError(f'Invalid time format: {time_str}')
 
 
 def _extract_chapters_from_description(description: str) -> list[dict[str, Any]]:
@@ -47,11 +46,11 @@ def _extract_chapters_from_description(description: str) -> list[dict[str, Any]]
     chapters.sort(key=lambda x: x['start_time'])
 
     # Calculate end times
-    for i in range(len(chapters)):
+    for i, chapter in enumerate(chapters):
         if i + 1 < len(chapters):
-            chapters[i]['end_time'] = chapters[i + 1]['start_time']
+            chapter['end_time'] = chapters[i + 1]['start_time']
         else:
-            chapters[i]['end_time'] = None  # Will be set to video duration
+            chapter['end_time'] = None  # Will be set to video duration
 
     return chapters
 

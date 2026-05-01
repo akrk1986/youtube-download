@@ -1,4 +1,5 @@
 """Using yt-dlp, download videos from URL, and extract the MP3 files."""
+# pylint: disable=invalid-name
 import argparse
 import logging
 import os
@@ -70,7 +71,7 @@ def _resolve_url(args: argparse.Namespace, yt_dlp_exe: str) -> str:
 
     # In interactive mode, prompt for URL
     if not args.video_url:
-        from funcs_video_info import validate_video_url
+        from funcs_video_info import validate_video_url  # pylint: disable=import-outside-toplevel
         for attempt in range(3):  # MAX_URL_RETRIES
             url_input = input('Enter the YouTube URL: ').strip()
             is_valid, error_msg = validate_video_url(url=url_input)
@@ -86,8 +87,8 @@ def _resolve_url(args: argparse.Namespace, yt_dlp_exe: str) -> str:
 
     # Determine timeout from ORIGINAL URL before resolution
     # This ensures ERTFlix URLs get the correct timeout even after CDN resolution
-    from funcs_for_main_yt_dlp import is_ertflix_token_url
-    from funcs_video_info import get_timeout_for_url
+    from funcs_for_main_yt_dlp import is_ertflix_token_url  # pylint: disable=import-outside-toplevel
+    from funcs_video_info import get_timeout_for_url  # pylint: disable=import-outside-toplevel
     if is_ertflix_token_url(url=args.video_url) and args.video_download_timeout is None:
         original_timeout = get_timeout_for_url(url=args.video_url)
         args.video_download_timeout = original_timeout
@@ -346,6 +347,7 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
 
 
 def main() -> None:
+    """Entry point: parse arguments, set up logging, and run the download."""
     args = parse_arguments(version=VERSION)
 
     # Setup logging (must be done early)

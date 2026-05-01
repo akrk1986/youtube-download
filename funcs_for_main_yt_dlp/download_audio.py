@@ -75,7 +75,7 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
     except subprocess.TimeoutExpired:
         logger.error(f"{format_type.upper()} audio download timed out after {timeout} seconds for URL '{opts.url}'")
         if not opts.is_it_playlist:
-            raise RuntimeError(f"Audio download timed out for '{opts.url}'")
+            raise RuntimeError(f"Audio download timed out for '{opts.url}'") from None
     except subprocess.CalledProcessError as e:
         # Check if this is a format error - suppress it, only log non-format errors
         error_output = (e.stderr or '') + (e.stdout or '')
@@ -93,7 +93,7 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
         if opts.is_it_playlist:
             logger.warning(f"Some videos in playlist '{opts.url}' may have failed, continuing...")
         else:
-            raise RuntimeError(f"Failed to download {format_type.upper()} audio from '{opts.url}': {e.stderr}")
+            raise RuntimeError(f"Failed to download {format_type.upper()} audio from '{opts.url}': {e.stderr}") from e
 
 
 def extract_audio_with_ytdlp(opts: DownloadOptions, audio_formats: list[str]) -> None:

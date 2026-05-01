@@ -39,9 +39,9 @@ def detect_audio_levels(
     ]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True)  # nosec B603
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # nosec B603
     except (OSError, subprocess.SubprocessError) as e:
-        raise RuntimeError(f'Error running ffmpeg: {e}')
+        raise RuntimeError(f'Error running ffmpeg: {e}') from e
 
     output = result.stderr
 

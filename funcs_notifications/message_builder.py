@@ -70,7 +70,6 @@ class MessageBuilder(ABC):
         Returns:
             Any: Message in format specific to the builder (str for Slack, EmailMessage for Email).
         """
-        pass
 
 
 class SlackMessageBuilder(MessageBuilder):

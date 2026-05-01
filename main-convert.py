@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# pylint: disable=invalid-name
 """
 Main staging script for copying audio tags between MP3 and M4A files.
 Accepts --source parameter to specify source audio format (mp3 or m4a).

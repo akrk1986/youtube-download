@@ -25,9 +25,9 @@ def get_audio_dir_for_format(audio_format: str) -> str:
     """
     if audio_format == 'mp3':
         return AUDIO_OUTPUT_DIR
-    elif audio_format == 'm4a':
+    if audio_format == 'm4a':
         return AUDIO_OUTPUT_DIR_M4A
-    elif audio_format == 'flac':
+    if audio_format == 'flac':
         return AUDIO_OUTPUT_DIR_FLAC
     raise ValueError(f'Unknown audio format: {audio_format}')
 

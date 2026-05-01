@@ -1,4 +1,5 @@
 """Convert export from the Greek artists Trello board to a simpler JSON."""
+# pylint: disable=invalid-name
 import argparse
 import json
 from pathlib import Path
@@ -71,6 +72,7 @@ def extract_artists(trello_data: dict[str, Any]) -> tuple[list[dict[str, str]], 
 
 
 def main() -> None:
+    """Entry point: parse args and run the Trello → JSON conversion."""
     parser = argparse.ArgumentParser(description='Extract artists from Trello JSON export.')
     parser.add_argument(
         '--trello-json',

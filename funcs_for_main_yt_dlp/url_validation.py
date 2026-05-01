@@ -23,7 +23,7 @@ def validate_and_get_url(provided_url: str, ytdlp_path: Path | None = None) -> s
         str: Validated URL (or resolved playback URL for ERTFlix token URLs)
     """
     # Import here to avoid circular imports
-    from funcs_for_main_yt_dlp.ertflix_token_handler import (
+    from funcs_for_main_yt_dlp.ertflix_token_handler import (  # pylint: disable=import-outside-toplevel
         is_ertflix_token_url,
         resolve_ertflix_token_url,
     )

@@ -19,15 +19,16 @@ class _SilentLogger:
     """Custom logger for yt-dlp that suppresses format errors."""
 
     def debug(self, msg: str) -> None:
-        pass
+        """Suppress debug messages."""
 
     def info(self, msg: str) -> None:
-        pass
+        """Suppress info messages."""
 
     def warning(self, msg: str) -> None:
-        pass
+        """Suppress warning messages."""
 
     def error(self, msg: str) -> None:
+        """Log non-format errors at debug level; suppress format errors."""
         # Suppress format errors, log others at debug level
         if not is_format_error(msg):
             logger.debug(f'yt-dlp error: {msg}')
@@ -77,15 +78,15 @@ def get_video_info(yt_dlp_path: Path, url: str, video_download_timeout: int | No
             raise
 
     except subprocess.TimeoutExpired:
-        raise RuntimeError(f"yt-dlp timed out after {timeout} seconds for URL '{url}'")
+        raise RuntimeError(f"yt-dlp timed out after {timeout} seconds for URL '{url}'") from None
     except subprocess.CalledProcessError as e:
         # Check if this is a format error - return empty dict instead of raising
         if is_format_error(e.stderr):
             logger.debug(f'Format not available for URL, returning empty info: {url}')
             return {}
-        raise RuntimeError(f'yt-dlp failed: {e.stderr}')
+        raise RuntimeError(f'yt-dlp failed: {e.stderr}') from e
     except json.JSONDecodeError as e:
-        raise RuntimeError(f"Failed to parse yt-dlp output for '{url}': {e}")
+        raise RuntimeError(f"Failed to parse yt-dlp output for '{url}': {e}") from e
 
 
 def is_playlist(url: str) -> bool:

@@ -86,7 +86,7 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
         except subprocess.TimeoutExpired:
             logger.error(f"Video download timed out after {timeout} seconds for URL '{opts.url}'")
             if not opts.is_it_playlist:
-                raise RuntimeError(f"Download timed out for '{opts.url}'")
+                raise RuntimeError(f"Download timed out for '{opts.url}'") from None
             return
 
         except subprocess.CalledProcessError as e:
@@ -104,7 +104,7 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
             if opts.is_it_playlist:
                 logger.warning(f"Some videos in playlist '{opts.url}' may have failed, continuing...")
                 return
-            raise RuntimeError(f"Failed to download video from '{opts.url}': {e.stderr}")
+            raise RuntimeError(f"Failed to download video from '{opts.url}': {e.stderr}") from e
 
     # All formats failed
     logger.error(f"All format options exhausted for URL '{opts.url}'")

@@ -62,8 +62,8 @@ def _get_download_retries() -> str:
         return '100'
     try:
         value = int(retries)
-    except ValueError:
-        raise ValueError(f"YTDLP_RETRIES must be a positive integer, got '{retries}'")
+    except ValueError as exc:
+        raise ValueError(f"YTDLP_RETRIES must be a positive integer, got '{retries}'") from exc
     if value <= 0:
         raise ValueError(f"YTDLP_RETRIES must be a positive integer, got '{retries}'")
     return retries

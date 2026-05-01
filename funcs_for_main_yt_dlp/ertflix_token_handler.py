@@ -25,7 +25,7 @@ def is_ertflix_token_url(url: str) -> bool:
     return 'api.ertflix.opentv.com/urlbuilder/v1/playout/content/token' in url
 
 
-def resolve_ertflix_token_url(token_url: str, ytdlp_path: Path) -> str:
+def resolve_ertflix_token_url(token_url: str, ytdlp_path: Path) -> str:  # pylint: disable=unused-argument
     """
     Resolve ERTFlix token API URL to actual playback URL.
 

@@ -55,4 +55,4 @@ def validate_file_path_security(file_path: Path, expected_parent: Path | None = 
                 raise ValueError(f'Path {file_path} is outside expected directory {expected_parent}')
 
     except (OSError, RuntimeError) as e:
-        raise ValueError(f'Invalid or suspicious file path {file_path}: {e}')
+        raise ValueError(f'Invalid or suspicious file path {file_path}: {e}') from e

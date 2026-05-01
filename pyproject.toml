@@ -46,6 +46,12 @@ DEP002 = [
     "types-requests", "types-yt-dlp", "vulture",
 ]
 
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint.messages_control]
+disable = ["W1203"]
+
 [tool.pydoclint]
 style = 'google'
 arg-type-hints-in-signature = true
