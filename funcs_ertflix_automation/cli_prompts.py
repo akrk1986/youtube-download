@@ -166,7 +166,7 @@ def pick_season(seasons: Sequence[Season]) -> Season:
     labels = [f'{s.index}. {s.label}' for s in seasons]
     labels.append('q/0. Quit')
     values: list[Season | str] = [*seasons, _QUIT]
-    return _select_or_fallback(  # type: ignore[return-value]
+    return _select_or_fallback(  # type: ignore
         prompt='Choose season (q/0 to quit):',
         labels=labels,
         values=values,
@@ -197,7 +197,7 @@ def pick_episode(episodes: Sequence[Episode], has_seasons: bool = True) -> Episo
     labels.append('q/0. Quit')
     values.append(_QUIT)
     hint = 'q/0 quit, s seasons' if has_seasons else 'q/0 quit'
-    return _select_or_fallback(  # type: ignore[return-value]
+    return _select_or_fallback(  # type: ignore
         prompt=f'Choose episode — type to filter ({hint}):',
         labels=labels,
         values=values,

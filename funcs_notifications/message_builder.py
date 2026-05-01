@@ -9,7 +9,7 @@ class NotificationData:
     """Data for building notification messages."""
     status: str
     url: str
-    args_dict: dict[str, str]
+    args_dict: dict[str, Any]
     session_id: str
     elapsed_time: str | None = None
     video_count: int = 0
@@ -38,7 +38,7 @@ def _get_status_display(status: str) -> tuple[str, str]:
     return emoji, word
 
 
-def _format_param_lines(status: str, args_dict: dict[str, str]) -> list[tuple[str, str]]:
+def _format_param_lines(status: str, args_dict: dict[str, Any]) -> list[tuple[str, str]]:
     """Return list of (key, value) tuples for display parameters."""
     param_lines: list[tuple[str, str]] = []
 

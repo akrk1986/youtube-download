@@ -14,17 +14,17 @@ from project_defs import DEFAULT_AUDIO_FORMAT
 
 
 @pytest.fixture
-def mock_slack_webhook() -> Generator[MagicMock, None, None]:
+def mock_slack_webhook() -> Generator[None, None, None]:
     """Patch SLACK_WEBHOOK to None to disable Slack notifications."""
-    with patch('main-yt-dlp.SLACK_WEBHOOK', None) as mock:
-        yield mock
+    with patch('main-yt-dlp.SLACK_WEBHOOK', None):
+        yield
 
 
 @pytest.fixture
-def mock_gmail_params() -> Generator[MagicMock, None, None]:
+def mock_gmail_params() -> Generator[None, None, None]:
     """Patch GMAIL_PARAMS to None to disable Gmail notifications."""
-    with patch('main-yt-dlp.GMAIL_PARAMS', None) as mock:
-        yield mock
+    with patch('main-yt-dlp.GMAIL_PARAMS', None):
+        yield
 
 
 @pytest.fixture

@@ -5,6 +5,7 @@ import os
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 from funcs_for_main_yt_dlp import (DownloadOptions, check_output_dirs_empty,
                                    cleanup_leftover_files, count_initial_files,
@@ -377,19 +378,19 @@ def main() -> None:
     notifiers, notif_msg_suffix = _build_notifiers()
 
     # Common kwargs for _send_completion_notification
-    notif_kwargs = dict(
-        notifiers=notifiers,
-        url=args.video_url or 'N/A',
-        args_dict=args_dict,
-        session_id=session_id,
-        start_time=start_time,
-        only_audio=args.only_audio,
-        need_audio=args.with_audio or args.only_audio,
-        audio_formats=audio_formats,
-        initial_video_count=initial_video_count,
-        initial_audio_count=initial_audio_count,
-        notif_msg_suffix=notif_msg_suffix
-    )
+    notif_kwargs: dict[str, Any] = {
+        'notifiers': notifiers,
+        'url': args.video_url or 'N/A',
+        'args_dict': args_dict,
+        'session_id': session_id,
+        'start_time': start_time,
+        'only_audio': args.only_audio,
+        'need_audio': args.with_audio or args.only_audio,
+        'audio_formats': audio_formats,
+        'initial_video_count': initial_video_count,
+        'initial_audio_count': initial_audio_count,
+        'notif_msg_suffix': notif_msg_suffix,
+    }
 
     try:
         _execute_main(args=args, args_dict=args_dict, session_id=session_id,

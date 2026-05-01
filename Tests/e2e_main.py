@@ -485,6 +485,8 @@ def _run_test_suite(resume: bool = False) -> None:
         _cleanup_output_dirs()
         _save_state(state)
 
+    assert state is not None
+
     # Check prerequisites
     if not _check_prerequisites():
         print('\n❌ Prerequisites check failed. Exiting.')

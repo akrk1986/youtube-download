@@ -104,7 +104,7 @@ def is_playlist(url: str) -> bool:
         browser = 'chrome' if cookie_env.lower() == 'chrome' else 'firefox'
         ydl_opts['cookiesfrombrowser'] = (browser,)
 
-    with yt_dlp.YoutubeDL(params=ydl_opts) as ydl:  # type: ignore[arg-type]
+    with yt_dlp.YoutubeDL(params=ydl_opts) as ydl:  # type: ignore
         try:
             info = ydl.extract_info(url=url, download=False)
             return info.get('webpage_url_basename') == 'playlist'  # type: ignore[typeddict-item]

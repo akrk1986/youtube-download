@@ -58,7 +58,7 @@ def test_notif_msg_suffix() -> None:
 
 def test_message_building() -> None:
     """Test message building with suffix."""
-    from funcs_notifications.message_builder import build_email_message, build_slack_message
+    from funcs_notifications.message_builder import build_email_message, build_slack_message  # type: ignore
 
     print('Testing message building with suffix...\n')
 
