@@ -67,6 +67,3 @@ GLOB_LOG_FILES = 'yt-dlp_*.log'
 YT_DLP_WRITE_JSON_FLAG = '--write-info-json'
 YT_DLP_SPLIT_CHAPTERS_FLAG = '--split-chapters'
 YT_DLP_IS_PLAYLIST_FLAG = '--yes-playlist'
-
-# Legacy constant (example playlist URL)
-GREEK_PLAYLIST_URL = 'https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'

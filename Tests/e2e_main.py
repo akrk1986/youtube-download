@@ -229,7 +229,7 @@ def _cleanup_output_dirs() -> None:
     """Clean output directories before tests."""
     print('\n🧹 Cleaning output directories...')
 
-    for dir_name, dir_path in OUTPUT_DIRS.items():
+    for _, dir_path in OUTPUT_DIRS.items():
         if not dir_path.exists():
             print(f'✅ Skipped {dir_path.name}/ (does not exist)')
             continue

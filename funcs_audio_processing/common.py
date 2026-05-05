@@ -8,32 +8,6 @@ from project_defs import MAX_ALBUM_NAME_LENGTH, CHAPTER_FILENAME_PATTERN
 
 logger = logging.getLogger(__name__)
 
-_windows_reserved_names = {
-    'CON', 'PRN', 'AUX', 'NUL',
-    *(f'COM{i}' for i in range(1, 10)),
-    *(f'LPT{i}' for i in range(1, 10))
-}
-
-_invalid_windows_chars = set('<>:"/\\|?*')
-_invalid_linux_chars = set('/')
-_control_chars = {chr(i) for i in range(32)}  # ASCII control chars 0-31
-
-
-def _is_valid_filename(filename: str) -> bool:
-    if not filename:
-        return False
-    if filename.upper() in _windows_reserved_names:
-        return False
-    if any(ch in _invalid_windows_chars for ch in filename):
-        return False
-    if any(ch in _invalid_linux_chars for ch in filename):
-        return False
-    if any(ch in _control_chars for ch in filename):
-        return False
-    if filename[-1] in {' ', '.'}:
-        return False
-    return True
-
 
 def _remove_emojis(text: str) -> str:
     return ''.join(c for c in text if not unicodedata.category(c).startswith('So'))
