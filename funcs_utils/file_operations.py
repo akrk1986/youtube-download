@@ -144,7 +144,7 @@ def organize_media_files_silent() -> dict[str, Any]:
         try:
             destination = audio_dir / audio_file.name
             shutil.move(str(audio_file), str(destination))
-            if audio_file.suffix == 'mp3':
+            if audio_file.suffix.lower() == '.mp3':
                 moved_files['mp3'].append(audio_file.name)
             else:
                 moved_files['m4a'].append(audio_file.name)

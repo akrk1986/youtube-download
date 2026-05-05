@@ -19,17 +19,17 @@ class TorrentInfo:
 def _parse_arguments() -> TorrentInfo:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Send Slack notification for completed torrent"
+        description='Send Slack notification for completed torrent'
     )
     parser.add_argument(
-        "--name",
+        '--name',
         required=True,
-        help="Name of the completed torrent"
+        help='Name of the completed torrent'
     )
     parser.add_argument(
-        "--path",
+        '--path',
         required=True,
-        help="Full path to the downloaded content"
+        help='Full path to the downloaded content'
     )
 
     args = parser.parse_args()
@@ -46,7 +46,7 @@ def _send_slack_message(webhook_url: str, message: str) -> bool:
     Returns:
         bool: True if successful, False otherwise.
     """
-    payload = {"text": message}
+    payload = {'text': message}
 
     try:
         response = requests.post(

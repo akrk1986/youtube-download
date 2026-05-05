@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Download Windows chromedriver for use with Windows Chrome from WSL."""
 
-import os
 import platform
 import subprocess
 import zipfile
@@ -14,7 +13,7 @@ def get_chrome_version() -> str:
     """Get the installed Chrome version from Windows."""
     chrome_path = '/mnt/c/Program Files/Google/Chrome/Application/chrome.exe'
 
-    if not os.path.exists(chrome_path):
+    if not Path(chrome_path).exists():
         raise FileNotFoundError('Chrome not found in Windows')
 
     # Run chrome.exe --version from WSL

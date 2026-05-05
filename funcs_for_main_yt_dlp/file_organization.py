@@ -71,11 +71,11 @@ def organize_and_sanitize_files(video_folder: Path, audio_formats: list[str],
 
         # Extract original names for MP3, M4A, and FLAC files
         for path, orig_name in result.get('original_names', {}).items():
-            if path.endswith('.mp3') or path.endswith('.MP3'):
+            if path.lower().endswith('.mp3'):
                 original_names_mp3[path] = orig_name
-            elif path.endswith('.m4a') or path.endswith('.M4A'):
+            elif path.lower().endswith('.m4a'):
                 original_names_m4a[path] = orig_name
-            elif path.endswith('.flac') or path.endswith('.FLAC'):
+            elif path.lower().endswith('.flac'):
                 original_names_flac[path] = orig_name
 
     # Sanitize downloaded video file names

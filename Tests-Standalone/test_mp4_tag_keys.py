@@ -4,7 +4,7 @@ sys.path.append('..')
 
 from mutagen.mp4 import MP4
 import tempfile
-import os
+from pathlib import Path
 
 def test_mp4_tag_keys():
     """Test that our MP4 tag keys work correctly."""
@@ -43,8 +43,8 @@ def test_mp4_tag_keys():
 
     finally:
         # Clean up
-        if os.path.exists(temp_path):
-            os.unlink(temp_path)
+        if Path(temp_path).exists():
+            Path(temp_path).unlink()
 
 if __name__ == '__main__':
     test_mp4_tag_keys()

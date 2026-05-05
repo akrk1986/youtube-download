@@ -7,6 +7,7 @@ and then extract the episode URLs that are dynamically loaded.
 """
 
 import argparse
+import os
 import re
 import time
 from pathlib import Path
@@ -70,13 +71,13 @@ def extract_urls_with_selenium(page_url: str, url_pattern: str, wait_seconds: in
     chromedriver_path = None
     if 'microsoft' in platform.uname().release.lower() or 'wsl' in platform.uname().release.lower():
         windows_chrome = '/mnt/c/Program Files/Google/Chrome/Application/chrome.exe'
-        if os.path.exists(windows_chrome):
+        if Path(windows_chrome).exists():
             chrome_options.binary_location = windows_chrome
             print(f'Using Windows Chrome: {windows_chrome}')
 
             # Use Windows chromedriver
-            default_chromedriver = os.path.expanduser('~/.local/bin/chromedriver-windows/chromedriver.exe')
-            if os.path.exists(default_chromedriver):
+            default_chromedriver = str(Path.home() / '.local/bin/chromedriver-windows/chromedriver.exe')
+            if Path(default_chromedriver).exists():
                 chromedriver_path = default_chromedriver
                 print(f'Using Windows ChromeDriver: {chromedriver_path}')
             elif 'CHROMEDRIVER_PATH' in os.environ:
@@ -86,7 +87,7 @@ def extract_urls_with_selenium(page_url: str, url_pattern: str, wait_seconds: in
     driver = None
     try:
         # Initialize the driver
-        if chromedriver_path and os.path.exists(chromedriver_path):
+        if chromedriver_path and Path(chromedriver_path).exists():
             service = Service(chromedriver_path)
             driver = webdriver.Chrome(service=service, options=chrome_options)
         else:
