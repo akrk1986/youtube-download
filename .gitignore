@@ -1,41 +1,67 @@
-/yt-videos
-/yt-audio
-/yt-chapters
-/yt-audio-m4a
-/yt-audio-flac
-.idea/workspace.xml
-.idea/shelf/
-*.mp3
-*.webm
-*.mp4
-*.MP3
-*.M4A
-*.ogg
-*.flac
-*.wav
-#*.txt
-#!requirements.txt
+# --- Python tooling ---
+__pycache__/
 *.pyc
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.skylos/
+
+# --- Virtual environments ---
 .venv/
 .venv-linux/
-.venv-3.14/
 .venv-windows/
+.venv-3.14/
 .old-venv-3.14/
 Tests/.venv-linux
+
+# --- Download output ---
+/yt-videos/
+/yt-audio/
+/yt-chapters/
+/yt-audio-m4a/
+/yt-audio-flac/
+staging-mp3/
+staging-mp4/
+
+# --- Audio/media files ---
+*.mp3
+*.MP3
+*.m4a
+*.M4A
+*.flac
+*.FLAC
+*.webm
+*.WEBM
+*.wav
+*.ogg
+*.mp4
+
+# --- Logs and runtime state ---
+Logs/
+Tests/e2e_state.json
+Data/last_url.txt
+Data/trello - greek-music-artists.json
+
+# --- Test output dirs ---
 Tests/Data/
 Tests/yt-audio/
 Tests/yt-videos/
 Tests-UTF/
-Tests/e2e_state.json
-Data/last_url.txt
-staging-mp3/
-staging-mp4/
-.pyscn/
-Logs/
+
+# --- Secrets and local config ---
 git_excluded.py
-Data/trello - greek-music-artists.json
-# Node/npm (JavaScript linting tools)
+
+# --- IDE ---
+.idea/workspace.xml
+.idea/shelf/
+
+# --- Node/npm ---
 node_modules/
 package-lock.json
-# ERTFlix browser-automation persistent Chromium profile
+
+# --- ERTFlix Chromium profile ---
 .ertflix-profile/
+
+# --- Misc tools ---
+.pyscn/
