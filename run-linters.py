@@ -61,17 +61,15 @@ def _has_js_files(root: Path) -> bool:
     return False
 
 
-def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
+def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:  # pylint: disable=too-many-branches,too-many-return-statements
     """Return (command_args, always_pass) for the given tool name."""
     if name == 'ruff':
         return ['ruff', 'check', '.'], False
     if name == 'mypy':
         return ['mypy', '.'], False
     if name == 'ty':
-        excludes = ['.venv-linux', '.venv-3.14', '.venv-windows', '.venv',
-                    'Beta', 'Tests/.venv-linux', 'Tests-Standalone', 'node_modules']
         cmd = ['ty', 'check', '--output-format=concise']
-        for ex in excludes:
+        for ex in EXCLUDED_DIRS:
             cmd.extend(['--exclude', ex])
         return cmd, False
     if name == 'bandit':
@@ -81,36 +79,24 @@ def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
     if name == 'deptry':
         return ['deptry', '.', '--no-ansi'], False
     if name == 'pydoclint':
-        targets = [
-            'funcs_for_main_yt_dlp/', 'funcs_video_info/', 'funcs_utils/',
-            'funcs_audio_processing/', 'funcs_audio_tag_handlers/',
-            'funcs_for_audio_utils/', 'funcs_notifications/',
-            'main-yt-dlp.py', 'main-get-artists-from-trello.py',
-        ]
-        existing = [t for t in targets if (root / t).exists()]
-        return ['pydoclint', '--config=pyproject.toml'] + existing, False
+        # Tests/ and Tests-Standalone/ excluded: pytest fixtures/patterns, split pending
+        extra = ['Tests', 'Tests-Standalone']
+        exclude_pattern = '|'.join(re.escape(d) for d in EXCLUDED_DIRS + extra)
+        return ['pydoclint', '--config=pyproject.toml', f'--exclude={exclude_pattern}', '.'], False
     if name == 'pylint':
-        targets = [
-            'funcs_for_main_yt_dlp/', 'funcs_video_info/', 'funcs_utils/',
-            'funcs_audio_processing/', 'funcs_audio_tag_handlers/',
-            'funcs_for_audio_utils/', 'funcs_notifications/',
-            'main-yt-dlp.py', 'main-get-artists-from-trello.py', 'main-convert.py',
-        ]
-        existing = [t for t in targets if (root / t).exists()]
-        return ['pylint'] + existing + ['--ignore=Beta'], False
+        # Tests/ and Tests-Standalone excluded: pytest patterns confuse pylint, split pending
+        ignore_str = ','.join(EXCLUDED_DIRS + ['Tests', 'Tests-Standalone'])
+        return ['pylint', '.', f'--ignore={ignore_str}'], False
     if name == 'vulture':
-        exclude_str = ','.join([
-            '.venv-linux', '.venv-3.14', '.venv-windows', '.venv', 'Beta', 'node_modules',
-        ])
+        exclude_str = ','.join(EXCLUDED_DIRS)
         return ['vulture', '.', '--exclude', exclude_str, '--min-confidence', '80'], False
     if name == 'skylos':
-        exclude_folders = ['.venv-linux', '.venv-3.14', '.venv-windows', '.venv', 'Beta', 'node_modules']
         cmd = ['skylos', '.', '--category', 'dead_code', '--format', 'concise']
-        for folder in exclude_folders:
+        for folder in EXCLUDED_DIRS:
             cmd.extend(['--exclude-folder', folder])
         return cmd, False
     if name == 'deadcode':
-        exclude_str = ','.join(['.venv', '.venv-linux', '.venv-3.14', '.venv-windows', 'Beta', 'node_modules'])
+        exclude_str = ','.join(EXCLUDED_DIRS)
         return ['deadcode', '.', '--exclude', exclude_str], False
     if name == 'radon':
         return ['radon', 'cc', '.', '-n', 'C', '--exclude', '*.venv*,Beta/*'], True
@@ -128,7 +114,7 @@ def _run_tool(name: str, cmd: list[str], cwd: Path, always_pass: bool = False) -
     """Run a tool command and print its output. Return exit code."""
     print(f'=== {name} ===')
     print(f'Command: {" ".join(cmd)}')
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)  # nosec B603
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, check=False)  # nosec B603
     if result.stdout:
         print(result.stdout, end='')
     if result.stderr:
@@ -144,7 +130,7 @@ def _run_tool(name: str, cmd: list[str], cwd: Path, always_pass: bool = False) -
 
 def _run_tool_capture(_name: str, cmd: list[str], cwd: Path, always_pass: bool = False) -> tuple[int, str]:
     """Run a tool command and return (exit_code, combined_output). stdout + stderr combined."""
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)  # nosec B603
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, check=False)  # nosec B603
     output = result.stdout
     if result.stderr:
         output = output + result.stderr
@@ -465,7 +451,9 @@ def run_pyupgrade(root: Path) -> int:
         return 0
     print(f'Command: pyupgrade --py311-plus <{len(py_files)} files>')
     _PYUPGRADE_PRE_HASHES = _hash_files(py_files)
-    result = subprocess.run(['pyupgrade', '--py311-plus'] + py_files, capture_output=True, text=True, cwd=root)  # nosec B603
+    result = subprocess.run(  # nosec B603
+        ['pyupgrade', '--py311-plus'] + py_files, capture_output=True, text=True, cwd=root, check=False,
+    )
     if result.stdout:
         print(result.stdout, end='')
     if result.stderr:

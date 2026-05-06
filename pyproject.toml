@@ -48,11 +48,28 @@ DEP002 = [
     "types-requests", "types-yt-dlp", "vulture",
 ]
 
+[tool.pylint.basic]
+module-naming-style = "any"
+
+[tool.pylint.design]
+max-args = 15
+max-locals = 30
+max-statements = 80
+max-branches = 20
+max-returns = 8
+max-attributes = 12
+
 [tool.pylint.format]
 max-line-length = 120
 
 [tool.pylint.messages_control]
-disable = ["W1203"]
+disable = [
+    "W1203",  # logging-fstring-interpolation
+    "E1101",  # no-member: false positives on dynamic library attrs (requests.codes)
+    "R0801",  # duplicate-code: noisy for standalone scripts
+    "W0718",  # broad-exception-caught: intentional at top-level error boundaries
+    "R0917",  # too-many-positional-arguments: overlaps R0913, version-specific
+]
 
 [tool.pydoclint]
 style = 'google'

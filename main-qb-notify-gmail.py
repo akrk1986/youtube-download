@@ -46,7 +46,7 @@ def _send_gmail_message(gmail_params: dict[str, str], subject: str, html_body: s
         html_body: Email body in HTML format.
 
     Returns:
-        True if successful, False otherwise.
+        bool: True if successful, False otherwise.
     """
     msg = MIMEText(html_body, 'html')
     msg['Subject'] = subject
@@ -74,7 +74,7 @@ def _build_notification_message(torrent: TorrentInfo) -> tuple[str, str]:
         torrent: Information about the completed torrent.
 
     Returns:
-        Tuple of (subject, html_body).
+        tuple[str, str]: Tuple of (subject, html_body).
     """
     subject = '✅ Torrent Complete'
 

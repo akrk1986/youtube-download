@@ -116,6 +116,9 @@ def discover_episodes(page: Page, debug_dump_dir: Path | None = None) -> list[Ep
 
     Returns:
         list[Episode]: Episodes in DOM order.
+
+    Raises:
+        NoSeasonsOrEpisodesFound: If no episodes are found after polling.
     """
     raw = _poll_episodes_until_stable(page=page)
 

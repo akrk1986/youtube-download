@@ -47,6 +47,10 @@ def click_episode_play(page: Page, episode: Episode, token_urls: list[str],
 
     Returns:
         str: The captured token API URL.
+
+    Raises:
+        NoSeasonsOrEpisodesFound: If the Play button cannot be located for the episode.
+        TokenCaptureTimeout: If no token URL is received within timeout_s seconds.
     """
     button = _find_play_button(page=page, episode=episode)
     if button is None:

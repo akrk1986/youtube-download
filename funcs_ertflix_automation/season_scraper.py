@@ -78,6 +78,9 @@ def select_season(page: Page, season: Season, wait_ms: int = 15000) -> None:
         page: Active Playwright page.
         season: The season to click.
         wait_ms: Max time to wait for the episode list to re-render + settle.
+
+    Raises:
+        NoSeasonsOrEpisodesFound: If the season button cannot be found on the page.
     """
     logger.info(f"Selected season {season.index}: '{season.label}'")
     logger.info('Retrieving list of episodes (will take a few seconds)...')

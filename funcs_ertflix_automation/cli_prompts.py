@@ -41,7 +41,11 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
         header: Optional header line printed before the item list.
 
     Returns:
-        The value at the chosen index.
+        T: The value at the chosen index.
+
+    Raises:
+        BackToSeasons: If the user enters the back key.
+        KeyboardInterrupt: If the user quits or provides empty input.
     """
     if header:
         print(header)
@@ -90,7 +94,11 @@ def _select_or_fallback(  # pylint: disable=too-many-arguments,too-many-position
         fallback_header: Header line printed above the item list in fallback mode.
 
     Returns:
-        The selected value.
+        T: The selected value.
+
+    Raises:
+        BackToSeasons: If the user chooses to go back to seasons.
+        KeyboardInterrupt: If the user quits or cancels the selection.
     """
     choices = [questionary.Choice(title=label, value=value)
                for label, value in zip(labels, values)]
@@ -160,6 +168,9 @@ def pick_season(seasons: Sequence[Season]) -> Season:
 
     Returns:
         Season: The selected season.
+
+    Raises:
+        ValueError: If the seasons list is empty.
     """
     if not seasons:
         raise ValueError('pick_season called with an empty season list')
@@ -186,6 +197,9 @@ def pick_episode(episodes: Sequence[Episode], has_seasons: bool = True) -> Episo
 
     Returns:
         Episode: The selected episode.
+
+    Raises:
+        ValueError: If the episodes list is empty.
     """
     if not episodes:
         raise ValueError('pick_episode called with an empty episode list')

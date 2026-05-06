@@ -31,6 +31,10 @@ class DownloadOptions:
 class _ProgressLogState:
     initialized: bool = False
 
+    def reset(self) -> None:
+        """Reset progress log state to uninitialized."""
+        self.initialized = False
+
 
 # Shared mutable object so the progress-log flag persists across
 # video + audio downloads that happen in the same run.

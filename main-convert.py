@@ -189,8 +189,12 @@ def apply_m4a_tags(file_path: Path, tags: dict[str, str]) -> bool:
 def _extract_cover_art(file_path: Path, fmt: str) -> tuple[bytes, str] | None:
     """Extract cover art from an audio file.
 
+    Args:
+        file_path: Path to the audio file.
+        fmt: Audio format ('m4a' or 'mp3').
+
     Returns:
-        Tuple of (image_bytes, mime_type) or None if not found.
+        tuple[bytes, str] | None: Tuple of (image_bytes, mime_type) or None if not found.
     """
     try:
         if fmt == 'm4a':
@@ -252,8 +256,15 @@ def _process_file(
 ) -> tuple[bool, bool, bool]:
     """Process one file: optionally convert, extract tags, apply tags.
 
+    Args:
+        source_file: Source audio file path.
+        target_file: Target audio file path.
+        source_format: Source audio format (e.g. 'mp3', 'm4a').
+        target_format: Target audio format.
+        create_missing_files: If True, convert source to target when target is missing.
+
     Returns:
-        Tuple of (processed, warned, converted) booleans.
+        tuple[bool, bool, bool]: Tuple of (processed, warned, converted) booleans.
     """
     converted = False
     if not target_file.exists() or target_file.stat().st_size == 0:
