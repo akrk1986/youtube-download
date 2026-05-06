@@ -215,7 +215,6 @@ def _extract_cover_art(file_path: Path, fmt: str) -> tuple[bytes, str] | None:
     except Exception:  # pylint: disable=broad-exception-caught
         return None
 
-
 def _apply_cover_art(file_path: Path, fmt: str, cover_data: bytes, mime: str) -> None:
     """Write cover art into an audio file.
 
@@ -238,14 +237,12 @@ def _apply_cover_art(file_path: Path, fmt: str, cover_data: bytes, mime: str) ->
     except Exception as e:  # pylint: disable=broad-exception-caught
         print(f'  Warning: could not write cover art to {file_path.name}: {e}')
 
-
 def _fill_missing_artist_tags(tags: dict[str, str]) -> None:
     """Copy artist to albumartist or vice versa if only one is set."""
     if tags.get('artist') and not tags.get('albumartist'):
         tags['albumartist'] = tags['artist']
     elif tags.get('albumartist') and not tags.get('artist'):
         tags['artist'] = tags['albumartist']
-
 
 def _process_file(
     source_file: Path,
@@ -309,10 +306,9 @@ def _process_file(
 
     return success, False, converted
 
-
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description='Copy audio tags between MP3 and M4A directories')
+    parser = argparse.ArgumentParser(description='Copy songs and audio tags between MP3 and M4A')
     parser.add_argument(
         '--source',
         required=True,
@@ -334,9 +330,7 @@ def parse_args() -> argparse.Namespace:
         '--prefix',
         help="Prepend '<prefix> - ' to the target filename if not already present"
     )
-
     return parser.parse_args()
-
 
 def main() -> int:
     """Copy audio tags between source and target audio format directories."""

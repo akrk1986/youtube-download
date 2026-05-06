@@ -61,8 +61,8 @@ MAX_ALBUM_NAME_LENGTH = 64
 
 # Output directories
 VIDEO_OUTPUT_DIR = 'yt-videos'
-AUDIO_OUTPUT_DIR = 'yt-audio'  # For MP3 files
-AUDIO_OUTPUT_DIR_M4A = 'yt-audio-m4a'  # For M4A files
+AUDIO_OUTPUT_DIR = 'yt-audio'            # For MP3 files
+AUDIO_OUTPUT_DIR_M4A = 'yt-audio-m4a'    # For M4A files
 AUDIO_OUTPUT_DIR_FLAC = 'yt-audio-flac'  # For FLAC files
 
 # Logging constants
