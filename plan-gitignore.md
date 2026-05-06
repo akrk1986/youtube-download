@@ -1,4 +1,4 @@
-Revision 1 — 2026-05-05 23:51
+Revision 2 — 2026-05-06 10:09
 
 # Plan: Fix .gitignore
 
@@ -123,4 +123,10 @@ package-lock.json
 
 ---
 
-## Status: Pending session start
+## Status: DONE — commit 90e2b07
+
+All changes applied. Open questions resolved:
+1. `/yt-audio-m4a` and `/yt-audio-flac` — both exist on disk → kept
+2. `plan-*.md` — stay tracked in git (user decision)
+3. `Tests-UTF/` — already gitignored, kept as-is
+4. `.skylos/` — contains cache only → gitignored
