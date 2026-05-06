@@ -1,4 +1,4 @@
-Revision 1 — 2026-05-05 23:42
+Revision 2 — 2026-05-06 14:02
 
 # Plan: Three-Tier Linter Scope System
 
@@ -133,4 +133,16 @@ Key question for the session: should `JS-files-diag/` be Category 2 (light linti
 
 ---
 
-## Status: Pending session start
+## Status: DONE — commit 9ae261d
+
+Decisions resolved:
+1. Cat 2 boundary → manual (SCRATCH_DIRS/SCRATCH_FILES lists in project_defs.py)
+2. JS-files-diag/ → Cat 3 (in EXCLUDED_DIRS)
+3. pyproject.toml sync → manual
+4. pylint/pydoclint → switched to exclusion model (both support --ignore / --exclude)
+5. Tests-Standalone/ → stays Cat 1; Tests/ and Tests-Standalone/ both excluded from
+   pylint and pydoclint for now (pytest patterns confuse both tools), pending split
+
+Remaining open item: Tests/ and Tests-Standalone/ split into Cat1/Cat2 still pending.
+When done, remove the manual 'Tests', 'Tests-Standalone' entries from _build_cmd()
+for pylint and pydoclint.
