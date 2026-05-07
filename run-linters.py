@@ -380,13 +380,46 @@ def run_ty(root: Path) -> int:
 def run_bandit(root: Path) -> int:
     """Run bandit security scanner."""
     cmd, always_pass = _build_cmd('bandit', root)
-    return _run_tool('bandit', cmd, cwd=root, always_pass=always_pass)
+    print('=== bandit ===')
+    print(f'Command: {" ".join(cmd)}')
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=root, check=False)  # nosec B603
+    if result.stdout:
+        print(result.stdout, end='')
+    if result.stderr:
+        # Bandit logger noise leaks through stderr on some platforms — suppress it
+        filtered = '\n'.join(
+            line for line in result.stderr.splitlines()
+            if not line.startswith(('[manager]', '[tester]'))
+        )
+        if filtered:
+            print(filtered, end='', file=sys.stderr)
+    if always_pass:
+        print('[bandit] exit 0 (informational)')
+        return 0
+    rc = result.returncode
+    print(f'[bandit] {"PASS" if rc == 0 else f"FAIL (exit {rc})"}')
+    return rc
 
 
 def run_pip_audit(root: Path) -> int:
     """Run pip-audit dependency vulnerability scanner."""
-    cmd, always_pass = _build_cmd('pip-audit', root)
-    return _run_tool('pip-audit', cmd, cwd=root, always_pass=always_pass)
+    cmd, _ = _build_cmd('pip-audit', root)
+    print('=== pip-audit ===')
+    print(f'Command: {" ".join(cmd)}')
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=root, check=False)  # nosec B603
+    if result.stdout:
+        print(result.stdout, end='')
+    if result.stderr:
+        # Bandit logger noise leaks through pip-audit on some platforms — suppress it
+        filtered = '\n'.join(
+            line for line in result.stderr.splitlines()
+            if not line.startswith(('[manager]', '[tester]'))
+        )
+        if filtered:
+            print(filtered, end='', file=sys.stderr)
+    rc = result.returncode
+    print(f'[pip-audit] {"PASS" if rc == 0 else f"FAIL (exit {rc})"}')
+    return rc
 
 
 def run_deptry(root: Path) -> int:
