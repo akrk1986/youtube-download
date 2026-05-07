@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-07-1919] - Fix pylint to pass on Windows
+
+### Fixed
+- **`run-linters.py`**: force `encoding='utf-8', errors='replace'` on all `subprocess.run` calls — fixes garbled emoji output (e.g. pylint's `🎉 No violations 🎉`) on Windows CP1252 consoles; wrap long `subprocess.run` calls to stay under 120 chars; move `_build_cmd` inline pylint disable to `disable-next` line (was 129 chars)
+- **`pyproject.toml`**: disable `R0903` (too-few-public-methods) globally — intentional for single-purpose strategy/state classes (`AudioBooster`, `_ProgressLogState`, etc.)
+
 ## [2026-05-07-1906] - Fix skylos to pass on Windows/Python 3.14
 
 ### Fixed
