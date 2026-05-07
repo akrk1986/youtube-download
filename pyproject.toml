@@ -28,7 +28,6 @@ dependencies = [
     "rich>=14.3.3",
     "pygments>=2.20.0",
     "skylos>=4.11.0",
-    "deadcode>=2.4.1",
 ]
 
 [tool.bandit]

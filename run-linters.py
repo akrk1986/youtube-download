@@ -23,7 +23,7 @@ from project_defs import EXCLUDED_DIRS
 
 TOOLS = [
     'ruff', 'mypy', 'ty', 'bandit', 'pip-audit', 'deptry', 'pydoclint', 'pylint',
-    'vulture', 'skylos', 'deadcode', 'pyupgrade', 'eslint', 'jshint',
+    'vulture', 'skylos', 'pyupgrade', 'eslint', 'jshint',
 ]
 
 # radon is informational only; excluded from default runs, opt-in via --tool radon or --with-radon
@@ -95,9 +95,6 @@ def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:  # pylint: disa
         for folder in EXCLUDED_DIRS:
             cmd.extend(['--exclude-folder', folder])
         return cmd, False
-    if name == 'deadcode':
-        exclude_str = ','.join(EXCLUDED_DIRS)
-        return ['deadcode', '.', '--exclude', exclude_str], False
     if name == 'radon':
         return ['radon', 'cc', '.', '-n', 'C', '--exclude', '*.venv*,Beta/*'], True
     if name == 'pyupgrade':
@@ -271,12 +268,6 @@ def _hash_files(files: list[str]) -> dict[str, str]:
     return hashes
 
 
-def _parse_deadcode(output: str, tool: str, root: Path) -> list[Issue]:
-    """Parse deadcode output. Strips ANSI colour codes then delegates to _parse_line_colon."""
-    ansi_escape = re.compile(r'\x1b\[[0-9;]*m')
-    return _parse_line_colon(ansi_escape.sub('', output), tool, root)
-
-
 def _parse_pyupgrade(_output: str, tool: str, root: Path) -> list[Issue]:
     """Parse pyupgrade result using pre/post file hashes to detect modifications."""
     # Hashes were captured before pyupgrade ran; compare to current state
@@ -304,7 +295,6 @@ _PARSERS: dict[str, Callable[[str, str, Path], list[Issue]]] = {
     'pylint': _parse_line_colon,
     'vulture': _parse_line_colon,
     'skylos': _parse_line_colon,
-    'deadcode': _parse_deadcode,
     'radon': _parse_radon,
     'pyupgrade': _parse_pyupgrade,
     'eslint': _parse_eslint,
@@ -429,12 +419,6 @@ def run_skylos(root: Path) -> int:
     return _run_tool('skylos', cmd, cwd=root, always_pass=always_pass)
 
 
-def run_deadcode(root: Path) -> int:
-    """Run deadcode unused-symbol scanner."""
-    cmd, always_pass = _build_cmd('deadcode', root)
-    return _run_tool('deadcode', cmd, cwd=root, always_pass=always_pass)
-
-
 def run_radon(root: Path) -> int:
     """Run radon complexity checker (informational only, always exits 0)."""
     cmd, always_pass = _build_cmd('radon', root)
@@ -503,7 +487,6 @@ _TOOL_RUNNERS = {
     'pylint': run_pylint,
     'vulture': run_vulture,
     'skylos': run_skylos,
-    'deadcode': run_deadcode,
     'radon': run_radon,
     'pyupgrade': run_pyupgrade,
     'eslint': run_eslint,

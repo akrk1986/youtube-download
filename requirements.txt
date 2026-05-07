@@ -56,8 +56,6 @@ cryptography==48.0.0
     #   secretstorage
 cyclonedx-python-lib==11.7.0
     # via pip-audit
-deadcode==2.4.1
-    # via youtube-download
 defusedxml==0.7.1
     # via
     #   odfpy
@@ -293,7 +291,6 @@ tokenize-rt==6.2.0
     # via pyupgrade
 tomli==2.4.1
     # via
-    #   deadcode
     #   deptry
     #   pip-audit
 tomli-w==1.2.0
