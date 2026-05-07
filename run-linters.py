@@ -61,7 +61,8 @@ def _has_js_files(root: Path) -> bool:
     return False
 
 
-def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:  # pylint: disable=too-many-branches,too-many-return-statements
+# pylint: disable-next=too-many-branches,too-many-return-statements
+def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
     """Return (command_args, always_pass) for the given tool name."""
     if name == 'ruff':
         return ['ruff', 'check', '.'], False
@@ -111,7 +112,9 @@ def _run_tool(name: str, cmd: list[str], cwd: Path, always_pass: bool = False) -
     """Run a tool command and print its output. Return exit code."""
     print(f'=== {name} ===')
     print(f'Command: {" ".join(cmd)}')
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, check=False)  # nosec B603
+    result = subprocess.run(  # nosec B603
+        cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=cwd, check=False,
+    )
     if result.stdout:
         print(result.stdout, end='')
     if result.stderr:
@@ -127,7 +130,9 @@ def _run_tool(name: str, cmd: list[str], cwd: Path, always_pass: bool = False) -
 
 def _run_tool_capture(_name: str, cmd: list[str], cwd: Path, always_pass: bool = False) -> tuple[int, str]:
     """Run a tool command and return (exit_code, combined_output). stdout + stderr combined."""
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, check=False)  # nosec B603
+    result = subprocess.run(  # nosec B603
+        cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=cwd, check=False,
+    )
     output = result.stdout
     if result.stderr:
         output = output + result.stderr
@@ -382,7 +387,9 @@ def run_bandit(root: Path) -> int:
     cmd, always_pass = _build_cmd('bandit', root)
     print('=== bandit ===')
     print(f'Command: {" ".join(cmd)}')
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=root, check=False)  # nosec B603
+    result = subprocess.run(  # nosec B603
+        cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=root, check=False,
+    )
     if result.stdout:
         print(result.stdout, end='')
     if result.stderr:
@@ -406,7 +413,9 @@ def run_pip_audit(root: Path) -> int:
     cmd, _ = _build_cmd('pip-audit', root)
     print('=== pip-audit ===')
     print(f'Command: {" ".join(cmd)}')
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=root, check=False)  # nosec B603
+    result = subprocess.run(  # nosec B603
+        cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=root, check=False,
+    )
     if result.stdout:
         print(result.stdout, end='')
     if result.stderr:
@@ -451,7 +460,9 @@ def run_skylos(root: Path) -> int:
     cmd, _ = _build_cmd('skylos', root)
     print('=== skylos ===')
     print(f'Command: {" ".join(cmd)}')
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=root, check=False)  # nosec B603
+    result = subprocess.run(  # nosec B603
+        cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=root, check=False,
+    )
     if result.stderr:
         print(result.stderr, end='', file=sys.stderr)
     if result.stdout:
@@ -484,7 +495,8 @@ def run_pyupgrade(root: Path) -> int:
     print(f'Command: pyupgrade --py311-plus <{len(py_files)} files>')
     _PYUPGRADE_PRE_HASHES = _hash_files(py_files)
     result = subprocess.run(  # nosec B603
-        ['pyupgrade', '--py311-plus'] + py_files, capture_output=True, text=True, cwd=root, check=False,
+        ['pyupgrade', '--py311-plus'] + py_files,
+        capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=root, check=False,
     )
     if result.stdout:
         print(result.stdout, end='')

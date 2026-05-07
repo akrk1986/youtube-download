@@ -68,6 +68,7 @@ disable = [
     "R0801",  # duplicate-code: noisy for standalone scripts
     "W0718",  # broad-exception-caught: intentional at top-level error boundaries
     "R0917",  # too-many-positional-arguments: overlaps R0913, version-specific
+    "R0903",  # too-few-public-methods: intentional for single-purpose strategy/state classes
 ]
 
 [tool.pydoclint]
