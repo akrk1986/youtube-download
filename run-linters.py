@@ -101,9 +101,9 @@ def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:  # pylint: disa
         py_files = _collect_py_files(root, EXCLUDED_DIRS)
         return ['pyupgrade', '--py311-plus'] + py_files, False
     if name == 'eslint':
-        return ['npx', 'eslint', 'JS-files/'], False
+        return ['node', str(root / 'node_modules' / 'eslint' / 'bin' / 'eslint.js'), 'JS-files/'], False
     if name == 'jshint':
-        return ['npx', 'jshint', 'JS-files/'], False
+        return ['node', str(root / 'node_modules' / 'jshint' / 'bin' / 'jshint'), 'JS-files/'], False
     raise ValueError(f'Unknown tool: {name}')
 
 
