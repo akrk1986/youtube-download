@@ -2,7 +2,7 @@
 
 This package contains audio processing utilities:
 - boost: Audio volume boosting using ffmpeg
-- conversion: Audio format conversion (MP3 ↔ M4A)
+- conversion: Audio format conversion (MP3 ↔ M4A, FLAC → MP3/M4A)
 """
 
 # Import boost functions and classes
@@ -15,6 +15,8 @@ from funcs_for_audio_utils.boost import (
 
 # Import conversion functions
 from funcs_for_audio_utils.conversion import (
+    convert_flac_to_m4a,
+    convert_flac_to_mp3,
     convert_m4a_to_mp3,
     convert_mp3_to_m4a,
     get_ffmpeg_path,
@@ -30,6 +32,8 @@ __all__ = [
     # Conversion
     'convert_mp3_to_m4a',
     'convert_m4a_to_mp3',
+    'convert_flac_to_mp3',
+    'convert_flac_to_m4a',
     'get_ffmpeg_path',
     'get_ffprobe_path',
 ]

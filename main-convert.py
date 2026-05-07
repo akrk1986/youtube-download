@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
 # pylint: disable=invalid-name
 """
-Main staging script for copying audio tags between MP3 and M4A files.
-Accepts --source parameter to specify source audio format (mp3 or m4a).
+Main staging script for copying audio tags between MP3 and M4A files,
+and for converting FLAC files to MP3 or M4A.
+Accepts --source parameter to specify source audio format (mp3, m4a, or flac).
 """
 import argparse
 import sys
 import re
 from pathlib import Path
 from mutagen.easyid3 import EasyID3
+from mutagen.flac import FLAC as MutagenFLAC
 from mutagen.id3 import ID3NoHeaderError, ID3, COMM, TENC, APIC
 from mutagen.mp4 import MP4, MP4Cover
 import arrow
 
-from funcs_for_audio_utils import convert_mp3_to_m4a, convert_m4a_to_mp3
-from project_defs import AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_M4A
+from funcs_for_audio_utils import (
+    convert_flac_to_m4a,
+    convert_flac_to_mp3,
+    convert_m4a_to_mp3,
+    convert_mp3_to_m4a,
+)
+from project_defs import AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_FLAC, AUDIO_OUTPUT_DIR_M4A
 
 
 def normalize_year(year_str: str | int | None) -> str:
@@ -105,6 +112,32 @@ def extract_m4a_tags(file_path: Path) -> dict[str, str] | None:
         print(f'Error reading M4A tags from {file_path}: {e}')
         return None
 
+
+def extract_flac_tags(file_path: Path) -> dict[str, str] | None:
+    """Extract relevant tags from a FLAC file (Vorbis Comments)."""
+    try:
+        audio = MutagenFLAC(str(file_path))
+
+        def _get(key: str) -> str:
+            vals = audio.get(key.upper(), [])
+            return vals[0] if vals else ''
+
+        return {
+            'title':       _get('title'),
+            'artist':      _get('artist'),
+            'albumartist': _get('albumartist'),
+            'date':        normalize_year(year_str=_get('date')),
+            'album':       _get('album'),
+            'tracknumber': _get('tracknumber'),
+            'comment':     _get('comment'),
+            'composer':    _get('composer'),
+            'encodedby':   _get('encodedby'),
+        }
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        print(f'Error reading FLAC tags from {file_path}: {e}')
+        return None
+
+
 def apply_mp3_tags(file_path: Path, tags: dict[str, str]) -> bool:
     """Apply tags to MP3 file using EasyID3 and ID3."""
     try:
@@ -191,15 +224,23 @@ def _extract_cover_art(file_path: Path, fmt: str) -> tuple[bytes, str] | None:
 
     Args:
         file_path: Path to the audio file.
-        fmt: Audio format ('m4a' or 'mp3').
+        fmt: Audio format ('flac', 'm4a', or 'mp3').
 
     Returns:
         tuple[bytes, str] | None: Tuple of (image_bytes, mime_type) or None if not found.
     """
     try:
+        if fmt == 'flac':
+            audio = MutagenFLAC(str(file_path))
+            # Prefer front-cover (type 3); fall back to first picture
+            pics = [p for p in audio.pictures if p.type == 3] or list(audio.pictures)
+            if not pics:
+                return None
+            pic = pics[0]
+            return (pic.data, pic.mime)
         if fmt == 'm4a':
-            audio = MP4(file_path)
-            covers = audio.get('covr', [])
+            m4a = MP4(file_path)
+            covers = m4a.get('covr', [])
             if not covers:
                 return None
             cover = covers[0]
@@ -271,8 +312,12 @@ def _process_file(
             )
             if source_format == 'mp3':
                 result = convert_mp3_to_m4a(mp3_file=source_file, m4a_file=target_file)
-            else:
+            elif source_format == 'm4a':
                 result = convert_m4a_to_mp3(m4a_file=source_file, mp3_file=target_file)
+            elif target_format == 'mp3':
+                result = convert_flac_to_mp3(flac_file=source_file, mp3_file=target_file)
+            else:
+                result = convert_flac_to_m4a(flac_file=source_file, m4a_file=target_file)
             if result is None:
                 print(f'  Failed to convert {source_file.name}')
                 return False, True, False
@@ -284,8 +329,10 @@ def _process_file(
     # Extract tags from source file
     if source_format == 'mp3':
         tags = extract_mp3_tags(file_path=source_file)
-    else:
+    elif source_format == 'm4a':
         tags = extract_m4a_tags(file_path=source_file)
+    else:
+        tags = extract_flac_tags(file_path=source_file)
 
     if tags is None:
         return False, False, converted
@@ -308,12 +355,22 @@ def _process_file(
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description='Copy songs and audio tags between MP3 and M4A')
+    parser = argparse.ArgumentParser(
+        description='Copy songs and audio tags between MP3/M4A, or convert FLAC to MP3/M4A'
+    )
     parser.add_argument(
         '--source',
         required=True,
-        choices=['mp3', 'm4a'],
-        help='Source audio format to read tags from (mp3 or m4a)'
+        choices=['mp3', 'm4a', 'flac'],
+        help='Source audio format (mp3, m4a, or flac)'
+    )
+    parser.add_argument(
+        '--target',
+        choices=['mp3', 'm4a', 'both'],
+        help=(
+            'Target format. Required when --source flac (mp3, m4a, or both). '
+            'For --source mp3/m4a omit or specify the opposite format.'
+        )
     )
     parser.add_argument(
         '--create-missing-files',
@@ -324,7 +381,7 @@ def parse_args() -> argparse.Namespace:
         '--top-level-directory',
         type=lambda p: Path(p) if Path(p).exists() and Path(p).is_dir() else
                     parser.error(f"Directory '{p}' does not exist"),
-        help='Top-level directory containing MP3 and M4A subfolders'
+        help='Top-level directory containing MP3, M4A and/or FLAC subfolders'
     )
     parser.add_argument(
         '--prefix',
@@ -332,33 +389,66 @@ def parse_args() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-def main() -> int:
+def main() -> int:  # pylint: disable=too-many-branches
     """Copy audio tags between source and target audio format directories."""
     args = parse_args()
 
-    target_format = 'm4a' if args.source == 'mp3' else 'mp3'
+    # Validate and resolve --target
+    if args.source == 'flac':
+        if not args.target:
+            print('Error: --target is required when --source flac (mp3, m4a, or both)')
+            return 1
+    elif args.source == 'mp3':
+        if args.target and args.target != 'm4a':
+            print(f"Error: --target '{args.target}' is invalid when --source mp3 (use 'm4a' or omit)")
+            return 1
+        args.target = 'm4a'
+    else:  # m4a
+        if args.target and args.target != 'mp3':
+            print(f"Error: --target '{args.target}' is invalid when --source m4a (use 'mp3' or omit)")
+            return 1
+        args.target = 'mp3'
 
-    # Define directories
+    target_formats = ['mp3', 'm4a'] if args.target == 'both' else [args.target]
+
+    # Source directory lookup tables
+    _source_default = {
+        'mp3': AUDIO_OUTPUT_DIR,
+        'm4a': AUDIO_OUTPUT_DIR_M4A,
+        'flac': AUDIO_OUTPUT_DIR_FLAC,
+    }
+    _source_subdir = {'mp3': 'MP3', 'm4a': 'M4A', 'flac': 'FLAC'}
+
     if args.top_level_directory:
-        source_dir = args.top_level_directory / args.source.upper()
-        target_dir = args.top_level_directory / target_format.upper()
+        source_dir = args.top_level_directory / _source_subdir[args.source]
     else:
-        source_dir = Path(AUDIO_OUTPUT_DIR) if args.source == 'mp3' else Path(AUDIO_OUTPUT_DIR_M4A)
-        target_dir = Path(AUDIO_OUTPUT_DIR_M4A) if args.source == 'mp3' else Path(AUDIO_OUTPUT_DIR)
+        source_dir = Path(_source_default[args.source])
 
-    # Check if directories exist
     if not source_dir.exists():
         print(f"Error: Source directory '{source_dir}' does not exist")
         return 1
 
-    if not target_dir.exists():
-        print(f"Error: Target directory '{target_dir}' does not exist")
-        return 1
+    # Target directory lookup tables
+    _target_default = {'mp3': AUDIO_OUTPUT_DIR, 'm4a': AUDIO_OUTPUT_DIR_M4A}
+    _target_subdir = {'mp3': 'MP3', 'm4a': 'M4A'}
 
-    print(f'Copying tags from {args.source.upper()} files to {target_format.upper()} files...')
+    target_dirs: list[Path] = []
+    for fmt in target_formats:
+        if args.top_level_directory:
+            target_dirs.append(args.top_level_directory / _target_subdir[fmt])
+        else:
+            target_dirs.append(Path(_target_default[fmt]))
 
-    # Get source files
-    source_files = list(source_dir.glob(f'*.{args.source}'))
+    for target_dir in target_dirs:
+        if not target_dir.exists():
+            print(f"Error: Target directory '{target_dir}' does not exist")
+            return 1
+
+    # Get source files (case-insensitive on all platforms)
+    source_files = sorted(
+        f for f in source_dir.iterdir()
+        if f.suffix.lower() == f'.{args.source}'
+    )
     if not source_files:
         print(f'No {args.source.upper()} files found in {source_dir}')
         return 0
@@ -367,25 +457,29 @@ def main() -> int:
     warning_count = 0
     converted_count = 0
 
-    for source_file in source_files:
-        print(f'Processing: {source_file.name}')
-        stem = source_file.stem
-        if args.prefix and not stem.lower().startswith(f'{args.prefix.lower()} - '):
-            stem = f'{args.prefix} - {stem}'
-        target_file = target_dir / (stem + f'.{target_format}')
-        processed, warned, converted = _process_file(
-            source_file=source_file,
-            target_file=target_file,
-            source_format=args.source,
-            target_format=target_format,
-            create_missing_files=args.create_missing_files,
-        )
-        if processed:
-            processed_count += 1
-        if warned:
-            warning_count += 1
-        if converted:
-            converted_count += 1
+    for target_fmt, target_dir in zip(target_formats, target_dirs):
+        fmt_label = f'{args.source.upper()} → {target_fmt.upper()}'
+        print(f'Processing {fmt_label} ({len(source_files)} files)...')
+
+        for source_file in source_files:
+            print(f'  {source_file.name}')
+            stem = source_file.stem
+            if args.prefix and not stem.lower().startswith(f'{args.prefix.lower()} - '):
+                stem = f'{args.prefix} - {stem}'
+            target_file = target_dir / (stem + f'.{target_fmt}')
+            processed, warned, converted = _process_file(
+                source_file=source_file,
+                target_file=target_file,
+                source_format=args.source,
+                target_format=target_fmt,
+                create_missing_files=args.create_missing_files,
+            )
+            if processed:
+                processed_count += 1
+            if warned:
+                warning_count += 1
+            if converted:
+                converted_count += 1
 
     print(
         f'\nCompleted: {processed_count} files processed, '
