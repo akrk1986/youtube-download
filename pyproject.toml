@@ -43,7 +43,7 @@ exclude = ['\.venv', 'Beta', 'Tests-Standalone', 'Tests']
 [tool.deptry.per_rule_ignores]
 DEP002 = [
     "bandit", "deptry", "mypy", "pip-audit", "pydoclint", "pylint",
-    "pyupgrade", "pygments", "radon", "ruff", "pytest", "ty",
+    "pyupgrade", "pygments", "radon", "ruff", "pytest", "skylos", "ty",
     "types-requests", "types-yt-dlp", "vulture",
 ]
 

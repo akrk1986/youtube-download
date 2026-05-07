@@ -6,9 +6,6 @@ from pathlib import Path
 from typing import Any
 
 
-VERSION: str = '2025-11-15'
-
-
 def capitalize_greek_name(name: str) -> str:
     """
     If the name is all uppercase, capitalize each word (first letter uppercase, rest lowercase).

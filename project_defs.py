@@ -4,27 +4,10 @@
 # Linting: three-tier file classification
 # ---------------------------------------------------------------------------
 
-# Category 1 — Primary code (full linting by all tools)
-PRIMARY_DIRS: list[str] = [
-    'funcs_for_main_yt_dlp', 'funcs_video_info', 'funcs_utils',
-    'funcs_audio_processing', 'funcs_audio_tag_handlers',
-    'funcs_for_audio_utils', 'funcs_notifications',
-    'funcs_ertflix_automation',
-    'Tests', 'Tests-Standalone',
-    'JS-files',
-]
-PRIMARY_FILES: list[str] = [
-    'main-yt-dlp.py', 'main-ertflix-series.py', 'main-get-artists-from-trello.py',
-    'main-convert.py', 'main-boost-mp3-or-mp4.py', 'main-qb-notify.py',
-    'main-qb-notify-gmail.py', 'run-linters.py', 'project_defs.py',
-]
-
-# Category 2 — Claude-generated scratch files (light or no linting)
-# Populate manually when ephemeral scripts are created
-SCRATCH_DIRS: list[str] = []
-SCRATCH_FILES: list[str] = []
-
-# Category 3 — Non-code (excluded from all tools)
+# Category 1 — Primary code (full linting by all tools):
+#   funcs_*, main-*.py, run-linters.py, project_defs.py, Tests/, Tests-Standalone/, JS-files/
+# Category 2 — Scratch files (light or no linting): none currently
+# Category 3 — Non-code (excluded from all tools):
 EXCLUDED_DIRS: list[str] = [
     # Virtual environments
     '.venv', '.venv-linux', '.venv-windows', '.venv-3.14', '.old-venv-3.14',

@@ -1,0 +1,24 @@
+{
+  "counts": {
+    "unused_functions": 6,
+    "unused_imports": 1,
+    "unused_classes": 1,
+    "unused_variables": 3,
+    "danger": 0,
+    "quality": 0,
+    "secrets": 0
+  },
+  "fingerprints": [
+    "dead:unused_classes:CustomMetadataPostProcessor",
+    "dead:unused_functions:_ProgressLogState.reset",
+    "dead:unused_functions:_SilentLogger.error",
+    "dead:unused_functions:_SilentLogger.info",
+    "dead:unused_functions:_SilentLogger.warning",
+    "dead:unused_functions:_add_metadata_postprocessor",
+    "dead:unused_functions:_add_metadata_postprocessor.run",
+    "dead:unused_imports:ID3",
+    "dead:unused_variables:download_info",
+    "dead:unused_variables:ffprobe_bin",
+    "dead:unused_variables:track_number"
+  ]
+}

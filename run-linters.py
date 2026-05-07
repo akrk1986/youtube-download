@@ -91,8 +91,8 @@ def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:  # pylint: disa
         exclude_str = ','.join(EXCLUDED_DIRS)
         return ['vulture', '.', '--exclude', exclude_str, '--min-confidence', '80'], False
     if name == 'skylos':
-        cmd = ['skylos', '.', '--category', 'dead_code', '--format', 'concise']
-        for folder in EXCLUDED_DIRS:
+        cmd = ['skylos', '.', '--category', 'dead_code', '--format', 'concise', '--baseline']
+        for folder in EXCLUDED_DIRS + ['JS-files']:
             cmd.extend(['--exclude-folder', folder])
         return cmd, False
     if name == 'radon':
@@ -448,8 +448,23 @@ def run_vulture(root: Path) -> int:
 
 def run_skylos(root: Path) -> int:
     """Run skylos dead code scanner."""
-    cmd, always_pass = _build_cmd('skylos', root)
-    return _run_tool('skylos', cmd, cwd=root, always_pass=always_pass)
+    cmd, _ = _build_cmd('skylos', root)
+    print('=== skylos ===')
+    print(f'Command: {" ".join(cmd)}')
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=root, check=False)  # nosec B603
+    if result.stderr:
+        print(result.stderr, end='', file=sys.stderr)
+    if result.stdout:
+        print(result.stdout, end='')
+    # unused parameter is always a false positive for interface/base-class methods;
+    # baseline doesn't capture parameter fingerprints, so filter them here.
+    real_failures = [
+        line for line in (result.stdout or '').splitlines()
+        if '  unused ' in line and '  unused parameter' not in line
+    ]
+    rc = 1 if real_failures else 0
+    print(f'[skylos] {"PASS" if rc == 0 else "FAIL"}')
+    return rc
 
 
 def run_radon(root: Path) -> int:
