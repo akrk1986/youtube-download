@@ -69,7 +69,7 @@ def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:  # pylint: disa
         return ['mypy', '.'], False
     if name == 'ty':
         cmd = ['ty', 'check', '--output-format=concise']
-        for ex in EXCLUDED_DIRS:
+        for ex in EXCLUDED_DIRS + ['Tests-Standalone']:
             cmd.extend(['--exclude', ex])
         return cmd, False
     if name == 'bandit':
