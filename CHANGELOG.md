@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-07-2006] - Add FLAC → MP3/M4A conversion to main-convert.py
+
+### Added
+- **`main-convert.py`**: `--source flac` support; new `--target {mp3,m4a,both}` argument with validation (required when source is FLAC; must be omitted or opposite format for mp3/m4a source); `extract_flac_tags()` reads all Vorbis Comment fields including cover art; FLAC cover art extraction branch in `_extract_cover_art()`; outer loop over target formats so `--target both` runs two passes
+- **`funcs_for_audio_utils/conversion.py`**: `convert_flac_to_mp3()` and `convert_flac_to_m4a()` — mirror existing conversion functions; FLAC→MP3 uses libmp3lame VBR q2; FLAC→M4A uses AAC 192k
+- **`funcs_for_audio_utils/__init__.py`**: exported `convert_flac_to_mp3` and `convert_flac_to_m4a`
+
 ## [2026-05-07-1919] - Fix pylint to pass on Windows
 
 ### Fixed
