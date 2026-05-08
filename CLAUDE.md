@@ -21,6 +21,7 @@ The codebase follows a modular function-based architecture:
 ### Main Entry Points
 - `main-yt-dlp.py` - Primary CLI tool for downloading and processing YouTube content
 - `main-ertflix-series.py` - Interactive ERTFlix series browser (Playwright + Chromium): picks season/episode via arrow-key menus, captures the token API URL when Play is clicked, and hands off to `main-yt-dlp.py --ertflix-program`
+- `main-convert.py` - Audio format converter: converts between MP3, M4A, and FLAC (no conversion to FLAC; FLAC can convert to MP3, M4A, or both)
 - `main-get-artists-from-trello.py` - Utility to convert Trello board data to artist JSON
 
 ### Core Function Modules and Packages

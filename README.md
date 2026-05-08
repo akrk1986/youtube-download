@@ -630,6 +630,55 @@ Found 5 URL(s) in my-urls.txt:
 
 For more details, see [URL Validation Summary](Docs/URL-VALIDATION-SUMMARY.md).
 
+## Audio Format Converter (`main-convert.py`)
+
+Converts audio files between MP3, M4A, and FLAC formats. All metadata (tags + cover art) is preserved during conversion. No conversion *to* FLAC is supported.
+
+### Usage
+
+```bash
+# MP3 → M4A (default target when source is mp3)
+python main-convert.py --source mp3
+
+# M4A → MP3 (default target when source is m4a)
+python main-convert.py --source m4a
+
+# FLAC → MP3
+python main-convert.py --source flac --target mp3
+
+# FLAC → M4A
+python main-convert.py --source flac --target m4a
+
+# FLAC → both MP3 and M4A
+python main-convert.py --source flac --target both
+
+# Convert files from a custom directory tree instead of the default output dirs
+python main-convert.py --source flac --target mp3 --top-level-directory /path/to/music
+```
+
+### Arguments
+
+| Argument | Values | Description |
+|---|---|---|
+| `--source` | `mp3`, `m4a`, `flac` | Source format to convert from |
+| `--target` | `mp3`, `m4a`, `both` | Target format(s). Required when `--source flac`. For `mp3`/`m4a` sources, defaults to the opposite format. |
+| `--top-level-directory` | path | Root directory containing `MP3/`, `M4A/`, `FLAC/` subdirectories. Defaults to the project output dirs. |
+| `--create-missing-files` | flag | Create output directory if it does not exist. |
+
+### Validation Rules
+
+- `--source mp3`: `--target` must be omitted or `m4a` (cannot be `mp3` or `both`)
+- `--source m4a`: `--target` must be omitted or `mp3` (cannot be `m4a` or `both`)
+- `--source flac`: `--target` is required (`mp3`, `m4a`, or `both`)
+
+### Default Directories
+
+| Format | Default directory |
+|---|---|
+| MP3 | `yt-audio/mp3/` |
+| M4A | `yt-audio/m4a/` |
+| FLAC | `yt-audio/flac/` |
+
 ## Output Structure
 
 - `yt-videos/` - Downloaded MP4 video files
