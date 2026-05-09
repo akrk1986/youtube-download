@@ -70,7 +70,7 @@ The codebase uses a modular package-based architecture. All helper functions are
 
 - `funcs_for_audio_utils/` - Audio utilities (2 modules, ~400 lines)
   - `boost.py` - Audio volume boosting with ffmpeg (single `AudioBooster` class with `preserve_video` flag)
-  - `conversion.py` - Audio format conversion utilities (MP3 ↔ M4A)
+  - `conversion.py` - Audio format conversion utilities (MP3 ↔ M4A, FLAC → MP3/M4A); all M4A output uses `-movflags +faststart`
 
 - `funcs_notifications/` - Notification handlers (4 modules, 353 lines)
   - `base.py` - NotificationHandler abstract base class
@@ -265,10 +265,11 @@ The project has three categories of tests:
 
 **Pytest tests** (in `Tests/` directory):
 ```bash
-pytest Tests/                                    # Run all pytest tests (101 tests)
+pytest Tests/                                    # Run all pytest tests (112 tests)
 pytest Tests/test_main_ytdlp.py                  # Main script tests (37 tests)
-pytest Tests/test_security_measures.py           # Security tests (19 tests)
+pytest Tests/test_security_measures.py           # Security tests (20 tests)
 pytest Tests/test_ertflix_token_handler.py       # ERTFlix token handler tests (10 tests)
+pytest Tests/test_ertflix_automation.py          # ERTFlix automation tests (10 tests)
 pytest Tests/test_notifications.py               # Notification tests (35 tests)
 ```
 
@@ -283,6 +284,7 @@ python Tests/e2e_main.py --resume  # Resume from saved state
 python Tests-Standalone/test_chapter_regex.py  # Test chapter extraction regex
 python Tests-Standalone/main_greek_search.py   # Test Greek text search functionality
 python Tests-Standalone/find-artists-main.py   # Test artist detection in strings
+python Tests-Standalone/fix_m4a_faststart.py <folder> [--recursive] [--dry-run]  # Bulk-fix M4A moov-after-mdat layout
 ```
 
 ### Updating Artist Database

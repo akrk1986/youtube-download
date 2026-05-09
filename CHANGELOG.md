@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-09-2123] - Ensure M4A files always have moov atom before mdat (faststart)
+
+### Fixed
+- **`funcs_for_audio_utils/conversion.py`**: Added `-movflags +faststart` to `convert_mp3_to_m4a()` and `convert_flac_to_m4a()` — ffmpeg now places the `moov` atom before `mdat` in all directly-produced M4A files, preventing hardware players (e.g. HiBy M300) from showing empty tags when the cover art is large
+- **`funcs_for_main_yt_dlp/download_audio.py`**: Added `--postprocessor-args ffmpeg:-movflags +faststart` to `extract_single_format()` for M4A — applies to all of yt-dlp's internal ffmpeg invocations (`FFmpegExtractAudio` + `EmbedThumbnail`) so faststart survives thumbnail embedding
+
+### Added
+- **`Tests-Standalone/fix_m4a_faststart.py`**: Standalone bulk-repair script that scans a folder for M4A files with `moov` after `mdat` and remuxes them in-place with faststart. Supports `--recursive`, `--dry-run`, `--ffmpeg`.
+
 ## [2026-05-07-2006] - Add FLAC → MP3/M4A conversion to main-convert.py
 
 ### Added

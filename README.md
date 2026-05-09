@@ -216,6 +216,8 @@ You can choose one or more output audio formats using comma-separated values:
 - `--audio-format mp3,m4a` - Extract both MP3 and M4A formats
 - `--audio-format mp3,m4a,flac` - Extract all three formats
 
+**Note on M4A compatibility:** All M4A files produced by this tool include `-movflags +faststart`, placing the metadata (`moov`) atom before the audio data (`mdat`). This ensures tags (artist, album, etc.) are readable by hardware players such as the HiBy M300 even when cover art is large.
+
 **Examples:**
 ```bash
 # Single format - FLAC (lossless)
@@ -797,7 +799,7 @@ The tool includes specialized functionality for Greek music:
   - `funcs_notifications/` - Notification handlers
 - `Data/artists.json` - Greek artists database (exported from Trello)
 - `Tests/` - Pytest tests and E2E test framework
-- `Tests-Standalone/` - Standalone test scripts and utilities
+- `Tests-Standalone/` - Standalone test scripts and utilities, including `fix_m4a_faststart.py` (bulk M4A faststart repair)
 - `Docs/` - Documentation files
 - `Beta/` - Experimental features (excluded from global changes)
 
