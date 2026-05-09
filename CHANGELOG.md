@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-09-2155] - Move utility scripts to Utils/
+
+### Changed
+- **`Utils/`**: New directory for standalone utility scripts. Moved from project root: `main-boost-mp3-or-mp4.py`, `main-convert.py`, `main-get-artists-from-trello.py`, `main-qb-notify-gmail.py`, `main-qb-notify.py`. Moved from `Tests-Standalone/`: `fix_m4a_faststart.py`.
+
 ## [2026-05-09-2123] - Ensure M4A files always have moov atom before mdat (faststart)
 
 ### Fixed

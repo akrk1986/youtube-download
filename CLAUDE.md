@@ -21,8 +21,14 @@ The codebase follows a modular function-based architecture:
 ### Main Entry Points
 - `main-yt-dlp.py` - Primary CLI tool for downloading and processing YouTube content
 - `main-ertflix-series.py` - Interactive ERTFlix series browser (Playwright + Chromium): picks season/episode via arrow-key menus, captures the token API URL when Play is clicked, and hands off to `main-yt-dlp.py --ertflix-program`
+
+### Utility Scripts (`Utils/`)
 - `main-convert.py` - Audio format converter: converts between MP3, M4A, and FLAC (no conversion to FLAC; FLAC can convert to MP3, M4A, or both)
 - `main-get-artists-from-trello.py` - Utility to convert Trello board data to artist JSON
+- `main-boost-mp3-or-mp4.py` - Audio volume booster for MP3/MP4 files
+- `main-qb-notify.py` - qBittorrent Slack notification helper
+- `main-qb-notify-gmail.py` - qBittorrent Gmail notification helper
+- `fix_m4a_faststart.py` - Bulk-fix M4A files with moov-after-mdat layout
 
 ### Core Function Modules and Packages
 
@@ -284,13 +290,13 @@ python Tests/e2e_main.py --resume  # Resume from saved state
 python Tests-Standalone/test_chapter_regex.py  # Test chapter extraction regex
 python Tests-Standalone/main_greek_search.py   # Test Greek text search functionality
 python Tests-Standalone/find-artists-main.py   # Test artist detection in strings
-python Tests-Standalone/fix_m4a_faststart.py <folder> [--recursive] [--dry-run]  # Bulk-fix M4A moov-after-mdat layout
+python Utils/fix_m4a_faststart.py <folder> [--recursive] [--dry-run]  # Bulk-fix M4A moov-after-mdat layout
 ```
 
 ### Updating Artist Database
 When the Trello board is updated:
 ```bash
-python main-get-artists-from-trello.py
+python Utils/main-get-artists-from-trello.py
 ```
 
 ## Output Structure

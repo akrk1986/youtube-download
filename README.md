@@ -632,7 +632,7 @@ Found 5 URL(s) in my-urls.txt:
 
 For more details, see [URL Validation Summary](Docs/URL-VALIDATION-SUMMARY.md).
 
-## Audio Format Converter (`main-convert.py`)
+## Audio Format Converter (`Utils/main-convert.py`)
 
 Converts audio files between MP3, M4A, and FLAC formats. All metadata (tags + cover art) is preserved during conversion. No conversion *to* FLAC is supported.
 
@@ -640,22 +640,22 @@ Converts audio files between MP3, M4A, and FLAC formats. All metadata (tags + co
 
 ```bash
 # MP3 → M4A (default target when source is mp3)
-python main-convert.py --source mp3
+python Utils/main-convert.py --source mp3
 
 # M4A → MP3 (default target when source is m4a)
-python main-convert.py --source m4a
+python Utils/main-convert.py --source m4a
 
 # FLAC → MP3
-python main-convert.py --source flac --target mp3
+python Utils/main-convert.py --source flac --target mp3
 
 # FLAC → M4A
-python main-convert.py --source flac --target m4a
+python Utils/main-convert.py --source flac --target m4a
 
 # FLAC → both MP3 and M4A
-python main-convert.py --source flac --target both
+python Utils/main-convert.py --source flac --target both
 
 # Convert files from a custom directory tree instead of the default output dirs
-python main-convert.py --source flac --target mp3 --top-level-directory /path/to/music
+python Utils/main-convert.py --source flac --target mp3 --top-level-directory /path/to/music
 ```
 
 ### Arguments
@@ -799,7 +799,8 @@ The tool includes specialized functionality for Greek music:
   - `funcs_notifications/` - Notification handlers
 - `Data/artists.json` - Greek artists database (exported from Trello)
 - `Tests/` - Pytest tests and E2E test framework
-- `Tests-Standalone/` - Standalone test scripts and utilities, including `fix_m4a_faststart.py` (bulk M4A faststart repair)
+- `Utils/` - Standalone utility scripts (`main-convert.py`, `main-boost-mp3-or-mp4.py`, `main-get-artists-from-trello.py`, `main-qb-notify*.py`, `fix_m4a_faststart.py`)
+- `Tests-Standalone/` - Standalone test scripts and utilities
 - `Docs/` - Documentation files
 - `Beta/` - Experimental features (excluded from global changes)
 
