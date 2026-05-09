@@ -103,6 +103,7 @@ def convert_mp3_to_m4a(mp3_file: Path | str, m4a_file: Path | str | None = None,
             '-b:a', '192k',
             '-c:v', 'copy',  # Copy album art as-is
             '-disposition:v:0', 'attached_pic',  # Mark as attached picture
+            '-movflags', '+faststart',  # Place moov atom before mdat for hardware player compatibility
             '-y',  # Overwrite output file if exists
             str(m4a_file)
         ]
@@ -287,6 +288,7 @@ def convert_flac_to_m4a(flac_file: Path | str, m4a_file: Path | str | None = Non
             '-b:a', '192k',
             '-c:v', 'copy',                    # Copy album art as-is
             '-disposition:v:0', 'attached_pic', # Mark as attached picture
+            '-movflags', '+faststart',         # Place moov atom before mdat for hardware player compatibility
             '-y',                              # Overwrite output file if exists
             str(m4a_file),
         ]

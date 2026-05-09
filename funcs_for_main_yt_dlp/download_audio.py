@@ -62,6 +62,10 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
                            '--parse-metadata', album_artist_pat,
                            ]
 
+    # For M4A, ensure moov atom is placed before mdat (required for hardware players)
+    if format_type == 'm4a':
+        yt_dlp_cmd.extend(['--postprocessor-args', 'ffmpeg:-movflags +faststart'])
+
     logger.info(f'Downloading and extracting {format_type.upper()} audio with yt-dlp')
     logger.info(f'Using timeout of {timeout} seconds for {format_type.upper()} audio download')
 
