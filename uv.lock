@@ -281,6 +281,11 @@ wheels = [
 ]
 
 [[package]]
+name = "common-av"
+version = "1.0.0"
+source = { editable = "../common-av-codebase" }
+
+[[package]]
 name = "cryptography"
 version = "48.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2179,6 +2184,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "arrow" },
     { name = "bandit" },
+    { name = "common-av" },
     { name = "deptry" },
     { name = "emoji" },
     { name = "mutagen" },
@@ -2208,6 +2214,7 @@ dependencies = [
 requires-dist = [
     { name = "arrow" },
     { name = "bandit" },
+    { name = "common-av", editable = "../common-av-codebase" },
     { name = "deptry", specifier = ">=0.25.1" },
     { name = "emoji" },
     { name = "mutagen" },

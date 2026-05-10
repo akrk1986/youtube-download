@@ -6,58 +6,15 @@ moov is at the end of a large file, the player may fail to read tags. ffmpeg's
 -movflags +faststart relocates moov before mdat with a zero-quality-loss remux.
 """
 import argparse
-import struct
-import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from funcs_for_audio_utils.conversion import get_ffmpeg_path
-
-
-def _top_level_atoms(path: Path) -> list[str]:
-    """Return ordered list of top-level atom names in the file."""
-    atoms: list[str] = []
-    with open(path, 'rb') as fh:
-        while True:
-            header = fh.read(8)
-            if len(header) < 8:
-                break
-            size, name = struct.unpack('>I4s', header)
-            atoms.append(name.decode('latin-1', errors='replace'))
-            if size < 8:
-                break
-            fh.seek(size - 8, 1)
-    return atoms
-
-
-def _needs_faststart(path: Path) -> bool:
-    """Return True if moov comes after mdat."""
-    atoms = _top_level_atoms(path)
-    if 'moov' in atoms and 'mdat' in atoms:
-        return atoms.index('moov') > atoms.index('mdat')
-    return False
-
-
-def _apply_faststart(path: Path, ffmpeg: str) -> None:
-    """Remux path in-place with -movflags +faststart. Raises on ffmpeg error."""
-    with tempfile.NamedTemporaryFile(suffix='.m4a', dir=path.parent, delete=False) as tmp:
-        tmp_path = Path(tmp.name)
-    try:
-        subprocess.run(  # nosec B603
-            [ffmpeg, '-y', '-i', str(path), '-c', 'copy',
-             '-movflags', '+faststart', str(tmp_path)],
-            capture_output=True,
-            check=True,
-        )
-        tmp_path.replace(path)
-    except Exception:
-        tmp_path.unlink(missing_ok=True)
-        raise
+from common_av.ffmpeg import get_ffmpeg_paths
+from common_av.m4a import apply_faststart, needs_faststart
 
 
 def main() -> None:
+    """Run the faststart bulk-fix CLI."""
     parser = argparse.ArgumentParser(
         description='Fix M4A files where moov comes after mdat (hardware player tag issue).'
     )
@@ -74,7 +31,7 @@ def main() -> None:
         print(f'Error: not a directory: {args.folder}')
         sys.exit(1)
 
-    ffmpeg = args.ffmpeg or get_ffmpeg_path()
+    ffmpeg = args.ffmpeg or get_ffmpeg_paths()[0]
 
     glob = args.folder.rglob('*.m4a') if args.recursive else args.folder.glob('*.m4a')
     files = sorted(glob, key=lambda p: p.name.lower())
@@ -86,7 +43,7 @@ def main() -> None:
     fixed = ok = errors = 0
     for f in files:
         try:
-            if not _needs_faststart(f):
+            if not needs_faststart(f):
                 print(f'  OK       {f.name}')
                 ok += 1
                 continue
@@ -94,7 +51,7 @@ def main() -> None:
                 print(f'  WOULD FIX {f.name}')
                 fixed += 1
                 continue
-            _apply_faststart(path=f, ffmpeg=ffmpeg)
+            apply_faststart(path=f, ffmpeg=ffmpeg)
             print(f'  FIXED    {f.name}')
             fixed += 1
         except Exception as e:

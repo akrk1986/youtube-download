@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "arrow",
+    "common-av",
     "bandit",
     "deptry>=0.25.1",
     "emoji",
@@ -30,12 +31,19 @@ dependencies = [
     "skylos>=4.11.0",
 ]
 
+[tool.uv.sources]
+common-av = { path = "../common-av-codebase", editable = true }
+
 [tool.bandit]
 exclude_dirs = ['.venv-linux', '.venv-3.14', '.venv-windows', '.venv', 'Tests/.venv-linux', 'Beta', 'Tests-Standalone', 'node_modules']
 skips = ['B101', 'B404']
 
 [tool.mypy]
 exclude = ['Beta/', 'Tests/', 'Tests-Standalone/']
+mypy_path = '../common-av-codebase'
+
+[tool.ty.environment]
+extra-paths = ['../common-av-codebase']
 
 [tool.deptry]
 exclude = ['\.venv', 'Beta', 'Tests-Standalone', 'Tests']
