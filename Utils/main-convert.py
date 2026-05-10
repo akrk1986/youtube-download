@@ -11,9 +11,11 @@ import re
 from pathlib import Path
 from mutagen.easyid3 import EasyID3
 from mutagen.flac import FLAC as MutagenFLAC
-from mutagen.id3 import ID3NoHeaderError, ID3, COMM, TENC, APIC
+from mutagen.id3 import ID3, APIC, TENC
 from mutagen.mp4 import MP4, MP4Cover
 import arrow
+
+from common_av.tags import AudioTags, MP4_LYRICS, write_mp3_tags, write_m4a_tags
 
 from funcs_for_audio_utils import (
     convert_flac_to_m4a,
@@ -139,81 +141,60 @@ def extract_flac_tags(file_path: Path) -> dict[str, str] | None:
 
 
 def apply_mp3_tags(file_path: Path, tags: dict[str, str]) -> bool:
-    """Apply tags to MP3 file using EasyID3 and ID3."""
+    """Apply tags to an MP3 file."""
     try:
-        # Handle most tags with EasyID3
-        try:
-            audio = EasyID3(file_path)
-        except ID3NoHeaderError:
-            audio = EasyID3()
+        track_str = tags.get('tracknumber', '')
+        audio_tags = AudioTags(
+            title=tags.get('title', ''),
+            artist=tags.get('artist', ''),
+            album_artist=tags.get('albumartist', ''),
+            album=tags.get('album', ''),
+            year=tags.get('date', ''),
+            track=int(track_str) if track_str.isdigit() else None,
+            composer=tags.get('composer') or None,
+            comment=tags.get('comment') or None,
+        )
+        write_mp3_tags(audio_path=file_path, tags=audio_tags, text_encoding=1)
 
-        written_tags = []
-        special_tags: dict[str, str] = {}
-
-        for key, value in tags.items():
-            if value:  # Only set non-empty values
-                if key in ('comment', 'encodedby'):
-                    special_tags[key] = value
-                else:
-                    audio[key] = [value]
-                    written_tags.append(key)
-
-        # Save EasyID3 tags first, then load ID3 fresh so it sees the saved state
-        audio.save(file_path)
-
-        if special_tags:
+        encodedby = tags.get('encodedby', '')
+        if encodedby:
             id3_audio = ID3(file_path)
-            if 'comment' in special_tags:
-                id3_audio.add(COMM(encoding=3, lang='eng', desc='', text=[special_tags['comment']]))
-                written_tags.append('comment')
-            if 'encodedby' in special_tags:
-                id3_audio.add(TENC(encoding=3, text=special_tags['encodedby']))
-                written_tags.append('encodedby')
+            id3_audio.add(TENC(encoding=3, text=encodedby))
             id3_audio.save(file_path)
 
-        if written_tags:
-            print(f'  Written tags: {", ".join(written_tags)}')
-
+        written = [k for k, v in tags.items() if v]
+        if written:
+            print(f'  Written tags: {", ".join(written)}')
         return True
     except Exception as e:  # pylint: disable=broad-exception-caught
         print(f'Error writing MP3 tags to {file_path}: {e}')
         return False
 
 def apply_m4a_tags(file_path: Path, tags: dict[str, str]) -> bool:
-    """Apply tags to M4A file using MP4."""
+    """Apply tags to an M4A file."""
     try:
-        audio = MP4(file_path)
+        track_str = tags.get('tracknumber', '')
+        audio_tags = AudioTags(
+            title=tags.get('title', ''),
+            artist=tags.get('artist', ''),
+            album_artist=tags.get('albumartist', ''),
+            album=tags.get('album', ''),
+            year=tags.get('date', ''),
+            track=int(track_str) if track_str.isdigit() else None,
+            composer=tags.get('composer') or None,
+            comment=tags.get('comment') or None,
+        )
+        write_m4a_tags(audio_path=file_path, tags=audio_tags)
 
-        # Map common tag names to M4A atom names
-        tag_mapping = {
-            'title': '\xa9nam',
-            'artist': '\xa9ART',
-            'albumartist': 'aART',
-            'date': '\xa9day',
-            'album': '\xa9alb',
-            'comment': '\xa9cmt',
-            'composer': '\xa9wrt',
-            'encodedby': '\xa9lyr'  # Map encodedby to ©lyr (unsynced lyrics)
-        }
+        encodedby = tags.get('encodedby', '')
+        if encodedby:
+            audio = MP4(file_path)
+            audio[MP4_LYRICS] = [encodedby]
+            audio.save()
 
-        written_tags = []
-
-        for key, value in tags.items():
-            if value:  # Only set non-empty values
-                if key == 'tracknumber':
-                    try:
-                        track_num = int(value)
-                        audio['trkn'] = [(track_num, 0)]
-                        written_tags.append('tracknumber')
-                    except ValueError:
-                        pass
-                elif key in tag_mapping:
-                    audio[tag_mapping[key]] = [value]
-                    written_tags.append(key)
-
-        audio.save(file_path)
-        if written_tags:
-            print(f'  Written tags: {", ".join(written_tags)}')
+        written = [k for k, v in tags.items() if v]
+        if written:
+            print(f'  Written tags: {", ".join(written)}')
         return True
     except Exception as e:  # pylint: disable=broad-exception-caught
         print(f'Error writing M4A tags to {file_path}: {e}')
