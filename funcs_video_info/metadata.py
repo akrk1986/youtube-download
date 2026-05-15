@@ -89,22 +89,25 @@ def get_video_info(yt_dlp_path: Path, url: str, video_download_timeout: int | No
         raise RuntimeError(f"Failed to parse yt-dlp output for '{url}': {e}") from e
 
 
-def is_playlist(url: str) -> bool:
-    """Check if url is a playlist, w/o downloading.
-    Using the yt-dlp Python library."""
+def _build_flat_ydl_opts() -> dict[str, Any]:
+    """yt-dlp options for flat metadata extraction (no download). Includes cookies if set."""
     ydl_opts: dict[str, Any] = {
         'quiet': True,
         'no_warnings': True,
         'extract_flat': True,
         'logger': _SilentLogger(),
     }
-
-    # Add cookie configuration if environment variable is set
     cookie_env = os.getenv('YTDLP_USE_COOKIES', '').strip()
     if cookie_env:
         browser = 'chrome' if cookie_env.lower() == 'chrome' else 'firefox'
         ydl_opts['cookiesfrombrowser'] = (browser,)
+    return ydl_opts
 
+
+def is_playlist(url: str) -> bool:
+    """Check if url is a playlist, w/o downloading.
+    Using the yt-dlp Python library."""
+    ydl_opts = _build_flat_ydl_opts()
     with yt_dlp.YoutubeDL(params=ydl_opts) as ydl:  # type: ignore
         try:
             info = ydl.extract_info(url=url, download=False)
@@ -116,3 +119,37 @@ def is_playlist(url: str) -> bool:
             else:
                 logger.error(f"Failed to get video info for URL '{url}': {e}")
             return False
+
+
+def get_playlist_entries(url: str) -> list[tuple[str, str]]:
+    """Return [(title, watch_url), ...] for a YouTube playlist URL.
+
+    Uses the yt-dlp Python library with extract_flat so it never downloads media.
+    Builds the per-entry watch URL from the entry id when 'url' is absent.
+    Raises RuntimeError if the URL is not actually a playlist or extraction fails."""
+    ydl_opts = _build_flat_ydl_opts()
+    with yt_dlp.YoutubeDL(params=ydl_opts) as ydl:  # type: ignore
+        try:
+            info = ydl.extract_info(url=url, download=False)
+        except Exception as e:
+            raise RuntimeError(f"Failed to enumerate playlist '{url}': {e}") from e
+
+    entries = info.get('entries') or []  # type: ignore[union-attr]
+    if not entries:
+        raise RuntimeError(f"No playlist entries found for URL '{url}'")
+
+    result: list[tuple[str, str]] = []
+    for entry in entries:
+        if entry is None:
+            continue
+        title = entry.get('title') or '<unknown title>'
+        watch_url = entry.get('url') or entry.get('webpage_url')
+        if not watch_url:
+            entry_id = entry.get('id')
+            if entry_id:
+                watch_url = f'https://www.youtube.com/watch?v={entry_id}'
+            else:
+                logger.warning(f"Skipping playlist entry without id or url: {entry!r}")
+                continue
+        result.append((title, watch_url))
+    return result

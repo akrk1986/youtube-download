@@ -15,6 +15,7 @@ from funcs_video_info.chapters import (
     get_chapter_count,
 )
 from funcs_video_info.metadata import (
+    get_playlist_entries,
     get_video_info,
     is_playlist,
 )
@@ -30,6 +31,7 @@ __all__ = [
     # Metadata
     'get_video_info',
     'is_playlist',
+    'get_playlist_entries',
     # Chapters
     'get_chapter_count',
     'display_chapters_and_confirm',
