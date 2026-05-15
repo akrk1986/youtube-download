@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-15-1650] - Fix pip-audit + trim linter exclude dirs
+
+### Fixed
+- **`run-linters.py`**: pip-audit invocation switched from `--strict` to `--skip-editable`. `--strict` treated the local editable `common-av` install (not on PyPI) as a hard failure and aborted before checking anything else; `--skip-editable` skips it cleanly and surfaces the skip reason in the output.
+- **`uv.lock`, `requirements.txt`**: bumped urllib3 transitive dep `2.6.3 → 2.7.0`, fixing CVE-2026-44431 and CVE-2026-44432 (only visible once pip-audit could actually scan).
+
+### Changed
+- **`project_defs.py`**: trimmed `EXCLUDED_DIRS` to directories that actually exist on disk. Removed stale entries (`.venv`, `.venv-windows`, `.venv-3.14`, `.old-venv-3.14`, `staging-mp3`, `staging-mp4`, `Tests-UTF`) and added currently-existing ones (`staging`, `.pyscn`, `.claude`, `.ertflix-profile`). `yt-audio-flac` stays — it is an on-demand output dir declared via `AUDIO_OUTPUT_DIR_FLAC`. Affects ty / pylint / ruff / pydoclint / vulture / skylos / pyupgrade since they all consume this list.
+- **`pyproject.toml`**: same cleanup for `[tool.bandit].exclude_dirs` (dropped `.venv-3.14`, `.venv-windows`, `.venv`, `Tests/.venv-linux`).
+
 ## [2026-05-15-1551] - Add FFMPEG_OPTS env var for audio-extraction filter
 
 ### Added
