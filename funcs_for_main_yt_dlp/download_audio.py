@@ -1,5 +1,6 @@
 """Audio extraction functions using yt-dlp."""
 import logging
+import os
 import subprocess
 from pathlib import Path
 
@@ -65,6 +66,15 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
     # For M4A, ensure moov atom is placed before mdat (required for hardware players)
     if format_type == 'm4a':
         yt_dlp_cmd.extend(['--postprocessor-args', 'ffmpeg:-movflags +faststart'])
+
+    # Optional ffmpeg audio filter from FFMPEG_OPTS env var (e.g. 'volume=2.0' or
+    # 'loudnorm=I=-16:TP=-1.5:LRA=11'). Mirrors the losslesscut-csv FFMPEG_OPTS convention.
+    # Scope to ExtractAudio only: a bare 'ffmpeg:' prefix would also apply the filter to
+    # EmbedThumbnail / Metadata postprocessors, which use '-c copy' and would crash on '-af'.
+    ffmpeg_opts = os.environ.get('FFMPEG_OPTS', '').strip()
+    if ffmpeg_opts:
+        yt_dlp_cmd.extend(['--postprocessor-args', f'ExtractAudio+ffmpeg:-af {ffmpeg_opts}'])
+        logger.info(f"Applying FFMPEG_OPTS audio filter: '{ffmpeg_opts}'")
 
     logger.info(f'Downloading and extracting {format_type.upper()} audio with yt-dlp')
     logger.info(f'Using timeout of {timeout} seconds for {format_type.upper()} audio download')
