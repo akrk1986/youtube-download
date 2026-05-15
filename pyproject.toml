@@ -35,7 +35,7 @@ dependencies = [
 common-av = { path = "../common-av-codebase", editable = true }
 
 [tool.bandit]
-exclude_dirs = ['.venv-linux', '.venv-3.14', '.venv-windows', '.venv', 'Tests/.venv-linux', 'Beta', 'Tests-Standalone', 'node_modules']
+exclude_dirs = ['.venv-linux', 'Beta', 'Tests-Standalone', 'node_modules']
 skips = ['B101', 'B404']
 
 [tool.mypy]

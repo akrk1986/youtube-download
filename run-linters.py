@@ -76,7 +76,10 @@ def _build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
     if name == 'bandit':
         return ['bandit', '-r', '.', '-c', 'pyproject.toml'], False
     if name == 'pip-audit':
-        return ['pip-audit', '--strict'], False
+        # --skip-editable skips common-av (local editable install not on PyPI) and surfaces
+        # the skip in the output. --strict is dropped because it treats --skip-editable
+        # skips as failures.
+        return ['pip-audit', '--skip-editable'], False
     if name == 'deptry':
         return ['deptry', '.', '--no-ansi'], False
     if name == 'pydoclint':

@@ -10,18 +10,19 @@
 # Category 3 — Non-code (excluded from all tools):
 EXCLUDED_DIRS: list[str] = [
     # Virtual environments
-    '.venv', '.venv-linux', '.venv-windows', '.venv-3.14', '.old-venv-3.14',
+    '.venv-linux',
     # Non-code / third-party
     'Beta', 'node_modules',
-    # Output / runtime
-    'yt-videos', 'yt-audio', 'yt-chapters', 'yt-audio-m4a', 'yt-audio-flac',
-    'staging-mp3', 'staging-mp4', 'Logs',
+    # Output / runtime (yt-audio-flac is an on-demand output dir; kept even when absent)
+    'yt-videos', 'yt-audio', 'yt-audio-m4a', 'yt-audio-flac', 'yt-chapters',
+    'staging', 'Logs',
     # Tool caches and IDE
-    '.git', '.idea', '.mypy_cache', '.pytest_cache', '__pycache__', '.ruff_cache', '.skylos',
+    '.git', '.idea', '.mypy_cache', '.pytest_cache', '__pycache__',
+    '.ruff_cache', '.skylos', '.pyscn',
+    # Project-specific runtime / config (not source)
+    '.claude', '.ertflix-profile',
     # Obsolete / diagnostic
     'JS-files-diag',
-    # Test output
-    'Tests-UTF',
 ]
 
 # Audio processing constants
