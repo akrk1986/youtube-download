@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-15-1551] - Add FFMPEG_OPTS env var for audio-extraction filter
+
+### Added
+- **`funcs_for_main_yt_dlp/download_audio.py`**: `extract_single_format()` now reads `FFMPEG_OPTS` from the environment and passes it to yt-dlp as `--postprocessor-args ExtractAudio+ffmpeg:-af <opts>`. Lets the user boost (`volume=2.0`) or normalise (`loudnorm=I=-16:TP=-1.5:LRA=11`) extracted audio without a separate post-pass. Mirrors the FFMPEG_OPTS convention used in the sister `losslesscut-csv` project. Scoped to the `ExtractAudio` postprocessor only — a bare `ffmpeg:` prefix would also apply `-af` to `EmbedThumbnail` / `Metadata` / `FixupM4a` (all of which use `-c copy`) and crash the embed step, leaving an orphan `.webp` and a tag-less m4a.
+
 ## [2026-05-09-2155] - Move utility scripts to Utils/
 
 ### Changed

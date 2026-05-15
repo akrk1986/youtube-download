@@ -519,6 +519,24 @@ python main-yt-dlp.py --only-audio "URL"
 
 **Implementation:** Read in `main()` and passed to all `send_all_notifications()` calls.
 
+### FFMPEG_OPTS
+Optional ffmpeg audio-filter string injected into the `ExtractAudio` postprocessor during audio extraction. Mirrors the `FFMPEG_OPTS` convention in the sister `losslesscut-csv` project.
+
+- **Format**: body of an ffmpeg `-af` filter chain (e.g. `'volume=2.0'`, `'loudnorm=I=-16:TP=-1.5:LRA=11'`)
+- **Applied to**: audio extraction only (mp3 / m4a / flac). Video downloads are untouched.
+- **Scope**: passed to yt-dlp as `--postprocessor-args ExtractAudio+ffmpeg:-af <value>` — confined to the audio-extraction PP so it does not break the `EmbedThumbnail` / `Metadata` / `FixupM4a` postprocessors (all of which use `-c copy` and would crash on `-af`).
+
+**Usage:**
+```bash
+# Linux/WSL/macOS — double amplitude
+FFMPEG_OPTS='volume=2.0' python main-yt-dlp.py --only-audio --audio-format m4a "URL"
+
+# EBU R128 normalisation
+FFMPEG_OPTS='loudnorm=I=-16:TP=-1.5:LRA=11' python main-yt-dlp.py --only-audio "URL"
+```
+
+**Implementation:** read in `extract_single_format()` (`funcs_for_main_yt_dlp/download_audio.py`); empty/unset is the normal case and is a no-op.
+
 ### YTDLP_USE_COOKIES
 Enables downloading age-restricted or private videos using browser cookies.
 

@@ -339,6 +339,27 @@ python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 - YouTube throttling on certain videos
 - Unreliable network connections
 
+### Apply an ffmpeg audio filter during extraction (FFMPEG_OPTS)
+
+When set, `FFMPEG_OPTS` is passed verbatim to ffmpeg as `-af <value>` during the `ExtractAudio` postprocessor step. Mirrors the convention used in the sister `losslesscut-csv` project. Common uses:
+
+```bash
+# Linux/WSL/macOS — double amplitude
+FFMPEG_OPTS='volume=2.0' python main-yt-dlp.py --only-audio --audio-format m4a "URL"
+
+# EBU R128 loudness normalisation
+FFMPEG_OPTS='loudnorm=I=-16:TP=-1.5:LRA=11' python main-yt-dlp.py --only-audio "URL"
+
+# Windows PowerShell
+$env:FFMPEG_OPTS='volume=2.0'
+python main-yt-dlp.py --only-audio "URL"
+```
+
+**Notes:**
+- The value is the body of an ffmpeg `-af` filter chain; no parsing or validation is done.
+- Applied to audio extraction only (mp3 / m4a / flac). Video downloads (`yt-videos/`) are untouched.
+- Scoped to the `ExtractAudio` postprocessor — does not collide with the M4A faststart, thumbnail-embed, or metadata postprocessors.
+
 ### Enable download notifications (Slack and Gmail)
 
 The tool can send notifications when downloads start, succeed, fail, or are cancelled. Supports both Slack and Gmail — configure one, both, or neither.
