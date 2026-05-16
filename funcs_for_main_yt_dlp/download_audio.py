@@ -110,9 +110,18 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
             raise RuntimeError(f"Failed to download {format_type.upper()} audio from '{opts.url}': {e.stderr}") from e
 
 
-def extract_audio_with_ytdlp(opts: DownloadOptions, audio_formats: list[str]) -> None:
-    """Use yt-dlp to download and extract audio with metadata and thumbnail."""
+def extract_audio_with_ytdlp(opts: DownloadOptions, audio_formats: list[str],
+                             output_dir_override: dict[str, Path] | None = None) -> None:
+    """Use yt-dlp to download and extract audio with metadata and thumbnail.
 
+    Args:
+        opts: Shared download options.
+        audio_formats: Formats to extract (any subset of mp3/m4a/flac).
+        output_dir_override: Optional per-format directory override. When provided
+            and a format is in the mapping, that directory is used instead of the
+            default `get_audio_dir_for_format()` result. Used by the FFMPEG_OPTS=prompt
+            staged flow to redirect m4a extraction to `staging/staging-m4a/`.
+    """
     # For a single video, check if video has 'artist' or 'uploader' tags.
     # Use either to embed 'artist' and 'albumartist' tags in the audio file.
     artist_pat = album_artist_pat = None
@@ -140,7 +149,10 @@ def extract_audio_with_ytdlp(opts: DownloadOptions, audio_formats: list[str]) ->
     timeout = get_timeout_for_url(url=opts.url, video_download_timeout=opts.video_download_timeout)
     logger.info(f'Using timeout of {timeout} seconds for audio extraction')
     for audio_format in audio_formats:
-        # Get the appropriate output directory for this format
-        output_dir = Path(get_audio_dir_for_format(audio_format=audio_format)).resolve()
+        if output_dir_override and audio_format in output_dir_override:
+            output_dir = output_dir_override[audio_format].resolve()
+            logger.info(f"Redirecting {audio_format.upper()} extraction to '{output_dir}'")
+        else:
+            output_dir = Path(get_audio_dir_for_format(audio_format=audio_format)).resolve()
         extract_single_format(opts=opts, output_folder=output_dir, format_type=audio_format,
                               artist_pat=artist_pat, album_artist_pat=album_artist_pat)

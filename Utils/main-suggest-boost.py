@@ -12,10 +12,8 @@ If the target is already at/above the baseline, the suggestion is the literal 'n
 """
 import argparse
 import logging
-import re
 import subprocess  # nosec B404
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
 # Allow imports of project packages when this script is invoked directly from Utils/.
@@ -24,76 +22,19 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 # pylint: disable=wrong-import-position
+from funcs_for_audio_utils import (  # noqa: E402
+    TARGET_PEAK_DB_DEFAULT,
+    LoudnessStats,
+    compute_suggestion,
+    measure_lufs,
+)
 from funcs_for_main_yt_dlp import get_ffmpeg_path, get_ytdlp_path  # noqa: E402
 from funcs_video_info import get_playlist_entries, is_playlist  # noqa: E402
 
 
 logger = logging.getLogger(__name__)
 
-TARGET_PEAK_DB_DEFAULT: float = -0.5
 TITLE_MAX_LEN: int = 64
-
-
-@dataclass
-class LoudnessStats:
-    """Loudness measurement from ebur128: integrated LUFS + true peak in dBFS."""
-    integrated_lufs: float
-    true_peak_db: float
-
-
-@dataclass
-class Suggestion:
-    """A computed boost suggestion for one source."""
-    gain_db: float
-    capped_gain_db: float
-    multiplier: float
-    text: str
-
-
-def _parse_ebur128(stderr_text: str) -> LoudnessStats:
-    """Extract integrated LUFS + true peak from the final ebur128 Summary block."""
-    summary_idx = stderr_text.rfind('Summary:')
-    if summary_idx == -1:
-        raise RuntimeError('ffmpeg ebur128 produced no Summary block')
-    summary = stderr_text[summary_idx:]
-
-    i_match = re.search(r'I:\s+(-?\d+(?:\.\d+)?)\s+LUFS', summary)
-    peak_match = re.search(r'Peak:\s+(-?\d+(?:\.\d+)?)\s+dBFS', summary)
-    if not i_match or not peak_match:
-        raise RuntimeError(f'Failed to parse ebur128 summary block: {summary[:200]!r}')
-
-    return LoudnessStats(
-        integrated_lufs=float(i_match.group(1)),
-        true_peak_db=float(peak_match.group(1)),
-    )
-
-
-def measure_lufs(input_source: str, ffmpeg_exe: str) -> LoudnessStats:
-    """Run ffmpeg ebur128 on a file path or URL and return loudness stats."""
-    cmd = [
-        ffmpeg_exe, '-hide_banner', '-nostats',
-        '-i', input_source, '-vn',
-        '-af', 'ebur128=peak=true',
-        '-f', 'null', '-',
-    ]
-    logger.debug(f'Measuring loudness: {cmd}')
-    try:
-        # encoding='utf-8' + errors='replace' is required on Windows: the default cp1252
-        # decoder dies in subprocess's reader thread when ffmpeg prints UTF-8 metadata
-        # (e.g. Greek tags) -> result.stderr ends up None.
-        result = subprocess.run(  # nosec B603
-            cmd, capture_output=True, text=True,
-            encoding='utf-8', errors='replace', check=False,
-        )
-    except (OSError, subprocess.SubprocessError) as e:
-        raise RuntimeError(f"ffmpeg failed to launch for '{input_source}': {e}") from e
-
-    if result.returncode != 0:
-        tail = result.stderr[-500:] if result.stderr else '<no stderr>'
-        raise RuntimeError(
-            f"ffmpeg ebur128 exited with code {result.returncode} for '{input_source}': {tail}"
-        )
-    return _parse_ebur128(stderr_text=result.stderr)
 
 
 def resolve_url_to_media(url: str, ytdlp_exe: str) -> str:
@@ -112,28 +53,6 @@ def resolve_url_to_media(url: str, ytdlp_exe: str) -> str:
     if not lines:
         raise RuntimeError(f"yt-dlp returned no media URL for '{url}'")
     return lines[0]
-
-
-def compute_suggestion(measured: LoudnessStats, baseline_lufs: float,
-                       target_peak_db: float = TARGET_PEAK_DB_DEFAULT) -> Suggestion:
-    """Compute the boost factor that lifts measured -> baseline, applying clipping cap."""
-    gain_db = baseline_lufs - measured.integrated_lufs
-    if gain_db <= 0:
-        return Suggestion(gain_db=gain_db, capped_gain_db=0.0,
-                          multiplier=1.0, text='no boost')
-
-    predicted_peak = measured.true_peak_db + gain_db
-    if predicted_peak > target_peak_db:
-        capped_gain = max(target_peak_db - measured.true_peak_db, 0.0)
-        multiplier = 10 ** (capped_gain / 20)
-        text = (f'volume={multiplier:.2f} '
-                f'(CAPPED from +{gain_db:.1f} to +{capped_gain:.1f} dB)')
-        return Suggestion(gain_db=gain_db, capped_gain_db=capped_gain,
-                          multiplier=multiplier, text=text)
-
-    multiplier = 10 ** (gain_db / 20)
-    return Suggestion(gain_db=gain_db, capped_gain_db=gain_db,
-                      multiplier=multiplier, text=f'volume={multiplier:.2f}')
 
 
 def _truncate_title(title: str, max_len: int = TITLE_MAX_LEN) -> str:

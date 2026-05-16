@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from funcs_for_audio_utils import measure_lufs
 from funcs_for_main_yt_dlp import (DownloadOptions, check_output_dirs_empty,
                                    cleanup_leftover_files, count_initial_files,
                                    count_new_files, determine_audio_mode,
@@ -18,16 +19,15 @@ from funcs_for_main_yt_dlp import (DownloadOptions, check_output_dirs_empty,
                                    get_ytdlp_version, organize_and_sanitize_files,
                                    parse_and_validate_audio_formats,
                                    parse_arguments, process_audio_tags,
-                                   remux_video_chapters, run_yt_dlp,
-                                   validate_and_get_url,
+                                   remux_video_chapters, run_prompt_boost_flow,
+                                   run_yt_dlp, validate_and_get_url,
                                    validate_list_chapters_only)
 from funcs_notifications import (GmailNotifier, NotificationData,
                                  NotificationHandler, SlackNotifier,
                                  send_all_notifications)
-from funcs_video_info import (create_chapters_csv, detect_chapters, get_playlist_entries,
-                              is_playlist)
+from funcs_video_info import (create_chapters_csv, detect_chapters, is_playlist)
 from funcs_utils import setup_logging
-from project_defs import VIDEO_OUTPUT_DIR
+from project_defs import AUDIO_OUTPUT_DIR_M4A, VIDEO_OUTPUT_DIR
 
 SLACK_WEBHOOK: str | None = None
 GMAIL_PARAMS: dict[str, str] | None = None
@@ -206,9 +206,38 @@ def _send_completion_notification(
     )
 
 
+def _validate_prompt_mode_args(args: argparse.Namespace) -> None:
+    """Abort with sys.exit(1) if FFMPEG_OPTS=prompt prerequisites are not satisfied."""
+    if args.baseline is None:
+        logger.error('FFMPEG_OPTS=prompt requires --baseline FILE.')
+        sys.exit(1)
+    if not args.baseline.is_file():
+        logger.error(f"Baseline file does not exist: '{args.baseline}'")
+        sys.exit(1)
+    audio_format_normalized = args.audio_format.strip().lower()
+    if audio_format_normalized != 'm4a':
+        logger.error(
+            f"FFMPEG_OPTS=prompt currently supports --audio-format m4a only "
+            f"(got '{args.audio_format}')."
+        )
+        sys.exit(1)
+    if not args.with_audio and not args.only_audio:
+        logger.error('FFMPEG_OPTS=prompt requires --with-audio or --only-audio.')
+        sys.exit(1)
+    if args.ertflix_program:
+        logger.error('FFMPEG_OPTS=prompt is not supported with --ertflix-program (video-only mode).')
+        sys.exit(1)
+
+
 def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_id: str,
-                  notifiers: list[NotificationHandler] | None = None, notif_msg_suffix: str = '') -> None:
-    """Execute the main download logic."""
+                  notifiers: list[NotificationHandler] | None = None, notif_msg_suffix: str = '',
+                  prompt_mode_baseline_lufs: float | None = None) -> None:
+    """Execute the main download logic.
+
+    When prompt_mode_baseline_lufs is not None, audio extraction is redirected to
+    staging/staging-m4a/ and a run_prompt_boost_flow pass is invoked after extraction.
+    Chapters disable prompt mode (logged + skipped).
+    """
 
     audio_formats = parse_and_validate_audio_formats(audio_format_str=args.audio_format)
     validate_list_chapters_only(args=args)
@@ -288,6 +317,12 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         logger.error('--list-chapters-only: video has no chapters. Aborting.')
         sys.exit(1)
 
+    # Prompt-mode dispatch: chapters disable the staged flow per user spec.
+    if prompt_mode_baseline_lufs is not None and has_chapters:
+        logger.info('Video has chapters; FFMPEG_OPTS=prompt is ignored, no boost will be applied.')
+        os.environ.pop('FFMPEG_OPTS', None)
+        prompt_mode_baseline_lufs = None
+
     # Create download options dataclass for common parameters
     download_opts = DownloadOptions(
         ytdlp_exe=yt_dlp_exe,
@@ -319,9 +354,39 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
                                  chapters=video_info.get('chapters', []),
                                  video_title=video_title)
 
+    # Prompt-mode active: redirect m4a extraction to staging, snapshot existing staged files,
+    # and clear FFMPEG_OPTS so the existing 'apply -af' block doesn't try to use the literal 'prompt'.
+    staging_m4a = Path('staging') / 'staging-m4a'
+    output_dir_override: dict[str, Path] | None = None
+    pre_staging_files: set[Path] = set()
+    if prompt_mode_baseline_lufs is not None:
+        staging_m4a.mkdir(parents=True, exist_ok=True)
+        pre_staging_files = set(staging_m4a.glob('*.m4a'))
+        output_dir_override = {'m4a': staging_m4a}
+        os.environ.pop('FFMPEG_OPTS', None)
+        logger.info(f"Prompt mode active: redirecting m4a extraction to '{staging_m4a}'; "
+                    f'{len(pre_staging_files)} stale m4a file(s) already present will be ignored.')
+
     # Download audios if requested
     if need_audio:
-        extract_audio_with_ytdlp(opts=download_opts, audio_formats=audio_formats)
+        extract_audio_with_ytdlp(opts=download_opts, audio_formats=audio_formats,
+                                 output_dir_override=output_dir_override)
+
+    # Prompt-mode post-step: measure each newly-staged file, prompt the user, boost or copy
+    # the result into yt-audio-m4a/. Tag processing below then sees the boosted files there.
+    if prompt_mode_baseline_lufs is not None:
+        post_staging_files = set(staging_m4a.glob('*.m4a'))
+        newly_staged = sorted(post_staging_files - pre_staging_files)
+        if not newly_staged:
+            logger.warning('Prompt mode: no new staged m4a files found after extraction.')
+        else:
+            run_prompt_boost_flow(
+                staging_dir=staging_m4a,
+                final_dir=Path(AUDIO_OUTPUT_DIR_M4A).resolve(),
+                baseline_lufs=prompt_mode_baseline_lufs,
+                ffmpeg_exe=get_ffmpeg_path(),
+                new_files=newly_staged,
+            )
 
     # Organize chapter files and sanitize filenames
     original_names = organize_and_sanitize_files(
@@ -347,12 +412,12 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
     logger.info('Download completed successfully')
 
 
-def _run_one_url(args: argparse.Namespace, *, abort_on_error: bool) -> None:
+def _run_one_url(args: argparse.Namespace, *, abort_on_error: bool,
+                 prompt_mode_baseline_lufs: float | None = None) -> None:
     """Process a single URL through the full download pipeline.
 
     Builds per-run state (session_id, args_dict, notifiers, file counts) and dispatches
-    to _execute_main. On failure with abort_on_error=True, sys.exit(1); with
-    abort_on_error=False, log + return (used by playlist prompt-mode iteration).
+    to _execute_main. On failure with abort_on_error=True, sys.exit(1); otherwise log + return.
     """
     args_dict = {
         'video_url': args.video_url,
@@ -367,6 +432,7 @@ def _run_one_url(args: argparse.Namespace, *, abort_on_error: bool) -> None:
         'title': args.title,
         'artist': args.artist,
         'album': args.album,
+        'baseline': str(args.baseline) if args.baseline else None,
         'rerun': args.rerun
     }
     session_id = generate_session_id()
@@ -394,7 +460,8 @@ def _run_one_url(args: argparse.Namespace, *, abort_on_error: bool) -> None:
 
     try:
         _execute_main(args=args, args_dict=args_dict, session_id=session_id,
-                      notifiers=notifiers, notif_msg_suffix=notif_msg_suffix)
+                      notifiers=notifiers, notif_msg_suffix=notif_msg_suffix,
+                      prompt_mode_baseline_lufs=prompt_mode_baseline_lufs)
         if notifiers:
             _send_completion_notification(status='success', **notif_kwargs)
     except KeyboardInterrupt:
@@ -411,56 +478,33 @@ def _run_one_url(args: argparse.Namespace, *, abort_on_error: bool) -> None:
             sys.exit(1)
 
 
-def _prompt_for_ffmpeg_opts(prompt_text: str) -> str:
-    """Read an FFMPEG_OPTS value from stdin. Empty input -> empty string (no boost)."""
-    try:
-        return input(prompt_text).strip()
-    except EOFError:
-        return ''
-
-
-def _run_playlist_with_prompts(args: argparse.Namespace) -> None:
-    """FFMPEG_OPTS=prompt + playlist URL: enumerate entries, prompt per-entry,
-    run a single-URL download per entry. Per-entry failures don't stop iteration."""
-    try:
-        entries = get_playlist_entries(url=args.video_url)
-    except RuntimeError as e:
-        logger.error(f'Could not enumerate playlist: {e}')
-        sys.exit(1)
-
-    logger.info(f'Playlist has {len(entries)} entries. Enter a boost filter per entry '
-                "(e.g. 'volume=2.0'; empty = no boost).")
-    for idx, (title, entry_url) in enumerate(entries, start=1):
-        short_title = title[:64] + ('…' if len(title) > 64 else '')
-        value = _prompt_for_ffmpeg_opts(prompt_text=f'[{idx:>3}] {short_title}\n      boost: ')
-        os.environ['FFMPEG_OPTS'] = value
-        args.video_url = entry_url
-        _run_one_url(args=args, abort_on_error=False)
-
-
 def main() -> None:
-    """Entry point: parse arguments, set up logging, dispatch to single or playlist-prompt run."""
+    """Entry point: parse arguments, set up logging, dispatch to single or prompt-mode run."""
     args = parse_arguments(version=VERSION)
 
     # Setup logging (must be done early)
     setup_logging(verbose=args.verbose, log_to_file=not args.no_log_file, show_urls=args.show_urls)
 
-    # FFMPEG_OPTS=prompt: interactive boost-value entry. Requires URL on the command line.
-    # YouTube playlists fan out to N single-URL runs with per-entry prompts; everything
-    # else (single video with/without chapters, ertflix, facebook, ...) gets one prompt.
+    # FFMPEG_OPTS=prompt: validate prerequisites and measure the baseline file ONCE.
+    # The measured LUFS is plumbed through _run_one_url / _execute_main and consumed by the
+    # post-extraction run_prompt_boost_flow pass. Chapters disable the flow inside _execute_main.
+    prompt_mode_baseline_lufs: float | None = None
     ffmpeg_opts_env = os.environ.get('FFMPEG_OPTS', '').strip()
-    if ffmpeg_opts_env.lower() == 'prompt' and args.video_url:
-        if is_playlist(url=args.video_url):
-            _run_playlist_with_prompts(args=args)
-            return
-        value = _prompt_for_ffmpeg_opts(
-            prompt_text="Audio boost filter (e.g. 'volume=2.0', empty = no boost): "
-        )
-        os.environ['FFMPEG_OPTS'] = value
-        if value:
-            logger.info(f"Using FFMPEG_OPTS='{value}'")
+    if ffmpeg_opts_env.lower() == 'prompt':
+        _validate_prompt_mode_args(args=args)
+        ffmpeg_exe = get_ffmpeg_path()
+        try:
+            baseline_stats = measure_lufs(input_source=args.baseline, ffmpeg_exe=ffmpeg_exe)
+        except RuntimeError as e:
+            logger.error(f"Failed to measure baseline '{args.baseline}': {e}")
+            sys.exit(1)
+        prompt_mode_baseline_lufs = baseline_stats.integrated_lufs
+        logger.info(f"Baseline '{args.baseline.name}': "
+                    f'I={baseline_stats.integrated_lufs:.1f} LUFS, '
+                    f'TP={baseline_stats.true_peak_db:.1f} dBTP')
 
-    _run_one_url(args=args, abort_on_error=True)
+    _run_one_url(args=args, abort_on_error=True,
+                 prompt_mode_baseline_lufs=prompt_mode_baseline_lufs)
 
 
 if __name__ == '__main__':

@@ -38,6 +38,7 @@ from funcs_for_main_yt_dlp.file_organization import (
     get_audio_dir_for_format,
     organize_and_sanitize_files,
 )
+from funcs_for_main_yt_dlp.prompt_boost import run_prompt_boost_flow
 from funcs_for_main_yt_dlp.url_validation import validate_and_get_url
 from funcs_for_main_yt_dlp.utilities import (
     determine_audio_mode,
@@ -72,6 +73,7 @@ __all__ = [
     'count_new_files',
     # Audio processing
     'process_audio_tags',
+    'run_prompt_boost_flow',
     # Utilities
     'format_elapsed_time',
     'generate_session_id',

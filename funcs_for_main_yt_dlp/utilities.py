@@ -3,6 +3,7 @@ import argparse
 import logging
 import socket
 import sys
+from pathlib import Path
 
 import arrow
 
@@ -67,6 +68,10 @@ def parse_arguments(argv: list[str] | None = None, version: str = '') -> argpars
                         help='Custom artist tag (ignored for playlists)')
     parser.add_argument('--album',
                         help='Custom album tag (ignored for playlists)')
+    parser.add_argument('--baseline', type=Path, default=None,
+                        help='Reference m4a/mp4 file. Required when FFMPEG_OPTS=prompt and '
+                             'the video has no chapters; its loudness is the target the '
+                             'staged-boost flow aims at.')
     parser.add_argument('--version', action='version', version=f'%(prog)s {version}')
     parser.add_argument('--list-chapters-only', action='store_true',
                         help='List chapters, create segments CSV, then download video and stop. '

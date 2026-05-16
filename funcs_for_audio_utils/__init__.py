@@ -3,6 +3,7 @@
 This package contains audio processing utilities:
 - boost: Audio volume boosting using ffmpeg
 - conversion: Audio format conversion (MP3 ↔ M4A, FLAC → MP3/M4A)
+- loudness: EBU R128 loudness measurement + boost-suggestion helpers
 """
 
 # Import boost functions and classes
@@ -23,6 +24,15 @@ from funcs_for_audio_utils.conversion import (
     get_ffprobe_path,
 )
 
+# Import loudness helpers
+from funcs_for_audio_utils.loudness import (
+    TARGET_PEAK_DB_DEFAULT,
+    LoudnessStats,
+    Suggestion,
+    compute_suggestion,
+    measure_lufs,
+)
+
 __all__ = [
     # Boost
     'detect_audio_levels',
@@ -36,4 +46,10 @@ __all__ = [
     'convert_flac_to_m4a',
     'get_ffmpeg_path',
     'get_ffprobe_path',
+    # Loudness
+    'LoudnessStats',
+    'Suggestion',
+    'measure_lufs',
+    'compute_suggestion',
+    'TARGET_PEAK_DB_DEFAULT',
 ]
