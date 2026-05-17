@@ -473,6 +473,8 @@ uv sync                               # installs playwright, questionary, rich
 python -m playwright install chromium
 ```
 
+> After every Chromium upgrade (re-run of `python -m playwright install chromium`), the persistent `.ertflix-profile/` may become incompatible and Chromium will die on launch. Recovery steps in [`Docs/PLAYWRIGHT-CHROMIUM-UPDATE.md`](Docs/PLAYWRIGHT-CHROMIUM-UPDATE.md).
+
 **Usage:**
 ```bash
 # Pick an episode interactively, then download video
