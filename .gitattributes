@@ -2,3 +2,24 @@
 pyproject.toml   text eol=lf
 uv.lock          text eol=lf
 requirements.txt text eol=lf
+
+# Source / config / docs — pin to LF so Windows editors (PyCharm, etc.) don't
+# introduce CRLF churn that produces a 100%-identical diff on every save.
+*.py             text eol=lf
+*.md             text eol=lf
+*.txt            text eol=lf
+*.json           text eol=lf
+*.yaml           text eol=lf
+*.yml            text eol=lf
+*.toml           text eol=lf
+*.cfg            text eol=lf
+*.ini            text eol=lf
+*.js             text eol=lf
+*.mjs            text eol=lf
+*.cjs            text eol=lf
+*.sh             text eol=lf
+
+# Windows-only scripts must keep CRLF or cmd.exe / PowerShell can misbehave
+*.bat            text eol=crlf
+*.cmd            text eol=crlf
+*.ps1            text eol=crlf
