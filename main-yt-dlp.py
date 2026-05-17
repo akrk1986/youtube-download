@@ -24,8 +24,7 @@ from funcs_for_main_yt_dlp import (DownloadOptions, check_output_dirs_empty,
 from funcs_notifications import (GmailNotifier, NotificationData,
                                  NotificationHandler, SlackNotifier,
                                  send_all_notifications)
-from funcs_video_info import (create_chapters_csv, detect_chapters, get_playlist_entries,
-                              is_playlist)
+from funcs_video_info import (create_chapters_csv, detect_chapters, is_playlist)
 from funcs_utils import setup_logging
 from project_defs import VIDEO_OUTPUT_DIR
 
@@ -347,13 +346,14 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
     logger.info('Download completed successfully')
 
 
-def _run_one_url(args: argparse.Namespace, *, abort_on_error: bool) -> None:
-    """Process a single URL through the full download pipeline.
+def main() -> None:
+    """Entry point: parse arguments, set up logging, and run the download."""
+    args = parse_arguments(version=VERSION)
 
-    Builds per-run state (session_id, args_dict, notifiers, file counts) and dispatches
-    to _execute_main. On failure with abort_on_error=True, sys.exit(1); with
-    abort_on_error=False, log + return (used by playlist prompt-mode iteration).
-    """
+    # Setup logging (must be done early)
+    setup_logging(verbose=args.verbose, log_to_file=not args.no_log_file, show_urls=args.show_urls)
+
+    # Store args as dict for notification messages
     args_dict = {
         'video_url': args.video_url,
         'audio_format': args.audio_format,
@@ -369,6 +369,7 @@ def _run_one_url(args: argparse.Namespace, *, abort_on_error: bool) -> None:
         'album': args.album,
         'rerun': args.rerun
     }
+
     session_id = generate_session_id()
     start_time = time.time()
 
@@ -378,6 +379,7 @@ def _run_one_url(args: argparse.Namespace, *, abort_on_error: bool) -> None:
     )
     notifiers, notif_msg_suffix = _build_notifiers()
 
+    # Common kwargs for _send_completion_notification
     notif_kwargs: dict[str, Any] = {
         'notifiers': notifiers,
         'url': args.video_url or 'N/A',
@@ -407,60 +409,7 @@ def _run_one_url(args: argparse.Namespace, *, abort_on_error: bool) -> None:
         logger.exception(f'Download failed: {e}')
         if notifiers:
             _send_completion_notification(status='failure', failure_reason=str(e), **notif_kwargs)
-        if abort_on_error:
-            sys.exit(1)
-
-
-def _prompt_for_ffmpeg_opts(prompt_text: str) -> str:
-    """Read an FFMPEG_OPTS value from stdin. Empty input -> empty string (no boost)."""
-    try:
-        return input(prompt_text).strip()
-    except EOFError:
-        return ''
-
-
-def _run_playlist_with_prompts(args: argparse.Namespace) -> None:
-    """FFMPEG_OPTS=prompt + playlist URL: enumerate entries, prompt per-entry,
-    run a single-URL download per entry. Per-entry failures don't stop iteration."""
-    try:
-        entries = get_playlist_entries(url=args.video_url)
-    except RuntimeError as e:
-        logger.error(f'Could not enumerate playlist: {e}')
         sys.exit(1)
-
-    logger.info(f'Playlist has {len(entries)} entries. Enter a boost filter per entry '
-                "(e.g. 'volume=2.0'; empty = no boost).")
-    for idx, (title, entry_url) in enumerate(entries, start=1):
-        short_title = title[:64] + ('…' if len(title) > 64 else '')
-        value = _prompt_for_ffmpeg_opts(prompt_text=f'[{idx:>3}] {short_title}\n      boost: ')
-        os.environ['FFMPEG_OPTS'] = value
-        args.video_url = entry_url
-        _run_one_url(args=args, abort_on_error=False)
-
-
-def main() -> None:
-    """Entry point: parse arguments, set up logging, dispatch to single or playlist-prompt run."""
-    args = parse_arguments(version=VERSION)
-
-    # Setup logging (must be done early)
-    setup_logging(verbose=args.verbose, log_to_file=not args.no_log_file, show_urls=args.show_urls)
-
-    # FFMPEG_OPTS=prompt: interactive boost-value entry. Requires URL on the command line.
-    # YouTube playlists fan out to N single-URL runs with per-entry prompts; everything
-    # else (single video with/without chapters, ertflix, facebook, ...) gets one prompt.
-    ffmpeg_opts_env = os.environ.get('FFMPEG_OPTS', '').strip()
-    if ffmpeg_opts_env.lower() == 'prompt' and args.video_url:
-        if is_playlist(url=args.video_url):
-            _run_playlist_with_prompts(args=args)
-            return
-        value = _prompt_for_ffmpeg_opts(
-            prompt_text="Audio boost filter (e.g. 'volume=2.0', empty = no boost): "
-        )
-        os.environ['FFMPEG_OPTS'] = value
-        if value:
-            logger.info(f"Using FFMPEG_OPTS='{value}'")
-
-    _run_one_url(args=args, abort_on_error=True)
 
 
 if __name__ == '__main__':
