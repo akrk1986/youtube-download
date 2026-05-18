@@ -139,7 +139,7 @@ def get_playlist_entries(url: str) -> list[tuple[str, str]]:
         raise RuntimeError(f"No playlist entries found for URL '{url}'")
 
     result: list[tuple[str, str]] = []
-    for entry in entries:
+    for entry in entries:  # type: ignore[union-attr]
         if entry is None:
             continue
         title = entry.get('title') or '<unknown title>'

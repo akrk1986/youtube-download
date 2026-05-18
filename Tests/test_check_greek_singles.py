@@ -66,11 +66,11 @@ class TestSongKey:
         # Two songs with same title+artist but different albums must yield the same key
         # (album never enters the matching key).
         song_a = _make_song(
-            file_path=Path('/tmp/a.mp3'),
+            file_path=Path('/test/a.mp3'),
             title="Σ' αγαπώ", artist='Γιάννης Πάριος', album='Best of',
         )
         song_b = _make_song(
-            file_path=Path('/tmp/b.mp3'),
+            file_path=Path('/test/b.mp3'),
             title="Σ' αγαπώ", artist='Γιάννης Πάριος', album='Live 2024',
         )
         assert song_a.key == song_b.key
@@ -81,19 +81,19 @@ class TestUntaggedRouting:
     """Title and artist are mandatory; album alone is not."""
 
     def test_missing_title_routes_to_untagged(self):
-        song = _make_song(file_path=Path('/tmp/x.mp3'), title='', artist='Artist', album='Album')
+        song = _make_song(file_path=Path('/test/x.mp3'), title='', artist='Artist', album='Album')
         assert song.key is None
 
     def test_missing_artist_routes_to_untagged(self):
-        song = _make_song(file_path=Path('/tmp/x.mp3'), title='Title', artist='', album='Album')
+        song = _make_song(file_path=Path('/test/x.mp3'), title='Title', artist='', album='Album')
         assert song.key is None
 
     def test_album_alone_missing_is_tagged(self):
-        song = _make_song(file_path=Path('/tmp/x.mp3'), title='Title', artist='Artist', album='')
+        song = _make_song(file_path=Path('/test/x.mp3'), title='Title', artist='Artist', album='')
         assert song.key is not None
 
     def test_whitespace_only_tags_count_as_missing(self):
-        song = _make_song(file_path=Path('/tmp/x.mp3'), title='   ', artist='Artist', album='Album')
+        song = _make_song(file_path=Path('/test/x.mp3'), title='   ', artist='Artist', album='Album')
         # raw_title preserves as supplied; the key check uses the normalized form.
         assert song.key is None
 

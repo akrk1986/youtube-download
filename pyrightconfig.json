@@ -1,6 +1,7 @@
 {
     "venvPath": "..",
     "venv": ".venv-av-linux",
+    "pythonPath": "../.venv-av-linux/bin/python3",
     "extraPaths": ["../common-av-codebase"],
     "exclude": ["Beta", "Tests-Standalone", ".venv-windows", "node_modules"]
 }
