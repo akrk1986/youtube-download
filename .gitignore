@@ -42,6 +42,7 @@ Logs/
 Tests/e2e_state.json
 Data/last_url.txt
 Data/trello - greek-music-artists.json
+*.sqlite
 
 # --- Test output dirs ---
 Tests/Data/
