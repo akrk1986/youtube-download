@@ -9,6 +9,7 @@ Run with --help for usage; --version for the build timestamp.
 """
 import argparse
 import logging
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -24,13 +25,13 @@ if str(_PROJECT_ROOT) not in sys.path:
 from rich.console import Console  # noqa: E402
 
 from funcs_check_greek_singles.audio_reader import (  # noqa: E402
-    collect_songs, iter_month_folders,
+    collect_songs, iter_month_folders, parse_month_arg,
 )
 from funcs_check_greek_singles.database import (  # noqa: E402
     SIDE_MONTH, SIDE_SINGLES_ALL,
     archive_previous_db, init_db, insert_song,
-    query_in_multiple_months, query_only_in_months,
-    query_only_in_singles, query_untagged,
+    query_in_multiple_months, query_only_in_all,
+    query_only_in_months, query_untagged,
 )
 from funcs_check_greek_singles.normalize import normalize  # noqa: E402
 from funcs_check_greek_singles.report import render_console, write_csv  # noqa: E402
@@ -69,6 +70,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
              '(with or without diacritics; may contain whitespace).',
     )
     parser.add_argument(
+        '--start-month', type=str, default=None,
+        help="Inclusive lower bound for month folders, format 'yyyy-mm' or 'yyyy' "
+             "(the latter expands to <yyyy>-01). When set, the 'only_in_all' section is suppressed.",
+    )
+    parser.add_argument(
+        '--end-month', type=str, default=None,
+        help="Inclusive upper bound for month folders, format 'yyyy-mm' or 'yyyy' "
+             "(the latter expands to <yyyy>-12). When set, the 'only_in_all' section is suppressed.",
+    )
+    parser.add_argument(
         '--verbose', action='store_true',
         help='Enable DEBUG-level logging.',
     )
@@ -94,6 +105,22 @@ def main(argv: list[str] | None = None) -> int:
         logger.error(f'Missing required subdirectory: {by_month}')
         return 2
 
+    try:
+        start_yyyymm = parse_month_arg(value=args.start_month, is_end=False) if args.start_month else ''
+        end_yyyymm = parse_month_arg(value=args.end_month, is_end=True) if args.end_month else ''
+    except ValueError as exc:
+        logger.error(str(exc))
+        return 2
+    if start_yyyymm and end_yyyymm and start_yyyymm > end_yyyymm:
+        logger.error(f'--start-month ({start_yyyymm}) is later than --end-month ({end_yyyymm}).')
+        return 2
+    range_active = bool(start_yyyymm or end_yyyymm)
+    if range_active:
+        logger.info(
+            f"Month range active: {start_yyyymm or '-inf'}..{end_yyyymm or '+inf'}; "
+            f"'only_in_all' section will be suppressed."
+        )
+
     data_dir = _PROJECT_ROOT / DATA_DIRNAME
     data_dir.mkdir(parents=True, exist_ok=True)
     db_path = data_dir / DB_FILENAME
@@ -108,41 +135,49 @@ def main(argv: list[str] | None = None) -> int:
     conn = init_db(db_path=db_path)
     try:
         logger.info(f'Scanning {singles_all}...')
-        for song in collect_songs(directory=singles_all, title_prefix_norm=title_prefix_norm):
+        for song in collect_songs(directory=singles_all, title_prefix_norm=title_prefix_norm,
+                                  progress_every=200):
             insert_song(conn=conn, song=song, side=SIDE_SINGLES_ALL, month_folder=None)
 
         month_count = 0
-        for month_dir in iter_month_folders(by_month_root=by_month):
+        for month_dir in iter_month_folders(
+                by_month_root=by_month, start_yyyymm=start_yyyymm, end_yyyymm=end_yyyymm):
             logger.info(f'Scanning {month_dir.name}...')
-            for song in collect_songs(directory=month_dir, title_prefix_norm=title_prefix_norm):
+            for song in collect_songs(directory=month_dir, title_prefix_norm=title_prefix_norm,
+                                      log_per_file=True):
                 insert_song(conn=conn, song=song, side=SIDE_MONTH, month_folder=month_dir.name)
             month_count += 1
         logger.info(f'Scanned {month_count} month folder(s).')
+        if range_active and month_count == 0:
+            logger.info('Month range active but no month folders fell within the range.')
         conn.commit()
 
-        only_in_singles = query_only_in_singles(conn=conn)
+        only_in_all: list[sqlite3.Row] = [] if range_active else query_only_in_all(conn=conn)
         only_in_months = query_only_in_months(conn=conn)
         in_multiple_months = query_in_multiple_months(conn=conn)
         untagged = query_untagged(conn=conn)
 
-        if title_prefix_norm and not (only_in_singles or only_in_months or in_multiple_months or untagged):
+        if title_prefix_norm and not (only_in_all or only_in_months or in_multiple_months or untagged):
             logger.info('No songs matched the title prefix on either side.')
 
         console = Console()
         render_console(
             console=console,
-            only_in_singles=only_in_singles,
+            only_in_all=only_in_all,
             only_in_months=only_in_months,
             in_multiple_months=in_multiple_months,
             untagged=untagged,
             title_prefix=args.title_prefix,
+            range_active=range_active,
+            start_yyyymm=start_yyyymm,
+            end_yyyymm=end_yyyymm,
         )
 
         timestamp = arrow.now().format('YYYY-MM-DD-HHmm')
         csv_path = args.csv_dir / f'greek-singles-check-{timestamp}.csv'
         write_csv(
             csv_path=csv_path,
-            only_in_singles=only_in_singles,
+            only_in_all=only_in_all,
             only_in_months=only_in_months,
             in_multiple_months=in_multiple_months,
             untagged=untagged,

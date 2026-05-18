@@ -67,21 +67,35 @@ def _add_untagged_table(console: Console, rows: list[sqlite3.Row]) -> None:
 
 def render_console(
         console: Console,
-        only_in_singles: list[sqlite3.Row],
+        only_in_all: list[sqlite3.Row],
         only_in_months: list[sqlite3.Row],
         in_multiple_months: list[sqlite3.Row],
         untagged: list[sqlite3.Row],
         title_prefix: str | None,
+        range_active: bool = False,
+        start_yyyymm: str = '',
+        end_yyyymm: str = '',
 ) -> None:
-    """Render the four-section report to the console."""
+    """Render the four-section report to the console.
+
+    When range_active is True, the 'only_in_all' section is suppressed entirely
+    (no table, no OK line) and a one-line notice is printed instead.
+    """
     if title_prefix:
         console.print(f'[bold]Title-prefix filter active:[/bold] {title_prefix!r}')
 
-    if only_in_singles:
+    if range_active:
+        start_label = start_yyyymm or '-inf'
+        end_label = end_yyyymm or '+inf'
+        console.print(
+            f"[bold]Month range active:[/bold] {start_label}..{end_label}; "
+            f"'only_in_all' section suppressed."
+        )
+    elif only_in_all:
         _add_matched_table(
             console=console,
-            title=f'Only in 01-Singles-All ({len(only_in_singles)} songs)',
-            rows=only_in_singles,
+            title=f'Only in 01-Singles-All ({len(only_in_all)} songs)',
+            rows=only_in_all,
         )
     else:
         console.print('[green]OK -- every tagged song in 01-Singles-All has a match under 03-Singles-by-Month/[/green]')
@@ -105,8 +119,9 @@ def render_console(
     else:
         console.print('[green]OK -- every file has title and artist tags[/green]')
 
+    only_in_all_label = '-' if range_active else str(len(only_in_all))
     summary = (
-        f'Singles-only: {len(only_in_singles)} | '
+        f'Only-in-all: {only_in_all_label} | '
         f'Months-only: {len(only_in_months)} | '
         f'Multi-month: {len(in_multiple_months)} | '
         f'Untagged: {len(untagged)}'
@@ -116,7 +131,7 @@ def render_console(
 
 def write_csv(
         csv_path: Path,
-        only_in_singles: list[sqlite3.Row],
+        only_in_all: list[sqlite3.Row],
         only_in_months: list[sqlite3.Row],
         in_multiple_months: list[sqlite3.Row],
         untagged: list[sqlite3.Row],
@@ -126,9 +141,9 @@ def write_csv(
         writer = csv.writer(fh)
         writer.writerow(['section', 'title', 'artist', 'album', 'year',
                          'duration', 'file_path', 'extra'])
-        for row in only_in_singles:
+        for row in only_in_all:
             writer.writerow([
-                'only_in_singles_all',
+                'only_in_all',
                 row['raw_title'] or '', row['raw_artist'] or '', row['raw_album'] or '',
                 row['year'] or '', format_duration(seconds=row['duration_seconds']),
                 row['file_path'], '',

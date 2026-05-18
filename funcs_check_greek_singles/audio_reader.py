@@ -22,6 +22,7 @@ DATE_KEY_BY_EXT: dict[str, str] = {
 }
 
 MONTH_FOLDER_RE = re.compile(r'^\d{4}-(0[1-9]|1[0-2])(\s+.+)?$')
+MONTH_ARG_RE = re.compile(r'^(\d{4})(?:-(\d{2}))?$')
 
 # Handler instances are stateless: build once and reuse across all files.
 _HANDLERS_BY_EXT: dict[str, AudioTagHandler] = {
@@ -76,34 +77,72 @@ def read_song(file_path: Path) -> Song | None:
     )
 
 
-def collect_songs(directory: Path, title_prefix_norm: str = '') -> list[Song]:
+def collect_songs(directory: Path, title_prefix_norm: str = '',
+                  log_per_file: bool = False, progress_every: int = 0) -> list[Song]:
     """Scan a directory (flat, non-recursive) and return parsed Songs.
 
     When title_prefix_norm is non-empty, drops Songs whose normalized title
     does not startswith the prefix (and untagged Songs, which have no title).
+
+    log_per_file=True logs each scanned file's name + raw title at DEBUG.
+    progress_every>0 logs a 'Scanned N/total' line every N files at DEBUG.
     """
     songs: list[Song] = []
-    for entry in sorted(directory.iterdir()):
-        if not entry.is_file():
-            continue
-        if entry.suffix.lower() not in AUDIO_EXTENSIONS:
-            continue
+    candidates = [
+        entry for entry in sorted(directory.iterdir())
+        if entry.is_file() and entry.suffix.lower() in AUDIO_EXTENSIONS
+    ]
+    total = len(candidates)
+    for idx, entry in enumerate(candidates, start=1):
         song = read_song(file_path=entry)
         if song is None:
             continue
-        if title_prefix_norm:
-            if song.key is None or not song.key.title.startswith(title_prefix_norm):
-                continue
+        if log_per_file:
+            display_title = song.raw_title or '(no title)'
+            logger.debug(f'  {entry.name} -> {display_title}')
+        if title_prefix_norm and (song.key is None or not song.key.title.startswith(title_prefix_norm)):
+            continue
         songs.append(song)
+        if progress_every > 0 and idx % progress_every == 0:
+            logger.debug(f'  Scanned {idx}/{total} files in {directory.name}...')
     return songs
 
 
-def iter_month_folders(by_month_root: Path) -> Iterator[Path]:
-    """Yield immediate subdirectories of by_month_root whose name matches 'YYYY-MM[ suffix]'."""
+def iter_month_folders(by_month_root: Path,
+                       start_yyyymm: str = '',
+                       end_yyyymm: str = '') -> Iterator[Path]:
+    """Yield immediate subdirectories of by_month_root whose name matches 'YYYY-MM[ suffix]'.
+
+    start_yyyymm and end_yyyymm bound the inclusive month range; empty string disables
+    that side. Comparison is lexicographic on the leading 'YYYY-MM' (zero-padded).
+    """
     for entry in sorted(by_month_root.iterdir()):
         if not entry.is_dir():
             continue
         if not MONTH_FOLDER_RE.match(entry.name):
             logger.debug(f'Skipping non-month folder: {entry.name}')
             continue
+        prefix = entry.name[:7]
+        if start_yyyymm and prefix < start_yyyymm:
+            continue
+        if end_yyyymm and prefix > end_yyyymm:
+            continue
         yield entry
+
+
+def parse_month_arg(value: str, *, is_end: bool) -> str:
+    """Validate and normalize a '--start-month'/'--end-month' CLI value to 'yyyy-mm'.
+
+    Accepts 'yyyy-mm' (passed through after validation) or 'yyyy' (expanded to
+    'yyyy-01' when is_end is False, 'yyyy-12' otherwise). Raises ValueError on any
+    malformed input or month outside 01..12.
+    """
+    match = MONTH_ARG_RE.match(value)
+    if not match:
+        raise ValueError(f'Invalid month arg {value!r}: expected yyyy or yyyy-mm.')
+    year_part, month_part = match.group(1), match.group(2)
+    if month_part is None:
+        month_part = '12' if is_end else '01'
+    elif not '01' <= month_part <= '12':
+        raise ValueError(f'Invalid month arg {value!r}: month component must be 01..12.')
+    return f'{year_part}-{month_part}'

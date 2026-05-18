@@ -12,12 +12,14 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from funcs_check_greek_singles.audio_reader import MONTH_FOLDER_RE  # noqa: E402
+from funcs_check_greek_singles.audio_reader import (  # noqa: E402
+    MONTH_FOLDER_RE, iter_month_folders, parse_month_arg,
+)
 from funcs_check_greek_singles.database import (  # noqa: E402
     SCHEMA_DDL,
     archive_previous_db, insert_song,
-    query_in_multiple_months, query_only_in_months,
-    query_only_in_singles, query_untagged,
+    query_in_multiple_months, query_only_in_all,
+    query_only_in_months, query_untagged,
 )
 from funcs_check_greek_singles.models import Song, SongKey  # noqa: E402
 from funcs_check_greek_singles.normalize import (  # noqa: E402
@@ -171,13 +173,74 @@ class TestTitlePrefixFilter:
         assert not song_title_norm.startswith(prefix_norm)
 
 
+class TestParseMonthArg:
+    """parse_month_arg validates and expands the CLI value."""
+
+    def test_yyyy_mm_passes_through(self):
+        assert parse_month_arg(value='2024-03', is_end=False) == '2024-03'
+        assert parse_month_arg(value='2024-03', is_end=True) == '2024-03'
+
+    def test_yyyy_expands_to_january_for_start(self):
+        assert parse_month_arg(value='2024', is_end=False) == '2024-01'
+
+    def test_yyyy_expands_to_december_for_end(self):
+        assert parse_month_arg(value='2024', is_end=True) == '2024-12'
+
+    @pytest.mark.parametrize('bad', ['24-03', '2024-13', '2024-00', '2024-3', 'random', '', '2024-03-01'])
+    def test_rejects_malformed(self, bad):
+        with pytest.raises(ValueError):
+            parse_month_arg(value=bad, is_end=False)
+
+
+class TestIterMonthFolders:
+    """iter_month_folders honours start_yyyymm and end_yyyymm bounds (inclusive)."""
+
+    @staticmethod
+    def _build_tree(tmp_path: Path) -> Path:
+        by_month = tmp_path / '03-Singles-by-Month'
+        by_month.mkdir()
+        for name in ['2023-12', '2024-01', '2024-06 holiday', '2024-12', '2025-01', 'README']:
+            (by_month / name).mkdir()
+        return by_month
+
+    def test_both_bounds(self, tmp_path):
+        by_month = self._build_tree(tmp_path=tmp_path)
+        names = [p.name for p in iter_month_folders(
+            by_month_root=by_month, start_yyyymm='2024-01', end_yyyymm='2024-12')]
+        assert names == ['2024-01', '2024-06 holiday', '2024-12']
+
+    def test_only_start_bound(self, tmp_path):
+        by_month = self._build_tree(tmp_path=tmp_path)
+        names = [p.name for p in iter_month_folders(
+            by_month_root=by_month, start_yyyymm='2024-06', end_yyyymm='')]
+        assert names == ['2024-06 holiday', '2024-12', '2025-01']
+
+    def test_only_end_bound(self, tmp_path):
+        by_month = self._build_tree(tmp_path=tmp_path)
+        names = [p.name for p in iter_month_folders(
+            by_month_root=by_month, start_yyyymm='', end_yyyymm='2024-01')]
+        assert names == ['2023-12', '2024-01']
+
+    def test_no_bounds_yields_all_matching(self, tmp_path):
+        by_month = self._build_tree(tmp_path=tmp_path)
+        names = [p.name for p in iter_month_folders(by_month_root=by_month)]
+        # 'README' is filtered out by MONTH_FOLDER_RE.
+        assert names == ['2023-12', '2024-01', '2024-06 holiday', '2024-12', '2025-01']
+
+    def test_range_excluding_everything(self, tmp_path):
+        by_month = self._build_tree(tmp_path=tmp_path)
+        names = [p.name for p in iter_month_folders(
+            by_month_root=by_month, start_yyyymm='2030-01', end_yyyymm='2030-12')]
+        assert names == []
+
+
 class TestDiffQueries:
     """Insert synthetic Songs into an in-memory DB and verify each diff query."""
 
-    def test_only_in_singles(self, conn):
+    def test_only_in_all(self, conn):
         _insert(conn=conn, side='singles_all', month_folder=None, title='Solo A', artist='X')
 
-        rows = query_only_in_singles(conn=conn)
+        rows = query_only_in_all(conn=conn)
         assert len(rows) == 1
         assert rows[0]['raw_title'] == 'Solo A'
         assert query_only_in_months(conn=conn) == []
@@ -188,13 +251,13 @@ class TestDiffQueries:
         rows = query_only_in_months(conn=conn)
         assert len(rows) == 1
         assert rows[0]['raw_title'] == 'Other'
-        assert query_only_in_singles(conn=conn) == []
+        assert query_only_in_all(conn=conn) == []
 
     def test_match_is_not_reported(self, conn):
         _insert(conn=conn, side='singles_all', month_folder=None, title='Shared', artist='Z')
         _insert(conn=conn, side='month', month_folder='2024-01', title='Shared', artist='Z')
 
-        assert query_only_in_singles(conn=conn) == []
+        assert query_only_in_all(conn=conn) == []
         assert query_only_in_months(conn=conn) == []
 
     def test_in_multiple_months(self, conn):
@@ -230,7 +293,7 @@ class TestDiffQueries:
         _insert(conn=conn, side='singles_all', month_folder=None,
                 title='Sagapo', artist='Parios', album='Live 2024', file_path='/x/b.mp3')
 
-        rows = query_only_in_singles(conn=conn)
+        rows = query_only_in_all(conn=conn)
         assert len(rows) == 2
         albums = {row['raw_album'] for row in rows}
         assert albums == {'Best of', 'Live 2024'}

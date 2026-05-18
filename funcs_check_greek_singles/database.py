@@ -31,7 +31,7 @@ CREATE TABLE songs (
 CREATE INDEX idx_songs_key ON songs(norm_title, norm_artist) WHERE has_key = 1;
 """
 
-_QUERY_ONLY_IN_SINGLES = """
+_QUERY_ONLY_IN_ALL = """
 SELECT *
 FROM songs s
 WHERE s.side = 'singles_all'
@@ -135,9 +135,9 @@ def insert_song(conn: sqlite3.Connection, song: Song,
     )
 
 
-def query_only_in_singles(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+def query_only_in_all(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """Songs in 01-Singles-All with no (title, artist) match in any month folder."""
-    return list(conn.execute(_QUERY_ONLY_IN_SINGLES))
+    return list(conn.execute(_QUERY_ONLY_IN_ALL))
 
 
 def query_only_in_months(conn: sqlite3.Connection) -> list[sqlite3.Row]:
