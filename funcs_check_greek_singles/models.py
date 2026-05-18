@@ -25,4 +25,5 @@ class Song:
     raw_album: str
     year: str
     duration_seconds: float
+    size_bytes: int
     key: SongKey | None     # None iff title or artist is missing -> 'untagged'

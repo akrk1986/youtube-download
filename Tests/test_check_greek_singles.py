@@ -25,6 +25,7 @@ from funcs_check_greek_singles.models import Song, SongKey  # noqa: E402
 from funcs_check_greek_singles.normalize import (  # noqa: E402
     extract_year, format_duration, normalize,
 )
+from funcs_check_greek_singles.report import _format_size  # noqa: E402
 
 
 class TestNormalize:
@@ -144,11 +145,14 @@ class TestFormatDuration:
 class TestMonthFolderRegex:
     """MONTH_FOLDER_RE matches 'yyyy-mm' with optional ' <suffix>' tail."""
 
-    @pytest.mark.parametrize('name', ['2024-03', '2024-12', '2024-03 holiday', '2024-05 spring break'])
+    @pytest.mark.parametrize('name', [
+        '2024-03', '2024-12', '2024-03 holiday', '2024-05 spring break',
+        '2024-03-extra', '2025-11-Nykhta Stasou',
+    ])
     def test_accepts(self, name):
         assert MONTH_FOLDER_RE.match(name)
 
-    @pytest.mark.parametrize('name', ['2024-3', '2024-13', 'random', '24-03', '', '2024-03-extra'])
+    @pytest.mark.parametrize('name', ['2024-3', '2024-13', 'random', '24-03', '', '2024-03foo'])
     def test_rejects(self, name):
         assert not MONTH_FOLDER_RE.match(name)
 
@@ -171,6 +175,37 @@ class TestTitlePrefixFilter:
         prefix_norm = normalize(text='Σε άλλα')
         song_title_norm = normalize(text='Σε  μαγικά νησιά')
         assert not song_title_norm.startswith(prefix_norm)
+
+
+class TestFormatSize:
+    """_format_size renders MB up to 1 GB, GB above."""
+
+    def test_zero(self):
+        assert _format_size(size_bytes=0) == '0 MB'
+
+    def test_negative(self):
+        assert _format_size(size_bytes=-1) == '0 MB'
+
+    def test_under_one_gb(self):
+        assert _format_size(size_bytes=5 * 1024 * 1024) == '5.00 MB'
+
+    def test_just_under_one_gb(self):
+        # 1023 MB stays in MB.
+        assert _format_size(size_bytes=1023 * 1024 * 1024) == '1023.00 MB'
+
+    def test_one_gb_and_change(self):
+        assert _format_size(size_bytes=int(1.5 * 1024 * 1024 * 1024)) == '1.50 GB'
+
+
+class TestSizeBytesPropagates:
+    """size_bytes flows from Song -> DB -> query result."""
+
+    def test_only_in_months_carries_size(self, conn):
+        _insert(conn=conn, side='month', month_folder='2024-01',
+                title='Big', artist='Y', size_bytes=10 * 1024 * 1024)
+        rows = query_only_in_months(conn=conn)
+        assert len(rows) == 1
+        assert rows[0]['size_bytes'] == 10 * 1024 * 1024
 
 
 class TestParseMonthArg:
@@ -351,27 +386,29 @@ def conn():
     connection.close()
 
 
-def _make_song(file_path: Path, title: str, artist: str, album: str) -> Any:
+def _make_song(file_path: Path, title: str, artist: str, album: str,
+               size_bytes: int = 0) -> Any:
     """Build a Song the same way the production code does, but bypass tag-reading."""
     norm_title = normalize(text=title)
     norm_artist = normalize(text=artist)
     key = SongKey(title=norm_title, artist=norm_artist) if norm_title and norm_artist else None
     return Song(
         file_path=file_path, raw_title=title, raw_artist=artist, raw_album=album,
-        year='', duration_seconds=0.0, key=key,
+        year='', duration_seconds=0.0, size_bytes=size_bytes, key=key,
     )
 
 
 def _insert(conn: sqlite3.Connection, side: str, month_folder: str | None,
             title: str, artist: str, album: str = '',
-            file_path: str | None = None) -> None:
+            file_path: str | None = None, size_bytes: int = 0) -> None:
     """Helper to insert a synthetic row directly via the production insert_song()."""
     if file_path is None:
         # Include month_folder so the same (title, artist) inserted in different
         # months produces distinct file paths (PRIMARY KEY is (side, file_path)).
         slot = month_folder or 'singles'
         file_path = f'/test/{side}/{slot}/{title}_{artist}.mp3'
-    song = _make_song(file_path=Path(file_path), title=title, artist=artist, album=album)
+    song = _make_song(file_path=Path(file_path), title=title, artist=artist, album=album,
+                      size_bytes=size_bytes)
     insert_song(conn=conn, song=song, side=side, month_folder=month_folder)
 
 

@@ -1,0 +1,6 @@
+{
+    "venvPath": "..",
+    "venv": ".venv-av-linux",
+    "extraPaths": ["../common-av-codebase"],
+    "exclude": ["Beta", "Tests-Standalone", ".venv-windows", "node_modules"]
+}

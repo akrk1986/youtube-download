@@ -45,6 +45,11 @@ mypy_path = '../common-av-codebase'
 [tool.ty.environment]
 extra-paths = ['../common-av-codebase']
 
+[tool.pyright]
+venv = '.venv-av-linux'
+venvPath = '..'
+extraPaths = ['../common-av-codebase']
+
 [tool.deptry]
 exclude = ['\.venv', 'Beta', 'Tests-Standalone', 'Tests']
 

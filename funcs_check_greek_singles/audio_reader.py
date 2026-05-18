@@ -21,7 +21,7 @@ DATE_KEY_BY_EXT: dict[str, str] = {
     'flac': 'date',
 }
 
-MONTH_FOLDER_RE = re.compile(r'^\d{4}-(0[1-9]|1[0-2])(\s+.+)?$')
+MONTH_FOLDER_RE = re.compile(r'^\d{4}-(0[1-9]|1[0-2])([- ].+)?$')
 MONTH_ARG_RE = re.compile(r'^(\d{4})(?:-(\d{2}))?$')
 
 # Handler instances are stateless: build once and reuse across all files.
@@ -54,12 +54,17 @@ def read_song(file_path: Path) -> Song | None:
     if handler is None:
         return None
     try:
+        size_bytes = file_path.stat().st_size
+    except OSError as exc:
+        logger.debug(f'stat() failed for {file_path}: {exc}')
+        size_bytes = 0
+    try:
         audio = handler.open_audio_file(file_path=file_path)
     except Exception as exc:  # pylint: disable=broad-exception-caught
         logger.warning(f'Failed to read tags from {file_path}: {exc}')
         return Song(
             file_path=file_path, raw_title='', raw_artist='', raw_album='',
-            year='', duration_seconds=0.0, key=None,
+            year='', duration_seconds=0.0, size_bytes=size_bytes, key=None,
         )
     raw_title = handler.get_tag(audio=audio, tag_name=handler.TAG_TITLE).strip()
     raw_artist = handler.get_tag(audio=audio, tag_name=handler.TAG_ARTIST).strip()
@@ -73,18 +78,17 @@ def read_song(file_path: Path) -> Song | None:
     key = SongKey(title=norm_title, artist=norm_artist) if norm_title and norm_artist else None
     return Song(
         file_path=file_path, raw_title=raw_title, raw_artist=raw_artist, raw_album=raw_album,
-        year=year, duration_seconds=duration_seconds, key=key,
+        year=year, duration_seconds=duration_seconds, size_bytes=size_bytes, key=key,
     )
 
 
 def collect_songs(directory: Path, title_prefix_norm: str = '',
-                  log_per_file: bool = False, progress_every: int = 0) -> list[Song]:
+                  progress_every: int = 0) -> list[Song]:
     """Scan a directory (flat, non-recursive) and return parsed Songs.
 
     When title_prefix_norm is non-empty, drops Songs whose normalized title
     does not startswith the prefix (and untagged Songs, which have no title).
 
-    log_per_file=True logs each scanned file's name + raw title at DEBUG.
     progress_every>0 logs a 'Scanned N/total' line every N files at DEBUG.
     """
     songs: list[Song] = []
@@ -97,9 +101,6 @@ def collect_songs(directory: Path, title_prefix_norm: str = '',
         song = read_song(file_path=entry)
         if song is None:
             continue
-        if log_per_file:
-            display_title = song.raw_title or '(no title)'
-            logger.debug(f'  {entry.name} -> {display_title}')
         if title_prefix_norm and (song.key is None or not song.key.title.startswith(title_prefix_norm)):
             continue
         songs.append(song)

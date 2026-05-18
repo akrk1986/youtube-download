@@ -8,6 +8,19 @@ from rich.table import Table
 
 from funcs_check_greek_singles.normalize import format_duration, missing_tag_fields
 
+_SERIAL_WIDTH = 4
+_MB = 1024 * 1024
+_GB = _MB * 1024
+
+
+def _format_size(size_bytes: int) -> str:
+    """Render a byte count as '<X.XX> MB' (under 1 GB) or '<X.XX> GB'."""
+    if size_bytes <= 0:
+        return '0 MB'
+    if size_bytes < _GB:
+        return f'{size_bytes / _MB:.2f} MB'
+    return f'{size_bytes / _GB:.2f} GB'
+
 
 def _format_folders(folders: str | None) -> str:
     if not folders:
@@ -15,36 +28,54 @@ def _format_folders(folders: str | None) -> str:
     return '; '.join(part.strip() for part in folders.split(','))
 
 
+def _display_path(row: sqlite3.Row) -> str:
+    """Render a friendly file label: 'All/<name>' for singles-all, '<month>/<name>' for months.
+
+    Resilient to rows that do not select the 'month_folder' column (e.g. the
+    multi-month query, whose file_path is always from the singles-all side).
+    """
+    name = Path(row['file_path']).name
+    month_folder = row['month_folder'] if 'month_folder' in row.keys() else None
+    if month_folder:
+        return f'{month_folder}/{name}'
+    return f'All/{name}'
+
+
 def _add_matched_table(console: Console, title: str, rows: list[sqlite3.Row]) -> None:
-    table = Table(title=title, show_lines=False, header_style='bold cyan')
-    table.add_column('Title', overflow='fold')
-    table.add_column('Artist', overflow='fold')
-    table.add_column('Album', overflow='fold')
+    table = Table(title=title, title_justify='left', show_lines=False,
+                  header_style='bold cyan', expand=True)
+    table.add_column('#', justify='right', width=_SERIAL_WIDTH, style='dim')
+    table.add_column('Title', overflow='fold', ratio=2)
+    table.add_column('Artist', overflow='fold', ratio=2)
+    table.add_column('Album', overflow='fold', ratio=2)
     table.add_column('Year', justify='right')
     table.add_column('Duration', justify='right')
-    table.add_column('File', overflow='fold')
-    for row in rows:
+    table.add_column('File', overflow='fold', ratio=3)
+    for idx, row in enumerate(rows, start=1):
         table.add_row(
+            f'{idx:{_SERIAL_WIDTH}d}',
             row['raw_title'] or '', row['raw_artist'] or '', row['raw_album'] or '',
             row['year'] or '', format_duration(seconds=row['duration_seconds']),
-            row['file_path'],
+            _display_path(row=row),
         )
     console.print(table)
 
 
 def _add_multi_month_table(console: Console, rows: list[sqlite3.Row]) -> None:
     table = Table(
-        title=f'In 01-Singles-All AND in multiple month folders ({len(rows)} songs)',
-        show_lines=False, header_style='bold cyan',
+        title=f'{len(rows)} songs are in 01-Singles-All AND in multiple month folders',
+        title_justify='left', show_lines=False, header_style='bold cyan', expand=True,
     )
-    table.add_column('Title', overflow='fold')
-    table.add_column('Artist', overflow='fold')
-    table.add_column('Album', overflow='fold')
+    table.add_column('#', justify='right', width=_SERIAL_WIDTH, style='dim')
+    table.add_column('Title', overflow='fold', ratio=2)
+    table.add_column('Artist', overflow='fold', ratio=2)
+    table.add_column('Album', overflow='fold', ratio=2)
     table.add_column('Year', justify='right')
     table.add_column('Duration', justify='right')
-    table.add_column('Found in', overflow='fold')
-    for row in rows:
+    table.add_column('Found in', overflow='fold', ratio=3)
+    for idx, row in enumerate(rows, start=1):
         table.add_row(
+            f'{idx:{_SERIAL_WIDTH}d}',
             row['raw_title'] or '', row['raw_artist'] or '', row['raw_album'] or '',
             row['year'] or '', format_duration(seconds=row['duration_seconds']),
             _format_folders(folders=row['folders']),
@@ -54,14 +85,19 @@ def _add_multi_month_table(console: Console, rows: list[sqlite3.Row]) -> None:
 
 def _add_untagged_table(console: Console, rows: list[sqlite3.Row]) -> None:
     table = Table(
-        title=f'Untagged ({len(rows)} files: missing title and/or artist)',
-        show_lines=False, header_style='bold yellow',
+        title=f'{len(rows)} files are untagged (missing title and/or artist)',
+        title_justify='left', show_lines=False, header_style='bold yellow', expand=True,
     )
-    table.add_column('File', overflow='fold')
+    table.add_column('#', justify='right', width=_SERIAL_WIDTH, style='dim')
+    table.add_column('File', overflow='fold', ratio=3)
     table.add_column('Missing fields')
-    for row in rows:
+    for idx, row in enumerate(rows, start=1):
         missing = missing_tag_fields(raw_title=row['raw_title'] or '', raw_artist=row['raw_artist'] or '')
-        table.add_row(row['file_path'], ', '.join(missing) if missing else '(none)')
+        table.add_row(
+            f'{idx:{_SERIAL_WIDTH}d}',
+            _display_path(row=row),
+            ', '.join(missing) if missing else '(none)',
+        )
     console.print(table)
 
 
@@ -72,6 +108,7 @@ def render_console(
         in_multiple_months: list[sqlite3.Row],
         untagged: list[sqlite3.Row],
         title_prefix: str | None,
+        total_month_songs: int = 0,
         range_active: bool = False,
         start_yyyymm: str = '',
         end_yyyymm: str = '',
@@ -82,28 +119,31 @@ def render_console(
     (no table, no OK line) and a one-line notice is printed instead.
     """
     if title_prefix:
-        console.print(f'[bold]Title-prefix filter active:[/bold] {title_prefix!r}')
+        console.print(f'[bold]Title-prefix filter is active:[/bold] {title_prefix!r}')
 
     if range_active:
         start_label = start_yyyymm or '-inf'
         end_label = end_yyyymm or '+inf'
         console.print(
-            f"[bold]Month range active:[/bold] {start_label}..{end_label}; "
-            f"'only_in_all' section suppressed."
+            f"[bold]Month range is active:[/bold] {start_label}..{end_label}; "
+            f"'only_in_all' section is suppressed."
         )
     elif only_in_all:
         _add_matched_table(
             console=console,
-            title=f'Only in 01-Singles-All ({len(only_in_all)} songs)',
+            title=f'{len(only_in_all)} songs are in 01-Singles-All AND missing from 03-Singles-by-Month/',
             rows=only_in_all,
         )
     else:
         console.print('[green]OK -- every tagged song in 01-Singles-All has a match under 03-Singles-by-Month/[/green]')
 
     if only_in_months:
+        total_size = sum(row['size_bytes'] or 0 for row in only_in_months)
         _add_matched_table(
             console=console,
-            title=f'Only in 03-Singles-by-Month ({len(only_in_months)} songs)',
+            title=(f'Only in 03-Singles-by-Month '
+                   f'({len(only_in_months)} of {total_month_songs} songs are missing from '
+                   f'01-Singles-All, total size {_format_size(size_bytes=total_size)})'),
             rows=only_in_months,
         )
     else:
@@ -146,21 +186,21 @@ def write_csv(
                 'only_in_all',
                 row['raw_title'] or '', row['raw_artist'] or '', row['raw_album'] or '',
                 row['year'] or '', format_duration(seconds=row['duration_seconds']),
-                row['file_path'], '',
+                _display_path(row=row), '',
             ])
         for row in only_in_months:
             writer.writerow([
                 'only_in_months',
                 row['raw_title'] or '', row['raw_artist'] or '', row['raw_album'] or '',
                 row['year'] or '', format_duration(seconds=row['duration_seconds']),
-                row['file_path'], '',
+                _display_path(row=row), '',
             ])
         for row in in_multiple_months:
             writer.writerow([
                 'in_multiple_months',
                 row['raw_title'] or '', row['raw_artist'] or '', row['raw_album'] or '',
                 row['year'] or '', format_duration(seconds=row['duration_seconds']),
-                row['file_path'], _format_folders(folders=row['folders']),
+                _display_path(row=row), _format_folders(folders=row['folders']),
             ])
         for row in untagged:
             missing = missing_tag_fields(raw_title=row['raw_title'] or '', raw_artist=row['raw_artist'] or '')
@@ -168,5 +208,5 @@ def write_csv(
             writer.writerow([
                 'untagged',
                 row['raw_title'] or '', row['raw_artist'] or '', row['raw_album'] or '',
-                '', '', row['file_path'], extra,
+                '', '', _display_path(row=row), extra,
             ])

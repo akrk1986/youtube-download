@@ -22,6 +22,7 @@ CREATE TABLE songs (
     raw_album        TEXT,
     year             TEXT,
     duration_seconds REAL,
+    size_bytes       INTEGER NOT NULL DEFAULT 0,
     norm_title       TEXT,
     norm_artist      TEXT,
     norm_album       TEXT,
@@ -83,6 +84,10 @@ WHERE has_key = 0
 ORDER BY side, COALESCE(month_folder, ''), file_path
 """
 
+_QUERY_TOTAL_MONTH_SONGS = """
+SELECT COUNT(*) FROM songs WHERE side = 'month' AND has_key = 1
+"""
+
 logger = logging.getLogger(__name__)
 
 
@@ -120,15 +125,15 @@ def insert_song(conn: sqlite3.Connection, song: Song,
         INSERT OR REPLACE INTO songs (
             side, month_folder, file_path,
             raw_title, raw_artist, raw_album,
-            year, duration_seconds,
+            year, duration_seconds, size_bytes,
             norm_title, norm_artist, norm_album,
             has_key
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             side, month_folder, str(song.file_path),
             song.raw_title, song.raw_artist, song.raw_album,
-            song.year, song.duration_seconds,
+            song.year, song.duration_seconds, song.size_bytes,
             norm_title, norm_artist, norm_album,
             has_key,
         ),
@@ -153,3 +158,9 @@ def query_in_multiple_months(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 def query_untagged(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """Files missing title and/or artist (album alone missing does not qualify)."""
     return list(conn.execute(_QUERY_UNTAGGED))
+
+
+def query_total_month_songs(conn: sqlite3.Connection) -> int:
+    """Count tagged songs across all scanned month folders (within the active range)."""
+    row = conn.execute(_QUERY_TOTAL_MONTH_SONGS).fetchone()
+    return int(row[0]) if row else 0

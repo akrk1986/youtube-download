@@ -9,6 +9,7 @@ Run with --help for usage; --version for the build timestamp.
 """
 import argparse
 import logging
+import shutil
 import sqlite3
 import sys
 from pathlib import Path
@@ -31,7 +32,7 @@ from funcs_check_greek_singles.database import (  # noqa: E402
     SIDE_MONTH, SIDE_SINGLES_ALL,
     archive_previous_db, init_db, insert_song,
     query_in_multiple_months, query_only_in_all,
-    query_only_in_months, query_untagged,
+    query_only_in_months, query_total_month_songs, query_untagged,
 )
 from funcs_check_greek_singles.normalize import normalize  # noqa: E402
 from funcs_check_greek_singles.report import render_console, write_csv  # noqa: E402
@@ -45,6 +46,7 @@ SINGLES_BY_MONTH_DIRNAME = '03-Singles-by-Month'
 DATA_DIRNAME = 'Data'
 LOGS_DIRNAME = 'Logs'
 DB_FILENAME = 'songs.sqlite'
+DEFAULT_CONSOLE_WIDTH = 140
 
 logger = logging.getLogger(__name__)
 
@@ -80,10 +82,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
              "(the latter expands to <yyyy>-12). When set, the 'only_in_all' section is suppressed.",
     )
     parser.add_argument(
+        '--console-width', type=int, default=None,
+        help=f'Console width for Rich tables. Default: detected terminal width, '
+             f'or {DEFAULT_CONSOLE_WIDTH} when running under PyCharm/IDE consoles where '
+             f'detection fails.',
+    )
+    parser.add_argument(
         '--verbose', action='store_true',
         help='Enable DEBUG-level logging.',
     )
     return parser.parse_args(argv)
+
+
+def _resolve_console_width(override: int | None) -> int:
+    """Pick the console width: CLI override > shutil detection > generous fallback."""
+    if override is not None:
+        return override
+    return shutil.get_terminal_size(fallback=(DEFAULT_CONSOLE_WIDTH, 24)).columns
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -117,8 +132,8 @@ def main(argv: list[str] | None = None) -> int:
     range_active = bool(start_yyyymm or end_yyyymm)
     if range_active:
         logger.info(
-            f"Month range active: {start_yyyymm or '-inf'}..{end_yyyymm or '+inf'}; "
-            f"'only_in_all' section will be suppressed."
+            f"Month range is active: {start_yyyymm or '-inf'}..{end_yyyymm or '+inf'}; "
+            f"the 'only_in_all' section will be suppressed."
         )
 
     data_dir = _PROJECT_ROOT / DATA_DIRNAME
@@ -143,24 +158,24 @@ def main(argv: list[str] | None = None) -> int:
         for month_dir in iter_month_folders(
                 by_month_root=by_month, start_yyyymm=start_yyyymm, end_yyyymm=end_yyyymm):
             logger.info(f'Scanning {month_dir.name}...')
-            for song in collect_songs(directory=month_dir, title_prefix_norm=title_prefix_norm,
-                                      log_per_file=True):
+            for song in collect_songs(directory=month_dir, title_prefix_norm=title_prefix_norm):
                 insert_song(conn=conn, song=song, side=SIDE_MONTH, month_folder=month_dir.name)
             month_count += 1
         logger.info(f'Scanned {month_count} month folder(s).')
         if range_active and month_count == 0:
-            logger.info('Month range active but no month folders fell within the range.')
+            logger.info('Month range is active but no month folders fell within the range.')
         conn.commit()
 
         only_in_all: list[sqlite3.Row] = [] if range_active else query_only_in_all(conn=conn)
         only_in_months = query_only_in_months(conn=conn)
         in_multiple_months = query_in_multiple_months(conn=conn)
         untagged = query_untagged(conn=conn)
+        total_month_songs = query_total_month_songs(conn=conn)
 
         if title_prefix_norm and not (only_in_all or only_in_months or in_multiple_months or untagged):
             logger.info('No songs matched the title prefix on either side.')
 
-        console = Console()
+        console = Console(width=_resolve_console_width(override=args.console_width))
         render_console(
             console=console,
             only_in_all=only_in_all,
@@ -168,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
             in_multiple_months=in_multiple_months,
             untagged=untagged,
             title_prefix=args.title_prefix,
+            total_month_songs=total_month_songs,
             range_active=range_active,
             start_yyyymm=start_yyyymm,
             end_yyyymm=end_yyyymm,
