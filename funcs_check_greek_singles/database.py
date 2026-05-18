@@ -5,7 +5,9 @@ from pathlib import Path
 
 import arrow
 
-from funcs_check_greek_singles.models import Song
+from funcs_check_greek_singles.models import (
+    MatchedRow, MultiMonthRow, Song, UntaggedRow,
+)
 from funcs_check_greek_singles.normalize import normalize
 
 SIDE_SINGLES_ALL = 'singles_all'
@@ -140,24 +142,61 @@ def insert_song(conn: sqlite3.Connection, song: Song,
     )
 
 
-def query_only_in_all(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+def _row_to_matched(row: sqlite3.Row) -> MatchedRow:
+    return MatchedRow(
+        file_path=row['file_path'],
+        raw_title=row['raw_title'] or '',
+        raw_artist=row['raw_artist'] or '',
+        raw_album=row['raw_album'] or '',
+        year=row['year'] or '',
+        duration_seconds=float(row['duration_seconds'] or 0.0),
+        size_bytes=int(row['size_bytes'] or 0),
+        month_folder=row['month_folder'],
+    )
+
+
+def _row_to_multi_month(row: sqlite3.Row) -> MultiMonthRow:
+    return MultiMonthRow(
+        file_path=row['file_path'],
+        raw_title=row['raw_title'] or '',
+        raw_artist=row['raw_artist'] or '',
+        raw_album=row['raw_album'] or '',
+        year=row['year'] or '',
+        duration_seconds=float(row['duration_seconds'] or 0.0),
+        folders=row['folders'] or '',
+        folder_count=int(row['folder_count'] or 0),
+    )
+
+
+def _row_to_untagged(row: sqlite3.Row) -> UntaggedRow:
+    return UntaggedRow(
+        side=row['side'],
+        month_folder=row['month_folder'],
+        file_path=row['file_path'],
+        raw_title=row['raw_title'] or '',
+        raw_artist=row['raw_artist'] or '',
+        raw_album=row['raw_album'] or '',
+    )
+
+
+def query_only_in_all(conn: sqlite3.Connection) -> list[MatchedRow]:
     """Songs in 01-Singles-All with no (title, artist) match in any month folder."""
-    return list(conn.execute(_QUERY_ONLY_IN_ALL))
+    return [_row_to_matched(row=r) for r in conn.execute(_QUERY_ONLY_IN_ALL)]
 
 
-def query_only_in_months(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+def query_only_in_months(conn: sqlite3.Connection) -> list[MatchedRow]:
     """Songs in any month folder with no (title, artist) match in 01-Singles-All."""
-    return list(conn.execute(_QUERY_ONLY_IN_MONTHS))
+    return [_row_to_matched(row=r) for r in conn.execute(_QUERY_ONLY_IN_MONTHS)]
 
 
-def query_in_multiple_months(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+def query_in_multiple_months(conn: sqlite3.Connection) -> list[MultiMonthRow]:
     """Singles-all songs whose (title, artist) appears in >=2 distinct month folders."""
-    return list(conn.execute(_QUERY_IN_MULTIPLE_MONTHS))
+    return [_row_to_multi_month(row=r) for r in conn.execute(_QUERY_IN_MULTIPLE_MONTHS)]
 
 
-def query_untagged(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+def query_untagged(conn: sqlite3.Connection) -> list[UntaggedRow]:
     """Files missing title and/or artist (album alone missing does not qualify)."""
-    return list(conn.execute(_QUERY_UNTAGGED))
+    return [_row_to_untagged(row=r) for r in conn.execute(_QUERY_UNTAGGED)]
 
 
 def query_total_month_songs(conn: sqlite3.Connection) -> int:

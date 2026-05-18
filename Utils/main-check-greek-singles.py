@@ -10,7 +10,6 @@ Run with --help for usage; --version for the build timestamp.
 import argparse
 import logging
 import shutil
-import sqlite3
 import sys
 from pathlib import Path
 
@@ -34,6 +33,7 @@ from funcs_check_greek_singles.database import (  # noqa: E402
     query_in_multiple_months, query_only_in_all,
     query_only_in_months, query_total_month_songs, query_untagged,
 )
+from funcs_check_greek_singles.models import MatchedRow  # noqa: E402
 from funcs_check_greek_singles.normalize import normalize  # noqa: E402
 from funcs_check_greek_singles.report import render_console, write_csv  # noqa: E402
 from funcs_utils import setup_logging  # noqa: E402
@@ -166,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
             logger.info('Month range is active but no month folders fell within the range.')
         conn.commit()
 
-        only_in_all: list[sqlite3.Row] = [] if range_active else query_only_in_all(conn=conn)
+        only_in_all: list[MatchedRow] = [] if range_active else query_only_in_all(conn=conn)
         only_in_months = query_only_in_months(conn=conn)
         in_multiple_months = query_in_multiple_months(conn=conn)
         untagged = query_untagged(conn=conn)

@@ -1,11 +1,11 @@
 """Console (Rich) + CSV report rendering for the cross-checker."""
 import csv
-import sqlite3
 from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
 
+from funcs_check_greek_singles.models import MatchedRow, MultiMonthRow, UntaggedRow
 from funcs_check_greek_singles.normalize import format_duration, missing_tag_fields
 
 _SERIAL_WIDTH = 4
@@ -28,20 +28,15 @@ def _format_folders(folders: str | None) -> str:
     return '; '.join(part.strip() for part in folders.split(','))
 
 
-def _display_path(row: sqlite3.Row) -> str:
-    """Render a friendly file label: 'All/<name>' for singles-all, '<month>/<name>' for months.
-
-    Resilient to rows that do not select the 'month_folder' column (e.g. the
-    multi-month query, whose file_path is always from the singles-all side).
-    """
-    name = Path(row['file_path']).name
-    month_folder = row['month_folder'] if 'month_folder' in row.keys() else None
+def _display_path(file_path: str, month_folder: str | None) -> str:
+    """Render a friendly file label: 'All/<name>' for singles-all, '<month>/<name>' for months."""
+    name = Path(file_path).name
     if month_folder:
         return f'{month_folder}/{name}'
     return f'All/{name}'
 
 
-def _add_matched_table(console: Console, title: str, rows: list[sqlite3.Row]) -> None:
+def _add_matched_table(console: Console, title: str, rows: list[MatchedRow]) -> None:
     table = Table(title=title, title_justify='left', show_lines=False,
                   header_style='bold cyan', expand=True)
     table.add_column('#', justify='right', width=_SERIAL_WIDTH, style='dim')
@@ -54,14 +49,14 @@ def _add_matched_table(console: Console, title: str, rows: list[sqlite3.Row]) ->
     for idx, row in enumerate(rows, start=1):
         table.add_row(
             f'{idx:{_SERIAL_WIDTH}d}',
-            row['raw_title'] or '', row['raw_artist'] or '', row['raw_album'] or '',
-            row['year'] or '', format_duration(seconds=row['duration_seconds']),
-            _display_path(row=row),
+            row.raw_title, row.raw_artist, row.raw_album,
+            row.year, format_duration(seconds=row.duration_seconds),
+            _display_path(file_path=row.file_path, month_folder=row.month_folder),
         )
     console.print(table)
 
 
-def _add_multi_month_table(console: Console, rows: list[sqlite3.Row]) -> None:
+def _add_multi_month_table(console: Console, rows: list[MultiMonthRow]) -> None:
     table = Table(
         title=f'{len(rows)} songs are in 01-Singles-All AND in multiple month folders',
         title_justify='left', show_lines=False, header_style='bold cyan', expand=True,
@@ -76,14 +71,14 @@ def _add_multi_month_table(console: Console, rows: list[sqlite3.Row]) -> None:
     for idx, row in enumerate(rows, start=1):
         table.add_row(
             f'{idx:{_SERIAL_WIDTH}d}',
-            row['raw_title'] or '', row['raw_artist'] or '', row['raw_album'] or '',
-            row['year'] or '', format_duration(seconds=row['duration_seconds']),
-            _format_folders(folders=row['folders']),
+            row.raw_title, row.raw_artist, row.raw_album,
+            row.year, format_duration(seconds=row.duration_seconds),
+            _format_folders(folders=row.folders),
         )
     console.print(table)
 
 
-def _add_untagged_table(console: Console, rows: list[sqlite3.Row]) -> None:
+def _add_untagged_table(console: Console, rows: list[UntaggedRow]) -> None:
     table = Table(
         title=f'{len(rows)} files are untagged (missing title and/or artist)',
         title_justify='left', show_lines=False, header_style='bold yellow', expand=True,
@@ -92,10 +87,10 @@ def _add_untagged_table(console: Console, rows: list[sqlite3.Row]) -> None:
     table.add_column('File', overflow='fold', ratio=3)
     table.add_column('Missing fields')
     for idx, row in enumerate(rows, start=1):
-        missing = missing_tag_fields(raw_title=row['raw_title'] or '', raw_artist=row['raw_artist'] or '')
+        missing = missing_tag_fields(raw_title=row.raw_title, raw_artist=row.raw_artist)
         table.add_row(
             f'{idx:{_SERIAL_WIDTH}d}',
-            _display_path(row=row),
+            _display_path(file_path=row.file_path, month_folder=row.month_folder),
             ', '.join(missing) if missing else '(none)',
         )
     console.print(table)
@@ -103,10 +98,10 @@ def _add_untagged_table(console: Console, rows: list[sqlite3.Row]) -> None:
 
 def render_console(
         console: Console,
-        only_in_all: list[sqlite3.Row],
-        only_in_months: list[sqlite3.Row],
-        in_multiple_months: list[sqlite3.Row],
-        untagged: list[sqlite3.Row],
+        only_in_all: list[MatchedRow],
+        only_in_months: list[MatchedRow],
+        in_multiple_months: list[MultiMonthRow],
+        untagged: list[UntaggedRow],
         title_prefix: str | None,
         total_month_songs: int = 0,
         range_active: bool = False,
@@ -138,7 +133,7 @@ def render_console(
         console.print('[green]OK -- every tagged song in 01-Singles-All has a match under 03-Singles-by-Month/[/green]')
 
     if only_in_months:
-        total_size = sum(row['size_bytes'] or 0 for row in only_in_months)
+        total_size = sum(row.size_bytes for row in only_in_months)
         _add_matched_table(
             console=console,
             title=(f'Only in 03-Singles-by-Month '
@@ -171,42 +166,44 @@ def render_console(
 
 def write_csv(
         csv_path: Path,
-        only_in_all: list[sqlite3.Row],
-        only_in_months: list[sqlite3.Row],
-        in_multiple_months: list[sqlite3.Row],
-        untagged: list[sqlite3.Row],
+        only_in_all: list[MatchedRow],
+        only_in_months: list[MatchedRow],
+        in_multiple_months: list[MultiMonthRow],
+        untagged: list[UntaggedRow],
 ) -> None:
     """Write the four-section report as a single CSV with a 'section' column."""
     with csv_path.open('w', encoding='utf-8', newline='') as fh:
         writer = csv.writer(fh)
         writer.writerow(['section', 'title', 'artist', 'album', 'year',
                          'duration', 'file_path', 'extra'])
-        for row in only_in_all:
+        for matched in only_in_all:
             writer.writerow([
                 'only_in_all',
-                row['raw_title'] or '', row['raw_artist'] or '', row['raw_album'] or '',
-                row['year'] or '', format_duration(seconds=row['duration_seconds']),
-                _display_path(row=row), '',
+                matched.raw_title, matched.raw_artist, matched.raw_album,
+                matched.year, format_duration(seconds=matched.duration_seconds),
+                _display_path(file_path=matched.file_path, month_folder=matched.month_folder), '',
             ])
-        for row in only_in_months:
+        for matched in only_in_months:
             writer.writerow([
                 'only_in_months',
-                row['raw_title'] or '', row['raw_artist'] or '', row['raw_album'] or '',
-                row['year'] or '', format_duration(seconds=row['duration_seconds']),
-                _display_path(row=row), '',
+                matched.raw_title, matched.raw_artist, matched.raw_album,
+                matched.year, format_duration(seconds=matched.duration_seconds),
+                _display_path(file_path=matched.file_path, month_folder=matched.month_folder), '',
             ])
-        for row in in_multiple_months:
+        for multi in in_multiple_months:
             writer.writerow([
                 'in_multiple_months',
-                row['raw_title'] or '', row['raw_artist'] or '', row['raw_album'] or '',
-                row['year'] or '', format_duration(seconds=row['duration_seconds']),
-                _display_path(row=row), _format_folders(folders=row['folders']),
+                multi.raw_title, multi.raw_artist, multi.raw_album,
+                multi.year, format_duration(seconds=multi.duration_seconds),
+                _display_path(file_path=multi.file_path, month_folder=None),
+                _format_folders(folders=multi.folders),
             ])
-        for row in untagged:
-            missing = missing_tag_fields(raw_title=row['raw_title'] or '', raw_artist=row['raw_artist'] or '')
+        for untag in untagged:
+            missing = missing_tag_fields(raw_title=untag.raw_title, raw_artist=untag.raw_artist)
             extra = 'missing: ' + ' '.join(missing) if missing else ''
             writer.writerow([
                 'untagged',
-                row['raw_title'] or '', row['raw_artist'] or '', row['raw_album'] or '',
-                '', '', _display_path(row=row), extra,
+                untag.raw_title, untag.raw_artist, untag.raw_album,
+                '', '', _display_path(file_path=untag.file_path, month_folder=untag.month_folder),
+                extra,
             ])

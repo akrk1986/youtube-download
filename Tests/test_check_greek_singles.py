@@ -205,7 +205,7 @@ class TestSizeBytesPropagates:
                 title='Big', artist='Y', size_bytes=10 * 1024 * 1024)
         rows = query_only_in_months(conn=conn)
         assert len(rows) == 1
-        assert rows[0]['size_bytes'] == 10 * 1024 * 1024
+        assert rows[0].size_bytes == 10 * 1024 * 1024
 
 
 class TestParseMonthArg:
@@ -277,7 +277,7 @@ class TestDiffQueries:
 
         rows = query_only_in_all(conn=conn)
         assert len(rows) == 1
-        assert rows[0]['raw_title'] == 'Solo A'
+        assert rows[0].raw_title == 'Solo A'
         assert query_only_in_months(conn=conn) == []
 
     def test_only_in_months(self, conn):
@@ -285,7 +285,7 @@ class TestDiffQueries:
 
         rows = query_only_in_months(conn=conn)
         assert len(rows) == 1
-        assert rows[0]['raw_title'] == 'Other'
+        assert rows[0].raw_title == 'Other'
         assert query_only_in_all(conn=conn) == []
 
     def test_match_is_not_reported(self, conn):
@@ -302,9 +302,9 @@ class TestDiffQueries:
 
         rows = query_in_multiple_months(conn=conn)
         assert len(rows) == 1
-        assert rows[0]['folder_count'] == 2
-        assert '2024-01' in rows[0]['folders']
-        assert '2024-03 spring' in rows[0]['folders']
+        assert rows[0].folder_count == 2
+        assert '2024-01' in rows[0].folders
+        assert '2024-03 spring' in rows[0].folders
 
     def test_single_month_not_in_multi_result(self, conn):
         _insert(conn=conn, side='singles_all', month_folder=None, title='Hit', artist='Y')
@@ -318,7 +318,7 @@ class TestDiffQueries:
 
         rows = query_untagged(conn=conn)
         assert len(rows) == 1
-        assert rows[0]['raw_album'] == 'Stray'
+        assert rows[0].raw_album == 'Stray'
 
     def test_multiple_entries_per_side_all_returned(self, conn):
         # Same (title, artist) appears twice in singles-all with different albums.
@@ -330,8 +330,30 @@ class TestDiffQueries:
 
         rows = query_only_in_all(conn=conn)
         assert len(rows) == 2
-        albums = {row['raw_album'] for row in rows}
+        albums = {row.raw_album for row in rows}
         assert albums == {'Best of', 'Live 2024'}
+
+
+class TestRowMappers:
+    """Query mappers tolerate NULL columns and substitute sensible defaults."""
+
+    def test_matched_row_handles_null_columns(self, conn):
+        conn.execute(
+            "INSERT INTO songs (side, file_path, raw_title, raw_artist, "
+            "raw_album, year, duration_seconds, "
+            "norm_title, norm_artist, norm_album, has_key) VALUES "
+            "('singles_all', '/x/a.mp3', 'T', 'A', NULL, NULL, NULL, "
+            "'t', 'a', '', 1)"
+        )
+        rows = query_only_in_all(conn=conn)
+        assert len(rows) == 1
+        row = rows[0]
+        assert row.file_path == '/x/a.mp3'
+        assert row.raw_album == ''
+        assert row.year == ''
+        assert row.duration_seconds == 0.0
+        assert row.size_bytes == 0    # column is NOT NULL DEFAULT 0; mapper just round-trips
+        assert row.month_folder is None
 
 
 class TestArchivePreviousDb:
