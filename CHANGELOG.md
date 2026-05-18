@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-18-1933] - Greek singles checker: size totals, friendlier paths, serial #, fitted tables
+
+### Added
+- **`funcs_check_greek_singles/models.py`**, **`audio_reader.py`**, **`database.py`**: `Song` dataclass gains `size_bytes`; populated via `Path.stat().st_size` in `read_song`; mirrored into the `songs` table as `size_bytes INTEGER NOT NULL DEFAULT 0`.
+- **`funcs_check_greek_singles/report.py`**: `_format_size()` (MB up to 1 GB, GB above). `only_in_months` section title now reads `Only in 03-Singles-by-Month (N of TOTAL songs are missing from 01-Singles-All, total size <X.XX GB|MB>)` — supports the user's mirroring workflow (every song kept twice: once in its month folder, once in `01-Singles-All/`).
+- **`funcs_check_greek_singles/report.py`**: leftmost `#` column on every section table (4-char, right-justified, dim).
+- **`Utils/main-check-greek-singles.py`**: `--console-width N` flag plus a `_resolve_console_width()` helper that uses `shutil.get_terminal_size(fallback=(140, 24))` so the Rich table fits the visible width even when PyCharm's Run console pipes stdout (no TTY → detection falls back).
+- **`pyrightconfig.json`** + **`[tool.pyright]`** in `pyproject.toml`: point Pyright at the shared parent-dir `.venv-av-linux` venv so editor-side diagnostics stop flagging `arrow`/`pytest`/`mutagen` as unresolved imports. Mirrors the existing `[tool.mypy]` / `[tool.ty.environment]` configuration.
+
+### Changed
+- **`funcs_check_greek_singles/report.py`**: file paths in matched, multi-month and untagged tables now render as `All/<name>` (singles-all side) or `<month-folder>/<name>` (month side) via a new `_display_path()` helper — keyed off the row's `month_folder` column. Applied to both Rich tables and the CSV writer (only_in_all, only_in_months, in_multiple_months, untagged sections).
+- **`funcs_check_greek_singles/report.py`**: tables switch to `expand=True` with `ratio=` priorities (Title/Artist/Album = 2, File/Found-in = 3) so they fill the console width and the right border stays visible. Removed the earlier `min_width=32` on the File column which was forcing the table wider than the terminal and clipping the right edge.
+- **`funcs_check_greek_singles/report.py`**: section titles left-justified (`title_justify='left'`) — Rich's default centering looked misaligned against the surrounding left-aligned log/notice lines.
+- **`funcs_check_greek_singles/report.py`**, **`Utils/main-check-greek-singles.py`**: section titles and log lines use full verbs for clearer reporting — e.g. `486 of 517 songs **are** missing from 01-Singles-All`, `Title-prefix filter **is** active`, `Month range **is** active`, `X songs are in 01-Singles-All AND missing from 03-Singles-by-Month/`, `X files are untagged (missing title and/or artist)`.
+
+### Fixed
+- **`funcs_check_greek_singles/audio_reader.py`**: `MONTH_FOLDER_RE` now `^\d{4}-(0[1-9]|1[0-2])([- ].+)?$` — the suffix separator is hyphen **or** space, so `2025-11-Nykhta Stasou` is correctly recognised as a month folder (previously rejected; only space-separated suffixes matched).
+
+## [2026-05-18-1753] - Greek singles checker: month range filter + verbose progress
+
+### Added
+- **`Utils/main-check-greek-singles.py`**, **`funcs_check_greek_singles/audio_reader.py`**, **`funcs_check_greek_singles/database.py`**: `--start-month` / `--end-month` optional CLI args (format `yyyy-mm` or `yyyy`; the bare year expands to `yyyy-01` for start, `yyyy-12` for end). `iter_month_folders` now accepts inclusive bounds; `parse_month_arg` helper validates and normalizes the CLI value. When either bound is set, the `only_in_all` section is suppressed (3 reports instead of 4) — singles-all has no per-file month attribute, so narrowing only the months side would flood that section with false positives.
+- **`funcs_check_greek_singles/audio_reader.py`**: `collect_songs` gained an optional `progress_every` parameter that emits a `Scanned N/total files in <dir>...` line at DEBUG every N files. Wired up for the 01-Singles-All scan (every 200 files) so a `--verbose` run on a 2k-song library shows pacing without per-file noise.
+
+### Changed
+- **`funcs_check_greek_singles/database.py`**, **`funcs_check_greek_singles/report.py`**, **`Utils/main-check-greek-singles.py`**, **`Tests/test_check_greek_singles.py`**: renamed `only_in_singles` section / query / CSV label to `only_in_all` — "01-Singles-All" is the "all" side and the new name reads cleanly alongside `only_in_months`.
+
 ## [2026-05-18-1221] - Add main-check-greek-singles utility
 
 ### Added
