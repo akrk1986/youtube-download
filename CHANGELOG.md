@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-18-2123] - Clear pre-existing mypy + bandit findings; pin Pyright pythonPath
+
+### Fixed
+- **`funcs_video_info/metadata.py`**: added `# type: ignore[union-attr]` on the playlist-entry for-loop (line 142), matching the same exemption already applied on line 137. yt-dlp's `PagedList` is iterable at runtime but its type stubs do not declare `__iter__`. Clears the last mypy error in the repo (`Found 1 error in 1 file` → `Success: no issues found in 68 source files`).
+- **`Tests/test_check_greek_singles.py`**: replaced 6 hardcoded `Path('/tmp/x.mp3')` paths with `Path('/test/x.mp3')` (bandit B108 `hardcoded_tmp_directory`). These are synthetic `Song.file_path` values used only for dataclass assertions; nothing opens them. `/test/...` matches the convention already in the `_insert` test helper. Clears bandit cleanly (`Medium: 6` → `Medium: 0`).
+- **`pyrightconfig.json`**: added explicit `pythonPath: '../.venv-av-linux/bin/python3'`. With only `venvPath` + `venv` the test file still surfaced `Import "pytest" / "arrow" could not be resolved`; the explicit `pythonPath` closes the resolution gap.
+
+## [2026-05-18-2041] - Greek singles checker: typed query rows (refactor)
+
+### Changed
+- **`funcs_check_greek_singles/models.py`**: 3 new frozen dataclasses `MatchedRow` / `MultiMonthRow` / `UntaggedRow` to model query results explicitly. Eliminates the `sqlite3.Row` (untyped, dict-like) leak across module boundaries.
+- **`funcs_check_greek_singles/database.py`**: `_row_to_matched` / `_row_to_multi_month` / `_row_to_untagged` mappers collapse the `or ''` / `or 0` NULL fallbacks into one place. The 4 query functions (`query_only_in_all` / `query_only_in_months` / `query_in_multiple_months` / `query_untagged`) now return typed lists.
+- **`funcs_check_greek_singles/report.py`**: `_display_path(file_path, month_folder)` takes the two fields directly — the previous `'month_folder' in row.keys()` introspection is gone. Table builders, `render_console`, and `write_csv` consume the typed dataclasses; the total-size sum drops its `or 0` fallback (`size_bytes` is a non-Optional `int`).
+- **`Utils/main-check-greek-singles.py`**: `only_in_all` annotation switches to `list[MatchedRow]`; `import sqlite3` dropped (no longer referenced); `VERSION` bumped to `2026-05-18-2041`.
+- **`Tests/test_check_greek_singles.py`**: 8 dict-access sites flipped to attribute access; new `TestRowMappers.test_matched_row_handles_null_columns` exercises the mapper's NULL path via a raw SQL INSERT.
+
+Schema unchanged, SQL queries unchanged, no new deps. Net win: mypy / Pyright now catch any future column-rename slip at the renderer/CSV boundary that previously would have produced a silent runtime `KeyError`.
+
+## [2026-05-18-2010] - gitignore *.sqlite
+
+### Changed
+- **`.gitignore`**: added `*.sqlite`. The `Data/songs*.sqlite` snapshots produced by `Utils/main-check-greek-singles.py` are runtime artifacts (rolled over each run), not source — no need to surface them in `git status`.
+
 ## [2026-05-18-1933] - Greek singles checker: size totals, friendlier paths, serial #, fitted tables
 
 ### Added
