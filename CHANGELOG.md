@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-18-1221] - Add main-check-greek-singles utility
+
+### Added
+- **`Utils/main-check-greek-singles.py`** + **`funcs_check_greek_singles/`** (new package: `models`, `normalize`, `audio_reader`, `database`, `report`): cross-checks `~/Music/Greek/01-Singles-All/` against `~/Music/Greek/03-Singles-by-Month/<yyyy-mm>/`. Surfaces (a) songs in singles-all with no month-folder match, (b) songs in month folders with no singles-all match, (c) songs whose `(title, artist)` appears in 2+ distinct month folders, (d) files missing title/artist (the 'untagged' bucket). Matching key is `(title, artist)` normalized lowercase + diacritic-stripped + non-alphanumeric-stripped + whitespace-collapsed; album is displayed but excluded from the key so album-variants of the same logical song render as adjacent rows for manual review. Optional `--title-prefix '<greek>'` filter narrows both sides before diffing (diacritic- and case-insensitive). Each run snapshots to `Data/songs.sqlite` (previous file renamed to `Data/songs-<YYYY-MM-DD-HHmm>.sqlite` using its own mtime, with `-1`/`-2`/... on collision), plus a timestamped CSV in `Logs/`.
+- **`Tests/test_check_greek_singles.py`**: 48 pytest cases covering each module (normalize, dataclasses, untagged routing, year/duration formatters, month-folder regex, prefix matching, all four diff queries against an in-memory DB, and the `archive_previous_db` collision logic via `tmp_path`).
+
 ## [2026-05-15-1650] - Fix pip-audit + trim linter exclude dirs
 
 ### Fixed
