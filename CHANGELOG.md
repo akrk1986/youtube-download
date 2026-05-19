@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-19-1635] - Greek singles checker: deterministic action order + duration-aware match key
+
+### Added
+- **`Tests/test_check_greek_singles.py`**: new `TestDurationDisambiguation` class (4 tests) locks in the duration-aware matching — different durations don't match, identical durations do, `in_multiple_months` requires duration agreement, `in_multiple_months` still fires when all three durations align. `_make_song` / `_insert` test helpers gained an optional `duration_seconds` parameter (existing tests still pass since both sides default to `0.0`).
+
+### Changed
+- **`funcs_check_greek_singles/file_actions.py`**: `apply_missing_action` sorts candidates by filename before slicing to `limit`, so the partial-run prompt (`n` / `all` / `<N>`) selects a deterministic first-N across reruns. Previously the order followed the SQL query (by normalized title), which doesn't match the `ls`-like mental model the user works from.
+- **`funcs_check_greek_singles/database.py`**: cross-folder match key extended from `(norm_title, norm_artist)` to `(norm_title, norm_artist, ROUND(duration_seconds))` in all three matching queries (`_QUERY_ONLY_IN_ALL`, `_QUERY_ONLY_IN_MONTHS`, `_QUERY_IN_MULTIPLE_MONTHS`). The `_QUERY_IN_MULTIPLE_MONTHS` `GROUP BY` extended with the same bucket so two different-duration singles don't collate. Motivating case: `BandaLaika.mp3` and `BandaLaika #2.mp3` carry identical `(title, artist)` tags but are different recordings; the duration bucket separates them so the missing one surfaces in `only_in_months` and becomes eligible for `--missing-action`. `SongKey` (the in-memory "is this song matchable" indicator) is unchanged — only the SQL predicate widened.
+- **`Utils/main-check-greek-singles.py`**: `VERSION` bumped to `2026-05-19-1635`.
+
+## [2026-05-19-1217] - Greek singles checker: --missing-action {copy,move} + --target-is-year
+
+### Added
+- **`funcs_check_greek_singles/file_actions.py`** (new): `ActionSummary` dataclass, `prompt_action_limit`, `apply_missing_action`, `_target_folder_name`. Post-report copy/move action for songs flagged as missing from `01-Singles-All/`. Source is the row's stored `file_path`; target is `01-Singles-All/<month-folder>/` (default) or `01-Singles-All/<YYYY>/` (with `--target-is-year`). Existing targets are overwritten. Per-file `OSError` is logged and counted as `failed`; the loop never aborts. Missing source files are counted as `skipped`.
+- **`Utils/main-check-greek-singles.py`**: `--missing-action {copy,move}` (default: `None` = report-only, today's behavior) and `--target-is-year` (boolean, modifies action target naming; silently ignored without `--missing-action`). Both wire into a post-CSV block in `main()` that prompts the user before acting.
+- **Three-way prompt** (`prompt_action_limit`): replaces the originally-planned y/N with `n` / `all` / `<integer N>` (case-insensitive, EOF→cancel). `n` cancels, `all` processes every row, `<N>` truncates to the first N (sorted by filename) for incremental/testing runs. Loops on invalid input with an error message.
+- **`Tests/test_check_greek_singles.py`**: 12 new tests in `TestApplyMissingAction` covering copy/move semantics, overwrite, missing-source skipping, limit truncation, and the three-way prompt's accept/reject/clamp/re-prompt branches.
+
 ## [2026-05-18-2123] - Clear pre-existing mypy + bandit findings; pin Pyright pythonPath
 
 ### Fixed

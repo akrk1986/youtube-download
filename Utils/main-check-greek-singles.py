@@ -42,7 +42,7 @@ from funcs_check_greek_singles.report import render_console, write_csv  # noqa: 
 from funcs_utils import setup_logging  # noqa: E402
 # pylint: enable=wrong-import-position
 
-VERSION = '2026-05-18-2041'
+VERSION = '2026-05-19-1635'
 
 SINGLES_ALL_DIRNAME = '01-Singles-All'
 SINGLES_BY_MONTH_DIRNAME = '03-Singles-by-Month'
