@@ -21,7 +21,10 @@ from funcs_check_greek_singles.database import (  # noqa: E402
     query_in_multiple_months, query_only_in_all,
     query_only_in_months, query_untagged,
 )
-from funcs_check_greek_singles.models import Song, SongKey  # noqa: E402
+from funcs_check_greek_singles.file_actions import (  # noqa: E402
+    apply_missing_action, prompt_action_limit,
+)
+from funcs_check_greek_singles.models import MatchedRow, Song, SongKey  # noqa: E402
 from funcs_check_greek_singles.normalize import (  # noqa: E402
     extract_year, format_duration, normalize,
 )
@@ -437,3 +440,171 @@ def _insert(conn: sqlite3.Connection, side: str, month_folder: str | None,
 def _make_known_epoch() -> float:
     """Return a stable epoch (well in the past so it never collides with 'now')."""
     return time.mktime((2024, 6, 15, 12, 34, 0, 0, 0, -1))
+
+
+def _write_source(*, root: Path, month_folder: str, name: str, content: bytes = b'src') -> Path:
+    """Create a fake month-folder source file and return its full path."""
+    folder = root / month_folder
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / name
+    path.write_bytes(content)
+    return path
+
+
+def _matched_row(*, file_path: Path, month_folder: str, raw_title: str = 't',
+                 raw_artist: str = 'a', size_bytes: int = 0) -> MatchedRow:
+    """Build a MatchedRow with the same shape query_only_in_months produces."""
+    return MatchedRow(
+        file_path=str(file_path), raw_title=raw_title, raw_artist=raw_artist,
+        raw_album='', year='', duration_seconds=0.0, size_bytes=size_bytes,
+        month_folder=month_folder,
+    )
+
+
+class TestApplyMissingAction:
+    """File-actions module: copy/move semantics + limit + prompt parsing."""
+
+    def test_copy_creates_month_subfolders(self, tmp_path):
+        by_month = tmp_path / 'by-month'
+        singles_all = tmp_path / 'All'
+        src1 = _write_source(root=by_month, month_folder='2024-03', name='song1.mp3')
+        src2 = _write_source(root=by_month, month_folder='2024-06 holiday', name='song2.mp3')
+        rows = [
+            _matched_row(file_path=src1, month_folder='2024-03'),
+            _matched_row(file_path=src2, month_folder='2024-06 holiday'),
+        ]
+        summary = apply_missing_action(
+            rows=rows, singles_all_root=singles_all,
+            action='copy', target_is_year=False, limit=2,
+        )
+        assert summary.succeeded == 2
+        assert summary.failed == 0
+        assert summary.skipped == 0
+        assert (singles_all / '2024-03' / 'song1.mp3').exists()
+        assert (singles_all / '2024-06 holiday' / 'song2.mp3').exists()
+        # Copy preserves sources.
+        assert src1.exists()
+        assert src2.exists()
+
+    def test_copy_with_target_is_year_groups_by_year(self, tmp_path):
+        by_month = tmp_path / 'by-month'
+        singles_all = tmp_path / 'All'
+        src1 = _write_source(root=by_month, month_folder='2024-03', name='song1.mp3')
+        src2 = _write_source(root=by_month, month_folder='2024-06 holiday', name='song2.mp3')
+        rows = [
+            _matched_row(file_path=src1, month_folder='2024-03'),
+            _matched_row(file_path=src2, month_folder='2024-06 holiday'),
+        ]
+        summary = apply_missing_action(
+            rows=rows, singles_all_root=singles_all,
+            action='copy', target_is_year=True, limit=2,
+        )
+        assert summary.succeeded == 2
+        # Both files land under All/2024/ (year-only folder).
+        assert (singles_all / '2024' / 'song1.mp3').exists()
+        assert (singles_all / '2024' / 'song2.mp3').exists()
+        assert not (singles_all / '2024-03').exists()
+
+    def test_move_removes_source(self, tmp_path):
+        by_month = tmp_path / 'by-month'
+        singles_all = tmp_path / 'All'
+        src = _write_source(root=by_month, month_folder='2024-03', name='song.mp3')
+        rows = [_matched_row(file_path=src, month_folder='2024-03')]
+        summary = apply_missing_action(
+            rows=rows, singles_all_root=singles_all,
+            action='move', target_is_year=False, limit=1,
+        )
+        assert summary.succeeded == 1
+        assert (singles_all / '2024-03' / 'song.mp3').exists()
+        assert not src.exists()
+
+    def test_overwrite_replaces_existing_target(self, tmp_path):
+        by_month = tmp_path / 'by-month'
+        singles_all = tmp_path / 'All'
+        src = _write_source(root=by_month, month_folder='2024-03',
+                            name='song.mp3', content=b'new')
+        target_dir = singles_all / '2024-03'
+        target_dir.mkdir(parents=True)
+        target_file = target_dir / 'song.mp3'
+        target_file.write_bytes(b'old')
+        rows = [_matched_row(file_path=src, month_folder='2024-03')]
+        summary = apply_missing_action(
+            rows=rows, singles_all_root=singles_all,
+            action='copy', target_is_year=False, limit=1,
+        )
+        assert summary.succeeded == 1
+        assert target_file.read_bytes() == b'new'
+
+    def test_skips_missing_source(self, tmp_path):
+        singles_all = tmp_path / 'All'
+        rows = [_matched_row(
+            file_path=tmp_path / 'nope' / 'gone.mp3', month_folder='2024-03',
+        )]
+        summary = apply_missing_action(
+            rows=rows, singles_all_root=singles_all,
+            action='copy', target_is_year=False, limit=1,
+        )
+        assert summary.attempted == 1
+        assert summary.skipped == 1
+        assert summary.succeeded == 0
+        assert summary.failed == 0
+
+    def test_limit_truncates_processing(self, tmp_path):
+        by_month = tmp_path / 'by-month'
+        singles_all = tmp_path / 'All'
+        sources = [
+            _write_source(root=by_month, month_folder='2024-03', name=f'song{i}.mp3')
+            for i in range(5)
+        ]
+        rows = [_matched_row(file_path=p, month_folder='2024-03') for p in sources]
+        summary = apply_missing_action(
+            rows=rows, singles_all_root=singles_all,
+            action='copy', target_is_year=False, limit=3,
+        )
+        assert summary.attempted == 3
+        assert summary.succeeded == 3
+        copied = sorted((singles_all / '2024-03').iterdir())
+        assert [p.name for p in copied] == ['song0.mp3', 'song1.mp3', 'song2.mp3']
+
+    def test_prompt_returns_none_for_n(self, monkeypatch):
+        monkeypatch.setattr('builtins.input', lambda *_: 'n')
+        result = prompt_action_limit(
+            action='copy', row_count=10, total_bytes=0, target_is_year=False)
+        assert result is None
+
+    def test_prompt_returns_none_for_empty_input(self, monkeypatch):
+        monkeypatch.setattr('builtins.input', lambda *_: '')
+        result = prompt_action_limit(
+            action='copy', row_count=10, total_bytes=0, target_is_year=False)
+        assert result is None
+
+    def test_prompt_returns_row_count_for_all(self, monkeypatch):
+        for reply in ('all', 'ALL', '  All  '):
+            monkeypatch.setattr('builtins.input', lambda *_, r=reply: r)
+            result = prompt_action_limit(
+                action='copy', row_count=486, total_bytes=0, target_is_year=False)
+            assert result == 486
+
+    def test_prompt_returns_int_for_valid_number(self, monkeypatch):
+        monkeypatch.setattr('builtins.input', lambda *_: '10')
+        assert prompt_action_limit(
+            action='copy', row_count=486, total_bytes=0, target_is_year=False) == 10
+        # Above row_count clamps down.
+        monkeypatch.setattr('builtins.input', lambda *_: '500')
+        assert prompt_action_limit(
+            action='copy', row_count=486, total_bytes=0, target_is_year=False) == 486
+
+    def test_prompt_reprompts_on_invalid_input(self, monkeypatch):
+        replies = iter(['asdf', '-3', '0', '5'])
+        monkeypatch.setattr('builtins.input', lambda *_: next(replies))
+        result = prompt_action_limit(
+            action='copy', row_count=100, total_bytes=0, target_is_year=False)
+        assert result == 5
+
+    def test_prompt_returns_none_on_eof(self, monkeypatch):
+        def _raise_eof(*_):
+            raise EOFError
+        monkeypatch.setattr('builtins.input', _raise_eof)
+        result = prompt_action_limit(
+            action='copy', row_count=10, total_bytes=0, target_is_year=False)
+        assert result is None

@@ -33,6 +33,9 @@ from funcs_check_greek_singles.database import (  # noqa: E402
     query_in_multiple_months, query_only_in_all,
     query_only_in_months, query_total_month_songs, query_untagged,
 )
+from funcs_check_greek_singles.file_actions import (  # noqa: E402
+    apply_missing_action, prompt_action_limit,
+)
 from funcs_check_greek_singles.models import MatchedRow  # noqa: E402
 from funcs_check_greek_singles.normalize import normalize  # noqa: E402
 from funcs_check_greek_singles.report import render_console, write_csv  # noqa: E402
@@ -86,6 +89,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=f'Console width for Rich tables. Default: detected terminal width, '
              f'or {DEFAULT_CONSOLE_WIDTH} when running under PyCharm/IDE consoles where '
              f'detection fails.',
+    )
+    parser.add_argument(
+        '--missing-action', choices=['copy', 'move'], default=None,
+        help="Action for songs missing from 01-Singles-All: 'copy' or 'move' into "
+             'per-folder subdirs under All/. Default: %(default)s (report only). '
+             'Prompts before acting.',
+    )
+    parser.add_argument(
+        '--target-is-year', action='store_true',
+        help='When --missing-action is set, group target folders by year only '
+             '(All/<YYYY>/) instead of by full month-folder name '
+             '(All/<YYYY-MM-...>/). Ignored without --missing-action.',
     )
     parser.add_argument(
         '--verbose', action='store_true',
@@ -200,6 +215,34 @@ def main(argv: list[str] | None = None) -> int:
         )
         console.print(f'\n[bold]CSV written:[/bold] {csv_path}')
         console.print(f'[bold]Snapshot:[/bold] {db_path}')
+
+        if args.missing_action is not None:
+            if not only_in_months:
+                logger.info('No songs missing from 01-Singles-All -- nothing to copy/move.')
+            else:
+                total_bytes = sum(row.size_bytes for row in only_in_months)
+                limit = prompt_action_limit(
+                    action=args.missing_action,
+                    row_count=len(only_in_months),
+                    total_bytes=total_bytes,
+                    target_is_year=args.target_is_year,
+                )
+                if limit is None:
+                    logger.info('Action cancelled by user.')
+                else:
+                    summary = apply_missing_action(
+                        rows=only_in_months,
+                        singles_all_root=singles_all,
+                        action=args.missing_action,
+                        target_is_year=args.target_is_year,
+                        limit=limit,
+                    )
+                    console.print(
+                        f'\n[bold]{args.missing_action.capitalize()} complete '
+                        f'(processed {summary.attempted} of {len(only_in_months)}):[/bold] '
+                        f'{summary.succeeded} succeeded, {summary.failed} failed, '
+                        f'{summary.skipped} skipped'
+                    )
     finally:
         conn.close()
 
