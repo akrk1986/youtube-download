@@ -34,6 +34,11 @@ CREATE TABLE songs (
 CREATE INDEX idx_songs_key ON songs(norm_title, norm_artist) WHERE has_key = 1;
 """
 
+# Matching predicate is (norm_title, norm_artist, ROUND(duration_seconds)).
+# Duration in whole seconds disambiguates same-tagged-but-different recordings
+# (e.g. 'BandaLaika' studio vs 'BandaLaika' live). mutagen reads durations
+# precisely enough that two encodings of the same recording almost always
+# ROUND to the same integer; the rare X.5 boundary case is acceptable.
 _QUERY_ONLY_IN_ALL = """
 SELECT *
 FROM songs s
@@ -44,6 +49,7 @@ WHERE s.side = 'singles_all'
     WHERE m.side = 'month' AND m.has_key = 1
       AND m.norm_title = s.norm_title
       AND m.norm_artist = s.norm_artist
+      AND ROUND(m.duration_seconds) = ROUND(s.duration_seconds)
   )
 ORDER BY s.norm_title, s.norm_artist, s.norm_album, s.file_path
 """
@@ -58,6 +64,7 @@ WHERE m.side = 'month'
     WHERE s.side = 'singles_all' AND s.has_key = 1
       AND s.norm_title = m.norm_title
       AND s.norm_artist = m.norm_artist
+      AND ROUND(s.duration_seconds) = ROUND(m.duration_seconds)
   )
 ORDER BY m.norm_title, m.norm_artist, m.norm_album, m.month_folder, m.file_path
 """
@@ -74,7 +81,8 @@ JOIN songs m
  AND s.has_key = 1 AND m.has_key = 1
  AND s.norm_title = m.norm_title
  AND s.norm_artist = m.norm_artist
-GROUP BY s.norm_title, s.norm_artist
+ AND ROUND(s.duration_seconds) = ROUND(m.duration_seconds)
+GROUP BY s.norm_title, s.norm_artist, ROUND(s.duration_seconds)
 HAVING folder_count >= 2
 ORDER BY s.norm_title, s.norm_artist
 """

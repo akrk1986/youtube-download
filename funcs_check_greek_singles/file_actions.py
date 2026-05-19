@@ -89,13 +89,16 @@ def apply_missing_action(
 ) -> ActionSummary:
     """Copy or move up to `limit` rows' files under singles_all_root / <folder>.
 
+    Rows are sorted by filename before truncating to `limit`, so partial runs
+    (limit < len(rows)) always start from the alphabetical head.
     Folder name follows _target_folder_name(). Existing targets are overwritten.
     Per-file OSError is logged and counted as `failed`; the loop continues.
     Missing source files are counted as `skipped`. limit > len(rows) is fine
     (treated as 'process all').
     """
+    sorted_rows = sorted(rows, key=lambda r: Path(r.file_path).name)
     attempted = succeeded = failed = skipped = 0
-    for row in rows[:limit]:
+    for row in sorted_rows[:limit]:
         attempted += 1
         src = Path(row.file_path)
         if not src.is_file():

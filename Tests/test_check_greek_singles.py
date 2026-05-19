@@ -337,6 +337,58 @@ class TestDiffQueries:
         assert albums == {'Best of', 'Live 2024'}
 
 
+class TestDurationDisambiguation:
+    """Matching key includes ROUND(duration_seconds): same tags + different
+    durations -> treated as different songs across all queries."""
+
+    def test_different_durations_not_matched(self, conn):
+        # Same title + artist, durations 200s vs 250s.
+        # Each must surface as "missing from the other side".
+        _insert(conn=conn, side='singles_all', month_folder=None,
+                title='Same', artist='Band', duration_seconds=200.0)
+        _insert(conn=conn, side='month', month_folder='2024-01',
+                title='Same', artist='Band', duration_seconds=250.0)
+
+        assert len(query_only_in_all(conn=conn)) == 1
+        assert len(query_only_in_months(conn=conn)) == 1
+
+    def test_identical_durations_match(self, conn):
+        # Same title, artist, and duration -> matches across sides.
+        _insert(conn=conn, side='singles_all', month_folder=None,
+                title='Same', artist='Band', duration_seconds=222.5)
+        _insert(conn=conn, side='month', month_folder='2024-01',
+                title='Same', artist='Band', duration_seconds=222.5)
+
+        assert query_only_in_all(conn=conn) == []
+        assert query_only_in_months(conn=conn) == []
+
+    def test_in_multiple_months_respects_duration(self, conn):
+        # singles_all has ONE entry (duration 200). Two month folders each have a
+        # 'Hit' by 'Y' but with different durations: one matches (200), one not (300).
+        # The matched pair must NOT appear in in_multiple_months (folder_count would be 1).
+        _insert(conn=conn, side='singles_all', month_folder=None,
+                title='Hit', artist='Y', duration_seconds=200.0)
+        _insert(conn=conn, side='month', month_folder='2024-01',
+                title='Hit', artist='Y', duration_seconds=200.0)
+        _insert(conn=conn, side='month', month_folder='2024-03',
+                title='Hit', artist='Y', duration_seconds=300.0)
+
+        assert query_in_multiple_months(conn=conn) == []
+
+    def test_in_multiple_months_matches_when_all_durations_align(self, conn):
+        # All three sides agree on duration -> in_multiple_months sees folder_count=2.
+        _insert(conn=conn, side='singles_all', month_folder=None,
+                title='Hit', artist='Y', duration_seconds=200.0)
+        _insert(conn=conn, side='month', month_folder='2024-01',
+                title='Hit', artist='Y', duration_seconds=200.0)
+        _insert(conn=conn, side='month', month_folder='2024-03',
+                title='Hit', artist='Y', duration_seconds=200.0)
+
+        rows = query_in_multiple_months(conn=conn)
+        assert len(rows) == 1
+        assert rows[0].folder_count == 2
+
+
 class TestRowMappers:
     """Query mappers tolerate NULL columns and substitute sensible defaults."""
 
@@ -412,20 +464,21 @@ def conn():
 
 
 def _make_song(file_path: Path, title: str, artist: str, album: str,
-               size_bytes: int = 0) -> Any:
+               size_bytes: int = 0, duration_seconds: float = 0.0) -> Any:
     """Build a Song the same way the production code does, but bypass tag-reading."""
     norm_title = normalize(text=title)
     norm_artist = normalize(text=artist)
     key = SongKey(title=norm_title, artist=norm_artist) if norm_title and norm_artist else None
     return Song(
         file_path=file_path, raw_title=title, raw_artist=artist, raw_album=album,
-        year='', duration_seconds=0.0, size_bytes=size_bytes, key=key,
+        year='', duration_seconds=duration_seconds, size_bytes=size_bytes, key=key,
     )
 
 
 def _insert(conn: sqlite3.Connection, side: str, month_folder: str | None,
             title: str, artist: str, album: str = '',
-            file_path: str | None = None, size_bytes: int = 0) -> None:
+            file_path: str | None = None, size_bytes: int = 0,
+            duration_seconds: float = 0.0) -> None:
     """Helper to insert a synthetic row directly via the production insert_song()."""
     if file_path is None:
         # Include month_folder so the same (title, artist) inserted in different
@@ -433,7 +486,7 @@ def _insert(conn: sqlite3.Connection, side: str, month_folder: str | None,
         slot = month_folder or 'singles'
         file_path = f'/test/{side}/{slot}/{title}_{artist}.mp3'
     song = _make_song(file_path=Path(file_path), title=title, artist=artist, album=album,
-                      size_bytes=size_bytes)
+                      size_bytes=size_bytes, duration_seconds=duration_seconds)
     insert_song(conn=conn, song=song, side=side, month_folder=month_folder)
 
 
@@ -548,6 +601,25 @@ class TestApplyMissingAction:
         assert summary.skipped == 1
         assert summary.succeeded == 0
         assert summary.failed == 0
+
+    def test_limit_picks_alphabetical_first_n(self, tmp_path):
+        # Rows passed in shuffled order; sort-by-filename should pick the
+        # alphabetically-lowest names regardless of input order.
+        by_month = tmp_path / 'by-month'
+        singles_all = tmp_path / 'All'
+        names = ['zebra.mp3', 'apple.mp3', 'mango.mp3']
+        sources = {
+            n: _write_source(root=by_month, month_folder='2024-03', name=n)
+            for n in names
+        }
+        rows = [_matched_row(file_path=sources[n], month_folder='2024-03') for n in names]
+        summary = apply_missing_action(
+            rows=rows, singles_all_root=singles_all,
+            action='copy', target_is_year=False, limit=2,
+        )
+        assert summary.succeeded == 2
+        copied = sorted(p.name for p in (singles_all / '2024-03').iterdir())
+        assert copied == ['apple.mp3', 'mango.mp3']
 
     def test_limit_truncates_processing(self, tmp_path):
         by_month = tmp_path / 'by-month'
