@@ -6,12 +6,18 @@ from pathlib import Path
 import arrow
 
 from funcs_check_greek_singles.models import (
-    MatchedRow, MultiMonthRow, Song, UntaggedRow,
+    InFolderDupRow, MatchedRow, MultiMonthRow, Song, UntaggedRow,
 )
 from funcs_check_greek_singles.normalize import normalize
 
 SIDE_SINGLES_ALL = 'singles_all'
 SIDE_MONTH = 'month'
+
+# Two songs match if their normalized (title, artist) align AND their durations
+# differ by at most this many seconds. ABS-based tolerance (no X.5 boundary
+# issue). Sub-second encoder jitter is well within 1.0s; distinct recordings of
+# the same song (studio vs live) typically differ by 10s+.
+DURATION_MATCH_MARGIN_SECONDS = 1.0
 
 SCHEMA_DDL = """
 PRAGMA journal_mode = MEMORY;
@@ -34,12 +40,16 @@ CREATE TABLE songs (
 CREATE INDEX idx_songs_key ON songs(norm_title, norm_artist) WHERE has_key = 1;
 """
 
-# Matching predicate is (norm_title, norm_artist, ROUND(duration_seconds)).
-# Duration in whole seconds disambiguates same-tagged-but-different recordings
-# (e.g. 'BandaLaika' studio vs 'BandaLaika' live). mutagen reads durations
-# precisely enough that two encodings of the same recording almost always
-# ROUND to the same integer; the rare X.5 boundary case is acceptable.
-_QUERY_ONLY_IN_ALL = """
+# Matching predicate: (norm_title, norm_artist, ABS(dur_a - dur_b) <= margin).
+# The duration margin is DURATION_MATCH_MARGIN_SECONDS (default 1.0s) and
+# disambiguates same-tagged-but-different recordings (e.g. 'BandaLaika' studio
+# vs 'BandaLaika' live). Inlined into the SQL via f-string at module load — the
+# constant is project-controlled, no injection risk.
+#
+# Note: GROUP BY clauses (in _QUERY_IN_MULTIPLE_MONTHS and _QUERY_IN_FOLDER_DUPS)
+# still use ROUND(duration_seconds) for bucketing. SQL can't do fuzzy GROUP BY;
+# for the 1.0s default margin this only affects durations that straddle X.5.
+_QUERY_ONLY_IN_ALL = f"""
 SELECT *
 FROM songs s
 WHERE s.side = 'singles_all'
@@ -49,12 +59,12 @@ WHERE s.side = 'singles_all'
     WHERE m.side = 'month' AND m.has_key = 1
       AND m.norm_title = s.norm_title
       AND m.norm_artist = s.norm_artist
-      AND ROUND(m.duration_seconds) = ROUND(s.duration_seconds)
+      AND ABS(m.duration_seconds - s.duration_seconds) <= {DURATION_MATCH_MARGIN_SECONDS}
   )
 ORDER BY s.norm_title, s.norm_artist, s.norm_album, s.file_path
 """
 
-_QUERY_ONLY_IN_MONTHS = """
+_QUERY_ONLY_IN_MONTHS = f"""
 SELECT *
 FROM songs m
 WHERE m.side = 'month'
@@ -64,12 +74,12 @@ WHERE m.side = 'month'
     WHERE s.side = 'singles_all' AND s.has_key = 1
       AND s.norm_title = m.norm_title
       AND s.norm_artist = m.norm_artist
-      AND ROUND(s.duration_seconds) = ROUND(m.duration_seconds)
+      AND ABS(s.duration_seconds - m.duration_seconds) <= {DURATION_MATCH_MARGIN_SECONDS}
   )
 ORDER BY m.norm_title, m.norm_artist, m.norm_album, m.month_folder, m.file_path
 """
 
-_QUERY_IN_MULTIPLE_MONTHS = """
+_QUERY_IN_MULTIPLE_MONTHS = f"""
 SELECT s.norm_title, s.norm_artist,
        s.raw_title, s.raw_artist, s.raw_album,
        s.year, s.duration_seconds, s.file_path,
@@ -81,7 +91,7 @@ JOIN songs m
  AND s.has_key = 1 AND m.has_key = 1
  AND s.norm_title = m.norm_title
  AND s.norm_artist = m.norm_artist
- AND ROUND(s.duration_seconds) = ROUND(m.duration_seconds)
+ AND ABS(s.duration_seconds - m.duration_seconds) <= {DURATION_MATCH_MARGIN_SECONDS}
 GROUP BY s.norm_title, s.norm_artist, ROUND(s.duration_seconds)
 HAVING folder_count >= 2
 ORDER BY s.norm_title, s.norm_artist
@@ -92,6 +102,25 @@ SELECT side, month_folder, file_path, raw_title, raw_artist, raw_album
 FROM songs
 WHERE has_key = 0
 ORDER BY side, COALESCE(month_folder, ''), file_path
+"""
+
+# Cluster files that share (norm_title, norm_artist, ROUND(duration_seconds))
+# within the same folder. GROUP_CONCAT uses Unit Separator (U+001F) because
+# file paths may contain commas. MIN() picks a deterministic representative
+# raw field for display.
+_QUERY_IN_FOLDER_DUPS = """
+SELECT side, month_folder,
+       MIN(raw_title)        AS raw_title,
+       MIN(raw_artist)       AS raw_artist,
+       MIN(raw_album)        AS raw_album,
+       MIN(duration_seconds) AS duration_seconds,
+       COUNT(*)              AS dup_count,
+       GROUP_CONCAT(file_path, X'1F') AS file_paths
+FROM songs
+WHERE has_key = 1
+GROUP BY side, month_folder, norm_title, norm_artist, ROUND(duration_seconds)
+HAVING dup_count >= 2
+ORDER BY side, COALESCE(month_folder, ''), norm_title, norm_artist
 """
 
 _QUERY_TOTAL_MONTH_SONGS = """
@@ -187,6 +216,21 @@ def _row_to_untagged(row: sqlite3.Row) -> UntaggedRow:
     )
 
 
+def _row_to_in_folder_dup(row: sqlite3.Row) -> InFolderDupRow:
+    paths_raw = row['file_paths'] or ''
+    paths = tuple(sorted(p for p in paths_raw.split('\x1f') if p))
+    return InFolderDupRow(
+        side=row['side'],
+        month_folder=row['month_folder'],
+        raw_title=row['raw_title'] or '',
+        raw_artist=row['raw_artist'] or '',
+        raw_album=row['raw_album'] or '',
+        duration_seconds=float(row['duration_seconds'] or 0.0),
+        dup_count=int(row['dup_count']),
+        file_paths=paths,
+    )
+
+
 def query_only_in_all(conn: sqlite3.Connection) -> list[MatchedRow]:
     """Songs in 01-Singles-All with no (title, artist) match in any month folder."""
     return [_row_to_matched(row=r) for r in conn.execute(_QUERY_ONLY_IN_ALL)]
@@ -205,6 +249,11 @@ def query_in_multiple_months(conn: sqlite3.Connection) -> list[MultiMonthRow]:
 def query_untagged(conn: sqlite3.Connection) -> list[UntaggedRow]:
     """Files missing title and/or artist (album alone missing does not qualify)."""
     return [_row_to_untagged(row=r) for r in conn.execute(_QUERY_UNTAGGED)]
+
+
+def query_in_folder_duplicates(conn: sqlite3.Connection) -> list[InFolderDupRow]:
+    """Clusters of >=2 files within the same folder sharing (title, artist, dur) key."""
+    return [_row_to_in_folder_dup(row=r) for r in conn.execute(_QUERY_IN_FOLDER_DUPS)]
 
 
 def query_total_month_songs(conn: sqlite3.Connection) -> int:

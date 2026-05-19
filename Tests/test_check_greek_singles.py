@@ -18,7 +18,7 @@ from funcs_check_greek_singles.audio_reader import (  # noqa: E402
 from funcs_check_greek_singles.database import (  # noqa: E402
     SCHEMA_DDL,
     archive_previous_db, insert_song,
-    query_in_multiple_months, query_only_in_all,
+    query_in_folder_duplicates, query_in_multiple_months, query_only_in_all,
     query_only_in_months, query_untagged,
 )
 from funcs_check_greek_singles.file_actions import (  # noqa: E402
@@ -362,6 +362,39 @@ class TestDurationDisambiguation:
         assert query_only_in_all(conn=conn) == []
         assert query_only_in_months(conn=conn) == []
 
+    def test_durations_within_margin_match(self, conn):
+        # 222.4 vs 222.7 straddle X.5 (would mismatch under ROUND-based bucketing,
+        # which sends them to 222 and 223 respectively). ABS-based tolerance with
+        # the 1.0s default margin matches them correctly.
+        _insert(conn=conn, side='singles_all', month_folder=None,
+                title='Jitter', artist='Band', duration_seconds=222.4)
+        _insert(conn=conn, side='month', month_folder='2024-01',
+                title='Jitter', artist='Band', duration_seconds=222.7)
+
+        assert query_only_in_all(conn=conn) == []
+        assert query_only_in_months(conn=conn) == []
+
+    def test_duration_at_margin_boundary_matches(self, conn):
+        # ABS(diff) == DURATION_MATCH_MARGIN_SECONDS uses '<=' so the boundary
+        # is inclusive.
+        _insert(conn=conn, side='singles_all', month_folder=None,
+                title='Edge', artist='Band', duration_seconds=200.0)
+        _insert(conn=conn, side='month', month_folder='2024-01',
+                title='Edge', artist='Band', duration_seconds=201.0)
+
+        assert query_only_in_all(conn=conn) == []
+        assert query_only_in_months(conn=conn) == []
+
+    def test_duration_just_beyond_margin_does_not_match(self, conn):
+        # 200.0 vs 201.5 -> ABS = 1.5 > 1.0 default margin; treated as distinct.
+        _insert(conn=conn, side='singles_all', month_folder=None,
+                title='Past', artist='Band', duration_seconds=200.0)
+        _insert(conn=conn, side='month', month_folder='2024-01',
+                title='Past', artist='Band', duration_seconds=201.5)
+
+        assert len(query_only_in_all(conn=conn)) == 1
+        assert len(query_only_in_months(conn=conn)) == 1
+
     def test_in_multiple_months_respects_duration(self, conn):
         # singles_all has ONE entry (duration 200). Two month folders each have a
         # 'Hit' by 'Y' but with different durations: one matches (200), one not (300).
@@ -387,6 +420,75 @@ class TestDurationDisambiguation:
         rows = query_in_multiple_months(conn=conn)
         assert len(rows) == 1
         assert rows[0].folder_count == 2
+
+
+class TestInFolderDuplicates:
+    """Clusters of >=2 files in the SAME folder sharing (title, artist, ROUND(duration))."""
+
+    def test_two_files_in_singles_all_same_key_cluster(self, conn):
+        _insert(conn=conn, side='singles_all', month_folder=None,
+                title='Dup', artist='Band', duration_seconds=200.0,
+                file_path='/All/a.mp3')
+        _insert(conn=conn, side='singles_all', month_folder=None,
+                title='Dup', artist='Band', duration_seconds=200.0,
+                file_path='/All/b.mp3')
+
+        rows = query_in_folder_duplicates(conn=conn)
+        assert len(rows) == 1
+        assert rows[0].dup_count == 2
+        assert rows[0].month_folder is None
+        assert rows[0].side == 'singles_all'
+        assert rows[0].file_paths == ('/All/a.mp3', '/All/b.mp3')
+
+    def test_two_files_in_same_month_cluster(self, conn):
+        _insert(conn=conn, side='month', month_folder='2024-06',
+                title='Dup', artist='Band', duration_seconds=200.0,
+                file_path='/Months/2024-06/a.mp3')
+        _insert(conn=conn, side='month', month_folder='2024-06',
+                title='Dup', artist='Band', duration_seconds=200.0,
+                file_path='/Months/2024-06/b.mp3')
+
+        rows = query_in_folder_duplicates(conn=conn)
+        assert len(rows) == 1
+        assert rows[0].month_folder == '2024-06'
+        assert rows[0].side == 'month'
+        assert rows[0].dup_count == 2
+
+    def test_different_months_not_clustered(self, conn):
+        _insert(conn=conn, side='month', month_folder='2024-01',
+                title='Same', artist='Band', duration_seconds=200.0)
+        _insert(conn=conn, side='month', month_folder='2024-02',
+                title='Same', artist='Band', duration_seconds=200.0)
+
+        assert query_in_folder_duplicates(conn=conn) == []
+
+    def test_singleton_not_clustered(self, conn):
+        _insert(conn=conn, side='singles_all', month_folder=None,
+                title='Lone', artist='Band', duration_seconds=200.0)
+
+        assert query_in_folder_duplicates(conn=conn) == []
+
+    def test_different_durations_not_clustered(self, conn):
+        _insert(conn=conn, side='month', month_folder='2024-06',
+                title='Same', artist='Band', duration_seconds=200.0,
+                file_path='/Months/2024-06/x.mp3')
+        _insert(conn=conn, side='month', month_folder='2024-06',
+                title='Same', artist='Band', duration_seconds=300.0,
+                file_path='/Months/2024-06/y.mp3')
+
+        assert query_in_folder_duplicates(conn=conn) == []
+
+    def test_three_in_one_folder_cluster_n_equals_3(self, conn):
+        for letter in ('a', 'b', 'c'):
+            _insert(conn=conn, side='singles_all', month_folder=None,
+                    title='Triple', artist='Band', duration_seconds=200.0,
+                    file_path=f'/All/{letter}.mp3')
+
+        rows = query_in_folder_duplicates(conn=conn)
+        assert len(rows) == 1
+        assert rows[0].dup_count == 3
+        assert len(rows[0].file_paths) == 3
+        assert rows[0].file_paths == ('/All/a.mp3', '/All/b.mp3', '/All/c.mp3')
 
 
 class TestRowMappers:

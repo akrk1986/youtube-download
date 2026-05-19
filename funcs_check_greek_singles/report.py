@@ -5,7 +5,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
-from funcs_check_greek_singles.models import MatchedRow, MultiMonthRow, UntaggedRow
+from funcs_check_greek_singles.models import InFolderDupRow, MatchedRow, MultiMonthRow, UntaggedRow
 from funcs_check_greek_singles.normalize import format_duration, missing_tag_fields
 
 _SERIAL_WIDTH = 4
@@ -78,6 +78,34 @@ def _add_multi_month_table(console: Console, rows: list[MultiMonthRow]) -> None:
     console.print(table)
 
 
+def _add_in_folder_dup_table(console: Console, rows: list[InFolderDupRow]) -> None:
+    total_files = sum(row.dup_count for row in rows)
+    table = Table(
+        title=f'{len(rows)} clusters ({total_files} files) are duplicate within a single folder',
+        title_justify='left', show_lines=False, header_style='bold magenta', expand=True,
+    )
+    table.add_column('#', justify='right', width=_SERIAL_WIDTH, style='dim')
+    table.add_column('Folder', overflow='fold', ratio=2)
+    table.add_column('Title', overflow='fold', ratio=2)
+    table.add_column('Artist', overflow='fold', ratio=2)
+    table.add_column('Album', overflow='fold', ratio=2)
+    table.add_column('Duration', justify='right')
+    table.add_column('N', justify='right')
+    table.add_column('Files (basenames)', overflow='fold', ratio=3)
+    for idx, row in enumerate(rows, start=1):
+        folder = 'All/' if row.month_folder is None else f'{row.month_folder}/'
+        files = ', '.join(Path(p).name for p in row.file_paths)
+        table.add_row(
+            f'{idx:{_SERIAL_WIDTH}d}',
+            folder,
+            row.raw_title, row.raw_artist, row.raw_album,
+            format_duration(seconds=row.duration_seconds),
+            str(row.dup_count),
+            files,
+        )
+    console.print(table)
+
+
 def _add_untagged_table(console: Console, rows: list[UntaggedRow]) -> None:
     table = Table(
         title=f'{len(rows)} files are untagged (missing title and/or artist)',
@@ -102,19 +130,31 @@ def render_console(
         only_in_months: list[MatchedRow],
         in_multiple_months: list[MultiMonthRow],
         untagged: list[UntaggedRow],
+        in_folder_duplicates: list[InFolderDupRow],
         title_prefix: str | None,
         total_month_songs: int = 0,
         range_active: bool = False,
         start_yyyymm: str = '',
         end_yyyymm: str = '',
+        dupes_only: bool = False,
 ) -> None:
-    """Render the four-section report to the console.
+    """Render the five-section report to the console.
 
     When range_active is True, the 'only_in_all' section is suppressed entirely
     (no table, no OK line) and a one-line notice is printed instead.
+    When dupes_only is True, only the in-folder-duplicates section + a short
+    summary are rendered; the four cross-folder sections are skipped.
     """
     if title_prefix:
         console.print(f'[bold]Title-prefix filter is active:[/bold] {title_prefix!r}')
+
+    if dupes_only:
+        if in_folder_duplicates:
+            _add_in_folder_dup_table(console=console, rows=in_folder_duplicates)
+        else:
+            console.print('[green]OK -- no duplicate files within a single folder[/green]')
+        console.print(f'\n[bold]Summary:[/bold] Folder-dups: {len(in_folder_duplicates)}')
+        return
 
     if range_active:
         start_label = start_yyyymm or '-inf'
@@ -154,12 +194,18 @@ def render_console(
     else:
         console.print('[green]OK -- every file has title and artist tags[/green]')
 
+    if in_folder_duplicates:
+        _add_in_folder_dup_table(console=console, rows=in_folder_duplicates)
+    else:
+        console.print('[green]OK -- no duplicate files within a single folder[/green]')
+
     only_in_all_label = '-' if range_active else str(len(only_in_all))
     summary = (
         f'Only-in-all: {only_in_all_label} | '
         f'Months-only: {len(only_in_months)} | '
         f'Multi-month: {len(in_multiple_months)} | '
-        f'Untagged: {len(untagged)}'
+        f'Untagged: {len(untagged)} | '
+        f'Folder-dups: {len(in_folder_duplicates)}'
     )
     console.print(f'\n[bold]Summary:[/bold] {summary}')
 
@@ -170,8 +216,9 @@ def write_csv(
         only_in_months: list[MatchedRow],
         in_multiple_months: list[MultiMonthRow],
         untagged: list[UntaggedRow],
+        in_folder_duplicates: list[InFolderDupRow],
 ) -> None:
-    """Write the four-section report as a single CSV with a 'section' column."""
+    """Write the five-section report as a single CSV with a 'section' column."""
     with csv_path.open('w', encoding='utf-8', newline='') as fh:
         writer = csv.writer(fh)
         writer.writerow(['section', 'title', 'artist', 'album', 'year',
@@ -207,3 +254,13 @@ def write_csv(
                 '', '', _display_path(file_path=untag.file_path, month_folder=untag.month_folder),
                 extra,
             ])
+        for dup in in_folder_duplicates:
+            folder_label = 'All' if dup.month_folder is None else dup.month_folder
+            for path in dup.file_paths:
+                writer.writerow([
+                    'in_folder_duplicates',
+                    dup.raw_title, dup.raw_artist, dup.raw_album,
+                    '', format_duration(seconds=dup.duration_seconds),
+                    _display_path(file_path=path, month_folder=dup.month_folder),
+                    f'cluster: {dup.dup_count} files in {folder_label}',
+                ])

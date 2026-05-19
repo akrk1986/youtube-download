@@ -73,3 +73,21 @@ class UntaggedRow:
     raw_title: str
     raw_artist: str
     raw_album: str
+
+
+@dataclass(frozen=True)
+class InFolderDupRow:
+    """Cluster of >=2 files in the same folder sharing the matching key.
+
+    'Same folder' means same (side, month_folder); for singles-all rows
+    month_folder is None. file_paths holds every member of the cluster
+    (sorted, full paths).
+    """
+    side: str               # 'singles_all' | 'month'
+    month_folder: str | None
+    raw_title: str
+    raw_artist: str
+    raw_album: str
+    duration_seconds: float
+    dup_count: int
+    file_paths: tuple[str, ...]
