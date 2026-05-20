@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-20-2000] - Bump idna 3.11->3.15 (CVE-2026-45409)
+
+### Fixed
+- **`requirements.txt`**: upgraded `idna` to `3.15` in the shared venv and re-synced the pin (it had drifted to `3.11` while `3.13` was installed). Clears `CVE-2026-45409` flagged by pip-audit. `idna` is transitive (anyio / httpx / requests). The remaining pip-audit advisory (`pyjwt` PYSEC-2025-183) is left as-is — `pyjwt` is unused by this project (transitive via `mcp`, which is itself undeclared/unused here) and has no fixed release available.
+
+## [2026-05-20-1957] - Greek singles checker: parameterize duration margin in SQL (bandit B608)
+
+### Fixed
+- **`funcs_check_greek_singles/database.py`**: the three cross-folder match queries interpolated `DURATION_MATCH_MARGIN_SECONDS` into the SQL via f-string, which bandit flagged as B608 (possible SQL injection via string construction) — a false positive (project-controlled float) but a real anti-pattern. Switched to a bound `?` placeholder passed through `conn.execute(...)`, so the value never enters the SQL text. bandit Medium count 3 → 0; 100 tests still pass.
+
 ## [2026-05-20-1926] - Greek singles checker: extract duration margin to config module
 
 ### Changed
