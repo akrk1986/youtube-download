@@ -37,15 +37,15 @@ CREATE INDEX idx_songs_key ON songs(norm_title, norm_artist) WHERE has_key = 1;
 """
 
 # Matching predicate: (norm_title, norm_artist, ABS(dur_a - dur_b) <= margin).
-# The duration margin is DURATION_MATCH_MARGIN_SECONDS (see config.py) and
-# disambiguates same-tagged-but-different recordings (e.g. 'BandaLaika' studio
-# vs 'BandaLaika' live). Inlined into the SQL via f-string at module load — the
-# constant is project-controlled, no injection risk.
+# The duration margin (DURATION_MATCH_MARGIN_SECONDS, see config.py) is bound as
+# a query parameter (the trailing '?'), so the value never enters the SQL text.
+# It disambiguates same-tagged-but-different recordings (e.g. 'BandaLaika'
+# studio vs 'BandaLaika' live).
 #
 # Note: GROUP BY clauses (in _QUERY_IN_MULTIPLE_MONTHS and _QUERY_IN_FOLDER_DUPS)
 # still use ROUND(duration_seconds) for bucketing. SQL can't do fuzzy GROUP BY;
-# for the 1.0s default margin this only affects durations that straddle X.5.
-_QUERY_ONLY_IN_ALL = f"""
+# at the default margin this only affects durations that straddle X.5.
+_QUERY_ONLY_IN_ALL = """
 SELECT *
 FROM songs s
 WHERE s.side = 'singles_all'
@@ -55,12 +55,12 @@ WHERE s.side = 'singles_all'
     WHERE m.side = 'month' AND m.has_key = 1
       AND m.norm_title = s.norm_title
       AND m.norm_artist = s.norm_artist
-      AND ABS(m.duration_seconds - s.duration_seconds) <= {DURATION_MATCH_MARGIN_SECONDS}
+      AND ABS(m.duration_seconds - s.duration_seconds) <= ?
   )
 ORDER BY s.norm_title, s.norm_artist, s.norm_album, s.file_path
 """
 
-_QUERY_ONLY_IN_MONTHS = f"""
+_QUERY_ONLY_IN_MONTHS = """
 SELECT *
 FROM songs m
 WHERE m.side = 'month'
@@ -70,12 +70,12 @@ WHERE m.side = 'month'
     WHERE s.side = 'singles_all' AND s.has_key = 1
       AND s.norm_title = m.norm_title
       AND s.norm_artist = m.norm_artist
-      AND ABS(s.duration_seconds - m.duration_seconds) <= {DURATION_MATCH_MARGIN_SECONDS}
+      AND ABS(s.duration_seconds - m.duration_seconds) <= ?
   )
 ORDER BY m.norm_title, m.norm_artist, m.norm_album, m.month_folder, m.file_path
 """
 
-_QUERY_IN_MULTIPLE_MONTHS = f"""
+_QUERY_IN_MULTIPLE_MONTHS = """
 SELECT s.norm_title, s.norm_artist,
        s.raw_title, s.raw_artist, s.raw_album,
        s.year, s.duration_seconds, s.file_path,
@@ -87,7 +87,7 @@ JOIN songs m
  AND s.has_key = 1 AND m.has_key = 1
  AND s.norm_title = m.norm_title
  AND s.norm_artist = m.norm_artist
- AND ABS(s.duration_seconds - m.duration_seconds) <= {DURATION_MATCH_MARGIN_SECONDS}
+ AND ABS(s.duration_seconds - m.duration_seconds) <= ?
 GROUP BY s.norm_title, s.norm_artist, ROUND(s.duration_seconds)
 HAVING folder_count >= 2
 ORDER BY s.norm_title, s.norm_artist
@@ -233,17 +233,20 @@ def _build_in_folder_cluster(rows: list[sqlite3.Row]) -> InFolderDupRow:
 
 def query_only_in_all(conn: sqlite3.Connection) -> list[MatchedRow]:
     """Songs in 01-Singles-All with no (title, artist) match in any month folder."""
-    return [_row_to_matched(row=r) for r in conn.execute(_QUERY_ONLY_IN_ALL)]
+    rows = conn.execute(_QUERY_ONLY_IN_ALL, (DURATION_MATCH_MARGIN_SECONDS,))
+    return [_row_to_matched(row=r) for r in rows]
 
 
 def query_only_in_months(conn: sqlite3.Connection) -> list[MatchedRow]:
     """Songs in any month folder with no (title, artist) match in 01-Singles-All."""
-    return [_row_to_matched(row=r) for r in conn.execute(_QUERY_ONLY_IN_MONTHS)]
+    rows = conn.execute(_QUERY_ONLY_IN_MONTHS, (DURATION_MATCH_MARGIN_SECONDS,))
+    return [_row_to_matched(row=r) for r in rows]
 
 
 def query_in_multiple_months(conn: sqlite3.Connection) -> list[MultiMonthRow]:
     """Singles-all songs whose (title, artist) appears in >=2 distinct month folders."""
-    return [_row_to_multi_month(row=r) for r in conn.execute(_QUERY_IN_MULTIPLE_MONTHS)]
+    rows = conn.execute(_QUERY_IN_MULTIPLE_MONTHS, (DURATION_MATCH_MARGIN_SECONDS,))
+    return [_row_to_multi_month(row=r) for r in rows]
 
 
 def query_untagged(conn: sqlite3.Connection) -> list[UntaggedRow]:
