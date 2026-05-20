@@ -6,6 +6,7 @@ from pathlib import Path
 
 import arrow
 
+from funcs_check_greek_singles.config import DURATION_MATCH_MARGIN_SECONDS
 from funcs_check_greek_singles.models import (
     InFolderDupMember, InFolderDupRow, MatchedRow, MultiMonthRow, Song, UntaggedRow,
 )
@@ -13,12 +14,6 @@ from funcs_check_greek_singles.normalize import normalize
 
 SIDE_SINGLES_ALL = 'singles_all'
 SIDE_MONTH = 'month'
-
-# Two songs match if their normalized tags (title, artist) align AND their durations
-# differ by at most this many seconds. ABS-based tolerance (no X.5 boundary
-# issue). Sub-second encoder jitter is well within 1.0s; distinct recordings of
-# the same song (studio vs live) typically differ by 10s+.
-DURATION_MATCH_MARGIN_SECONDS = 3.0
 
 SCHEMA_DDL = """
 PRAGMA journal_mode = MEMORY;
@@ -42,7 +37,7 @@ CREATE INDEX idx_songs_key ON songs(norm_title, norm_artist) WHERE has_key = 1;
 """
 
 # Matching predicate: (norm_title, norm_artist, ABS(dur_a - dur_b) <= margin).
-# The duration margin is DURATION_MATCH_MARGIN_SECONDS (default 1.0s) and
+# The duration margin is DURATION_MATCH_MARGIN_SECONDS (see config.py) and
 # disambiguates same-tagged-but-different recordings (e.g. 'BandaLaika' studio
 # vs 'BandaLaika' live). Inlined into the SQL via f-string at module load — the
 # constant is project-controlled, no injection risk.

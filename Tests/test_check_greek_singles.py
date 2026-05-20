@@ -15,8 +15,9 @@ if str(_PROJECT_ROOT) not in sys.path:
 from funcs_check_greek_singles.audio_reader import (  # noqa: E402
     MONTH_FOLDER_RE, iter_month_folders, parse_month_arg,
 )
+from funcs_check_greek_singles.config import DURATION_MATCH_MARGIN_SECONDS  # noqa: E402
 from funcs_check_greek_singles.database import (  # noqa: E402
-    DURATION_MATCH_MARGIN_SECONDS, SCHEMA_DDL,
+    SCHEMA_DDL,
     archive_previous_db, insert_song,
     query_in_folder_duplicates, query_in_multiple_months, query_only_in_all,
     query_only_in_months, query_untagged,
