@@ -7,7 +7,7 @@ from pathlib import Path
 import arrow
 
 from funcs_check_greek_singles.models import (
-    InFolderDupRow, MatchedRow, MultiMonthRow, Song, UntaggedRow,
+    InFolderDupMember, InFolderDupRow, MatchedRow, MultiMonthRow, Song, UntaggedRow,
 )
 from funcs_check_greek_singles.normalize import normalize
 
@@ -214,21 +214,25 @@ def _row_to_untagged(row: sqlite3.Row) -> UntaggedRow:
 
 
 def _in_folder_group_key(row: sqlite3.Row) -> tuple[str, str | None, str, str]:
-    return (row['side'], row['month_folder'], row['norm_title'], row['norm_artist'])
+    return row['side'], row['month_folder'], row['norm_title'], row['norm_artist']
 
 
 def _build_in_folder_cluster(rows: list[sqlite3.Row]) -> InFolderDupRow:
     first = rows[0]
-    paths = tuple(sorted(r['file_path'] for r in rows))
+    members = tuple(sorted(
+        (InFolderDupMember(
+            file_path=r['file_path'],
+            raw_album=r['raw_album'] or '',
+            duration_seconds=float(r['duration_seconds'] or 0.0),
+        ) for r in rows),
+        key=lambda member: member.file_path,
+    ))
     return InFolderDupRow(
         side=first['side'],
         month_folder=first['month_folder'],
         raw_title=first['raw_title'] or '',
         raw_artist=first['raw_artist'] or '',
-        raw_album=first['raw_album'] or '',
-        duration_seconds=float(min(r['duration_seconds'] or 0.0 for r in rows)),
-        dup_count=len(rows),
-        file_paths=paths,
+        members=members,
     )
 
 

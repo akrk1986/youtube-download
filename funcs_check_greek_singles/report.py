@@ -84,25 +84,27 @@ def _add_in_folder_dup_table(console: Console, rows: list[InFolderDupRow]) -> No
         title=f'{len(rows)} clusters ({total_files} files) are duplicate within a single folder',
         title_justify='left', show_lines=False, header_style='bold magenta', expand=True,
     )
-    table.add_column('#', justify='right', width=_SERIAL_WIDTH, style='dim')
     table.add_column('Folder', overflow='fold', ratio=2)
     table.add_column('Title', overflow='fold', ratio=2)
     table.add_column('Artist', overflow='fold', ratio=2)
+    table.add_column('#', justify='right', width=3, style='dim')
     table.add_column('Album', overflow='fold', ratio=2)
     table.add_column('Duration', justify='right')
-    table.add_column('N', justify='right')
-    table.add_column('Files (basenames)', overflow='fold', ratio=3)
-    for idx, row in enumerate(rows, start=1):
+    table.add_column('File', overflow='fold', ratio=3)
+    for row in rows:
         folder = 'All/' if row.month_folder is None else f'{row.month_folder}/'
-        files = ', '.join(Path(p).name for p in row.file_paths)
-        table.add_row(
-            f'{idx:{_SERIAL_WIDTH}d}',
-            folder,
-            row.raw_title, row.raw_artist, row.raw_album,
-            format_duration(seconds=row.duration_seconds),
-            str(row.dup_count),
-            files,
-        )
+        for dupe_no, member in enumerate(row.members, start=1):
+            first = dupe_no == 1
+            table.add_row(
+                folder if first else '',
+                row.raw_title if first else '',
+                row.raw_artist if first else '',
+                str(dupe_no),
+                member.raw_album,
+                format_duration(seconds=member.duration_seconds),
+                Path(member.file_path).name,
+            )
+        table.add_section()
     console.print(table)
 
 
@@ -256,11 +258,11 @@ def write_csv(
             ])
         for dup in in_folder_duplicates:
             folder_label = 'All' if dup.month_folder is None else dup.month_folder
-            for path in dup.file_paths:
+            for member in dup.members:
                 writer.writerow([
                     'in_folder_duplicates',
-                    dup.raw_title, dup.raw_artist, dup.raw_album,
-                    '', format_duration(seconds=dup.duration_seconds),
-                    _display_path(file_path=path, month_folder=dup.month_folder),
+                    dup.raw_title, dup.raw_artist, member.raw_album,
+                    '', format_duration(seconds=member.duration_seconds),
+                    _display_path(file_path=member.file_path, month_folder=dup.month_folder),
                     f'cluster: {dup.dup_count} files in {folder_label}',
                 ])

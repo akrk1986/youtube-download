@@ -76,18 +76,34 @@ class UntaggedRow:
 
 
 @dataclass(frozen=True)
+class InFolderDupMember:
+    """One file within an in-folder duplicate cluster (per-file album/duration)."""
+    file_path: str
+    raw_album: str
+    duration_seconds: float
+
+
+@dataclass(frozen=True)
 class InFolderDupRow:
     """Cluster of >=2 files in the same folder sharing the matching key.
 
     'Same folder' means same (side, month_folder); for singles-all rows
-    month_folder is None. file_paths holds every member of the cluster
-    (sorted, full paths).
+    month_folder is None. raw_title / raw_artist are cluster-level (same
+    normalized key); album and duration vary per file, so they live on
+    `members` (sorted by file_path).
     """
     side: str               # 'singles_all' | 'month'
     month_folder: str | None
     raw_title: str
     raw_artist: str
-    raw_album: str
-    duration_seconds: float
-    dup_count: int
-    file_paths: tuple[str, ...]
+    members: tuple[InFolderDupMember, ...]
+
+    @property
+    def dup_count(self) -> int:
+        """Number of files in the cluster."""
+        return len(self.members)
+
+    @property
+    def file_paths(self) -> tuple[str, ...]:
+        """Full paths of every file in the cluster, in member order."""
+        return tuple(member.file_path for member in self.members)
