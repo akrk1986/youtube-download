@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-20-1900] - Greek singles checker: per-dupe rows in the duplicates table
+
+### Changed
+- **`funcs_check_greek_singles/models.py`**: new `InFolderDupMember` (file_path, raw_album, duration_seconds); `InFolderDupRow` now holds `members: tuple[InFolderDupMember, ...]` instead of a single representative album/duration. `dup_count` and `file_paths` became computed properties (existing call sites/tests unchanged).
+- **`funcs_check_greek_singles/report.py`**: the in-folder duplicates table renders one row per file. Folder/Title/Artist print only on the first row of each cluster; every row carries a per-dupe serial (1, 2, 3...), the file's own album and duration, and the basename. A horizontal delimiter (`Table.add_section`) separates clusters. CSV gains per-file album + duration.
+- **`funcs_check_greek_singles/database.py`**: `_build_in_folder_cluster` builds the per-file `members` tuple (sorted by file_path).
+- **`Utils/main-check-greek-singles.py`**: `VERSION` bumped to `2026-05-20-1900`.
+
+## [2026-05-20-1826] - Drop unrecognized Pyright config keys
+
+### Fixed
+- **`pyrightconfig.json`**: removed `pythonPath` and `reportUnusedParameter`, both flagged "unrecognized setting" by the Pyright CLI (1.1.408). `pythonPath` was redundant (`venvPath` + `venv` resolve all imports); `reportUnusedParameter` is not a real Pyright rule and was a no-op — Pyright already suppresses underscore-prefixed unused params by default. Pyright CLI now reports zero config warnings.
+
+## [2026-05-20-1811] - Greek singles checker: margin-aware in-folder duplicate clustering
+
+### Fixed
+- **`funcs_check_greek_singles/database.py`**: the in-folder duplicate query bucketed by `GROUP BY ROUND(duration_seconds)`, which ignored `DURATION_MATCH_MARGIN_SECONDS` entirely — 168s and 171s landed in different ROUND buckets regardless of margin, so a 3-file cluster (2:48, 2:51, 2:51) reported as only the two 2:51s. Replaced the GROUP-BY query with a Python single-linkage sweep: `_QUERY_IN_FOLDER_CANDIDATES` fetches all tagged rows ordered by `(side, month_folder, norm_title, norm_artist, duration_seconds)`; `query_in_folder_duplicates` partitions via `itertools.groupby` and splits each partition wherever the consecutive-duration gap exceeds the margin (now a function parameter defaulting to the module constant, raised to `3.0`).
+
+## [2026-05-19-1842] - Greek singles checker: in-folder duplicates + --dupes-only + configurable duration margin
+
+### Added
+- **`funcs_check_greek_singles/`**: fifth report section — clusters of ≥2 files within the *same* folder (`01-Singles-All` or a single month folder) sharing `(norm_title, norm_artist, duration within margin)`. New `InFolderDupRow` dataclass, `query_in_folder_duplicates`, `_add_in_folder_dup_table`, and a `in_folder_duplicates` CSV section. Summary line gains `Folder-dups: N`.
+- **`Utils/main-check-greek-singles.py`**: `--dupes-only` flag runs only the in-folder duplicate check (skips cross-folder queries and the action prompt). Without a month range it scans `01-Singles-All/`; with one it scans the in-range month folders only. Mutually exclusive with `--missing-action`.
+
+### Changed
+- **`funcs_check_greek_singles/database.py`**: duration matching switched from `ROUND(a) = ROUND(b)` to `ABS(a - b) <= DURATION_MATCH_MARGIN_SECONDS` (new constant) across the three cross-folder queries. Inlined into the SQL via f-string (project-controlled value, no injection risk). Fixes the X.5 boundary case where 222.4 and 222.7 rounded to different integers and failed to match.
+
 ## [2026-05-19-1635] - Greek singles checker: deterministic action order + duration-aware match key
 
 ### Added
