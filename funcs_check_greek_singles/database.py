@@ -1,4 +1,5 @@
 """SQLite persistence layer: schema, archive, insert, diff queries."""
+import itertools
 import logging
 import sqlite3
 from pathlib import Path
@@ -13,11 +14,11 @@ from funcs_check_greek_singles.normalize import normalize
 SIDE_SINGLES_ALL = 'singles_all'
 SIDE_MONTH = 'month'
 
-# Two songs match if their normalized (title, artist) align AND their durations
+# Two songs match if their normalized tags (title, artist) align AND their durations
 # differ by at most this many seconds. ABS-based tolerance (no X.5 boundary
 # issue). Sub-second encoder jitter is well within 1.0s; distinct recordings of
 # the same song (studio vs live) typically differ by 10s+.
-DURATION_MATCH_MARGIN_SECONDS = 1.0
+DURATION_MATCH_MARGIN_SECONDS = 3.0
 
 SCHEMA_DDL = """
 PRAGMA journal_mode = MEMORY;
@@ -104,23 +105,19 @@ WHERE has_key = 0
 ORDER BY side, COALESCE(month_folder, ''), file_path
 """
 
-# Cluster files that share (norm_title, norm_artist, ROUND(duration_seconds))
-# within the same folder. GROUP_CONCAT uses Unit Separator (U+001F) because
-# file paths may contain commas. MIN() picks a deterministic representative
-# raw field for display.
-_QUERY_IN_FOLDER_DUPS = """
-SELECT side, month_folder,
-       MIN(raw_title)        AS raw_title,
-       MIN(raw_artist)       AS raw_artist,
-       MIN(raw_album)        AS raw_album,
-       MIN(duration_seconds) AS duration_seconds,
-       COUNT(*)              AS dup_count,
-       GROUP_CONCAT(file_path, X'1F') AS file_paths
+# Candidate rows for in-folder duplicate clustering: every tagged song, ordered
+# so itertools.groupby can partition by (side, month_folder, norm_title,
+# norm_artist) and a duration sweep can cluster within each partition. Duration
+# clustering is done in Python (query_in_folder_duplicates) because SQL GROUP BY
+# can't honor the ABS-based margin -- ROUND-bucketing would split e.g. 168s and
+# 171s into different buckets even when the margin (3.0s) says they're the same.
+_QUERY_IN_FOLDER_CANDIDATES = """
+SELECT side, month_folder, norm_title, norm_artist,
+       raw_title, raw_artist, raw_album,
+       duration_seconds, file_path
 FROM songs
 WHERE has_key = 1
-GROUP BY side, month_folder, norm_title, norm_artist, ROUND(duration_seconds)
-HAVING dup_count >= 2
-ORDER BY side, COALESCE(month_folder, ''), norm_title, norm_artist
+ORDER BY side, COALESCE(month_folder, ''), norm_title, norm_artist, duration_seconds
 """
 
 _QUERY_TOTAL_MONTH_SONGS = """
@@ -216,17 +213,21 @@ def _row_to_untagged(row: sqlite3.Row) -> UntaggedRow:
     )
 
 
-def _row_to_in_folder_dup(row: sqlite3.Row) -> InFolderDupRow:
-    paths_raw = row['file_paths'] or ''
-    paths = tuple(sorted(p for p in paths_raw.split('\x1f') if p))
+def _in_folder_group_key(row: sqlite3.Row) -> tuple[str, str | None, str, str]:
+    return (row['side'], row['month_folder'], row['norm_title'], row['norm_artist'])
+
+
+def _build_in_folder_cluster(rows: list[sqlite3.Row]) -> InFolderDupRow:
+    first = rows[0]
+    paths = tuple(sorted(r['file_path'] for r in rows))
     return InFolderDupRow(
-        side=row['side'],
-        month_folder=row['month_folder'],
-        raw_title=row['raw_title'] or '',
-        raw_artist=row['raw_artist'] or '',
-        raw_album=row['raw_album'] or '',
-        duration_seconds=float(row['duration_seconds'] or 0.0),
-        dup_count=int(row['dup_count']),
+        side=first['side'],
+        month_folder=first['month_folder'],
+        raw_title=first['raw_title'] or '',
+        raw_artist=first['raw_artist'] or '',
+        raw_album=first['raw_album'] or '',
+        duration_seconds=float(min(r['duration_seconds'] or 0.0 for r in rows)),
+        dup_count=len(rows),
         file_paths=paths,
     )
 
@@ -251,9 +252,33 @@ def query_untagged(conn: sqlite3.Connection) -> list[UntaggedRow]:
     return [_row_to_untagged(row=r) for r in conn.execute(_QUERY_UNTAGGED)]
 
 
-def query_in_folder_duplicates(conn: sqlite3.Connection) -> list[InFolderDupRow]:
-    """Clusters of >=2 files within the same folder sharing (title, artist, dur) key."""
-    return [_row_to_in_folder_dup(row=r) for r in conn.execute(_QUERY_IN_FOLDER_DUPS)]
+def query_in_folder_duplicates(
+        conn: sqlite3.Connection,
+        margin: float = DURATION_MATCH_MARGIN_SECONDS,
+) -> list[InFolderDupRow]:
+    """Clusters of >=2 files in the same folder sharing (title, artist), durations
+    within `margin` seconds.
+
+    Within each (side, month_folder, norm_title, norm_artist) partition, rows are
+    swept in ascending duration order and split wherever the gap to the previous
+    row exceeds `margin` (single-linkage clustering). A cluster is reported only
+    when it holds >=2 files.
+    """
+    rows = conn.execute(_QUERY_IN_FOLDER_CANDIDATES).fetchall()
+    clusters: list[InFolderDupRow] = []
+    for _key, group_iter in itertools.groupby(rows, key=_in_folder_group_key):
+        group = list(group_iter)
+        current = [group[0]]
+        for row in group[1:]:
+            if row['duration_seconds'] - current[-1]['duration_seconds'] <= margin:
+                current.append(row)
+            else:
+                if len(current) >= 2:
+                    clusters.append(_build_in_folder_cluster(rows=current))
+                current = [row]
+        if len(current) >= 2:
+            clusters.append(_build_in_folder_cluster(rows=current))
+    return clusters
 
 
 def query_total_month_songs(conn: sqlite3.Connection) -> int:
