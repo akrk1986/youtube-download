@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-20-1926] - Greek singles checker: extract duration margin to config module
+
+### Changed
+- **`funcs_check_greek_singles/config.py`** (new): owns `DURATION_MATCH_MARGIN_SECONDS` — a domain tuning value that didn't belong in the persistence layer. `database.py` and the tests import it from here; `__init__.py` lists the module in its architecture doc. Fixed a stale "default 1.0s" comment (the value is 3.0). Pure refactor, no behavior change.
+- **`Utils/main-check-greek-singles.py`**: `VERSION` bumped to `2026-05-20-1926`.
+
 ## [2026-05-20-1900] - Greek singles checker: per-dupe rows in the duplicates table
 
 ### Changed
