@@ -5,7 +5,10 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
-from funcs_check_greek_singles.models import InFolderDupRow, MatchedRow, MultiMonthRow, UntaggedRow
+from funcs_check_greek_singles.config import DURATION_MATCH_MARGIN_SECONDS
+from funcs_check_greek_singles.models import (
+    CrossMonthDupRow, InFolderDupRow, MatchedRow, MultiMonthRow, UntaggedRow,
+)
 from funcs_check_greek_singles.normalize import format_duration, missing_tag_fields
 
 _SERIAL_WIDTH = 4
@@ -108,6 +111,35 @@ def _add_in_folder_dup_table(console: Console, rows: list[InFolderDupRow]) -> No
     console.print(table)
 
 
+def _add_cross_month_dup_table(console: Console, rows: list[CrossMonthDupRow]) -> None:
+    total_files = sum(row.dup_count for row in rows)
+    table = Table(
+        title=f'{len(rows)} clusters ({total_files} files) are duplicate across months in the range',
+        title_justify='left', show_lines=False, header_style='bold magenta', expand=True,
+    )
+    table.add_column('Title', overflow='fold', ratio=2)
+    table.add_column('Artist', overflow='fold', ratio=2)
+    table.add_column('#', justify='right', width=3, style='dim')
+    table.add_column('Month', overflow='fold', ratio=2)
+    table.add_column('Album', overflow='fold', ratio=2)
+    table.add_column('Duration', justify='right')
+    table.add_column('File', overflow='fold', ratio=3)
+    for row in rows:
+        for dupe_no, member in enumerate(row.members, start=1):
+            first = dupe_no == 1
+            table.add_row(
+                row.raw_title if first else '',
+                row.raw_artist if first else '',
+                str(dupe_no),
+                member.month_folder or '',
+                member.raw_album,
+                format_duration(seconds=member.duration_seconds),
+                Path(member.file_path).name,
+            )
+        table.add_section()
+    console.print(table)
+
+
 def _add_untagged_table(console: Console, rows: list[UntaggedRow]) -> None:
     table = Table(
         title=f'{len(rows)} files are untagged (missing title and/or artist)',
@@ -133,29 +165,40 @@ def render_console(
         in_multiple_months: list[MultiMonthRow],
         untagged: list[UntaggedRow],
         in_folder_duplicates: list[InFolderDupRow],
+        cross_month_duplicates: list[CrossMonthDupRow],
         title_prefix: str | None,
         total_month_songs: int = 0,
         range_active: bool = False,
         start_yyyymm: str = '',
         end_yyyymm: str = '',
-        dupes_only: bool = False,
+        dupes_scope: str | None = None,
 ) -> None:
-    """Render the five-section report to the console.
+    """Render the report to the console.
 
     When range_active is True, the 'only_in_all' section is suppressed entirely
     (no table, no OK line) and a one-line notice is printed instead.
-    When dupes_only is True, only the in-folder-duplicates section + a short
-    summary are rendered; the four cross-folder sections are skipped.
+    dupes_scope selects a dupe-only mode: 'folder' renders just the in-folder
+    section, 'range' renders just the cross-month section; None renders the full
+    five-section report (no cross-month section).
     """
     if title_prefix:
         console.print(f'[bold]Title-prefix filter is active:[/bold] {title_prefix!r}')
 
-    if dupes_only:
+    if dupes_scope == 'folder':
         if in_folder_duplicates:
             _add_in_folder_dup_table(console=console, rows=in_folder_duplicates)
         else:
             console.print('[green]OK -- no duplicate files within a single folder[/green]')
         console.print(f'\n[bold]Summary:[/bold] Folder-dups: {len(in_folder_duplicates)}')
+        return
+
+    if dupes_scope == 'range':
+        console.print(f'[bold]Duration margin:[/bold] {DURATION_MATCH_MARGIN_SECONDS} secs')
+        if cross_month_duplicates:
+            _add_cross_month_dup_table(console=console, rows=cross_month_duplicates)
+        else:
+            console.print('[green]OK -- no duplicate files across months in the range[/green]')
+        console.print(f'\n[bold]Summary:[/bold] Cross-month dupes: {len(cross_month_duplicates)}')
         return
 
     if range_active:
@@ -219,8 +262,9 @@ def write_csv(
         in_multiple_months: list[MultiMonthRow],
         untagged: list[UntaggedRow],
         in_folder_duplicates: list[InFolderDupRow],
+        cross_month_duplicates: list[CrossMonthDupRow],
 ) -> None:
-    """Write the five-section report as a single CSV with a 'section' column."""
+    """Write the report as a single CSV with a 'section' column."""
     with csv_path.open('w', encoding='utf-8', newline='') as fh:
         writer = csv.writer(fh)
         writer.writerow(['section', 'title', 'artist', 'album', 'year',
@@ -265,4 +309,13 @@ def write_csv(
                     '', format_duration(seconds=member.duration_seconds),
                     _display_path(file_path=member.file_path, month_folder=dup.month_folder),
                     f'cluster: {dup.dup_count} files in {folder_label}',
+                ])
+        for cross in cross_month_duplicates:
+            for member in cross.members:
+                writer.writerow([
+                    'cross_month_duplicates',
+                    cross.raw_title, cross.raw_artist, member.raw_album,
+                    '', format_duration(seconds=member.duration_seconds),
+                    _display_path(file_path=member.file_path, month_folder=member.month_folder),
+                    f'cluster: {cross.dup_count} files across {cross.distinct_months} months',
                 ])

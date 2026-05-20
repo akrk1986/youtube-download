@@ -30,7 +30,8 @@ from funcs_check_greek_singles.audio_reader import (  # noqa: E402
 from funcs_check_greek_singles.database import (  # noqa: E402
     SIDE_MONTH, SIDE_SINGLES_ALL,
     archive_previous_db, init_db, insert_song,
-    query_in_folder_duplicates, query_in_multiple_months, query_only_in_all,
+    query_cross_month_duplicates, query_in_folder_duplicates,
+    query_in_multiple_months, query_only_in_all,
     query_only_in_months, query_total_month_songs, query_untagged,
 )
 from funcs_check_greek_singles.file_actions import (  # noqa: E402
@@ -94,7 +95,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         '--missing-action', choices=['copy', 'move'], default=None,
         help="Action for songs missing from 01-Singles-All: 'copy' or 'move' into "
              'per-folder subdirs under All/. Default: %(default)s (report only). '
-             'Prompts before acting. Mutually exclusive with --dupes-only.',
+             'Prompts before acting. Mutually exclusive with --dupes-scope.',
     )
     parser.add_argument(
         '--target-is-year', action='store_true',
@@ -103,11 +104,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
              '(All/<YYYY-MM-...>/). Ignored without --missing-action.',
     )
     parser.add_argument(
-        '--dupes-only', action='store_true',
-        help='Run only the in-folder duplicate check; skip cross-folder queries '
-             'and the missing-action prompt. Without --start-month/--end-month, '
-             'scans 01-Singles-All/ only. With a month range, scans the in-range '
-             'month folders only. Mutually exclusive with --missing-action.',
+        '--dupes-scope', choices=['folder', 'range'], default=None,
+        help="Run only a duplicate check (skip cross-folder queries and the "
+             "missing-action prompt). 'folder': dupes within each single folder "
+             '(01-Singles-All/ when no range, else the in-range month folders). '
+             "'range': dupes pooled across all in-range month folders (requires "
+             '--start-month/--end-month). Default: %(default)s (full report). '
+             'Mutually exclusive with --missing-action.',
     )
     parser.add_argument(
         '--verbose', action='store_true',
@@ -129,8 +132,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv=argv)
     setup_logging(verbose=args.verbose, log_to_file=True, log_dir=_PROJECT_ROOT / LOGS_DIRNAME)
 
-    if args.dupes_only and args.missing_action is not None:
-        logger.error('--dupes-only and --missing-action are mutually exclusive.')
+    if args.dupes_scope is not None and args.missing_action is not None:
+        logger.error('--dupes-scope and --missing-action are mutually exclusive.')
         return 2
 
     root = args.root.resolve()
@@ -157,15 +160,23 @@ def main(argv: list[str] | None = None) -> int:
         logger.error(f'--start-month ({start_yyyymm}) is later than --end-month ({end_yyyymm}).')
         return 2
     range_active = bool(start_yyyymm or end_yyyymm)
-    if range_active and not args.dupes_only:
+    if args.dupes_scope == 'range' and not range_active:
+        logger.error('--dupes-scope range requires --start-month and/or --end-month.')
+        return 2
+    if range_active and args.dupes_scope is None:
         logger.info(
             f"Month range is active: {start_yyyymm or '-inf'}..{end_yyyymm or '+inf'}; "
             f"the 'only_in_all' section will be suppressed."
         )
-    if args.dupes_only:
+    if args.dupes_scope == 'folder':
         scope = (f'in-range month folders ({start_yyyymm or "-inf"}..{end_yyyymm or "+inf"})'
                  if range_active else SINGLES_ALL_DIRNAME)
-        logger.info(f'Dupes-only mode: scanning {scope}; cross-folder checks skipped.')
+        logger.info(f'Dupes-scope=folder: scanning {scope}; cross-folder checks skipped.')
+    elif args.dupes_scope == 'range':
+        logger.info(
+            f'Dupes-scope=range: pooling in-range month folders '
+            f"({start_yyyymm or '-inf'}..{end_yyyymm or '+inf'}); cross-folder checks skipped."
+        )
 
     data_dir = _PROJECT_ROOT / DATA_DIRNAME
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -180,8 +191,10 @@ def main(argv: list[str] | None = None) -> int:
 
     conn = init_db(db_path=db_path)
     try:
-        scan_singles_all = not (args.dupes_only and range_active)
-        scan_months = not args.dupes_only or range_active
+        # 'folder' (no range) checks 01-Singles-All only; 'range' is months only.
+        scan_singles_all = args.dupes_scope != 'range' and not (args.dupes_scope == 'folder'
+                                                                and range_active)
+        scan_months = args.dupes_scope != 'folder' or range_active
 
         if scan_singles_all:
             logger.info(f'Scanning {singles_all}...')
@@ -202,23 +215,28 @@ def main(argv: list[str] | None = None) -> int:
                 logger.info('Month range is active but no month folders fell within the range.')
         conn.commit()
 
-        if args.dupes_only:
-            only_in_all: list[MatchedRow] = []
-            only_in_months: list[MatchedRow] = []
-            in_multiple_months = []  # type: ignore[var-annotated]
-            untagged = []  # type: ignore[var-annotated]
-            total_month_songs = 0
+        only_in_all: list[MatchedRow] = []
+        only_in_months: list[MatchedRow] = []
+        in_multiple_months = []  # type: ignore[var-annotated]
+        untagged = []  # type: ignore[var-annotated]
+        in_folder_duplicates = []  # type: ignore[var-annotated]
+        cross_month_duplicates = []  # type: ignore[var-annotated]
+        total_month_songs = 0
+        if args.dupes_scope == 'folder':
+            in_folder_duplicates = query_in_folder_duplicates(conn=conn)
+        elif args.dupes_scope == 'range':
+            cross_month_duplicates = query_cross_month_duplicates(conn=conn)
         else:
             only_in_all = [] if range_active else query_only_in_all(conn=conn)
             only_in_months = query_only_in_months(conn=conn)
             in_multiple_months = query_in_multiple_months(conn=conn)
             untagged = query_untagged(conn=conn)
+            in_folder_duplicates = query_in_folder_duplicates(conn=conn)
             total_month_songs = query_total_month_songs(conn=conn)
-        in_folder_duplicates = query_in_folder_duplicates(conn=conn)
 
         if title_prefix_norm and not (only_in_all or only_in_months
                                       or in_multiple_months or untagged
-                                      or in_folder_duplicates):
+                                      or in_folder_duplicates or cross_month_duplicates):
             logger.info('No songs matched the title prefix on either side.')
 
         console = Console(width=_resolve_console_width(override=args.console_width))
@@ -229,12 +247,13 @@ def main(argv: list[str] | None = None) -> int:
             in_multiple_months=in_multiple_months,
             untagged=untagged,
             in_folder_duplicates=in_folder_duplicates,
+            cross_month_duplicates=cross_month_duplicates,
             title_prefix=args.title_prefix,
             total_month_songs=total_month_songs,
             range_active=range_active,
             start_yyyymm=start_yyyymm,
             end_yyyymm=end_yyyymm,
-            dupes_only=args.dupes_only,
+            dupes_scope=args.dupes_scope,
         )
 
         timestamp = arrow.now().format('YYYY-MM-DD-HHmm')
@@ -246,6 +265,7 @@ def main(argv: list[str] | None = None) -> int:
             in_multiple_months=in_multiple_months,
             untagged=untagged,
             in_folder_duplicates=in_folder_duplicates,
+            cross_month_duplicates=cross_month_duplicates,
         )
         console.print(f'\n[bold]CSV written:[/bold] {csv_path}')
         console.print(f'[bold]Snapshot:[/bold] {db_path}')

@@ -77,8 +77,13 @@ class UntaggedRow:
 
 @dataclass(frozen=True)
 class InFolderDupMember:
-    """One file within an in-folder duplicate cluster (per-file album/duration)."""
+    """One file within a duplicate cluster (per-file folder/album/duration).
+
+    month_folder is the file's own month folder (None for singles-all). In a
+    per-folder cluster every member shares it; in a cross-month cluster it varies.
+    """
     file_path: str
+    month_folder: str | None
     raw_album: str
     duration_seconds: float
 
@@ -107,3 +112,22 @@ class InFolderDupRow:
     def file_paths(self) -> tuple[str, ...]:
         """Full paths of every file in the cluster, in member order."""
         return tuple(member.file_path for member in self.members)
+
+
+@dataclass(frozen=True)
+class CrossMonthDupRow:
+    """Cluster of >=2 month-folder files sharing (title, artist, dur-within-margin),
+    pooled across the scanned month range. members may span multiple months."""
+    raw_title: str
+    raw_artist: str
+    members: tuple[InFolderDupMember, ...]
+
+    @property
+    def dup_count(self) -> int:
+        """Number of files in the cluster."""
+        return len(self.members)
+
+    @property
+    def distinct_months(self) -> int:
+        """How many distinct month folders the cluster spans."""
+        return len({member.month_folder for member in self.members})

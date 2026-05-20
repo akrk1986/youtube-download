@@ -19,7 +19,8 @@ from funcs_check_greek_singles.config import DURATION_MATCH_MARGIN_SECONDS  # no
 from funcs_check_greek_singles.database import (  # noqa: E402
     SCHEMA_DDL,
     archive_previous_db, insert_song,
-    query_in_folder_duplicates, query_in_multiple_months, query_only_in_all,
+    query_cross_month_duplicates, query_in_folder_duplicates,
+    query_in_multiple_months, query_only_in_all,
     query_only_in_months, query_untagged,
 )
 from funcs_check_greek_singles.file_actions import (  # noqa: E402
@@ -518,6 +519,81 @@ class TestInFolderDuplicates:
         assert len(rows) == 1
         assert rows[0].dup_count == 2
         assert rows[0].file_paths == ('/Months/2023-06/b.mp3', '/Months/2023-06/c.mp3')
+
+
+class TestCrossMonthDuplicates:
+    """Pool month folders across a range; cluster by (title, artist, dur-within-margin)."""
+
+    def test_same_song_two_months_clusters(self, conn):
+        _insert(conn=conn, side='month', month_folder='2021-03',
+                title='Recur', artist='Band', duration_seconds=200.0,
+                file_path='/Months/2021-03/x.mp3')
+        _insert(conn=conn, side='month', month_folder='2021-07',
+                title='Recur', artist='Band', duration_seconds=200.0,
+                file_path='/Months/2021-07/y.mp3')
+
+        rows = query_cross_month_duplicates(conn=conn)
+        assert len(rows) == 1
+        assert rows[0].dup_count == 2
+        assert rows[0].distinct_months == 2
+
+    def test_within_and_across_months_merge(self, conn):
+        _insert(conn=conn, side='month', month_folder='2021-03',
+                title='Recur', artist='Band', duration_seconds=200.0,
+                file_path='/Months/2021-03/a.mp3')
+        _insert(conn=conn, side='month', month_folder='2021-03',
+                title='Recur', artist='Band', duration_seconds=200.0,
+                file_path='/Months/2021-03/b.mp3')
+        _insert(conn=conn, side='month', month_folder='2021-07',
+                title='Recur', artist='Band', duration_seconds=200.0,
+                file_path='/Months/2021-07/c.mp3')
+
+        rows = query_cross_month_duplicates(conn=conn)
+        assert len(rows) == 1
+        assert rows[0].dup_count == 3
+        assert rows[0].distinct_months == 2
+
+    def test_singleton_not_clustered(self, conn):
+        _insert(conn=conn, side='month', month_folder='2021-03',
+                title='Lone', artist='Band', duration_seconds=200.0)
+
+        assert query_cross_month_duplicates(conn=conn) == []
+
+    def test_durations_beyond_margin_not_clustered(self, conn):
+        _insert(conn=conn, side='month', month_folder='2021-03',
+                title='Same', artist='Band', duration_seconds=200.0,
+                file_path='/Months/2021-03/x.mp3')
+        _insert(conn=conn, side='month', month_folder='2021-07',
+                title='Same', artist='Band',
+                duration_seconds=200.0 + DURATION_MATCH_MARGIN_SECONDS + 1.0,
+                file_path='/Months/2021-07/y.mp3')
+
+        assert query_cross_month_duplicates(conn=conn) == []
+
+    def test_durations_within_margin_cluster(self, conn):
+        delta = DURATION_MATCH_MARGIN_SECONDS / 2
+        _insert(conn=conn, side='month', month_folder='2021-03',
+                title='Same', artist='Band', duration_seconds=200.0,
+                file_path='/Months/2021-03/x.mp3')
+        _insert(conn=conn, side='month', month_folder='2021-07',
+                title='Same', artist='Band', duration_seconds=200.0 + delta,
+                file_path='/Months/2021-07/y.mp3')
+
+        rows = query_cross_month_duplicates(conn=conn)
+        assert len(rows) == 1
+        assert rows[0].dup_count == 2
+
+    def test_singles_all_excluded(self, conn):
+        # A singles-all copy + one month copy of the same key -> no cross-month cluster
+        # (cross-month pools the month side only).
+        _insert(conn=conn, side='singles_all', month_folder=None,
+                title='Same', artist='Band', duration_seconds=200.0,
+                file_path='/All/x.mp3')
+        _insert(conn=conn, side='month', month_folder='2021-03',
+                title='Same', artist='Band', duration_seconds=200.0,
+                file_path='/Months/2021-03/y.mp3')
+
+        assert query_cross_month_duplicates(conn=conn) == []
 
 
 class TestRowMappers:
