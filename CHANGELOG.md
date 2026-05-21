@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-05-20-2103] - Greek singles checker: cross-month duplicate mode
+
+### Added
+- **`funcs_check_greek_singles/`**: new `range` dupe mode that pools every month folder in the scanned range and clusters duplicates *across* months (a song downloaded into both `2021-03` and `2021-07` shows as one cluster — the per-folder check never grouped them because each month held only one copy). New `CrossMonthDupRow` dataclass (with `dup_count` / `distinct_months` properties), `query_cross_month_duplicates` query, `_add_cross_month_dup_table` renderer, and a `cross_month_duplicates` CSV section. The range report prints the active `DURATION_MATCH_MARGIN_SECONDS` at the top (e.g. `Duration margin: 4.0 secs`). `01-Singles-All` is excluded from the cross-month pool; the section is mode-only (not shown in the default full report).
+- **`funcs_check_greek_singles/models.py`**: `InFolderDupMember` gained a `month_folder` field (per-file folder, needed because cross-month members span folders).
+- **`funcs_check_greek_singles/database.py`**: extracted the duration single-linkage sweep into a shared `_cluster_by_duration(rows, key_func, margin)` generator, now used by both `query_in_folder_duplicates` and `query_cross_month_duplicates`.
+
+### Changed
+- **`Utils/main-check-greek-singles.py`** (**breaking CLI change**): replaced the boolean `--dupes-only` flag with `--dupes-scope {folder,range}` (default unset = full report). `--dupes-scope folder` = the old `--dupes-only` behavior (within-folder dupes); `--dupes-scope range` = the new cross-month mode and requires `--start-month`/`--end-month` (exits 2 otherwise). Still mutually exclusive with `--missing-action`.
+- **`Utils/main-check-greek-singles.py`**: `DURATION_MATCH_MARGIN_SECONDS` default raised to `4.0` (now lives in `funcs_check_greek_singles/config.py`).
+
 ## [2026-05-20-2000] - Bump idna 3.11->3.15 (CVE-2026-45409)
 
 ### Fixed

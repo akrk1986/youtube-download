@@ -715,7 +715,7 @@ Expected layout under `--root` (default `~/Music/Greek/`):
 | `01-Singles-All/` | The flat "master" collection — every song kept once. |
 | `03-Singles-by-Month/<YYYY-MM[-suffix]>/` | The same songs filed by download month (e.g. `2023-06`, `2025-11-Nykhta Stasou`). |
 
-**Matching key.** Two files are the same song when their normalised `(title, artist)` match **and** their durations differ by at most `DURATION_MATCH_MARGIN_SECONDS` (set in `funcs_check_greek_singles/database.py`, default `3.0`). Album is intentionally excluded. Duration disambiguates same-tagged-but-different recordings (e.g. studio vs live).
+**Matching key.** Two files are the same song when their normalised `(title, artist)` match **and** their durations differ by at most `DURATION_MATCH_MARGIN_SECONDS` (set in `funcs_check_greek_singles/config.py`, default `4.0`). Album is intentionally excluded. Duration disambiguates same-tagged-but-different recordings (e.g. studio vs live).
 
 ### Report sections
 
@@ -724,6 +724,8 @@ Expected layout under `--root` (default `~/Music/Greek/`):
 3. **In multiple month folders** — master songs that appear in 2+ month folders.
 4. **Untagged** — files missing a title and/or artist.
 5. **Duplicate within a single folder** — clusters of ≥2 files in the *same* folder sharing the matching key. One row per file (per-dupe serial, album, duration, basename), one cluster per delimited group.
+
+The **cross-month duplicate** section (`--dupes-scope range`) is mode-only and not part of the default report: it pools every month folder in the range and clusters duplicates *across* months, so a song downloaded into two different months surfaces as one cluster (with the distinct-month count). The report prints the active duration margin at the top.
 
 ### Usage
 
@@ -745,10 +747,15 @@ python Utils/main-check-greek-singles.py --missing-action copy
 # Same, but group the copies by year (All/<YYYY>/) instead of by month folder
 python Utils/main-check-greek-singles.py --missing-action move --target-is-year
 
-# Duplicate-check only: no cross-folder checks, no copy/move. Without a range,
-# scans 01-Singles-All/; with a range, scans the in-range month folders only.
-python Utils/main-check-greek-singles.py --dupes-only
-python Utils/main-check-greek-singles.py --dupes-only --start-month 2023-01 --end-month 2023-12
+# Duplicate-check only: no cross-folder checks, no copy/move. 'folder' clusters
+# within each folder; without a range it scans 01-Singles-All/, with a range it
+# scans the in-range month folders only.
+python Utils/main-check-greek-singles.py --dupes-scope folder
+python Utils/main-check-greek-singles.py --dupes-scope folder --start-month 2023-01 --end-month 2023-12
+
+# 'range' clusters across all month folders in the range (requires a month range).
+# A song present in two different months shows as one cluster.
+python Utils/main-check-greek-singles.py --dupes-scope range --start-month 2023-01 --end-month 2023-12
 ```
 
 ### Arguments
@@ -759,9 +766,9 @@ python Utils/main-check-greek-singles.py --dupes-only --start-month 2023-01 --en
 | `--csv-dir` | path | Directory for the timestamped CSV report. Default `Logs/`. |
 | `--title-prefix` | text | Only check songs whose normalised title starts with this Greek prefix (diacritic-insensitive). |
 | `--start-month` / `--end-month` | `yyyy-mm` or `yyyy` | Inclusive month-folder range. When set, the "only in All" section is suppressed. |
-| `--missing-action` | `copy`, `move` | Copy/move songs missing from `01-Singles-All` into per-folder subdirs under All/. Prompts before acting. Mutually exclusive with `--dupes-only`. |
+| `--missing-action` | `copy`, `move` | Copy/move songs missing from `01-Singles-All` into per-folder subdirs under All/. Prompts before acting. Mutually exclusive with `--dupes-scope`. |
 | `--target-is-year` | flag | With `--missing-action`, group targets by year (`All/<YYYY>/`) instead of by month-folder name. Ignored otherwise. |
-| `--dupes-only` | flag | Run only the in-folder duplicate check; skip cross-folder queries and the action prompt. Mutually exclusive with `--missing-action`. |
+| `--dupes-scope` | `folder`, `range` | Duplicate-check only (skips cross-folder queries and the action prompt). `folder` clusters within each folder (`01-Singles-All/` without a range, the in-range month folders with one). `range` clusters across all month folders in the range and requires `--start-month`/`--end-month`. Mutually exclusive with `--missing-action`. |
 | `--console-width` | int | Console width for Rich tables. Defaults to detected terminal width (or 140 under IDE consoles). |
 | `--verbose` | flag | DEBUG-level logging. |
 
