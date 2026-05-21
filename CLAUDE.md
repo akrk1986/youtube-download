@@ -380,7 +380,12 @@ The project uses a three-tier testing approach:
 
 ### CHANGELOG Rule
 
-Every commit that modifies project files (excluding docs-only changes) must have a corresponding entry in `CHANGELOG.md`:
+Every commit that modifies project files (excluding docs-only changes) must have a corresponding changelog entry. The changelog is split into three files by audience — record the entry in the one that matches what changed:
+- **`CHANGELOG.md`** — the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers).
+- **`CHANGELOG-Utils.md`** — the standalone utilities (`Utils/` scripts, the `funcs_check_greek_singles/` package, and the URL-extraction helper in `Tests/`).
+- **`CHANGELOG-Project.md`** — project-wide tooling/dependency changes (linters, type checkers, `pip-audit`/CVE bumps, the shared virtual environment, security review).
+
+Conventions (same across all three files):
 - Use the actual commit timestamp: `git log -1 --format=%cd --date=format:'%Y-%m-%d-%H%M'`
 - Record under `### Added`, `### Changed`, or `### Fixed` as appropriate
 - Can be included in the same commit or a follow-up commit

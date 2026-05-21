@@ -616,163 +616,18 @@ The `capture-working-play-click.js` script provides:
 - ✅ Works with `--only-audio` for audio extraction
 - ✅ No API calls needed (simple URL parameter extraction)
 
-## URL Extraction Utility
+## Utility Scripts
 
-The project includes a utility for extracting URLs from text and ODF documents, filtering only valid video site URLs (YouTube, Facebook, ERTFlix).
+The standalone helper scripts under `Utils/` (and the URL-extraction helper in `Tests/`) are documented separately in **[README-Utils.md](README-Utils.md)**:
 
-### Usage
-
-```bash
-# Extract URLs from a text file
-python Tests/main-test-url-extraction.py path/to/file.txt
-
-# Extract URLs from an ODT file
-python Tests/main-test-url-extraction.py path/to/document.odt
-```
-
-### Features
-
-- **Supported formats**: Plain text (.txt) and OpenDocument Text (.odt) files
-- **Smart filtering**: Only extracts URLs from valid domains (YouTube, Facebook, ERTFlix)
-- **Case-insensitive**: Handles domain variations (YouTube, YOUTUBE, youtube)
-- **Subdomain support**: Works with www.youtube.com, m.youtube.com, youtu.be, etc.
-- **Security**: Rejects similar domain names and subdomain attacks
-
-### Example Output
-
-```bash
-$ python Tests/main-test-url-extraction.py my-urls.txt
-Found 5 URL(s) in my-urls.txt:
-
-1. https://www.youtube.com/watch?v=dQw4w9WgXcQ
-2. https://youtu.be/abc123
-3. https://www.facebook.com/video/12345
-4. https://ertflix.gr/series/greek-music
-5. https://m.youtube.com/playlist?list=PLxxxxxxxx
-```
-
-**Note**: URLs from other domains (GitHub, Google, etc.) are automatically filtered out.
-
-For more details, see [URL Validation Summary](Docs/URL-VALIDATION-SUMMARY.md).
-
-## Audio Format Converter (`Utils/main-convert.py`)
-
-Converts audio files between MP3, M4A, and FLAC formats. All metadata (tags + cover art) is preserved during conversion. No conversion *to* FLAC is supported.
-
-### Usage
-
-```bash
-# MP3 → M4A (default target when source is mp3)
-python Utils/main-convert.py --source mp3
-
-# M4A → MP3 (default target when source is m4a)
-python Utils/main-convert.py --source m4a
-
-# FLAC → MP3
-python Utils/main-convert.py --source flac --target mp3
-
-# FLAC → M4A
-python Utils/main-convert.py --source flac --target m4a
-
-# FLAC → both MP3 and M4A
-python Utils/main-convert.py --source flac --target both
-
-# Convert files from a custom directory tree instead of the default output dirs
-python Utils/main-convert.py --source flac --target mp3 --top-level-directory /path/to/music
-```
-
-### Arguments
-
-| Argument | Values | Description |
-|---|---|---|
-| `--source` | `mp3`, `m4a`, `flac` | Source format to convert from |
-| `--target` | `mp3`, `m4a`, `both` | Target format(s). Required when `--source flac`. For `mp3`/`m4a` sources, defaults to the opposite format. |
-| `--top-level-directory` | path | Root directory containing `MP3/`, `M4A/`, `FLAC/` subdirectories. Defaults to the project output dirs. |
-| `--create-missing-files` | flag | Create output directory if it does not exist. |
-
-### Validation Rules
-
-- `--source mp3`: `--target` must be omitted or `m4a` (cannot be `mp3` or `both`)
-- `--source m4a`: `--target` must be omitted or `mp3` (cannot be `m4a` or `both`)
-- `--source flac`: `--target` is required (`mp3`, `m4a`, or `both`)
-
-### Default Directories
-
-| Format | Default directory |
-|---|---|
-| MP3 | `yt-audio/mp3/` |
-| M4A | `yt-audio/m4a/` |
-| FLAC | `yt-audio/flac/` |
-
-## Greek Singles Cross-Checker (`Utils/main-check-greek-singles.py`)
-
-Cross-checks a Greek music library organised into two parallel trees and reports mismatches and duplicates. It reads audio tags with `mutagen`, loads everything into an ephemeral SQLite snapshot, and prints a Rich report plus a timestamped CSV.
-
-Expected layout under `--root` (default `~/Music/Greek/`):
-
-| Directory | Contents |
-|---|---|
-| `01-Singles-All/` | The flat "master" collection — every song kept once. |
-| `03-Singles-by-Month/<YYYY-MM[-suffix]>/` | The same songs filed by download month (e.g. `2023-06`, `2025-11-Nykhta Stasou`). |
-
-**Matching key.** Two files are the same song when their normalised `(title, artist)` match **and** their durations differ by at most `DURATION_MATCH_MARGIN_SECONDS` (set in `funcs_check_greek_singles/config.py`, default `4.0`). Album is intentionally excluded. Duration disambiguates same-tagged-but-different recordings (e.g. studio vs live).
-
-### Report sections
-
-1. **Only in 01-Singles-All** — master songs with no match under any month folder (suppressed when a month range is active).
-2. **Only in 03-Singles-by-Month** — month-folder songs missing from the master, with total disk size.
-3. **In multiple month folders** — master songs that appear in 2+ month folders.
-4. **Untagged** — files missing a title and/or artist.
-5. **Duplicate within a single folder** — clusters of ≥2 files in the *same* folder sharing the matching key. One row per file (per-dupe serial, album, duration, basename), one cluster per delimited group.
-
-The **cross-month duplicate** section (`--dupes-scope range`) is mode-only and not part of the default report: it pools every month folder in the range and clusters duplicates *across* months, so a song downloaded into two different months surfaces as one cluster (with the distinct-month count). The report prints the active duration margin at the top.
-
-### Usage
-
-```bash
-# Full report over the whole library
-python Utils/main-check-greek-singles.py
-
-# Restrict the month-folder scan to a range (yyyy-mm or yyyy; the bare year
-# expands to -01 for start, -12 for end). Suppresses the "only in All" section.
-python Utils/main-check-greek-singles.py --start-month 2021-01 --end-month 2021-12
-
-# Only check title-prefixed songs (Greek, diacritic-insensitive)
-python Utils/main-check-greek-singles.py --title-prefix "Θέλω"
-
-# Copy songs missing from 01-Singles-All into per-month subfolders under All/.
-# Prompts before acting: reply 'n' (cancel), 'all', or a number to cap the count.
-python Utils/main-check-greek-singles.py --missing-action copy
-
-# Same, but group the copies by year (All/<YYYY>/) instead of by month folder
-python Utils/main-check-greek-singles.py --missing-action move --target-is-year
-
-# Duplicate-check only: no cross-folder checks, no copy/move. 'folder' clusters
-# within each folder; without a range it scans 01-Singles-All/, with a range it
-# scans the in-range month folders only.
-python Utils/main-check-greek-singles.py --dupes-scope folder
-python Utils/main-check-greek-singles.py --dupes-scope folder --start-month 2023-01 --end-month 2023-12
-
-# 'range' clusters across all month folders in the range (requires a month range).
-# A song present in two different months shows as one cluster.
-python Utils/main-check-greek-singles.py --dupes-scope range --start-month 2023-01 --end-month 2023-12
-```
-
-### Arguments
-
-| Argument | Values | Description |
-|---|---|---|
-| `--root` | path | Greek music root containing `01-Singles-All` and `03-Singles-by-Month`. Default `~/Music/Greek`. |
-| `--csv-dir` | path | Directory for the timestamped CSV report. Default `Logs/`. |
-| `--title-prefix` | text | Only check songs whose normalised title starts with this Greek prefix (diacritic-insensitive). |
-| `--start-month` / `--end-month` | `yyyy-mm` or `yyyy` | Inclusive month-folder range. When set, the "only in All" section is suppressed. |
-| `--missing-action` | `copy`, `move` | Copy/move songs missing from `01-Singles-All` into per-folder subdirs under All/. Prompts before acting. Mutually exclusive with `--dupes-scope`. |
-| `--target-is-year` | flag | With `--missing-action`, group targets by year (`All/<YYYY>/`) instead of by month-folder name. Ignored otherwise. |
-| `--dupes-scope` | `folder`, `range` | Duplicate-check only (skips cross-folder queries and the action prompt). `folder` clusters within each folder (`01-Singles-All/` without a range, the in-range month folders with one). `range` clusters across all month folders in the range and requires `--start-month`/`--end-month`. Mutually exclusive with `--missing-action`. |
-| `--console-width` | int | Console width for Rich tables. Defaults to detected terminal width (or 140 under IDE consoles). |
-| `--verbose` | flag | DEBUG-level logging. |
-
-The action prompt (`--missing-action`) accepts `n` (cancel), `all` (process every file), or a positive integer to cap the count — files are processed in filename order, file timestamps (mtime) are preserved, and existing targets are overwritten.
+- **URL Extraction Utility** (`Tests/main-test-url-extraction.py`) — extract valid video URLs from text/ODF documents
+- **Audio Format Converter** (`Utils/main-convert.py`) — convert between MP3, M4A, and FLAC
+- **Greek Singles Cross-Checker** (`Utils/main-check-greek-singles.py`) — cross-check a Greek music library for mismatches and duplicates
+- **Audio Volume Booster** (`Utils/main-boost-mp3-or-mp4.py`) — boost MP3/MP4/M4A volume with ffmpeg
+- **Loudness Boost Suggester** (`Utils/main-suggest-boost.py`) — measure a URL's loudness and suggest an `FFMPEG_OPTS` boost
+- **qBittorrent Notifications** (`Utils/main-qb-notify.py`, `Utils/main-qb-notify-gmail.py`) — Slack/Gmail torrent-complete alerts
+- **Trello → Artists JSON** (`Utils/main-get-artists-from-trello.py`) — rebuild `Data/artists.json` from a Trello export
+- **M4A Faststart Fix** (`Utils/fix_m4a_faststart.py`) — relocate the `moov` atom before `mdat` for hardware players
 
 ## Output Structure
 
@@ -867,7 +722,10 @@ which ffmpeg
 - **[Artists File from Trello Update Guide](Docs/Artists-file-from-trello-update-guide.md)** - How to update the Greek artists database from Trello
 - **[URL Validation Summary](Docs/URL-VALIDATION-SUMMARY.md)** - URL extraction utility and domain validation implementation details
 - **[Code Quality Recommendations](Docs/code-quality-recommendations.md)** - Development guidelines and best practices
-- **[CHANGELOG](Docs/CHANGELOG.md)** - Feature enhancements and major changes history
+- **[Utility Scripts (README-Utils.md)](README-Utils.md)** - Documentation for the standalone `Utils/` helper scripts
+- **[CHANGELOG.md](CHANGELOG.md)** - Main-script change history (`main-yt-dlp.py`, `main-ertflix-series.py`)
+- **[CHANGELOG-Utils.md](CHANGELOG-Utils.md)** - Utility-script change history
+- **[CHANGELOG-Project.md](CHANGELOG-Project.md)** - Project-wide tooling/dependency change history
 
 ## Greek Music Features
 
@@ -892,7 +750,7 @@ The tool includes specialized functionality for Greek music:
   - `funcs_notifications/` - Notification handlers
 - `Data/artists.json` - Greek artists database (exported from Trello)
 - `Tests/` - Pytest tests and E2E test framework
-- `Utils/` - Standalone utility scripts (`main-convert.py`, `main-boost-mp3-or-mp4.py`, `main-get-artists-from-trello.py`, `main-qb-notify*.py`, `fix_m4a_faststart.py`)
+- `Utils/` - Standalone utility scripts (`main-convert.py`, `main-boost-mp3-or-mp4.py`, `main-suggest-boost.py`, `main-get-artists-from-trello.py`, `main-qb-notify*.py`, `fix_m4a_faststart.py`) — documented in [README-Utils.md](README-Utils.md)
 - `Tests-Standalone/` - Standalone test scripts and utilities
 - `Docs/` - Documentation files
 - `Beta/` - Experimental features (excluded from global changes)
