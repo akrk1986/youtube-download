@@ -4,7 +4,6 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "arrow",
-    "common-av",
     "bandit",
     "deptry>=0.25.1",
     "emoji",
@@ -12,6 +11,7 @@ dependencies = [
     "mypy",
     "odfpy",
     "pip-audit>=2.10.0",
+    "pip-tools",
     "pydoclint",
     "pylint",
     "pyupgrade",
@@ -30,9 +30,6 @@ dependencies = [
     "pygments>=2.20.0",
     "skylos>=4.11.0",
 ]
-
-[tool.uv.sources]
-common-av = { path = "../common-av-codebase", editable = true }
 
 [tool.bandit]
 exclude_dirs = ['.venv-linux', 'Beta', 'Tests-Standalone', 'node_modules']
@@ -54,8 +51,12 @@ extraPaths = ['../common-av-codebase']
 exclude = ['\.venv', 'Beta', 'Tests-Standalone', 'Tests']
 
 [tool.deptry.per_rule_ignores]
+# common-av is a local editable sibling package (in requirements.in, not on PyPI
+# and intentionally not in [project.dependencies]); deptry sees it installed in the
+# venv via the editable, so its direct import reads as a transitive dep (DEP003).
+DEP003 = ["common_av"]
 DEP002 = [
-    "bandit", "deptry", "mypy", "pip-audit", "pydoclint", "pylint",
+    "bandit", "deptry", "mypy", "pip-audit", "pip-tools", "pydoclint", "pylint",
     "pyupgrade", "pygments", "radon", "ruff", "pytest", "skylos", "ty",
     "types-requests", "types-yt-dlp", "vulture",
 ]

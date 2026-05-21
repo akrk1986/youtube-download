@@ -1,0 +1,9 @@
+# Hand-edited input for LOCAL / editable dependencies that cannot live in
+# pyproject.toml's [project.dependencies] (not published to PyPI).
+#
+# All PyPI dependencies are declared in pyproject.toml [project.dependencies].
+# This file only adds the local editable sibling package.
+#
+# Regenerate the pinned lock (requirements.txt) with:
+#   pip-compile pyproject.toml requirements.in -o requirements.txt
+-e ../common-av-codebase
