@@ -56,6 +56,7 @@ git_excluded.py
 # --- IDE ---
 .idea/workspace.xml
 .idea/shelf/
+.idea/rumdl.xml
 
 # --- Node/npm ---
 node_modules/
