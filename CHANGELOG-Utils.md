@@ -2,6 +2,11 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-21-1402] - Booster: bootstrap sys.path for direct invocation
+
+### Fixed
+- **`Utils/main-boost-audio-track.py`**: imported `funcs_for_audio_utils` without putting the project root on `sys.path`, so a bare `python Utils/main-boost-audio-track.py` failed with `ModuleNotFoundError` unless run with `PYTHONPATH` set. Insert the project root (`Path(__file__).resolve().parent.parent`) onto `sys.path` before the package import, mirroring `main-suggest-boost.py`. The script now runs from any working directory. No behavior change otherwise.
+
 ## [2026-05-21-1353] - Rename booster utility to main-boost-audio-track
 
 ### Changed

@@ -7,7 +7,13 @@ import argparse
 import sys
 from pathlib import Path
 
-from funcs_for_audio_utils import (
+# Allow imports of project packages when this script is invoked directly from Utils/.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+# pylint: disable=wrong-import-position
+from funcs_for_audio_utils import (  # noqa: E402
     AudioBooster,
     TARGET_PEAK_DB,
     calculate_boost_value,
