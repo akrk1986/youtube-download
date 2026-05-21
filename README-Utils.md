@@ -9,7 +9,7 @@ Change history for these utilities lives in [CHANGELOG-Utils.md](CHANGELOG-Utils
 - [URL Extraction Utility](#url-extraction-utility) — `Tests/main-test-url-extraction.py`
 - [Audio Format Converter](#audio-format-converter-utilsmain-convertpy) — `Utils/main-convert.py`
 - [Greek Singles Cross-Checker](#greek-singles-cross-checker-utilsmain-check-greek-singlespy) — `Utils/main-check-greek-singles.py`
-- [Audio Volume Booster](#audio-volume-booster-utilsmain-boost-mp3-or-mp4py) — `Utils/main-boost-mp3-or-mp4.py`
+- [Audio Volume Booster](#audio-volume-booster-utilsmain-boost-audio-trackpy) — `Utils/main-boost-audio-track.py`
 - [Loudness Boost Suggester](#loudness-boost-suggester-utilsmain-suggest-boostpy) — `Utils/main-suggest-boost.py`
 - [qBittorrent Slack Notification](#qbittorrent-slack-notification-utilsmain-qb-notifypy) — `Utils/main-qb-notify.py`
 - [qBittorrent Gmail Notification](#qbittorrent-gmail-notification-utilsmain-qb-notify-gmailpy) — `Utils/main-qb-notify-gmail.py`
@@ -174,21 +174,21 @@ python Utils/main-check-greek-singles.py --dupes-scope range --start-month 2023-
 
 The action prompt (`--missing-action`) accepts `n` (cancel), `all` (process every file), or a positive integer to cap the count — files are processed in filename order, file timestamps (mtime) are preserved, and existing targets are overwritten.
 
-## Audio Volume Booster (`Utils/main-boost-mp3-or-mp4.py`)
+## Audio Volume Booster (`Utils/main-boost-audio-track.py`)
 
-Boosts the volume of MP3, MP4, and M4A files in a directory using ffmpeg. By default it auto-detects each file's level and calculates the gain needed to reach a target peak; alternatively it can apply the `loudnorm` normalisation filter or a fixed volume multiplier. Files already at/above the target are skipped, and files whose name already ends in `-boost` are ignored so reruns don't double-process.
+Boosts the volume of MP3, M4A, and MP4 files in a directory using ffmpeg (FLAC files are not handled). By default it auto-detects each file's level and calculates the gain needed to reach a target peak; alternatively it can apply the `loudnorm` normalisation filter or a fixed volume multiplier. Files already at/above the target are skipped, and files whose name already ends in `-boost` are ignored so reruns don't double-process.
 
 ### Usage
 
 ```bash
 # Auto-detect levels and boost each file toward the target peak (default mode)
-python Utils/main-boost-mp3-or-mp4.py /path/to/media
+python Utils/main-boost-audio-track.py /path/to/media
 
 # Use the ffmpeg loudnorm filter instead of a calculated boost
-python Utils/main-boost-mp3-or-mp4.py /path/to/media --loudnorm yes
+python Utils/main-boost-audio-track.py /path/to/media --loudnorm yes
 
 # Apply a fixed volume multiplier
-python Utils/main-boost-mp3-or-mp4.py /path/to/media --boost 2.0
+python Utils/main-boost-audio-track.py /path/to/media --boost 2.0
 ```
 
 ### Arguments

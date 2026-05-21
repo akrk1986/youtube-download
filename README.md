@@ -623,7 +623,7 @@ The standalone helper scripts under `Utils/` (and the URL-extraction helper in `
 - **URL Extraction Utility** (`Tests/main-test-url-extraction.py`) — extract valid video URLs from text/ODF documents
 - **Audio Format Converter** (`Utils/main-convert.py`) — convert between MP3, M4A, and FLAC
 - **Greek Singles Cross-Checker** (`Utils/main-check-greek-singles.py`) — cross-check a Greek music library for mismatches and duplicates
-- **Audio Volume Booster** (`Utils/main-boost-mp3-or-mp4.py`) — boost MP3/MP4/M4A volume with ffmpeg
+- **Audio Volume Booster** (`Utils/main-boost-audio-track.py`) — boost MP3/M4A/MP4 volume with ffmpeg (not FLAC)
 - **Loudness Boost Suggester** (`Utils/main-suggest-boost.py`) — measure a URL's loudness and suggest an `FFMPEG_OPTS` boost
 - **qBittorrent Notifications** (`Utils/main-qb-notify.py`, `Utils/main-qb-notify-gmail.py`) — Slack/Gmail torrent-complete alerts
 - **Trello → Artists JSON** (`Utils/main-get-artists-from-trello.py`) — rebuild `Data/artists.json` from a Trello export
@@ -750,7 +750,7 @@ The tool includes specialized functionality for Greek music:
   - `funcs_notifications/` - Notification handlers
 - `Data/artists.json` - Greek artists database (exported from Trello)
 - `Tests/` - Pytest tests and E2E test framework
-- `Utils/` - Standalone utility scripts (`main-convert.py`, `main-boost-mp3-or-mp4.py`, `main-suggest-boost.py`, `main-get-artists-from-trello.py`, `main-qb-notify*.py`, `fix_m4a_faststart.py`) — documented in [README-Utils.md](README-Utils.md)
+- `Utils/` - Standalone utility scripts (`main-convert.py`, `main-boost-audio-track.py`, `main-suggest-boost.py`, `main-get-artists-from-trello.py`, `main-qb-notify*.py`, `fix_m4a_faststart.py`) — documented in [README-Utils.md](README-Utils.md)
 - `Tests-Standalone/` - Standalone test scripts and utilities
 - `Docs/` - Documentation files
 - `Beta/` - Experimental features (excluded from global changes)

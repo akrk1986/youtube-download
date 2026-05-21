@@ -25,7 +25,7 @@ The codebase follows a modular function-based architecture:
 ### Utility Scripts (`Utils/`)
 - `main-convert.py` - Audio format converter: converts between MP3, M4A, and FLAC (no conversion to FLAC; FLAC can convert to MP3, M4A, or both)
 - `main-get-artists-from-trello.py` - Utility to convert Trello board data to artist JSON
-- `main-boost-mp3-or-mp4.py` - Audio volume booster for MP3/MP4 files
+- `main-boost-audio-track.py` - Audio volume booster for MP3/M4A/MP4 files (not FLAC)
 - `main-qb-notify.py` - qBittorrent Slack notification helper
 - `main-qb-notify-gmail.py` - qBittorrent Gmail notification helper
 - `fix_m4a_faststart.py` - Bulk-fix M4A files with moov-after-mdat layout

@@ -2,6 +2,11 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-21-1353] - Rename booster utility to main-boost-audio-track
+
+### Changed
+- **`Utils/main-boost-mp3-or-mp4.py` → `Utils/main-boost-audio-track.py`**: renamed (via `git mv`) because the script accepts `.mp3`, `.m4a`, and `.mp4` — the old name omitted M4A and read as two-format-only. Updated the module/`main()` docstrings and the argparse `description` to list all three formats and note that **FLAC is not handled**. Refreshed `README.md`, `README-Utils.md`, and `CLAUDE.md` to the new name. No behavior change.
+
 ## [2026-05-20-2103] - Greek singles checker: cross-month duplicate mode
 
 ### Added

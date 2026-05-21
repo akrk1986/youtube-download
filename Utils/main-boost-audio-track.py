@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""A main script to boost volume of MP4/MP3 files using ffmpeg loudnorm filter."""
+"""A main script to boost volume of MP3, M4A, and MP4 files using ffmpeg loudnorm filter.
+
+FLAC files are not handled.
+"""
 import argparse
 import sys
 from pathlib import Path
@@ -13,9 +16,9 @@ from funcs_for_audio_utils import (
 
 
 def main() -> None:
-    """Main function to boost volume of all MP3/MP4 files in a directory."""
+    """Main function to boost volume of all MP3/M4A/MP4 files in a directory."""
     parser = argparse.ArgumentParser(
-        description='Boost MP3/MP4 volume using ffmpeg loudnorm filter or volume multiplier')
+        description='Boost MP3/M4A/MP4 volume using ffmpeg loudnorm filter or volume multiplier (FLAC not supported)')
     parser.add_argument('input_dir', type=Path,
                         help='Path to the directory containing MP3/MP4 files')
 
