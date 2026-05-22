@@ -34,10 +34,13 @@ from funcs_check_greek_singles.database import (  # noqa: E402
     query_in_multiple_months, query_only_in_all,
     query_only_in_months, query_total_month_songs, query_untagged,
 )
+from funcs_check_greek_singles.config import DUPES_DIRNAME, STAGING_DIRNAME  # noqa: E402
 from funcs_check_greek_singles.file_actions import (  # noqa: E402
-    apply_missing_action, prompt_action_limit,
+    apply_missing_action, process_inspected, prompt_action_limit, stage_duplicates,
 )
-from funcs_check_greek_singles.models import MatchedRow  # noqa: E402
+from funcs_check_greek_singles.models import (  # noqa: E402
+    CrossMonthDupRow, InFolderDupRow, MatchedRow,
+)
 from funcs_check_greek_singles.normalize import normalize  # noqa: E402
 from funcs_check_greek_singles.report import render_console, write_csv  # noqa: E402
 from funcs_utils import setup_logging  # noqa: E402
@@ -113,6 +116,29 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
              'Mutually exclusive with --missing-action.',
     )
     parser.add_argument(
+        '--stage-dupes', choices=['dry-run', 'milk-run'], default=None,
+        help='Move suspected duplicates (both in-folder and cross-month clusters) into '
+             "the staging folder, recording each file's origin in its Grouping tag. "
+             "'dry-run' lists intended moves; 'milk-run' performs them. "
+             '--start-month/--end-month optionally bound the scan. Mutually exclusive '
+             'with --post-inspection, --missing-action, --dupes-scope.',
+    )
+    parser.add_argument(
+        '--post-inspection', choices=['dry-run', 'milk-run'], default=None,
+        help='Process inspected files in the staging folder by their Grouping verdict: '
+             "'duplicate' -> dupes folder, 'dupe-ok' -> restored to origin folder. "
+             "'dry-run' lists intended actions; 'milk-run' performs them. Mutually "
+             'exclusive with --stage-dupes, --missing-action, --dupes-scope.',
+    )
+    parser.add_argument(
+        '--staging-dir', type=Path, default=None,
+        help=f'Staging folder for suspected duplicates. Default: <root>/{STAGING_DIRNAME}.',
+    )
+    parser.add_argument(
+        '--dupes-dir', type=Path, default=None,
+        help=f'Folder for confirmed duplicates (for eventual deletion). Default: <root>/{DUPES_DIRNAME}.',
+    )
+    parser.add_argument(
         '--verbose', action='store_true',
         help='Enable DEBUG-level logging.',
     )
@@ -126,14 +152,32 @@ def _resolve_console_width(override: int | None) -> int:
     return shutil.get_terminal_size(fallback=(DEFAULT_CONSOLE_WIDTH, 24)).columns
 
 
+def _collect_dupe_files(in_folder_clusters: list[InFolderDupRow],
+                        cross_month_clusters: list[CrossMonthDupRow]) -> list[Path]:
+    """Return the de-duplicated, sorted file paths across both kinds of dupe cluster."""
+    paths: set[Path] = set()
+    for in_cluster in in_folder_clusters:
+        paths.update(Path(member.file_path) for member in in_cluster.members)
+    for cross_cluster in cross_month_clusters:
+        paths.update(Path(member.file_path) for member in cross_cluster.members)
+    return sorted(paths)
+
+
 def main(argv: list[str] | None = None) -> int:
-    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements,too-many-return-statements
     """Entry point. Returns the process exit code."""
     args = parse_args(argv=argv)
     setup_logging(verbose=args.verbose, log_to_file=True, log_dir=_PROJECT_ROOT / LOGS_DIRNAME)
 
-    if args.dupes_scope is not None and args.missing_action is not None:
-        logger.error('--dupes-scope and --missing-action are mutually exclusive.')
+    exclusive_actions = [
+        ('--dupes-scope', args.dupes_scope is not None),
+        ('--missing-action', args.missing_action is not None),
+        ('--stage-dupes', args.stage_dupes is not None),
+        ('--post-inspection', args.post_inspection is not None),
+    ]
+    active_actions = [name for name, is_set in exclusive_actions if is_set]
+    if len(active_actions) > 1:
+        logger.error(f'These options are mutually exclusive: {", ".join(active_actions)}.')
         return 2
 
     root = args.root.resolve()
@@ -149,6 +193,26 @@ def main(argv: list[str] | None = None) -> int:
     if not by_month.is_dir():
         logger.error(f'Missing required subdirectory: {by_month}')
         return 2
+
+    staging_dir = (args.staging_dir or (root / STAGING_DIRNAME)).resolve()
+    dupes_dir = (args.dupes_dir or (root / DUPES_DIRNAME)).resolve()
+
+    if args.post_inspection is not None:
+        if not staging_dir.is_dir():
+            logger.error(f'Staging folder does not exist: {staging_dir}')
+            return 2
+        post_dry_run = args.post_inspection == 'dry-run'
+        logger.info(f'Post-inspection ({args.post_inspection}) scanning {staging_dir}...')
+        inspect_summary = process_inspected(
+            staging_dir=staging_dir, root=root, dupes_dir=dupes_dir, dry_run=post_dry_run)
+        print(
+            f'\nPost-inspection {args.post_inspection} complete: '
+            f'{inspect_summary.moved_to_dupes} -> {dupes_dir.name}/, '
+            f'{inspect_summary.restored} restored, {inspect_summary.pending} pending, '
+            f'{inspect_summary.ambiguous} ambiguous, {inspect_summary.no_marker} unmarked, '
+            f'{inspect_summary.failed} failed'
+        )
+        return 0
 
     try:
         start_yyyymm = parse_month_arg(value=args.start_month, is_end=False) if args.start_month else ''
@@ -191,6 +255,43 @@ def main(argv: list[str] | None = None) -> int:
 
     conn = init_db(db_path=db_path)
     try:
+        if args.stage_dupes is not None:
+            # With a month range, focus on the in-range month folders only (matching
+            # --dupes-scope semantics). Without a range, also scan 01-Singles-All so
+            # in-folder duplicates within the master collection are caught too.
+            if range_active:
+                logger.info(f'Staging scope: in-range month folders only '
+                            f"({start_yyyymm or '-inf'}..{end_yyyymm or '+inf'}); "
+                            f'01-Singles-All is not scanned.')
+            else:
+                logger.info('Staging scope: 01-Singles-All + all month folders.')
+                logger.info(f'Scanning {singles_all}...')
+                for song in collect_songs(directory=singles_all, title_prefix_norm=title_prefix_norm,
+                                          progress_every=200):
+                    insert_song(conn=conn, song=song, side=SIDE_SINGLES_ALL, month_folder=None)
+            for month_dir in iter_month_folders(
+                    by_month_root=by_month, start_yyyymm=start_yyyymm, end_yyyymm=end_yyyymm):
+                logger.info(f'Scanning {month_dir.name}...')
+                for song in collect_songs(directory=month_dir, title_prefix_norm=title_prefix_norm):
+                    insert_song(conn=conn, song=song, side=SIDE_MONTH, month_folder=month_dir.name)
+            conn.commit()
+            dupe_files = _collect_dupe_files(
+                in_folder_clusters=query_in_folder_duplicates(conn=conn),
+                cross_month_clusters=query_cross_month_duplicates(conn=conn),
+            )
+            if not dupe_files:
+                logger.info('No suspected duplicates found -- nothing to stage.')
+                return 0
+            stage_dry_run = args.stage_dupes == 'dry-run'
+            logger.info(f'Staging {len(dupe_files)} suspected duplicate(s) '
+                        f'({args.stage_dupes}) into {staging_dir}...')
+            stage_summary = stage_duplicates(
+                files=dupe_files, root=root, staging_dir=staging_dir, dry_run=stage_dry_run)
+            print(f'\nStaging {args.stage_dupes} complete: {stage_summary.staged} staged, '
+                  f'{stage_summary.skipped} skipped, {stage_summary.failed} failed '
+                  f'(of {stage_summary.attempted} attempted)')
+            return 0
+
         # 'folder' (no range) checks 01-Singles-All only; 'range' is months only.
         scan_singles_all = args.dupes_scope != 'range' and not (args.dupes_scope == 'folder'
                                                                 and range_active)

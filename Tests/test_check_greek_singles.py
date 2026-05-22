@@ -1,6 +1,8 @@
 """Unit tests for funcs_check_greek_singles/ package."""
 import os
+import shutil
 import sqlite3
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -15,7 +17,9 @@ if str(_PROJECT_ROOT) not in sys.path:
 from funcs_check_greek_singles.audio_reader import (  # noqa: E402
     MONTH_FOLDER_RE, iter_month_folders, parse_month_arg,
 )
-from funcs_check_greek_singles.config import DURATION_MATCH_MARGIN_SECONDS  # noqa: E402
+from funcs_check_greek_singles.config import (  # noqa: E402
+    DURATION_MATCH_MARGIN_SECONDS, VERDICT_DUPLICATE, VERDICT_NOT_DUPLICATE,
+)
 from funcs_check_greek_singles.database import (  # noqa: E402
     SCHEMA_DDL,
     archive_previous_db, insert_song,
@@ -31,6 +35,11 @@ from funcs_check_greek_singles.normalize import (  # noqa: E402
     extract_year, format_duration, normalize,
 )
 from funcs_check_greek_singles.report import _format_size  # noqa: E402
+from funcs_check_greek_singles.state_tag import (  # noqa: E402
+    VERDICT_AMBIGUOUS, VERDICT_PENDING,
+    build_origin_marker, classify_verdict, clear_state, parse_origin,
+    read_state, write_state,
+)
 
 
 class TestNormalize:
@@ -700,6 +709,87 @@ def _insert(conn: sqlite3.Connection, side: str, month_folder: str | None,
 def _make_known_epoch() -> float:
     """Return a stable epoch (well in the past so it never collides with 'now')."""
     return time.mktime((2024, 6, 15, 12, 34, 0, 0, 0, -1))
+
+
+class TestStateTagParsing:
+    """parse_origin() / classify_verdict() / build_origin_marker() — pure, no audio files."""
+
+    def test_origin_marker_roundtrips(self):
+        rel = '03-Singles-by-Month/2021-03/Song.mp3'
+        assert parse_origin(value=build_origin_marker(origin_relpath=rel)) == rel
+
+    def test_origin_path_with_spaces(self):
+        value = 'DUPE-ORIGIN[03-Singles-by-Month/2025-11-Nykhta Stasou/My Song.flac]'
+        assert parse_origin(value=value) == '03-Singles-by-Month/2025-11-Nykhta Stasou/My Song.flac'
+
+    def test_origin_none_without_marker(self):
+        assert parse_origin(value='Some Artist') is None
+        assert parse_origin(value='') is None
+
+    def test_verdict_pending_when_empty(self):
+        assert classify_verdict(value='') == VERDICT_PENDING
+
+    def test_verdict_duplicate(self):
+        assert classify_verdict(value='duplicate') == VERDICT_DUPLICATE
+
+    def test_verdict_dupe_ok_case_insensitive(self):
+        assert classify_verdict(value='  DUPE-OK ') == VERDICT_NOT_DUPLICATE
+
+    def test_verdict_free_text_is_ambiguous(self):
+        # 'not a duplicate' contains 'duplicate' but is not an exact token.
+        assert classify_verdict(value='not a duplicate') == VERDICT_AMBIGUOUS
+        assert classify_verdict(value='maybe') == VERDICT_AMBIGUOUS
+
+
+@pytest.mark.skipif(shutil.which('ffmpeg') is None, reason='ffmpeg not available')
+class TestStateTagIO:
+    """Origin (Album Artist) and verdict (Copyright) round-trip independently; mtime preserved."""
+
+    @staticmethod
+    def _make_audio(path: Path) -> None:
+        """Generate a tiny silent audio file via ffmpeg (codec inferred from suffix)."""
+        subprocess.run(
+            ['ffmpeg', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono',
+             '-t', '0.3', '-y', str(path)],
+            check=True, capture_output=True, encoding='utf-8', errors='replace',
+        )
+
+    @pytest.mark.parametrize('ext', ['mp3', 'm4a', 'flac'])
+    def test_origin_and_verdict_are_independent(self, tmp_path, ext):
+        audio = tmp_path / f'song.{ext}'
+        self._make_audio(path=audio)
+        assert read_state(file_path=audio, field='origin') == ''
+        assert read_state(file_path=audio, field='verdict') == ''
+
+        marker = build_origin_marker(origin_relpath=f'03-Singles-by-Month/2021-03/song.{ext}')
+        write_state(file_path=audio, value=marker, field='origin')
+        write_state(file_path=audio, value='dupe-ok', field='verdict')
+
+        assert parse_origin(value=read_state(file_path=audio, field='origin')) == \
+            f'03-Singles-by-Month/2021-03/song.{ext}'
+        assert classify_verdict(value=read_state(file_path=audio, field='verdict')) == VERDICT_NOT_DUPLICATE
+
+        # Clearing one field leaves the other intact.
+        clear_state(file_path=audio, field='origin')
+        assert read_state(file_path=audio, field='origin') == ''
+        assert classify_verdict(value=read_state(file_path=audio, field='verdict')) == VERDICT_NOT_DUPLICATE
+        clear_state(file_path=audio, field='verdict')
+        assert read_state(file_path=audio, field='verdict') == ''
+
+    @pytest.mark.parametrize('ext', ['mp3', 'm4a', 'flac'])
+    def test_writes_and_clears_preserve_mtime(self, tmp_path, ext):
+        audio = tmp_path / f'song.{ext}'
+        self._make_audio(path=audio)
+        old = _make_known_epoch()
+        os.utime(audio, (old, old))
+
+        write_state(file_path=audio, value=build_origin_marker(origin_relpath=f'x/y.{ext}'), field='origin')
+        write_state(file_path=audio, value='duplicate', field='verdict')
+        assert audio.stat().st_mtime == pytest.approx(old, abs=2)
+
+        clear_state(file_path=audio, field='origin')
+        clear_state(file_path=audio, field='verdict')
+        assert audio.stat().st_mtime == pytest.approx(old, abs=2)
 
 
 def _write_source(*, root: Path, month_folder: str, name: str, content: bytes = b'src') -> Path:

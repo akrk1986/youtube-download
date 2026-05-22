@@ -7,17 +7,28 @@ This module performs the optional copy/move action driven by the
 interactively (cancel / all / numeric cap) and never runs without user input.
 """
 import logging
+import os
 import shutil
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
+from mutagen import MutagenError
+
+from funcs_check_greek_singles.config import VERDICT_DUPLICATE, VERDICT_NOT_DUPLICATE
 from funcs_check_greek_singles.models import MatchedRow
 from funcs_check_greek_singles.report import _format_size
+from funcs_check_greek_singles.state_tag import (
+    VERDICT_AMBIGUOUS, VERDICT_PENDING,
+    build_origin_marker, classify_verdict, clear_state, parse_origin, read_state, write_state,
+)
 
 logger = logging.getLogger(__name__)
 
 Action = Literal['copy', 'move']
+
+_AUDIO_SUFFIXES = {'.mp3', '.m4a', '.flac'}
 
 
 @dataclass(frozen=True)
@@ -123,3 +134,159 @@ def apply_missing_action(
             failed += 1
     return ActionSummary(
         attempted=attempted, succeeded=succeeded, failed=failed, skipped=skipped)
+
+
+@dataclass(frozen=True)
+class StageSummary:
+    """Outcome of stage_duplicates: counters surfaced to the user."""
+    attempted: int
+    staged: int
+    skipped: int
+    failed: int
+
+
+@dataclass(frozen=True)
+class InspectSummary:
+    """Outcome of process_inspected: per-verdict counters surfaced to the user."""
+    moved_to_dupes: int
+    restored: int
+    pending: int
+    ambiguous: int
+    no_marker: int
+    failed: int
+
+
+def _iter_audio_files(directory: Path) -> Iterator[Path]:
+    """Yield mp3/m4a/flac files directly under directory (case-insensitive), name-sorted."""
+    if not directory.is_dir():
+        return
+    for entry in sorted(directory.iterdir(), key=lambda p: p.name):
+        if entry.is_file() and entry.suffix.lower() in _AUDIO_SUFFIXES:
+            yield entry
+
+
+def _unique_dest(dest_dir: Path, name: str) -> Path:
+    """Return a non-colliding path in dest_dir for name, appending ' (N)' if needed."""
+    candidate = dest_dir / name
+    if not candidate.exists():
+        return candidate
+    stem, suffix = Path(name).stem, Path(name).suffix
+    counter = 2
+    while True:
+        candidate = dest_dir / f'{stem} ({counter}){suffix}'
+        if not candidate.exists():
+            return candidate
+        counter += 1
+
+
+def _move_preserving_mtime(src: Path, dst: Path) -> None:
+    """Move src to dst (which must not exist), preserving the original mtime."""
+    before = src.stat()
+    shutil.move(str(src), str(dst))
+    os.utime(dst, (before.st_atime, before.st_mtime))
+
+
+def stage_duplicates(*, files: list[Path], root: Path, staging_dir: Path,
+                     dry_run: bool) -> StageSummary:
+    """Move suspected-duplicate files into staging_dir, recording their origin.
+
+    Each file's Grouping tag is set to 'DUPE-ORIGIN[<path relative to root>]'
+    before the move, so it can later be restored to its original folder. The
+    staged filename is '<parent-folder> — <name>' (uniquified on collision); the
+    tag, not the staged name, is authoritative for restore. mtime is preserved
+    across both the tag write and the move. dry_run only logs intended moves.
+    """
+    attempted = staged = skipped = failed = 0
+    if not dry_run:
+        staging_dir.mkdir(parents=True, exist_ok=True)
+    for src in sorted(set(files), key=lambda p: (p.parent.name, p.name)):
+        attempted += 1
+        if not src.is_file():
+            logger.warning(f'Source missing, skipping: {src}')
+            skipped += 1
+            continue
+        try:
+            rel = src.relative_to(root).as_posix()
+        except ValueError:
+            logger.warning(f'File is not under root, skipping: {src}')
+            skipped += 1
+            continue
+        dst = _unique_dest(dest_dir=staging_dir, name=f'{src.parent.name} — {src.name}')
+        if dry_run:
+            logger.info(f'[dry-run] stage: {rel} -> {staging_dir.name}/{dst.name}')
+            staged += 1
+            continue
+        try:
+            write_state(file_path=src, value=build_origin_marker(origin_relpath=rel), field='origin')
+            _move_preserving_mtime(src=src, dst=dst)
+            logger.info(f'stage: {rel} -> {staging_dir.name}/{dst.name}')
+            staged += 1
+        except (OSError, MutagenError) as exc:
+            logger.warning(f'stage failed for {src.name}: {exc}')
+            failed += 1
+    return StageSummary(attempted=attempted, staged=staged, skipped=skipped, failed=failed)
+
+
+def _restore_to_origin(*, src: Path, origin: str, root: Path, dry_run: bool) -> bool:
+    """Move a 'dupe-ok' file back to root/<origin> and clear its state tags. Returns success."""
+    dst = root / origin
+    if dst.exists():
+        logger.warning(f'restore target already exists, skipping: {origin}')
+        return False
+    if dry_run:
+        logger.info(f'[dry-run] restore -> {origin}: {src.name}')
+        return True
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    _move_preserving_mtime(src=src, dst=dst)
+    clear_state(file_path=dst, field='origin')
+    clear_state(file_path=dst, field='verdict')
+    logger.info(f'restore -> {origin}')
+    return True
+
+
+def process_inspected(*, staging_dir: Path, root: Path, dupes_dir: Path,
+                      dry_run: bool) -> InspectSummary:
+    """Act on inspected files in staging_dir based on their Grouping verdict.
+
+    'duplicate' -> move to dupes_dir; 'dupe-ok' -> restore to root/<origin> and
+    clear the Grouping tag; pending / ambiguous / no-marker are reported and left
+    in place. mtime is preserved across moves and the tag clear; dry_run only logs.
+    """
+    moved_to_dupes = restored = pending = ambiguous = no_marker = failed = 0
+    for src in _iter_audio_files(directory=staging_dir):
+        try:
+            origin = parse_origin(value=read_state(file_path=src, field='origin'))
+            if origin is None:
+                logger.warning(f'no DUPE-ORIGIN marker, skipping: {src.name}')
+                no_marker += 1
+                continue
+            verdict = classify_verdict(value=read_state(file_path=src, field='verdict'))
+            if verdict == VERDICT_DUPLICATE:
+                dst = _unique_dest(dest_dir=dupes_dir, name=src.name)
+                if dry_run:
+                    logger.info(f'[dry-run] duplicate -> {dupes_dir.name}/{dst.name}: {src.name}')
+                else:
+                    dupes_dir.mkdir(parents=True, exist_ok=True)
+                    _move_preserving_mtime(src=src, dst=dst)
+                    logger.info(f'duplicate -> {dupes_dir.name}/{dst.name}')
+                moved_to_dupes += 1
+            elif verdict == VERDICT_NOT_DUPLICATE:
+                if _restore_to_origin(src=src, origin=origin, root=root, dry_run=dry_run):
+                    restored += 1
+                else:
+                    failed += 1
+            elif verdict == VERDICT_PENDING:
+                logger.info(f'pending (awaiting verdict): {src.name}')
+                pending += 1
+            elif verdict == VERDICT_AMBIGUOUS:
+                logger.warning(f'ambiguous verdict, skipping: {src.name}')
+                ambiguous += 1
+            else:
+                logger.warning(f'unexpected verdict {verdict!r}, skipping: {src.name}')
+                failed += 1
+        except (OSError, MutagenError) as exc:
+            logger.warning(f'inspect failed for {src.name}: {exc}')
+            failed += 1
+    return InspectSummary(moved_to_dupes=moved_to_dupes, restored=restored,
+                          pending=pending, ambiguous=ambiguous,
+                          no_marker=no_marker, failed=failed)
