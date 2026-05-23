@@ -9,10 +9,10 @@ post-inspection** workflow only; for the full cross-checker (reports,
 
 Suspected duplicates are scattered across many month folders. A tag app (mp3tag,
 tagscan) opens one folder at a time, so inspecting dupes means constantly
-switching folders. This workflow **moves all suspected duplicates into one
-staging folder** so you can inspect them in a single session, records where each
-file came from in its metadata, and then files each file according to your
-verdict.
+switching folders. This workflow **moves each dupe group into its own staging
+subfolder** (`Staging-Dupes/grp-NNNN/`) so you can inspect one group at a time,
+records where each file came from in its metadata, and then files each file
+according to your verdict.
 
 The "state" lives in two standard tag fields — both shown as columns and
 editable in mp3tag and tagscan, for mp3/m4a/flac:
@@ -41,8 +41,8 @@ python Utils/main-check-greek-singles.py --stage-dupes dry-run \
     --start-month 2021-01 --end-month 2021-12
 ```
 
-Lists every suspected duplicate it *would* move into `Staging-Dupes/`, touching
-nothing.
+Lists the dupe groups it *would* stage (into `Staging-Dupes/grp-NNNN/`
+subfolders) as a table, touching nothing.
 
 - **With** `--start-month`/`--end-month`: scans the in-range month folders only
   (in-folder duplicates within each month + cross-month duplicates across them).
@@ -56,14 +56,17 @@ python Utils/main-check-greek-singles.py --stage-dupes milk-run \
     --start-month 2021-01 --end-month 2021-12
 ```
 
-For each file: writes `DUPE-ORIGIN[<origin>]` into its Album Artist tag, then moves it
-to `<root>/Staging-Dupes/` (named `<source-folder> — <filename>`).
+Each dupe group goes into its own `<root>/Staging-Dupes/grp-NNNN/` subfolder. For
+each file the script writes `DUPE-ORIGIN[<origin>]` into its Album Artist tag, then
+moves it into the group folder (named `<source-folder> — <filename>`). Group
+numbers continue past any folders left from a previous run.
 
 ### 3. Inspect — manually, in mp3tag / tagscan
 
-Open **only** `Staging-Dupes/` (one folder, no switching). For each file: review
-the tags, listen, then **type your verdict in the Copyright field** (leave the
-Album Artist / `DUPE-ORIGIN[...]` field alone):
+Open **one group folder** at a time, e.g. `Staging-Dupes/grp-0001/` — each holds
+all the suspected copies of a single song. For each file: review the tags, listen,
+then **type your verdict in the Copyright field** (leave the Album Artist /
+`DUPE-ORIGIN[...]` field alone):
 
 | Decision | Set Copyright to | Meaning |
 |---|---|---|
@@ -86,22 +89,30 @@ untouched.
 
 ```bash
 python Utils/main-check-greek-singles.py --post-inspection dry-run
+# only the groups you've inspected (inclusive range of grp-NNNN folders):
+python Utils/main-check-greek-singles.py --post-inspection dry-run --staging-groups 1,3
 ```
 
-Reads each staged file's verdict and reports what it *would* do, moving nothing.
+Reads the staged files' verdicts and reports what it *would* do, moving nothing.
+`--staging-groups N1,N2` limits it to `grp-N1`..`grp-NN` (`1,3` = grp-0001..grp-0003;
+`5,5` = grp-0005 only); without it, all group folders are processed.
 
 ### 5. Post-inspection — milk-run (perform the moves)
 
 ```bash
 python Utils/main-check-greek-singles.py --post-inspection milk-run
+python Utils/main-check-greek-singles.py --post-inspection milk-run --staging-groups 1,3
 ```
 
 | Verdict | Action |
 |---|---|
 | `duplicate` | moved to `<root>/Dupes/` (a holding area — delete these yourself later) |
 | `original` | moved back to its original folder; only the Album Artist marker is cleared — the `original` verdict **stays** on the file |
-| none yet | reported as *pending*, left in `Staging-Dupes/` |
+| none yet | reported as *pending*, left in its group folder |
 | ambiguous / unmarked | reported, left in place (never moved) |
+
+A group folder is removed once it has no files left, so finished groups disappear
+from `Staging-Dupes/`.
 
 Repeat steps 3–5 as many times as you like — inspect a batch, run
 post-inspection, inspect more. Nothing is deleted by the script.
@@ -118,6 +129,9 @@ python Utils/main-check-greek-singles.py --unstage dry-run    # preview
 python Utils/main-check-greek-singles.py --unstage milk-run   # do it
 ```
 
+`--unstage` also accepts `--staging-groups N1,N2` to restore only a range of group
+folders; emptied folders are removed.
+
 ## Golden rule
 
 Always run **dry-run** before **milk-run**, at both the stage and the
@@ -127,16 +141,17 @@ post-inspection step.
 
 | Flag | Values | Description |
 |---|---|---|
-| `--stage-dupes` | `dry-run`, `milk-run` | Move suspected duplicates into the staging folder, recording each file's origin in its Album Artist tag. |
-| `--post-inspection` | `dry-run`, `milk-run` | File staged files by their Copyright verdict: `duplicate` → `Dupes/`, `original` → restored to origin (verdict kept). |
-| `--unstage` | `dry-run`, `milk-run` | Abort: move **every** staged file back to its origin (from its `DUPE-ORIGIN` marker), ignoring the verdict and leaving it untouched. No verdict needed. |
+| `--stage-dupes` | `dry-run`, `milk-run` | Move each dupe group into its own `Staging-Dupes/grp-NNNN/` subfolder, recording each file's origin in its Album Artist tag. |
+| `--post-inspection` | `dry-run`, `milk-run` | File staged files by their Copyright verdict: `duplicate` → `Dupes/`, `original` → restored to origin (verdict kept). Honors `--staging-groups`. |
+| `--unstage` | `dry-run`, `milk-run` | Abort: move staged files back to their origin (from the `DUPE-ORIGIN` marker), ignoring the verdict and leaving it untouched. No verdict needed. Honors `--staging-groups`. |
+| `--staging-groups` | `N1,N2` | Limit `--post-inspection` / `--unstage` to a contiguous inclusive range of group folders (`7,10` = grp-0007..grp-0010; `7,7` = grp-0007 only). Default: all groups. |
 | `--staging-dir` | path | Staging folder. Default `<root>/Staging-Dupes`. |
 | `--dupes-dir` | path | Folder for confirmed duplicates (for eventual deletion). Default `<root>/Dupes`. |
 | `--start-month` / `--end-month` | `yyyy-mm` or `yyyy` | Inclusive month-folder range that bounds `--stage-dupes`. |
 | `--root` | path | Greek music root containing `01-Singles-All` and `03-Singles-by-Month`. Default `~/Music/Greek`. |
 
-`--stage-dupes` and `--post-inspection` are mutually exclusive with each other and
-with `--missing-action` / `--dupes-scope`.
+`--stage-dupes`, `--post-inspection`, and `--unstage` are mutually exclusive with
+each other and with `--missing-action` / `--dupes-scope`.
 
 ## Notes
 
@@ -156,5 +171,8 @@ with `--missing-action` / `--dupes-scope`.
   up later in a folder an earlier run didn't scan, without re-bugging you about
   versions you've already cleared.
 - **Timestamps:** original file mtimes are preserved across tag writes and moves.
+- **Group folders** (`grp-NNNN`) are numbered per staging run, continuing past any
+  folders left from a previous run so a re-stage never collides; a folder is
+  removed once it is empty.
 - **Staged filenames** are prefixed with the source folder for readability; the
   authoritative origin is the Album Artist `DUPE-ORIGIN[...]` tag, not the filename.
