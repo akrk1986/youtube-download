@@ -124,7 +124,7 @@ audio extraction mode (mutually exclusive):
   - The title is sanitized for safe filenames
 - `--artist ARTIST` - Set custom artist tag in audio files
   - Use `--artist ask` or `--artist prompt` to be prompted interactively
-  - Sets both artist and album artist tags
+  - Sets the artist tag only (album artist is left unset)
   - Ignored for playlists
 - `--album ALBUM` - Set custom album tag in audio files
   - Use `--album ask` or `--album prompt` to be prompted interactively
@@ -735,7 +735,7 @@ The tool includes specialized functionality for Greek music:
 - **Artist Database**: Curated list of ~100 Greek musicians maintained in Trello and exported to `Data/artists.json`
 - **Name Variants**: Handles different name orders and Greek text variations
 - **Filename Sanitization**: Properly handles English, French, Turkish, Greek, and Hebrew characters in filenames
-- **Metadata Tagging**: Sets artist and album artist tags automatically for detected Greek artists
+- **Metadata Tagging**: Sets the artist tag automatically for detected Greek artists (album artist is reserved for the duplicate-staging workflow and is left unset)
 
 ## Project Structure
 

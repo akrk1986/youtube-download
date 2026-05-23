@@ -2,6 +2,15 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-23-2218] - Stop filling Album Artist (reserve it for dupe staging)
+
+### Changed
+- The download/tagging pipeline no longer writes **Album Artist** (it had duplicated the Artist value). The Greek-singles duplicate-staging workflow uses Album Artist for its `DUPE-ORIGIN` marker, so the field is now left unset; **Artist is still set** everywhere it was.
+  - **`funcs_audio_processing/unified.py`**: Greek-artist detection and the chapter-file uploader fallback set only the Artist tag.
+  - **`funcs_for_main_yt_dlp/download_audio.py`**: dropped the yt-dlp `--parse-metadata album_artist:%(...)s` injection (and the now-unused `album_artist_pat` parameter of `extract_single_format`); still embeds `artist`.
+  - **`funcs_for_main_yt_dlp/_download_common.py`**: `--artist` custom metadata no longer also writes `album_artist`.
+- Affects new downloads only. Existing files keep their Album Artist until the dupe workflow processes them (staging overwrites it, restore clears it).
+
 ## [2026-05-15-1551] - Add FFMPEG_OPTS env var for audio-extraction filter
 
 ### Added

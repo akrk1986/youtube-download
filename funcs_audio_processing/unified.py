@@ -58,7 +58,8 @@ def set_artists_in_audio_files(audio_folder: Path,
         count, artist_string = find_artists_in_string(text=title, artists=artists)
         if count > 0:
             handler.set_tag(audio=audio, tag_name=handler.TAG_ARTIST, value=artist_string)
-            handler.set_tag(audio=audio, tag_name=handler.TAG_ALBUMARTIST, value=artist_string)
+            # Album Artist is left untouched: this library reserves it for the dupe
+            # staging workflow (see README-Dupes.md), so the pipeline no longer fills it.
         else:
             art = handler.get_tag(audio=audio, tag_name=handler.TAG_ARTIST)
             alb_art = handler.get_tag(audio=audio, tag_name=handler.TAG_ALBUMARTIST)
@@ -76,7 +77,7 @@ def set_artists_in_audio_files(audio_folder: Path,
             handler.set_original_filename(audio=audio, file_path=audio_file, original_filename=original_filename)
             # Save audio file (for M4A this saves; for MP3 this is redundant but harmless)
             handler.save_audio_file(audio=audio, file_path=audio_file)
-            logger.info(f"Updated {audio_file.name}: artist/album artist set to '{artist_string}'")
+            logger.info(f"Updated {audio_file.name}: artist set to '{artist_string}'")
         else:
             logger.debug(f'No artist found in title for {audio_file.name}')
 
@@ -143,8 +144,7 @@ def set_tags_in_chapter_audio_files(
 
             if (not current_artist or current_artist == '' or current_artist == 'NA') and uploader:
                 handler.set_tag(audio=audio, tag_name=handler.TAG_ARTIST, value=uploader)
-                handler.set_tag(audio=audio, tag_name=handler.TAG_ALBUMARTIST, value=uploader)
-                logger.info(f"Set artist/albumartist to uploader '{uploader}' for chapter file")
+                logger.info(f"Set artist to uploader '{uploader}' for chapter file")
 
             # If no album is set and we have a video title, use sanitized video title as album
             current_album = handler.get_tag(audio=audio, tag_name=handler.TAG_ALBUM)

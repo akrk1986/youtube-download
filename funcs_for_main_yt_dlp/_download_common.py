@@ -127,9 +127,10 @@ def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,
         # Set metadata tags using ffmpeg postprocessor args
         ffmpeg_metadata: list[str] = []
         if opts.custom_artist:
+            # Album Artist is intentionally not set -- it's reserved for the dupe
+            # staging workflow (see README-Dupes.md).
             quoted_artist = _quote_if_needed(opts.custom_artist)
-            ffmpeg_metadata.extend(['-metadata', f'artist={quoted_artist}',
-                                    '-metadata', f'album_artist={quoted_artist}'])
+            ffmpeg_metadata.extend(['-metadata', f'artist={quoted_artist}'])
         if opts.custom_album:
             quoted_album = _quote_if_needed(opts.custom_album)
             ffmpeg_metadata.extend(['-metadata', f'album={quoted_album}'])

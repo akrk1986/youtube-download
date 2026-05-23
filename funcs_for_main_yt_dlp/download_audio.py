@@ -20,8 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def extract_single_format(opts: DownloadOptions, output_folder: Path | str, format_type: str,
-                          artist_pat: str | None = None,
-                          album_artist_pat: str | None = None) -> None:
+                          artist_pat: str | None = None) -> None:
     """Extract audio in a single format using yt-dlp."""
     # Security: Validate URL before passing to subprocess
     sanitized_url = sanitize_url_for_subprocess(url=opts.url)
@@ -57,11 +56,10 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
     # Add shared flags (cookies, playlist, split-chapters, progress, custom metadata)
     _append_common_flags(cmd=yt_dlp_cmd, opts=opts, sanitized_title=sanitized_title)
 
-    # Add audio-specific flags
-    if artist_pat and album_artist_pat:
-        yt_dlp_cmd[1:1] = ['--parse-metadata', artist_pat,
-                           '--parse-metadata', album_artist_pat,
-                           ]
+    # Add audio-specific flags. Only 'artist' is embedded; Album Artist is left
+    # empty for the dupe staging workflow (see README-Dupes.md).
+    if artist_pat:
+        yt_dlp_cmd[1:1] = ['--parse-metadata', artist_pat]
 
     # For M4A, ensure moov atom is placed before mdat (required for hardware players)
     if format_type == 'm4a':
@@ -114,8 +112,9 @@ def extract_audio_with_ytdlp(opts: DownloadOptions, audio_formats: list[str]) ->
     """Use yt-dlp to download and extract audio with metadata and thumbnail."""
 
     # For a single video, check if video has 'artist' or 'uploader' tags.
-    # Use either to embed 'artist' and 'albumartist' tags in the audio file.
-    artist_pat = album_artist_pat = None
+    # Use either to embed the 'artist' tag in the audio file (Album Artist is left
+    # empty for the dupe staging workflow -- see README-Dupes.md).
+    artist_pat = None
 
     if opts.is_it_playlist:
         logger.info('URL is a playlist, cannot extract artist/uploader')
@@ -129,11 +128,9 @@ def extract_audio_with_ytdlp(opts: DownloadOptions, audio_formats: list[str]) ->
 
         if have_artist:
             artist_pat = 'artist:%(artist)s'
-            album_artist_pat = 'album_artist:%(artist)s'
             logger.info(f"Video has artist: '{artist}'")
         elif have_uploader:
             artist_pat = 'artist:%(uploader)s'
-            album_artist_pat = 'album_artist:%(uploader)s'
             logger.info(f"Video has uploader: '{uploader}'")
 
     # Extract each requested audio format
@@ -143,4 +140,4 @@ def extract_audio_with_ytdlp(opts: DownloadOptions, audio_formats: list[str]) ->
         # Get the appropriate output directory for this format
         output_dir = Path(get_audio_dir_for_format(audio_format=audio_format)).resolve()
         extract_single_format(opts=opts, output_folder=output_dir, format_type=audio_format,
-                              artist_pat=artist_pat, album_artist_pat=album_artist_pat)
+                              artist_pat=artist_pat)
