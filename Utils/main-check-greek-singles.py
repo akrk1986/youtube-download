@@ -36,13 +36,16 @@ from funcs_check_greek_singles.database import (  # noqa: E402
 )
 from funcs_check_greek_singles.config import DUPES_DIRNAME, STAGING_DIRNAME  # noqa: E402
 from funcs_check_greek_singles.file_actions import (  # noqa: E402
-    apply_missing_action, process_inspected, prompt_action_limit, stage_duplicates,
+    apply_missing_action, cluster_is_fully_judged, process_inspected,
+    prompt_action_limit, stage_duplicates,
 )
 from funcs_check_greek_singles.models import (  # noqa: E402
     CrossMonthDupRow, InFolderDupRow, MatchedRow,
 )
 from funcs_check_greek_singles.normalize import normalize  # noqa: E402
-from funcs_check_greek_singles.report import render_console, write_csv  # noqa: E402
+from funcs_check_greek_singles.report import (  # noqa: E402
+    render_console, render_dupe_clusters, write_csv,
+)
 from funcs_utils import setup_logging  # noqa: E402
 # pylint: enable=wrong-import-position
 
@@ -125,8 +128,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         '--post-inspection', choices=['dry-run', 'milk-run'], default=None,
-        help='Process inspected files in the staging folder by their Grouping verdict: '
-             "'duplicate' -> dupes folder, 'dupe-ok' -> restored to origin folder. "
+        help='Process inspected files in the staging folder by their Copyright verdict: '
+             "'duplicate' -> dupes folder, 'original' -> restored to origin folder. "
              "'dry-run' lists intended actions; 'milk-run' performs them. Mutually "
              'exclusive with --stage-dupes, --missing-action, --dupes-scope.',
     )
@@ -275,13 +278,27 @@ def main(argv: list[str] | None = None) -> int:
                 for song in collect_songs(directory=month_dir, title_prefix_norm=title_prefix_norm):
                     insert_song(conn=conn, song=song, side=SIDE_MONTH, month_folder=month_dir.name)
             conn.commit()
+            # Drop clusters whose members are all already marked 'original' (the
+            # user judged them as distinct versions); a cluster with any new/unmarked
+            # member is staged in full so the newcomer can be compared.
+            raw_in_folder = query_in_folder_duplicates(conn=conn)
+            raw_cross_month = query_cross_month_duplicates(conn=conn)
+            in_folder_dupes = [c for c in raw_in_folder if not cluster_is_fully_judged(c.members)]
+            cross_month_dupes = [c for c in raw_cross_month if not cluster_is_fully_judged(c.members)]
+            skipped_clusters = (
+                len(raw_in_folder) - len(in_folder_dupes)
+                + len(raw_cross_month) - len(cross_month_dupes))
+            if skipped_clusters:
+                logger.info(f"Skipped {skipped_clusters} cluster(s) already fully marked "
+                            f"'original' (kept versions).")
             dupe_files = _collect_dupe_files(
-                in_folder_clusters=query_in_folder_duplicates(conn=conn),
-                cross_month_clusters=query_cross_month_duplicates(conn=conn),
-            )
+                in_folder_clusters=in_folder_dupes, cross_month_clusters=cross_month_dupes)
             if not dupe_files:
-                logger.info('No suspected duplicates found -- nothing to stage.')
+                logger.info('No new suspected duplicates to stage.')
                 return 0
+            console = Console(width=_resolve_console_width(override=args.console_width))
+            render_dupe_clusters(console=console, in_folder_duplicates=in_folder_dupes,
+                                 cross_month_duplicates=cross_month_dupes)
             stage_dry_run = args.stage_dupes == 'dry-run'
             logger.info(f'Staging {len(dupe_files)} suspected duplicate(s) '
                         f'({args.stage_dupes}) into {staging_dir}...')

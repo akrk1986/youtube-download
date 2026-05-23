@@ -16,8 +16,8 @@ from typing import Literal
 
 from mutagen import MutagenError
 
-from funcs_check_greek_singles.config import VERDICT_DUPLICATE, VERDICT_NOT_DUPLICATE
-from funcs_check_greek_singles.models import MatchedRow
+from funcs_check_greek_singles.config import VERDICT_DUPLICATE, VERDICT_ORIGINAL
+from funcs_check_greek_singles.models import InFolderDupMember, MatchedRow
 from funcs_check_greek_singles.report import _format_size
 from funcs_check_greek_singles.state_tag import (
     VERDICT_AMBIGUOUS, VERDICT_PENDING,
@@ -186,15 +186,31 @@ def _move_preserving_mtime(src: Path, dst: Path) -> None:
     os.utime(dst, (before.st_atime, before.st_mtime))
 
 
+def cluster_is_fully_judged(members: tuple[InFolderDupMember, ...]) -> bool:
+    """True if every cluster member already carries the 'original' verdict.
+
+    Such a cluster was fully resolved by the user (all kept as distinct versions),
+    so staging skips it. A cluster with any non-'original' member (a new or
+    unmarked file) is staged in full, so the newcomer can be compared against the
+    existing versions.
+    """
+    return all(
+        classify_verdict(read_state(file_path=Path(member.file_path), field='verdict'))
+        == VERDICT_ORIGINAL
+        for member in members
+    )
+
+
 def stage_duplicates(*, files: list[Path], root: Path, staging_dir: Path,
                      dry_run: bool) -> StageSummary:
     """Move suspected-duplicate files into staging_dir, recording their origin.
 
-    Each file's Grouping tag is set to 'DUPE-ORIGIN[<path relative to root>]'
-    before the move, so it can later be restored to its original folder. The
-    staged filename is '<parent-folder> — <name>' (uniquified on collision); the
-    tag, not the staged name, is authoritative for restore. mtime is preserved
-    across both the tag write and the move. dry_run only logs intended moves.
+    Each file's Album Artist tag is set to 'DUPE-ORIGIN[<path relative to root>]'
+    before the move (the script never touches the verdict/Copyright field — only
+    the user does). The staged filename is '<parent-folder> — <name>' (uniquified
+    on collision); the tag, not the staged name, is authoritative for restore.
+    mtime is preserved across the tag write and the move. dry_run only logs
+    intended moves.
     """
     attempted = staged = skipped = failed = 0
     if not dry_run:
@@ -228,7 +244,11 @@ def stage_duplicates(*, files: list[Path], root: Path, staging_dir: Path,
 
 
 def _restore_to_origin(*, src: Path, origin: str, root: Path, dry_run: bool) -> bool:
-    """Move a 'dupe-ok' file back to root/<origin> and clear its state tags. Returns success."""
+    """Move an 'original' file back to root/<origin> and clear its origin marker.
+
+    The verdict (Copyright) is left untouched so 'original' persists — the script
+    never modifies the verdict. Returns True on success.
+    """
     dst = root / origin
     if dst.exists():
         logger.warning(f'restore target already exists, skipping: {origin}')
@@ -239,18 +259,17 @@ def _restore_to_origin(*, src: Path, origin: str, root: Path, dry_run: bool) -> 
     dst.parent.mkdir(parents=True, exist_ok=True)
     _move_preserving_mtime(src=src, dst=dst)
     clear_state(file_path=dst, field='origin')
-    clear_state(file_path=dst, field='verdict')
     logger.info(f'restore -> {origin}')
     return True
 
 
 def process_inspected(*, staging_dir: Path, root: Path, dupes_dir: Path,
                       dry_run: bool) -> InspectSummary:
-    """Act on inspected files in staging_dir based on their Grouping verdict.
+    """Act on inspected files in staging_dir based on their Copyright verdict.
 
-    'duplicate' -> move to dupes_dir; 'dupe-ok' -> restore to root/<origin> and
-    clear the Grouping tag; pending / ambiguous / no-marker are reported and left
-    in place. mtime is preserved across moves and the tag clear; dry_run only logs.
+    'duplicate' -> move to dupes_dir; 'original' -> restore to root/<origin>
+    (clearing only the origin marker; the verdict persists); pending / ambiguous /
+    no-marker are reported and left in place. mtime preserved; dry_run only logs.
     """
     moved_to_dupes = restored = pending = ambiguous = no_marker = failed = 0
     for src in _iter_audio_files(directory=staging_dir):
@@ -270,7 +289,7 @@ def process_inspected(*, staging_dir: Path, root: Path, dupes_dir: Path,
                     _move_preserving_mtime(src=src, dst=dst)
                     logger.info(f'duplicate -> {dupes_dir.name}/{dst.name}')
                 moved_to_dupes += 1
-            elif verdict == VERDICT_NOT_DUPLICATE:
+            elif verdict == VERDICT_ORIGINAL:
                 if _restore_to_origin(src=src, origin=origin, root=root, dry_run=dry_run):
                     restored += 1
                 else:

@@ -158,6 +158,21 @@ def _add_untagged_table(console: Console, rows: list[UntaggedRow]) -> None:
     console.print(table)
 
 
+def render_dupe_clusters(console: Console,
+                         in_folder_duplicates: list[InFolderDupRow],
+                         cross_month_duplicates: list[CrossMonthDupRow]) -> None:
+    """Print the detected duplicate clusters as grouped tables (staging preview).
+
+    Reuses the in-folder and cross-month cluster tables so the staging view
+    matches the main report: one row per file, cluster fields on the first row,
+    a delimiter between clusters.
+    """
+    if in_folder_duplicates:
+        _add_in_folder_dup_table(console=console, rows=in_folder_duplicates)
+    if cross_month_duplicates:
+        _add_cross_month_dup_table(console=console, rows=cross_month_duplicates)
+
+
 def render_console(
         console: Console,
         only_in_all: list[MatchedRow],

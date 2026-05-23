@@ -13,10 +13,11 @@ DURATION_MATCH_MARGIN_SECONDS = 4.0
 STAGING_DIRNAME = 'Staging-Dupes'
 # Files the user marks as real duplicates are moved here for eventual deletion.
 DUPES_DIRNAME = 'Dupes'
-# Written into the Album Artist tag at staging as 'DUPE-ORIGIN[<path relative to
-# root>]'; the user appends a verdict after the ']'. Bracket-delimited so paths
-# with spaces parse unambiguously.
+# Script-managed origin marker, written into the Album Artist tag at staging as
+# 'DUPE-ORIGIN[<path relative to root>]'. Bracket-delimited so paths with spaces
+# parse unambiguously. Cleared on restore.
 STATE_TAG_MARKER = 'DUPE-ORIGIN'
-# Verdict tokens the user appends in the Album Artist tag (case-insensitive, exact).
-VERDICT_DUPLICATE = 'duplicate'      # real duplicate -> move to Dupes/
-VERDICT_NOT_DUPLICATE = 'dupe-ok'    # not a duplicate -> restore to origin folder
+# Verdict tokens the user types in the Copyright tag (case-insensitive, exact).
+# The script never writes the verdict -- only the user does.
+VERDICT_DUPLICATE = 'duplicate'   # real duplicate -> move to Dupes/
+VERDICT_ORIGINAL = 'original'     # a version to keep & remember -> restore to origin (persists)

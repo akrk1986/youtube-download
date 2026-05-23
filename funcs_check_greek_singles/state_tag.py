@@ -8,8 +8,9 @@ and tagscan, mutagen-readable, and present in mp3/m4a/flac:
   here at staging and clears it on restore. (This library fills Album Artist
   redundantly = Artist, so repurposing it loses no real information.)
 - **verdict** — the Copyright tag (ID3 ``TCOP`` / MP4 ``cprt`` / Vorbis
-  ``COPYRIGHT``). The *user* types ``duplicate`` or ``dupe-ok`` here during
-  inspection; the script only reads it (and clears it on restore).
+  ``COPYRIGHT``). The *user* types ``duplicate`` or ``original`` here during
+  inspection; the script only ever reads it and never writes it. ``original``
+  persists on the file.
 
 Keeping them in separate fields means the user edits a short, clean verdict
 column without ever touching the long origin path. To move either field, change
@@ -29,7 +30,7 @@ from mutagen.id3 import ID3, ID3NoHeaderError, TCOP, TPE2
 from mutagen.mp4 import MP4
 
 from funcs_check_greek_singles.config import (
-    STATE_TAG_MARKER, VERDICT_DUPLICATE, VERDICT_NOT_DUPLICATE,
+    STATE_TAG_MARKER, VERDICT_DUPLICATE, VERDICT_ORIGINAL,
 )
 
 _UTF16 = 1  # ID3 text encoding; matches the project's Greek-text handling.
@@ -185,15 +186,15 @@ def classify_verdict(value: str) -> str:
     """Map a verdict-field value to a verdict constant.
 
     Empty -> VERDICT_PENDING; the text must equal a verdict token exactly
-    (case-insensitive, trimmed) to count as VERDICT_DUPLICATE / VERDICT_NOT_DUPLICATE;
+    (case-insensitive, trimmed) to count as VERDICT_ORIGINAL / VERDICT_DUPLICATE;
     anything else (e.g. "not a duplicate") is VERDICT_AMBIGUOUS, so a file is never
     moved on fuzzy text.
     """
     text = (value or '').strip().lower()
     if not text:
         return VERDICT_PENDING
-    if text == VERDICT_NOT_DUPLICATE:
-        return VERDICT_NOT_DUPLICATE
+    if text == VERDICT_ORIGINAL:
+        return VERDICT_ORIGINAL
     if text == VERDICT_DUPLICATE:
         return VERDICT_DUPLICATE
     return VERDICT_AMBIGUOUS

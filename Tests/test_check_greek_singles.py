@@ -18,7 +18,7 @@ from funcs_check_greek_singles.audio_reader import (  # noqa: E402
     MONTH_FOLDER_RE, iter_month_folders, parse_month_arg,
 )
 from funcs_check_greek_singles.config import (  # noqa: E402
-    DURATION_MATCH_MARGIN_SECONDS, VERDICT_DUPLICATE, VERDICT_NOT_DUPLICATE,
+    DURATION_MATCH_MARGIN_SECONDS, VERDICT_DUPLICATE, VERDICT_ORIGINAL,
 )
 from funcs_check_greek_singles.database import (  # noqa: E402
     SCHEMA_DDL,
@@ -28,9 +28,12 @@ from funcs_check_greek_singles.database import (  # noqa: E402
     query_only_in_months, query_untagged,
 )
 from funcs_check_greek_singles.file_actions import (  # noqa: E402
-    apply_missing_action, prompt_action_limit,
+    apply_missing_action, cluster_is_fully_judged, process_inspected,
+    prompt_action_limit, stage_duplicates,
 )
-from funcs_check_greek_singles.models import MatchedRow, Song, SongKey  # noqa: E402
+from funcs_check_greek_singles.models import (  # noqa: E402
+    InFolderDupMember, MatchedRow, Song, SongKey,
+)
 from funcs_check_greek_singles.normalize import (  # noqa: E402
     extract_year, format_duration, normalize,
 )
@@ -732,8 +735,9 @@ class TestStateTagParsing:
     def test_verdict_duplicate(self):
         assert classify_verdict(value='duplicate') == VERDICT_DUPLICATE
 
-    def test_verdict_dupe_ok_case_insensitive(self):
-        assert classify_verdict(value='  DUPE-OK ') == VERDICT_NOT_DUPLICATE
+    def test_verdict_original_case_insensitive(self):
+        assert classify_verdict(value='original') == VERDICT_ORIGINAL
+        assert classify_verdict(value='  ORIGINAL ') == VERDICT_ORIGINAL
 
     def test_verdict_free_text_is_ambiguous(self):
         # 'not a duplicate' contains 'duplicate' but is not an exact token.
@@ -763,16 +767,16 @@ class TestStateTagIO:
 
         marker = build_origin_marker(origin_relpath=f'03-Singles-by-Month/2021-03/song.{ext}')
         write_state(file_path=audio, value=marker, field='origin')
-        write_state(file_path=audio, value='dupe-ok', field='verdict')
+        write_state(file_path=audio, value='original', field='verdict')
 
         assert parse_origin(value=read_state(file_path=audio, field='origin')) == \
             f'03-Singles-by-Month/2021-03/song.{ext}'
-        assert classify_verdict(value=read_state(file_path=audio, field='verdict')) == VERDICT_NOT_DUPLICATE
+        assert classify_verdict(value=read_state(file_path=audio, field='verdict')) == VERDICT_ORIGINAL
 
         # Clearing one field leaves the other intact.
         clear_state(file_path=audio, field='origin')
         assert read_state(file_path=audio, field='origin') == ''
-        assert classify_verdict(value=read_state(file_path=audio, field='verdict')) == VERDICT_NOT_DUPLICATE
+        assert classify_verdict(value=read_state(file_path=audio, field='verdict')) == VERDICT_ORIGINAL
         clear_state(file_path=audio, field='verdict')
         assert read_state(file_path=audio, field='verdict') == ''
 
@@ -790,6 +794,82 @@ class TestStateTagIO:
         clear_state(file_path=audio, field='origin')
         clear_state(file_path=audio, field='verdict')
         assert audio.stat().st_mtime == pytest.approx(old, abs=2)
+
+
+@pytest.mark.skipif(shutil.which('ffmpeg') is None, reason='ffmpeg not available')
+class TestStageAndInspect:
+    """stage_duplicates / process_inspected file moves + tag state (real files)."""
+
+    @staticmethod
+    def _audio(path: Path) -> None:
+        """Generate a tiny silent audio file via ffmpeg under path (parents created)."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            ['ffmpeg', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono',
+             '-t', '0.3', '-y', str(path)],
+            check=True, capture_output=True, encoding='utf-8', errors='replace',
+        )
+
+    def test_staging_preserves_verdict_and_writes_origin(self, tmp_path):
+        root = tmp_path / 'Music'
+        src = root / '03-Singles-by-Month' / '2021-03' / 'song.mp3'
+        self._audio(path=src)
+        write_state(file_path=src, value='original', field='verdict')  # user-set, must survive
+        staging = root / 'Staging-Dupes'
+
+        summary = stage_duplicates(files=[src], root=root, staging_dir=staging, dry_run=False)
+
+        assert summary.staged == 1
+        staged = next(staging.iterdir())
+        assert parse_origin(value=read_state(file_path=staged, field='origin')) == \
+            '03-Singles-by-Month/2021-03/song.mp3'
+        # The script never touches the verdict -- it survives staging untouched.
+        assert classify_verdict(value=read_state(file_path=staged, field='verdict')) == VERDICT_ORIGINAL
+
+    def test_post_inspection_routes_original_and_duplicate(self, tmp_path):
+        root = tmp_path / 'Music'
+        staging = root / 'Staging-Dupes'
+        dupes = root / 'Dupes'
+        staging.mkdir(parents=True)
+        keeper = staging / '2021-03 — keeper.mp3'
+        dup = staging / '2021-07 — dup.mp3'
+        self._audio(path=keeper)
+        self._audio(path=dup)
+        write_state(file_path=keeper, field='origin',
+                    value=build_origin_marker(origin_relpath='03-Singles-by-Month/2021-03/keeper.mp3'))
+        write_state(file_path=keeper, value='original', field='verdict')
+        write_state(file_path=dup, field='origin',
+                    value=build_origin_marker(origin_relpath='03-Singles-by-Month/2021-07/dup.mp3'))
+        write_state(file_path=dup, value='duplicate', field='verdict')
+
+        summary = process_inspected(staging_dir=staging, root=root, dupes_dir=dupes, dry_run=False)
+
+        assert summary.restored == 1
+        assert summary.moved_to_dupes == 1
+        restored = root / '03-Singles-by-Month' / '2021-03' / 'keeper.mp3'
+        assert restored.is_file()
+        assert read_state(file_path=restored, field='origin') == ''   # origin marker cleared
+        # the verdict persists -- the script never clears it
+        assert classify_verdict(value=read_state(file_path=restored, field='verdict')) == VERDICT_ORIGINAL
+        assert (dupes / '2021-07 — dup.mp3').is_file()   # keeps its staged name
+
+    def test_cluster_is_fully_judged(self, tmp_path):
+        first = tmp_path / 'a.mp3'
+        second = tmp_path / 'b.mp3'
+        self._audio(path=first)
+        self._audio(path=second)
+        write_state(file_path=first, value='original', field='verdict')
+        write_state(file_path=second, value='original', field='verdict')
+        members = (
+            InFolderDupMember(file_path=str(first), month_folder='2021-03',
+                              raw_album='', duration_seconds=1.0),
+            InFolderDupMember(file_path=str(second), month_folder='2021-07',
+                              raw_album='', duration_seconds=1.0),
+        )
+        assert cluster_is_fully_judged(members=members) is True
+        # One member left unmarked -> the cluster is not fully judged -> staged.
+        clear_state(file_path=second, field='verdict')
+        assert cluster_is_fully_judged(members=members) is False
 
 
 def _write_source(*, root: Path, month_folder: str, name: str, content: bytes = b'src') -> Path:

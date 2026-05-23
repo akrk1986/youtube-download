@@ -18,9 +18,10 @@ The "state" lives in two standard tag fields — both shown as columns and
 editable in mp3tag and tagscan, for mp3/m4a/flac:
 
 - **Album Artist** — at staging the script writes `DUPE-ORIGIN[<path relative to
-  --root>]` here. Script-managed; you don't touch it.
+  --root>]` here. Script-managed; you don't touch it. Cleared on restore.
 - **Copyright** — you type your verdict here during inspection: `duplicate` or
-  `dupe-ok` (leave blank = undecided).
+  `original` (leave blank = undecided). The script **never** writes the verdict —
+  only you do — and it **persists** on the file.
 
 Both fields are redundant/empty on these files, so using them loses nothing.
 mtimes (file timestamps) are preserved through every move and tag write.
@@ -66,11 +67,18 @@ Album Artist / `DUPE-ORIGIN[...]` field alone):
 
 | Decision | Set Copyright to | Meaning |
 |---|---|---|
-| Real duplicate | `duplicate` | Same song, same year/album → discard |
-| Not a duplicate | `dupe-ok` | Same song but different year/album → keep |
+| Redundant copy → discard | `duplicate` | A real duplicate → moved to `Dupes/` |
+| A version to keep | `original` | Keep this one → restored; remembered so it isn't re-flagged |
 | Undecided | leave blank | inspect later |
 
-The verdict must be exactly `duplicate` or `dupe-ok` (case-insensitive). Anything
+Two common cases:
+
+- **True duplicates** (same recording, redundant): mark **one** copy `original`
+  (the keeper) and the rest `duplicate`.
+- **Different versions** (same title/artist, but genuinely different recordings —
+  different year/album): mark **all** of them `original`.
+
+The verdict must be exactly `duplicate` or `original` (case-insensitive). Anything
 else (e.g. `not a duplicate`) is treated as *ambiguous* and the file is left
 untouched.
 
@@ -91,7 +99,7 @@ python Utils/main-check-greek-singles.py --post-inspection milk-run
 | Verdict | Action |
 |---|---|
 | `duplicate` | moved to `<root>/Dupes/` (a holding area — delete these yourself later) |
-| `dupe-ok` | moved back to its original folder; the Album Artist + Copyright tags are cleared |
+| `original` | moved back to its original folder; only the Album Artist marker is cleared — the `original` verdict **stays** on the file |
 | none yet | reported as *pending*, left in `Staging-Dupes/` |
 | ambiguous / unmarked | reported, left in place (never moved) |
 
@@ -108,7 +116,7 @@ post-inspection step.
 | Flag | Values | Description |
 |---|---|---|
 | `--stage-dupes` | `dry-run`, `milk-run` | Move suspected duplicates into the staging folder, recording each file's origin in its Album Artist tag. |
-| `--post-inspection` | `dry-run`, `milk-run` | File staged files by their Copyright verdict: `duplicate` → `Dupes/`, `dupe-ok` → restored to origin. |
+| `--post-inspection` | `dry-run`, `milk-run` | File staged files by their Copyright verdict: `duplicate` → `Dupes/`, `original` → restored to origin (verdict kept). |
 | `--staging-dir` | path | Staging folder. Default `<root>/Staging-Dupes`. |
 | `--dupes-dir` | path | Folder for confirmed duplicates (for eventual deletion). Default `<root>/Dupes`. |
 | `--start-month` / `--end-month` | `yyyy-mm` or `yyyy` | Inclusive month-folder range that bounds `--stage-dupes`. |
@@ -122,11 +130,18 @@ with `--missing-action` / `--dupes-scope`.
 - **State fields:** origin lives in **Album Artist** (ID3 `TPE2` / MP4 `aART` /
   Vorbis `ALBUMARTIST`) and the verdict in **Copyright** (ID3 `TCOP` / MP4 `cprt`
   / Vorbis `COPYRIGHT`) — both standard fields shown as columns and editable in
-  mp3tag and tagscan, and normally redundant/empty on these files. Both are
-  cleared on restore. (Grouping was tried first but mp3tag won't column it and
-  tagscan ignores it; the comment tag is avoided because it holds the source URL.)
+  mp3tag and tagscan, and normally redundant/empty on these files. (Grouping was
+  tried first but mp3tag won't column it and tagscan ignores it; the comment tag
+  is avoided because it holds the source URL.)
+- **The script never writes the verdict — only you do.** It manages only the
+  Album Artist origin marker (writes it on staging, clears it on restore).
+- **`original` persists and is remembered.** On the next run the dupe check still
+  detects clusters, but a cluster whose members are **all** marked `original` is
+  **skipped** (you already judged it). If a cluster has any new/unmarked member,
+  the **whole** cluster is re-staged — originals included — so you can compare the
+  newcomer against the existing versions. This catches a true duplicate that turns
+  up later in a folder an earlier run didn't scan, without re-bugging you about
+  versions you've already cleared.
 - **Timestamps:** original file mtimes are preserved across tag writes and moves.
-- **Re-runnable:** the steps read state from the files themselves, so they can be
-  run repeatedly and resumed at any point.
 - **Staged filenames** are prefixed with the source folder for readability; the
   authoritative origin is the Album Artist `DUPE-ORIGIN[...]` tag, not the filename.
