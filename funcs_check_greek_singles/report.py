@@ -7,7 +7,7 @@ from rich.table import Table
 
 from funcs_check_greek_singles.config import DURATION_MATCH_MARGIN_SECONDS
 from funcs_check_greek_singles.models import (
-    CrossMonthDupRow, InFolderDupRow, MatchedRow, MultiMonthRow, UntaggedRow,
+    CrossMonthDupRow, InFolderDupRow, MatchedRow, MultiMonthRow, StagingGroup, UntaggedRow,
 )
 from funcs_check_greek_singles.normalize import format_duration, missing_tag_fields
 
@@ -158,19 +158,42 @@ def _add_untagged_table(console: Console, rows: list[UntaggedRow]) -> None:
     console.print(table)
 
 
-def render_dupe_clusters(console: Console,
-                         in_folder_duplicates: list[InFolderDupRow],
-                         cross_month_duplicates: list[CrossMonthDupRow]) -> None:
-    """Print the detected duplicate clusters as grouped tables (staging preview).
+def render_staging_groups(console: Console, groups: list[StagingGroup]) -> None:
+    """Print the dupe groups being staged, one row per file, grouped by folder.
 
-    Reuses the in-folder and cross-month cluster tables so the staging view
-    matches the main report: one row per file, cluster fields on the first row,
-    a delimiter between clusters.
+    Columns: Group | # | Folder | Title | Artist | Album | Duration | File. The
+    group folder + title/artist print on the first row of each group; a horizontal
+    delimiter separates groups (same look as the main report).
     """
-    if in_folder_duplicates:
-        _add_in_folder_dup_table(console=console, rows=in_folder_duplicates)
-    if cross_month_duplicates:
-        _add_cross_month_dup_table(console=console, rows=cross_month_duplicates)
+    total_files = sum(len(group.members) for group in groups)
+    table = Table(
+        title=f'{len(groups)} dupe group(s) ({total_files} files) staged into grp-NNNN folders',
+        title_justify='left', show_lines=False, header_style='bold magenta', expand=True,
+    )
+    table.add_column('Group', overflow='fold')
+    table.add_column('#', justify='right', width=3, style='dim')
+    table.add_column('Folder', overflow='fold', ratio=2)
+    table.add_column('Title', overflow='fold', ratio=2)
+    table.add_column('Artist', overflow='fold', ratio=2)
+    table.add_column('Album', overflow='fold', ratio=2)
+    table.add_column('Duration', justify='right')
+    table.add_column('File', overflow='fold', ratio=3)
+    for group in groups:
+        for member_no, member in enumerate(group.members, start=1):
+            first = member_no == 1
+            folder = 'All/' if member.month_folder is None else f'{member.month_folder}/'
+            table.add_row(
+                group.folder_name if first else '',
+                str(member_no),
+                folder,
+                group.raw_title if first else '',
+                group.raw_artist if first else '',
+                member.raw_album,
+                format_duration(seconds=member.duration_seconds),
+                Path(member.file_path).name,
+            )
+        table.add_section()
+    console.print(table)
 
 
 def render_console(

@@ -28,11 +28,11 @@ from funcs_check_greek_singles.database import (  # noqa: E402
     query_only_in_months, query_untagged,
 )
 from funcs_check_greek_singles.file_actions import (  # noqa: E402
-    apply_missing_action, cluster_is_fully_judged, process_inspected,
-    prompt_action_limit, stage_duplicates, unstage_all,
+    apply_missing_action, cluster_is_fully_judged, next_group_number, parse_group_range,
+    process_inspected, prompt_action_limit, stage_duplicates, unstage_all,
 )
 from funcs_check_greek_singles.models import (  # noqa: E402
-    InFolderDupMember, MatchedRow, Song, SongKey,
+    InFolderDupMember, MatchedRow, Song, SongKey, StagingGroup,
 )
 from funcs_check_greek_singles.normalize import (  # noqa: E402
     extract_year, format_duration, normalize,
@@ -810,48 +810,42 @@ class TestStageAndInspect:
             check=True, capture_output=True, encoding='utf-8', errors='replace',
         )
 
-    def test_staging_preserves_verdict_and_writes_origin(self, tmp_path):
+    def test_staging_creates_group_folder_and_preserves_verdict(self, tmp_path):
         root = tmp_path / 'Music'
-        src = root / '03-Singles-by-Month' / '2021-03' / 'song.mp3'
-        self._audio(path=src)
-        write_state(file_path=src, value='original', field='verdict')  # user-set, must survive
+        first = root / '03-Singles-by-Month' / '2021-03' / 'song.mp3'
+        second = root / '03-Singles-by-Month' / '2021-07' / 'song.mp3'
+        self._audio(path=first)
+        self._audio(path=second)
+        write_state(file_path=first, value='original', field='verdict')  # user-set, must survive
+        members = (
+            InFolderDupMember(file_path=str(first), month_folder='2021-03',
+                              raw_album='', duration_seconds=1.0),
+            InFolderDupMember(file_path=str(second), month_folder='2021-07',
+                              raw_album='', duration_seconds=1.0),
+        )
+        group = StagingGroup(number=1, raw_title='Song', raw_artist='Artist', members=members)
         staging = root / 'Staging-Dupes'
 
-        summary = stage_duplicates(files=[src], root=root, staging_dir=staging, dry_run=False)
+        summary = stage_duplicates(groups=[group], root=root, staging_dir=staging, dry_run=False)
 
-        assert summary.staged == 1
-        staged = next(staging.iterdir())
-        assert parse_origin(value=read_state(file_path=staged, field='origin')) == \
-            '03-Singles-by-Month/2021-03/song.mp3'
-        # The script never touches the verdict -- it survives staging untouched.
-        assert classify_verdict(value=read_state(file_path=staged, field='verdict')) == VERDICT_ORIGINAL
+        assert summary.staged == 2
+        grp_dir = staging / 'grp-0001'
+        staged = sorted(grp_dir.iterdir())
+        assert len(staged) == 2
+        for path in staged:
+            assert parse_origin(value=read_state(file_path=path, field='origin')) is not None
+        # the script never touches the verdict -- the pre-set 'original' survives.
+        verdicts = {classify_verdict(value=read_state(file_path=p, field='verdict')) for p in staged}
+        assert VERDICT_ORIGINAL in verdicts
 
-    def test_post_inspection_routes_original_and_duplicate(self, tmp_path):
-        root = tmp_path / 'Music'
-        staging = root / 'Staging-Dupes'
-        dupes = root / 'Dupes'
-        staging.mkdir(parents=True)
-        keeper = staging / '2021-03 — keeper.mp3'
-        dup = staging / '2021-07 — dup.mp3'
-        self._audio(path=keeper)
-        self._audio(path=dup)
-        write_state(file_path=keeper, field='origin',
-                    value=build_origin_marker(origin_relpath='03-Singles-by-Month/2021-03/keeper.mp3'))
-        write_state(file_path=keeper, value='original', field='verdict')
-        write_state(file_path=dup, field='origin',
-                    value=build_origin_marker(origin_relpath='03-Singles-by-Month/2021-07/dup.mp3'))
-        write_state(file_path=dup, value='duplicate', field='verdict')
-
-        summary = process_inspected(staging_dir=staging, root=root, dupes_dir=dupes, dry_run=False)
-
-        assert summary.restored == 1
-        assert summary.moved_to_dupes == 1
-        restored = root / '03-Singles-by-Month' / '2021-03' / 'keeper.mp3'
-        assert restored.is_file()
-        assert read_state(file_path=restored, field='origin') == ''   # origin marker cleared
-        # the verdict persists -- the script never clears it
-        assert classify_verdict(value=read_state(file_path=restored, field='verdict')) == VERDICT_ORIGINAL
-        assert (dupes / '2021-07 — dup.mp3').is_file()   # keeps its staged name
+    def test_next_group_number(self, tmp_path):
+        staging = tmp_path / 'Staging-Dupes'
+        assert next_group_number(staging_dir=staging) == 1   # missing dir
+        staging.mkdir()
+        (staging / 'grp-0003').mkdir()
+        (staging / 'grp-0007').mkdir()
+        (staging / 'not-a-group').mkdir()
+        assert next_group_number(staging_dir=staging) == 8
 
     def test_cluster_is_fully_judged(self, tmp_path):
         first = tmp_path / 'a.mp3'
@@ -871,29 +865,71 @@ class TestStageAndInspect:
         clear_state(file_path=second, field='verdict')
         assert cluster_is_fully_judged(members=members) is False
 
-    def test_unstage_all_restores_regardless_of_verdict(self, tmp_path):
+    def test_post_inspection_by_group_range(self, tmp_path):
         root = tmp_path / 'Music'
         staging = root / 'Staging-Dupes'
-        staging.mkdir(parents=True)
-        unmarked = staging / '2021-03 — a.mp3'
-        marked = staging / '2021-07 — b.mp3'
-        self._audio(path=unmarked)
-        self._audio(path=marked)
-        write_state(file_path=unmarked, field='origin',
+        dupes = root / 'Dupes'
+        dup = staging / 'grp-0001' / '2021-03 — x.mp3'
+        keeper = staging / 'grp-0002' / '2021-07 — y.mp3'
+        self._audio(path=dup)
+        self._audio(path=keeper)
+        write_state(file_path=dup, field='origin',
+                    value=build_origin_marker(origin_relpath='03-Singles-by-Month/2021-03/x.mp3'))
+        write_state(file_path=dup, value='duplicate', field='verdict')
+        write_state(file_path=keeper, field='origin',
+                    value=build_origin_marker(origin_relpath='03-Singles-by-Month/2021-07/y.mp3'))
+        write_state(file_path=keeper, value='original', field='verdict')
+
+        # Process only grp-0002.
+        summary = process_inspected(staging_dir=staging, root=root, dupes_dir=dupes,
+                                    group_range=(2, 2), dry_run=False)
+        assert summary.restored == 1 and summary.moved_to_dupes == 0
+        assert (root / '03-Singles-by-Month' / '2021-07' / 'y.mp3').is_file()
+        assert not (staging / 'grp-0002').exists()           # emptied -> removed
+        assert (staging / 'grp-0001').exists() and dup.exists()  # out of range -> untouched
+
+        # Now process the rest (no range).
+        summary2 = process_inspected(staging_dir=staging, root=root, dupes_dir=dupes,
+                                     group_range=None, dry_run=False)
+        assert summary2.moved_to_dupes == 1
+        assert (dupes / '2021-03 — x.mp3').is_file()
+        assert not (staging / 'grp-0001').exists()
+
+    def test_unstage_by_group_range(self, tmp_path):
+        root = tmp_path / 'Music'
+        staging = root / 'Staging-Dupes'
+        in_range = staging / 'grp-0001' / '2021-03 — a.mp3'
+        out_range = staging / 'grp-0002' / '2021-07 — b.mp3'
+        self._audio(path=in_range)
+        self._audio(path=out_range)
+        write_state(file_path=in_range, field='origin',
                     value=build_origin_marker(origin_relpath='03-Singles-by-Month/2021-03/a.mp3'))
-        write_state(file_path=marked, field='origin',
+        write_state(file_path=out_range, field='origin',
                     value=build_origin_marker(origin_relpath='03-Singles-by-Month/2021-07/b.mp3'))
-        write_state(file_path=marked, value='original', field='verdict')  # must survive
 
-        summary = unstage_all(staging_dir=staging, root=root, dry_run=False)
+        summary = unstage_all(staging_dir=staging, root=root, group_range=(1, 1), dry_run=False)
 
-        assert summary.restored == 2
-        a_back = root / '03-Singles-by-Month' / '2021-03' / 'a.mp3'
-        b_back = root / '03-Singles-by-Month' / '2021-07' / 'b.mp3'
-        assert a_back.is_file() and b_back.is_file()
-        assert read_state(file_path=a_back, field='origin') == ''   # marker cleared
-        # unstage ignores the verdict and leaves it untouched
-        assert classify_verdict(value=read_state(file_path=b_back, field='verdict')) == VERDICT_ORIGINAL
+        assert summary.restored == 1
+        assert (root / '03-Singles-by-Month' / '2021-03' / 'a.mp3').is_file()
+        assert not (staging / 'grp-0001').exists()
+        assert (staging / 'grp-0002').exists() and out_range.exists()  # out of range -> untouched
+
+
+class TestStagingGroupHelpers:
+    """parse_group_range() validation + StagingGroup.folder_name (pure)."""
+
+    def test_parse_group_range_ok(self):
+        assert parse_group_range(value='7,10') == (7, 10)
+        assert parse_group_range(value='7,7') == (7, 7)
+
+    @pytest.mark.parametrize('value', ['10,7', '5', 'a,b', '1,2,3', '0,3', ''])
+    def test_parse_group_range_rejects(self, value):
+        with pytest.raises(ValueError):
+            parse_group_range(value=value)
+
+    def test_staging_group_folder_name(self):
+        group = StagingGroup(number=7, raw_title='t', raw_artist='a', members=())
+        assert group.folder_name == 'grp-0007'
 
 
 def _write_source(*, root: Path, month_folder: str, name: str, content: bytes = b'src') -> Path:

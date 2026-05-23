@@ -36,15 +36,15 @@ from funcs_check_greek_singles.database import (  # noqa: E402
 )
 from funcs_check_greek_singles.config import DUPES_DIRNAME, STAGING_DIRNAME  # noqa: E402
 from funcs_check_greek_singles.file_actions import (  # noqa: E402
-    apply_missing_action, cluster_is_fully_judged, process_inspected,
-    prompt_action_limit, stage_duplicates, unstage_all,
+    apply_missing_action, cluster_is_fully_judged, next_group_number, parse_group_range,
+    process_inspected, prompt_action_limit, stage_duplicates, unstage_all,
 )
 from funcs_check_greek_singles.models import (  # noqa: E402
-    CrossMonthDupRow, InFolderDupRow, MatchedRow,
+    CrossMonthDupRow, InFolderDupRow, MatchedRow, StagingGroup,
 )
 from funcs_check_greek_singles.normalize import normalize  # noqa: E402
 from funcs_check_greek_singles.report import (  # noqa: E402
-    render_console, render_dupe_clusters, write_csv,
+    render_console, render_staging_groups, write_csv,
 )
 from funcs_utils import setup_logging  # noqa: E402
 # pylint: enable=wrong-import-position
@@ -149,6 +149,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=f'Folder for confirmed duplicates (for eventual deletion). Default: <root>/{DUPES_DIRNAME}.',
     )
     parser.add_argument(
+        '--staging-groups', type=str, default=None,
+        help="Limit --post-inspection / --unstage to a contiguous inclusive range of "
+             "staging group folders, given as 'N1,N2' (e.g. 7,10 = grp-0007..grp-0010; "
+             '7,7 = grp-0007 only). Default: all group folders.',
+    )
+    parser.add_argument(
         '--verbose', action='store_true',
         help='Enable DEBUG-level logging.',
     )
@@ -162,15 +168,28 @@ def _resolve_console_width(override: int | None) -> int:
     return shutil.get_terminal_size(fallback=(DEFAULT_CONSOLE_WIDTH, 24)).columns
 
 
-def _collect_dupe_files(in_folder_clusters: list[InFolderDupRow],
-                        cross_month_clusters: list[CrossMonthDupRow]) -> list[Path]:
-    """Return the de-duplicated, sorted file paths across both kinds of dupe cluster."""
-    paths: set[Path] = set()
-    for in_cluster in in_folder_clusters:
-        paths.update(Path(member.file_path) for member in in_cluster.members)
-    for cross_cluster in cross_month_clusters:
-        paths.update(Path(member.file_path) for member in cross_cluster.members)
-    return sorted(paths)
+def _build_staging_groups(*, in_folder_clusters: list[InFolderDupRow],
+                          cross_month_clusters: list[CrossMonthDupRow],
+                          start_number: int) -> list[StagingGroup]:
+    """Build numbered staging groups from the dupe clusters.
+
+    A group is a cross-month cluster (all month copies of a song) or an
+    01-Singles-All in-folder cluster; the two never share files. Clusters whose
+    members are all already marked 'original' are skipped. Numbering starts at
+    start_number.
+    """
+    candidates: list[InFolderDupRow | CrossMonthDupRow] = []
+    candidates.extend(cross_month_clusters)
+    candidates.extend(c for c in in_folder_clusters if c.side == SIDE_SINGLES_ALL)
+    groups: list[StagingGroup] = []
+    number = start_number
+    for cluster in candidates:
+        if cluster_is_fully_judged(members=cluster.members):
+            continue
+        groups.append(StagingGroup(number=number, raw_title=cluster.raw_title,
+                                   raw_artist=cluster.raw_artist, members=cluster.members))
+        number += 1
+    return groups
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -208,14 +227,22 @@ def main(argv: list[str] | None = None) -> int:
     staging_dir = (args.staging_dir or (root / STAGING_DIRNAME)).resolve()
     dupes_dir = (args.dupes_dir or (root / DUPES_DIRNAME)).resolve()
 
+    try:
+        group_range = parse_group_range(value=args.staging_groups) if args.staging_groups else None
+    except ValueError as exc:
+        logger.error(str(exc))
+        return 2
+
     if args.post_inspection is not None:
         if not staging_dir.is_dir():
             logger.error(f'Staging folder does not exist: {staging_dir}')
             return 2
         post_dry_run = args.post_inspection == 'dry-run'
-        logger.info(f'Post-inspection ({args.post_inspection}) scanning {staging_dir}...')
+        scope = f' (groups {group_range[0]}-{group_range[1]})' if group_range else ''
+        logger.info(f'Post-inspection ({args.post_inspection}) scanning {staging_dir}{scope}...')
         inspect_summary = process_inspected(
-            staging_dir=staging_dir, root=root, dupes_dir=dupes_dir, dry_run=post_dry_run)
+            staging_dir=staging_dir, root=root, dupes_dir=dupes_dir,
+            group_range=group_range, dry_run=post_dry_run)
         print(
             f'\nPost-inspection {args.post_inspection} complete: '
             f'{inspect_summary.moved_to_dupes} -> {dupes_dir.name}/, '
@@ -230,8 +257,10 @@ def main(argv: list[str] | None = None) -> int:
             logger.error(f'Staging folder does not exist: {staging_dir}')
             return 2
         unstage_dry_run = args.unstage == 'dry-run'
-        logger.info(f'Unstage ({args.unstage}) scanning {staging_dir}...')
-        unstage_summary = unstage_all(staging_dir=staging_dir, root=root, dry_run=unstage_dry_run)
+        scope = f' (groups {group_range[0]}-{group_range[1]})' if group_range else ''
+        logger.info(f'Unstage ({args.unstage}) scanning {staging_dir}{scope}...')
+        unstage_summary = unstage_all(staging_dir=staging_dir, root=root,
+                                      group_range=group_range, dry_run=unstage_dry_run)
         print(f'\nUnstage {args.unstage} complete: {unstage_summary.restored} restored, '
               f'{unstage_summary.no_marker} unmarked, {unstage_summary.failed} failed')
         return 0
@@ -297,35 +326,29 @@ def main(argv: list[str] | None = None) -> int:
                 for song in collect_songs(directory=month_dir, title_prefix_norm=title_prefix_norm):
                     insert_song(conn=conn, song=song, side=SIDE_MONTH, month_folder=month_dir.name)
             conn.commit()
-            # Drop clusters whose members are all already marked 'original' (the
-            # user judged them as distinct versions); a cluster with any new/unmarked
-            # member is staged in full so the newcomer can be compared.
-            raw_in_folder = query_in_folder_duplicates(conn=conn)
-            raw_cross_month = query_cross_month_duplicates(conn=conn)
-            in_folder_dupes = [c for c in raw_in_folder if not cluster_is_fully_judged(c.members)]
-            cross_month_dupes = [c for c in raw_cross_month if not cluster_is_fully_judged(c.members)]
-            skipped_clusters = (
-                len(raw_in_folder) - len(in_folder_dupes)
-                + len(raw_cross_month) - len(cross_month_dupes))
-            if skipped_clusters:
-                logger.info(f"Skipped {skipped_clusters} cluster(s) already fully marked "
-                            f"'original' (kept versions).")
-            dupe_files = _collect_dupe_files(
-                in_folder_clusters=in_folder_dupes, cross_month_clusters=cross_month_dupes)
-            if not dupe_files:
+            # Build one group per song: cross-month clusters (all month copies) +
+            # 01-Singles-All in-folder clusters. Groups all-marked 'original' are
+            # skipped (cluster_is_fully_judged inside _build_staging_groups); numbers
+            # continue past any leftover grp-NNNN folders so a re-stage appends.
+            groups = _build_staging_groups(
+                in_folder_clusters=query_in_folder_duplicates(conn=conn),
+                cross_month_clusters=query_cross_month_duplicates(conn=conn),
+                start_number=next_group_number(staging_dir=staging_dir),
+            )
+            if not groups:
                 logger.info('No new suspected duplicates to stage.')
                 return 0
             console = Console(width=_resolve_console_width(override=args.console_width))
-            render_dupe_clusters(console=console, in_folder_duplicates=in_folder_dupes,
-                                 cross_month_duplicates=cross_month_dupes)
+            render_staging_groups(console=console, groups=groups)
             stage_dry_run = args.stage_dupes == 'dry-run'
-            logger.info(f'Staging {len(dupe_files)} suspected duplicate(s) '
+            file_total = sum(len(group.members) for group in groups)
+            logger.info(f'Staging {len(groups)} group(s) / {file_total} file(s) '
                         f'({args.stage_dupes}) into {staging_dir}...')
             stage_summary = stage_duplicates(
-                files=dupe_files, root=root, staging_dir=staging_dir, dry_run=stage_dry_run)
-            print(f'\nStaging {args.stage_dupes} complete: {stage_summary.staged} staged, '
-                  f'{stage_summary.skipped} skipped, {stage_summary.failed} failed '
-                  f'(of {stage_summary.attempted} attempted)')
+                groups=groups, root=root, staging_dir=staging_dir, dry_run=stage_dry_run)
+            print(f'\nStaging {args.stage_dupes} complete: {stage_summary.staged} staged '
+                  f'in {len(groups)} group(s), {stage_summary.skipped} skipped, '
+                  f'{stage_summary.failed} failed (of {stage_summary.attempted} attempted)')
             return 0
 
         # 'folder' (no range) checks 01-Singles-All only; 'range' is months only.

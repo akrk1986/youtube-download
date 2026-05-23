@@ -2,6 +2,13 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-23-1746] - Greek singles checker: per-group staging folders + ranged post-inspection
+
+### Changed
+- **`Utils/main-check-greek-singles.py`** + **`funcs_check_greek_singles/`**: `--stage-dupes` now places each dupe group in its own `Staging-Dupes/grp-NNNN/` subfolder (instead of one flat folder), so a tag app can inspect one group at a time. A group is a cross-month cluster (all month copies of a song) or a `01-Singles-All` in-folder cluster — the two never overlap, so the staged file set is unchanged, just grouped. New `StagingGroup` model and `render_staging_groups` table (labels each group `grp-NNNN`, delimiter between groups). Group numbers continue past any leftover folders (`next_group_number`) so a re-stage appends.
+- **`--post-inspection` / `--unstage`** gain `--staging-groups N1,N2` — act on a contiguous inclusive range of group folders (`7,10` = grp-0007..grp-0010; `7,7` = grp-0007 only; `parse_group_range`). Both now iterate the `grp-NNNN` subfolders and remove a group folder once it is emptied. All-`original` groups are still skipped at staging.
+- **`Tests/test_check_greek_singles.py`**: group-folder creation, `next_group_number`, ranged `process_inspected`/`unstage_all`, and `parse_group_range` validation.
+
 ## [2026-05-23-1635] - Greek singles checker: duplicate staging/inspection workflow
 
 ### Added

@@ -131,3 +131,22 @@ class CrossMonthDupRow:
     def distinct_months(self) -> int:
         """How many distinct month folders the cluster spans."""
         return len({member.month_folder for member in self.members})
+
+
+@dataclass(frozen=True)
+class StagingGroup:
+    """A dupe group destined for one Staging-Dupes/grp-NNNN subfolder.
+
+    Built for staging by concatenating cross-month clusters (all month copies of a
+    song) with 01-Singles-All in-folder clusters; the two never share files.
+    `number` is assigned at staging time and drives the 4-digit folder name.
+    """
+    number: int
+    raw_title: str
+    raw_artist: str
+    members: tuple[InFolderDupMember, ...]
+
+    @property
+    def folder_name(self) -> str:
+        """Staging subfolder name for this group, e.g. 'grp-0007'."""
+        return f'grp-{self.number:04d}'
