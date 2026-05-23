@@ -106,6 +106,18 @@ python Utils/main-check-greek-singles.py --post-inspection milk-run
 Repeat steps 3–5 as many times as you like — inspect a batch, run
 post-inspection, inspect more. Nothing is deleted by the script.
 
+### Aborting a staging run
+
+To send **every** staged file straight back to its original folder without
+inspecting or marking anything, use `--unstage` (it reads each file's
+`DUPE-ORIGIN` marker, moves it back, clears the marker, and leaves the verdict
+untouched):
+
+```bash
+python Utils/main-check-greek-singles.py --unstage dry-run    # preview
+python Utils/main-check-greek-singles.py --unstage milk-run   # do it
+```
+
 ## Golden rule
 
 Always run **dry-run** before **milk-run**, at both the stage and the
@@ -117,6 +129,7 @@ post-inspection step.
 |---|---|---|
 | `--stage-dupes` | `dry-run`, `milk-run` | Move suspected duplicates into the staging folder, recording each file's origin in its Album Artist tag. |
 | `--post-inspection` | `dry-run`, `milk-run` | File staged files by their Copyright verdict: `duplicate` → `Dupes/`, `original` → restored to origin (verdict kept). |
+| `--unstage` | `dry-run`, `milk-run` | Abort: move **every** staged file back to its origin (from its `DUPE-ORIGIN` marker), ignoring the verdict and leaving it untouched. No verdict needed. |
 | `--staging-dir` | path | Staging folder. Default `<root>/Staging-Dupes`. |
 | `--dupes-dir` | path | Folder for confirmed duplicates (for eventual deletion). Default `<root>/Dupes`. |
 | `--start-month` / `--end-month` | `yyyy-mm` or `yyyy` | Inclusive month-folder range that bounds `--stage-dupes`. |

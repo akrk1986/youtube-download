@@ -309,3 +309,30 @@ def process_inspected(*, staging_dir: Path, root: Path, dupes_dir: Path,
     return InspectSummary(moved_to_dupes=moved_to_dupes, restored=restored,
                           pending=pending, ambiguous=ambiguous,
                           no_marker=no_marker, failed=failed)
+
+
+def unstage_all(*, staging_dir: Path, root: Path, dry_run: bool) -> InspectSummary:
+    """Move every staged file back to its origin, ignoring the verdict (abort staging).
+
+    Reads each file's DUPE-ORIGIN marker and restores it to root/<origin>, clearing
+    only the marker and leaving the verdict (Copyright) untouched. Files without a
+    marker are skipped. Use this to undo a staging run without inspecting anything.
+    mtime preserved; dry_run only logs.
+    """
+    restored = no_marker = failed = 0
+    for src in _iter_audio_files(directory=staging_dir):
+        try:
+            origin = parse_origin(value=read_state(file_path=src, field='origin'))
+            if origin is None:
+                logger.warning(f'no DUPE-ORIGIN marker, skipping: {src.name}')
+                no_marker += 1
+                continue
+            if _restore_to_origin(src=src, origin=origin, root=root, dry_run=dry_run):
+                restored += 1
+            else:
+                failed += 1
+        except (OSError, MutagenError) as exc:
+            logger.warning(f'unstage failed for {src.name}: {exc}')
+            failed += 1
+    return InspectSummary(moved_to_dupes=0, restored=restored, pending=0,
+                          ambiguous=0, no_marker=no_marker, failed=failed)

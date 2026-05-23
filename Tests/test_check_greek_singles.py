@@ -29,7 +29,7 @@ from funcs_check_greek_singles.database import (  # noqa: E402
 )
 from funcs_check_greek_singles.file_actions import (  # noqa: E402
     apply_missing_action, cluster_is_fully_judged, process_inspected,
-    prompt_action_limit, stage_duplicates,
+    prompt_action_limit, stage_duplicates, unstage_all,
 )
 from funcs_check_greek_singles.models import (  # noqa: E402
     InFolderDupMember, MatchedRow, Song, SongKey,
@@ -870,6 +870,30 @@ class TestStageAndInspect:
         # One member left unmarked -> the cluster is not fully judged -> staged.
         clear_state(file_path=second, field='verdict')
         assert cluster_is_fully_judged(members=members) is False
+
+    def test_unstage_all_restores_regardless_of_verdict(self, tmp_path):
+        root = tmp_path / 'Music'
+        staging = root / 'Staging-Dupes'
+        staging.mkdir(parents=True)
+        unmarked = staging / '2021-03 — a.mp3'
+        marked = staging / '2021-07 — b.mp3'
+        self._audio(path=unmarked)
+        self._audio(path=marked)
+        write_state(file_path=unmarked, field='origin',
+                    value=build_origin_marker(origin_relpath='03-Singles-by-Month/2021-03/a.mp3'))
+        write_state(file_path=marked, field='origin',
+                    value=build_origin_marker(origin_relpath='03-Singles-by-Month/2021-07/b.mp3'))
+        write_state(file_path=marked, value='original', field='verdict')  # must survive
+
+        summary = unstage_all(staging_dir=staging, root=root, dry_run=False)
+
+        assert summary.restored == 2
+        a_back = root / '03-Singles-by-Month' / '2021-03' / 'a.mp3'
+        b_back = root / '03-Singles-by-Month' / '2021-07' / 'b.mp3'
+        assert a_back.is_file() and b_back.is_file()
+        assert read_state(file_path=a_back, field='origin') == ''   # marker cleared
+        # unstage ignores the verdict and leaves it untouched
+        assert classify_verdict(value=read_state(file_path=b_back, field='verdict')) == VERDICT_ORIGINAL
 
 
 def _write_source(*, root: Path, month_folder: str, name: str, content: bytes = b'src') -> Path:

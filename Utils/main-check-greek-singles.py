@@ -37,7 +37,7 @@ from funcs_check_greek_singles.database import (  # noqa: E402
 from funcs_check_greek_singles.config import DUPES_DIRNAME, STAGING_DIRNAME  # noqa: E402
 from funcs_check_greek_singles.file_actions import (  # noqa: E402
     apply_missing_action, cluster_is_fully_judged, process_inspected,
-    prompt_action_limit, stage_duplicates,
+    prompt_action_limit, stage_duplicates, unstage_all,
 )
 from funcs_check_greek_singles.models import (  # noqa: E402
     CrossMonthDupRow, InFolderDupRow, MatchedRow,
@@ -134,6 +134,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
              'exclusive with --stage-dupes, --missing-action, --dupes-scope.',
     )
     parser.add_argument(
+        '--unstage', choices=['dry-run', 'milk-run'], default=None,
+        help='Abort a staging run: move every file in the staging folder back to its '
+             'origin (from its DUPE-ORIGIN marker), ignoring the verdict and leaving it '
+             "untouched. 'dry-run' lists intended moves; 'milk-run' performs them. "
+             'Mutually exclusive with the other action flags.',
+    )
+    parser.add_argument(
         '--staging-dir', type=Path, default=None,
         help=f'Staging folder for suspected duplicates. Default: <root>/{STAGING_DIRNAME}.',
     )
@@ -177,6 +184,7 @@ def main(argv: list[str] | None = None) -> int:
         ('--missing-action', args.missing_action is not None),
         ('--stage-dupes', args.stage_dupes is not None),
         ('--post-inspection', args.post_inspection is not None),
+        ('--unstage', args.unstage is not None),
     ]
     active_actions = [name for name, is_set in exclusive_actions if is_set]
     if len(active_actions) > 1:
@@ -215,6 +223,17 @@ def main(argv: list[str] | None = None) -> int:
             f'{inspect_summary.ambiguous} ambiguous, {inspect_summary.no_marker} unmarked, '
             f'{inspect_summary.failed} failed'
         )
+        return 0
+
+    if args.unstage is not None:
+        if not staging_dir.is_dir():
+            logger.error(f'Staging folder does not exist: {staging_dir}')
+            return 2
+        unstage_dry_run = args.unstage == 'dry-run'
+        logger.info(f'Unstage ({args.unstage}) scanning {staging_dir}...')
+        unstage_summary = unstage_all(staging_dir=staging_dir, root=root, dry_run=unstage_dry_run)
+        print(f'\nUnstage {args.unstage} complete: {unstage_summary.restored} restored, '
+              f'{unstage_summary.no_marker} unmarked, {unstage_summary.failed} failed')
         return 0
 
     try:

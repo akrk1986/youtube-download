@@ -2,6 +2,18 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-23-1635] - Greek singles checker: duplicate staging/inspection workflow
+
+### Added
+- **`funcs_check_greek_singles/state_tag.py`** (new) + **`Utils/main-check-greek-singles.py`**: a stage → inspect → post-inspection workflow for resolving duplicates without folder-switching in a tag app. New flags:
+  - `--stage-dupes {dry-run,milk-run}` — move suspected duplicates (in-folder + cross-month clusters; bounded by `--start-month`/`--end-month`) into a single `Staging-Dupes/` folder, recording each file's origin path in its **Album Artist** tag as `DUPE-ORIGIN[<path relative to --root>]`. Prints the clusters as a grouped table (same format as the main report).
+  - `--post-inspection {dry-run,milk-run}` — file staged items by the **Copyright** verdict the user typed: `duplicate` → `Dupes/`, `original` → restored to its origin folder.
+  - `--unstage {dry-run,milk-run}` — abort a staging run: move every staged file back to its origin, ignoring the verdict.
+  - `--staging-dir` / `--dupes-dir` (default `<root>/Staging-Dupes`, `<root>/Dupes`).
+- State is stored in two standard tag fields (mp3/m4a/flac), both columnable/editable in mp3tag and tagscan: origin in **Album Artist** (`TPE2`/`aART`/`ALBUMARTIST`, script-managed), verdict in **Copyright** (`TCOP`/`cprt`/`COPYRIGHT`, user-only — the script never writes it). The `original` verdict **persists**; a detected cluster is skipped on staging only when all its members are already `original`, while any new/unmarked member re-stages the whole cluster for comparison. mtimes are preserved across all tag writes and moves.
+- **`README-Dupes.md`** (new): operating guide for the workflow.
+- **`Tests/test_check_greek_singles.py`**: tag-IO round-trip (Album Artist/Copyright) + mtime, verdict parsing, `cluster_is_fully_judged`, and stage/post-inspection/unstage file-move behavior (ffmpeg-generated fixtures, skipped when ffmpeg is absent).
+
 ## [2026-05-21-1402] - Booster: bootstrap sys.path for direct invocation
 
 ### Fixed
