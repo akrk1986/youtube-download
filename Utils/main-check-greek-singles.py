@@ -13,8 +13,6 @@ import shutil
 import sys
 from pathlib import Path
 
-import arrow
-
 # This Utils script imports from packages at the project root; ensure that
 # root is importable when the file is invoked as 'python Utils/...'.
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -29,7 +27,7 @@ from funcs_check_greek_singles.audio_reader import (  # noqa: E402
 )
 from funcs_check_greek_singles.database import (  # noqa: E402
     SIDE_MONTH, SIDE_SINGLES_ALL,
-    archive_previous_db, init_db, insert_song,
+    init_db, insert_song,
     query_cross_month_duplicates, query_in_folder_duplicates,
     query_in_multiple_months, query_only_in_all,
     query_only_in_months, query_total_month_songs, query_untagged,
@@ -44,7 +42,7 @@ from funcs_check_greek_singles.models import (  # noqa: E402
 )
 from funcs_check_greek_singles.normalize import normalize  # noqa: E402
 from funcs_check_greek_singles.report import (  # noqa: E402
-    render_console, render_staging_groups, write_csv,
+    render_console, render_staging_groups,
 )
 from funcs_utils import setup_logging  # noqa: E402
 # pylint: enable=wrong-import-position
@@ -56,6 +54,7 @@ SINGLES_BY_MONTH_DIRNAME = '03-Singles-by-Month'
 DATA_DIRNAME = 'Data'
 LOGS_DIRNAME = 'Logs'
 DB_FILENAME = 'songs.sqlite'
+DUPES_LOG_FILENAME = 'dupes-deleted-log.csv'
 DEFAULT_CONSOLE_WIDTH = 140
 
 logger = logging.getLogger(__name__)
@@ -70,11 +69,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         '--root', type=Path,
         default=Path.home() / 'Music' / 'Greek',
         help='Greek music root (contains 01-Singles-All and 03-Singles-by-Month). Default: %(default)s',
-    )
-    parser.add_argument(
-        '--csv-dir', type=Path,
-        default=_PROJECT_ROOT / LOGS_DIRNAME,
-        help='Directory for the timestamped CSV report. Default: %(default)s',
     )
     parser.add_argument(
         '--title-prefix', type=str, default=None,
@@ -153,6 +147,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Limit --post-inspection / --unstage to a contiguous inclusive range of "
              "staging group folders, given as 'N1,N2' (e.g. 7,10 = grp-0007..grp-0010; "
              '7,7 = grp-0007 only). Default: all group folders.',
+    )
+    parser.add_argument(
+        '--dupes-log', type=Path,
+        default=_PROJECT_ROOT / LOGS_DIRNAME / DUPES_LOG_FILENAME,
+        help='Persistent CSV log appended on every --post-inspection milk-run that '
+             "moves a 'duplicate' to the dupes folder (records its tags incl. the "
+             'source URL from the comment tag). Default: %(default)s.',
     )
     parser.add_argument(
         '--verbose', action='store_true',
@@ -238,11 +239,13 @@ def main(argv: list[str] | None = None) -> int:
             logger.error(f'Staging folder does not exist: {staging_dir}')
             return 2
         post_dry_run = args.post_inspection == 'dry-run'
+        dupes_log = args.dupes_log.resolve()
+        dupes_log.parent.mkdir(parents=True, exist_ok=True)
         scope = f' (groups {group_range[0]}-{group_range[1]})' if group_range else ''
         logger.info(f'Post-inspection ({args.post_inspection}) scanning {staging_dir}{scope}...')
         inspect_summary = process_inspected(
             staging_dir=staging_dir, root=root, dupes_dir=dupes_dir,
-            group_range=group_range, dry_run=post_dry_run)
+            group_range=group_range, dry_run=post_dry_run, dupes_log=dupes_log)
         print(
             f'\nPost-inspection {args.post_inspection} complete: '
             f'{inspect_summary.moved_to_dupes} -> {dupes_dir.name}/, '
@@ -296,9 +299,6 @@ def main(argv: list[str] | None = None) -> int:
     data_dir = _PROJECT_ROOT / DATA_DIRNAME
     data_dir.mkdir(parents=True, exist_ok=True)
     db_path = data_dir / DB_FILENAME
-    archive_previous_db(db_path=db_path)
-
-    args.csv_dir.mkdir(parents=True, exist_ok=True)
 
     title_prefix_norm = normalize(text=args.title_prefix) if args.title_prefix else ''
     if title_prefix_norm:
@@ -416,19 +416,7 @@ def main(argv: list[str] | None = None) -> int:
             dupes_scope=args.dupes_scope,
         )
 
-        timestamp = arrow.now().format('YYYY-MM-DD-HHmm')
-        csv_path = args.csv_dir / f'greek-singles-check-{timestamp}.csv'
-        write_csv(
-            csv_path=csv_path,
-            only_in_all=only_in_all,
-            only_in_months=only_in_months,
-            in_multiple_months=in_multiple_months,
-            untagged=untagged,
-            in_folder_duplicates=in_folder_duplicates,
-            cross_month_duplicates=cross_month_duplicates,
-        )
-        console.print(f'\n[bold]CSV written:[/bold] {csv_path}')
-        console.print(f'[bold]Snapshot:[/bold] {db_path}')
+        console.print(f'\n[bold]Snapshot:[/bold] {db_path}')
 
         if args.missing_action is not None:
             if not only_in_months:

@@ -6,6 +6,7 @@ This module performs the optional copy/move action driven by the
 `--missing-action` and `--target-is-year` flags. The action is prompted
 interactively (cancel / all / numeric cap) and never runs without user input.
 """
+import csv
 import logging
 import os
 import re
@@ -15,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
+import arrow
 from mutagen import MutagenError
 
 from funcs_check_greek_singles.config import VERDICT_DUPLICATE, VERDICT_ORIGINAL
@@ -22,7 +24,8 @@ from funcs_check_greek_singles.models import InFolderDupMember, MatchedRow, Stag
 from funcs_check_greek_singles.report import _format_size
 from funcs_check_greek_singles.state_tag import (
     VERDICT_AMBIGUOUS, VERDICT_PENDING,
-    build_origin_marker, classify_verdict, clear_state, parse_origin, read_state, write_state,
+    build_origin_marker, classify_verdict, clear_state, parse_origin,
+    read_deletion_tags, read_state, write_state,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,6 +34,11 @@ Action = Literal['copy', 'move']
 
 _AUDIO_SUFFIXES = {'.mp3', '.m4a', '.flac'}
 _GROUP_DIR_RE = re.compile(r'grp-(\d+)$')
+
+# Columns of the persistent deletion log (see _append_deletion_log). 'comment'
+# carries the source URL (PURL->COMMENT) for re-downloading a wrongly-deleted file.
+_DELETION_LOG_COLUMNS = ('logged_at', 'title', 'artist', 'album',
+                         'year', 'track', 'composer', 'comment')
 
 
 @dataclass(frozen=True)
@@ -188,6 +196,38 @@ def _move_preserving_mtime(src: Path, dst: Path) -> None:
     os.utime(dst, (before.st_atime, before.st_mtime))
 
 
+def _append_deletion_log(log_path: Path, deleted_file: Path) -> None:
+    """Append one timestamped row describing a deleted duplicate to the persistent log.
+
+    Reads the file's descriptive tags (title/artist/album/year/track/composer/
+    comment, the last carrying the source URL) and appends them to log_path,
+    writing the header row when the log is first created. Any read or write
+    failure is logged and swallowed -- logging must never disturb the move that
+    already completed.
+    """
+    try:
+        tags = read_deletion_tags(file_path=deleted_file)
+    except (OSError, MutagenError, ValueError) as exc:
+        logger.warning(f'deletion log: could not read tags for {deleted_file.name}: {exc}')
+        tags = {}
+    try:
+        write_header = not log_path.exists()
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with log_path.open('a', encoding='utf-8', newline='') as fh:
+            writer = csv.writer(fh)
+            if write_header:
+                writer.writerow(_DELETION_LOG_COLUMNS)
+            writer.writerow([
+                arrow.now().format('YYYY-MM-DD HH:mm:ss'),
+                tags.get('title', ''), tags.get('artist', ''), tags.get('album', ''),
+                tags.get('year', ''), tags.get('track', ''),
+                tags.get('composer', ''), tags.get('comment', ''),
+            ])
+        logger.info(f'deletion log: appended {deleted_file.name} to {log_path.name}')
+    except OSError as exc:
+        logger.warning(f'deletion log: could not append {deleted_file.name}: {exc}')
+
+
 def _group_dirs(staging_dir: Path, group_range: tuple[int, int] | None) -> list[Path]:
     """Return staging_dir's grp-NNNN subfolders, number-sorted.
 
@@ -335,11 +375,13 @@ def _restore_to_origin(*, src: Path, origin: str, root: Path, dry_run: bool) -> 
     return True
 
 
-def _route_inspected_file(*, src: Path, root: Path, dupes_dir: Path, dry_run: bool) -> str:
+def _route_inspected_file(*, src: Path, root: Path, dupes_dir: Path,
+                          dupes_log: Path | None, dry_run: bool) -> str:
     """Act on one staged file by its verdict; return an outcome key for counting.
 
     Outcome is one of: 'moved_to_dupes', 'restored', 'pending', 'ambiguous',
-    'no_marker', 'failed'.
+    'no_marker', 'failed'. On a 'duplicate' milk-run move, the deleted file's tags
+    are appended to dupes_log (when given); dry-run logs the intent but writes no row.
     """
     origin = parse_origin(value=read_state(file_path=src, field='origin'))
     if origin is None:
@@ -354,6 +396,8 @@ def _route_inspected_file(*, src: Path, root: Path, dupes_dir: Path, dry_run: bo
             dupes_dir.mkdir(parents=True, exist_ok=True)
             _move_preserving_mtime(src=src, dst=dst)
             logger.info(f'duplicate -> {dupes_dir.name}/{dst.name}')
+            if dupes_log is not None:
+                _append_deletion_log(log_path=dupes_log, deleted_file=dst)
         return 'moved_to_dupes'
     if verdict == VERDICT_ORIGINAL:
         return 'restored' if _restore_to_origin(
@@ -369,14 +413,16 @@ def _route_inspected_file(*, src: Path, root: Path, dupes_dir: Path, dry_run: bo
 
 
 def process_inspected(*, staging_dir: Path, root: Path, dupes_dir: Path,
-                      group_range: tuple[int, int] | None, dry_run: bool) -> InspectSummary:
+                      group_range: tuple[int, int] | None, dry_run: bool,
+                      dupes_log: Path | None = None) -> InspectSummary:
     """Act on inspected files in the selected grp-NNNN folders by Copyright verdict.
 
     'duplicate' -> move to dupes_dir; 'original' -> restore to root/<origin>
     (clearing only the origin marker; the verdict persists); pending / ambiguous /
     no-marker are reported and left in place. group_range=(lo, hi) limits to those
-    group folders (all if None). A group folder is removed once it is empty. mtime
-    preserved; dry_run only logs.
+    group folders (all if None). A group folder is removed once it is empty. On a
+    'duplicate' milk-run, the deleted file's tags are appended to dupes_log (when
+    given). mtime preserved; dry_run only logs.
     """
     counts = {'moved_to_dupes': 0, 'restored': 0, 'pending': 0,
               'ambiguous': 0, 'no_marker': 0, 'failed': 0}
@@ -384,7 +430,7 @@ def process_inspected(*, staging_dir: Path, root: Path, dupes_dir: Path,
         for src in _iter_audio_files(directory=group_dir):
             try:
                 outcome = _route_inspected_file(src=src, root=root, dupes_dir=dupes_dir,
-                                                dry_run=dry_run)
+                                                dupes_log=dupes_log, dry_run=dry_run)
             except (OSError, MutagenError) as exc:
                 logger.warning(f'inspect failed for {src.name}: {exc}')
                 outcome = 'failed'

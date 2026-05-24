@@ -1,11 +1,9 @@
-"""SQLite persistence layer: schema, archive, insert, diff queries."""
+"""SQLite persistence layer: schema, insert, diff queries."""
 import itertools
 import logging
 import sqlite3
 from collections.abc import Callable, Iterator
 from pathlib import Path
-
-import arrow
 
 from funcs_check_greek_singles.config import DURATION_MATCH_MARGIN_SECONDS
 from funcs_check_greek_singles.models import (
@@ -19,6 +17,7 @@ SIDE_MONTH = 'month'
 
 SCHEMA_DDL = """
 PRAGMA journal_mode = MEMORY;
+DROP TABLE IF EXISTS songs;
 CREATE TABLE songs (
     side             TEXT NOT NULL,
     month_folder     TEXT,
@@ -138,22 +137,13 @@ SELECT COUNT(*) FROM songs WHERE side = 'month' AND has_key = 1
 logger = logging.getLogger(__name__)
 
 
-def archive_previous_db(db_path: Path) -> None:
-    """Rename an existing DB to 'songs-<mtime>.sqlite', with -1/-2/... on name collision."""
-    if not db_path.exists():
-        return
-    mtime_ts = arrow.get(db_path.stat().st_mtime).format('YYYY-MM-DD-HHmm')
-    target = db_path.with_name(f'songs-{mtime_ts}.sqlite')
-    seq = 0
-    while target.exists():
-        seq += 1
-        target = db_path.with_name(f'songs-{mtime_ts}-{seq}.sqlite')
-    db_path.rename(target)
-    logger.info(f'Archived previous DB to {target.name}')
-
-
 def init_db(db_path: Path) -> sqlite3.Connection:
-    """Open a fresh DB at db_path and create the schema. Caller must close()."""
+    """Open the DB at db_path and (re)create the schema. Caller must close().
+
+    The schema drops and recreates the songs table, so reopening a persisted
+    Data/songs.sqlite resets it cleanly each run (the workflow's durable state
+    lives in tags, not here).
+    """
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA_DDL)

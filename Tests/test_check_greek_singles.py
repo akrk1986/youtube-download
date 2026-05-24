@@ -1,4 +1,5 @@
 """Unit tests for funcs_check_greek_singles/ package."""
+import csv
 import os
 import shutil
 import sqlite3
@@ -9,6 +10,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from mutagen.flac import FLAC
+from mutagen.id3 import COMM, ID3, ID3NoHeaderError, TALB, TCOM, TDRC, TIT2, TPE1, TRCK
+from mutagen.mp4 import MP4
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
@@ -22,7 +26,7 @@ from funcs_check_greek_singles.config import (  # noqa: E402
 )
 from funcs_check_greek_singles.database import (  # noqa: E402
     SCHEMA_DDL,
-    archive_previous_db, insert_song,
+    insert_song,
     query_cross_month_duplicates, query_in_folder_duplicates,
     query_in_multiple_months, query_only_in_all,
     query_only_in_months, query_untagged,
@@ -41,7 +45,7 @@ from funcs_check_greek_singles.report import _format_size  # noqa: E402
 from funcs_check_greek_singles.state_tag import (  # noqa: E402
     VERDICT_AMBIGUOUS, VERDICT_PENDING,
     build_origin_marker, classify_verdict, clear_state, parse_origin,
-    read_state, write_state,
+    read_deletion_tags, read_state, write_state,
 )
 
 
@@ -630,48 +634,6 @@ class TestRowMappers:
         assert row.month_folder is None
 
 
-class TestArchivePreviousDb:
-    """archive_previous_db renames the existing file by mtime, with -N collisions."""
-
-    def test_noop_when_absent(self, tmp_path):
-        db_path = tmp_path / 'songs.sqlite'
-        archive_previous_db(db_path=db_path)
-        assert not db_path.exists()
-
-    def test_renames_using_mtime(self, tmp_path):
-        db_path = tmp_path / 'songs.sqlite'
-        db_path.write_bytes(b'fake db')
-        fixed_epoch = _make_known_epoch()
-        os.utime(db_path, (fixed_epoch, fixed_epoch))
-
-        archive_previous_db(db_path=db_path)
-
-        archived = list(tmp_path.glob('songs-*.sqlite'))
-        assert len(archived) == 1
-        assert not db_path.exists()
-        import re as _re
-        assert _re.match(r'^songs-\d{4}-\d{2}-\d{2}-\d{4}\.sqlite$', archived[0].name)
-
-    def test_collision_appends_sequence(self, tmp_path):
-        db_path = tmp_path / 'songs.sqlite'
-        db_path.write_bytes(b'fake db')
-        fixed_epoch = _make_known_epoch()
-        os.utime(db_path, (fixed_epoch, fixed_epoch))
-
-        import arrow as _arrow
-        mtime_ts = _arrow.get(fixed_epoch).format('YYYY-MM-DD-HHmm')
-        # Pre-create the would-be target and one sequence collision.
-        (tmp_path / f'songs-{mtime_ts}.sqlite').write_bytes(b'prev1')
-        (tmp_path / f'songs-{mtime_ts}-1.sqlite').write_bytes(b'prev2')
-
-        archive_previous_db(db_path=db_path)
-
-        # New archive should land at the next free slot: songs-<mtime>-2.sqlite
-        expected = tmp_path / f'songs-{mtime_ts}-2.sqlite'
-        assert expected.exists()
-        assert not db_path.exists()
-
-
 @pytest.fixture
 def conn():
     """In-memory DB initialised with the production schema."""
@@ -913,6 +875,164 @@ class TestStageAndInspect:
         assert (root / '03-Singles-by-Month' / '2021-03' / 'a.mp3').is_file()
         assert not (staging / 'grp-0001').exists()
         assert (staging / 'grp-0002').exists() and out_range.exists()  # out of range -> untouched
+
+
+@pytest.mark.skipif(shutil.which('ffmpeg') is None, reason='ffmpeg not available')
+class TestDeletionLog:
+    """read_deletion_tags round-trip + the deletion log appended on duplicate milk-runs."""
+
+    @staticmethod
+    def _audio(path: Path) -> None:
+        """Generate a tiny silent audio file via ffmpeg under path (parents created)."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            ['ffmpeg', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono',
+             '-t', '0.3', '-y', str(path)],
+            check=True, capture_output=True, encoding='utf-8', errors='replace',
+        )
+
+    @staticmethod
+    def _write_descriptive_tags(path: Path, *, title: str, artist: str, album: str,
+                                year: str, track: str, composer: str, comment: str) -> None:
+        """Write the 7 deletion-log tags to a real audio file (per format)."""
+        suffix = path.suffix.lower()
+        if suffix == '.mp3':
+            try:
+                id3 = ID3(path)
+            except ID3NoHeaderError:
+                id3 = ID3()
+            id3.setall('TIT2', [TIT2(encoding=3, text=[title])])
+            id3.setall('TPE1', [TPE1(encoding=3, text=[artist])])
+            id3.setall('TALB', [TALB(encoding=3, text=[album])])
+            id3.setall('TDRC', [TDRC(encoding=3, text=[year])])
+            id3.setall('TRCK', [TRCK(encoding=3, text=[track])])
+            id3.setall('TCOM', [TCOM(encoding=3, text=[composer])])
+            id3.setall('COMM', [COMM(encoding=3, lang='eng', desc='', text=[comment])])
+            id3.save(path, v2_version=3)
+            return
+        if suffix == '.m4a':
+            mp4 = MP4(path)
+            mp4['\xa9nam'] = [title]
+            mp4['\xa9ART'] = [artist]
+            mp4['\xa9alb'] = [album]
+            mp4['\xa9day'] = [year]
+            mp4['trkn'] = [(int(track), 0)]
+            mp4['\xa9wrt'] = [composer]
+            mp4['\xa9cmt'] = [comment]
+            mp4.save()
+            return
+        flac = FLAC(path)
+        flac['title'] = [title]
+        flac['artist'] = [artist]
+        flac['album'] = [album]
+        flac['date'] = [year]
+        flac['tracknumber'] = [track]
+        flac['composer'] = [composer]
+        flac['comment'] = [comment]
+        flac.save()
+
+    def _stage_dupe(self, *, staging: Path, grp: str, name: str,
+                    url: str, verdict: str) -> Path:
+        """Create a staged file with descriptive tags, an origin marker, and a verdict."""
+        path = staging / grp / name
+        self._audio(path=path)
+        self._write_descriptive_tags(
+            path=path, title='T', artist='A', album='Al', year='2021',
+            track='1', composer='C', comment=url)
+        write_state(file_path=path, field='origin',
+                    value=build_origin_marker(origin_relpath=f'03-Singles-by-Month/2021-03/{name}'))
+        write_state(file_path=path, value=verdict, field='verdict')
+        return path
+
+    @pytest.mark.parametrize('ext', ['mp3', 'm4a', 'flac'])
+    def test_read_deletion_tags_roundtrip(self, tmp_path, ext):
+        audio = tmp_path / f'song.{ext}'
+        self._audio(path=audio)
+        self._write_descriptive_tags(
+            path=audio, title='Τίτλος', artist='Καλλιτέχνης', album='Άλμπουμ',
+            year='2021', track='5', composer='Συνθέτης', comment='https://youtu.be/xyz')
+        tags = read_deletion_tags(file_path=audio)
+        assert tags == {
+            'title': 'Τίτλος', 'artist': 'Καλλιτέχνης', 'album': 'Άλμπουμ',
+            'year': '2021', 'track': '5', 'composer': 'Συνθέτης',
+            'comment': 'https://youtu.be/xyz',
+        }
+
+    @pytest.mark.parametrize('ext', ['mp3', 'm4a', 'flac'])
+    def test_read_deletion_tags_blank_when_absent(self, tmp_path, ext):
+        audio = tmp_path / f'bare.{ext}'
+        self._audio(path=audio)
+        tags = read_deletion_tags(file_path=audio)
+        assert set(tags) == {'title', 'artist', 'album', 'year', 'track', 'composer', 'comment'}
+        assert all(value == '' for value in tags.values())
+
+    def test_duplicate_milkrun_appends_row_with_url(self, tmp_path):
+        root = tmp_path / 'Music'
+        staging = root / 'Staging-Dupes'
+        log = tmp_path / 'Logs' / 'dupes-deleted-log.csv'
+        self._stage_dupe(staging=staging, grp='grp-0001', name='x.mp3',
+                         url='https://youtu.be/abc123', verdict='duplicate')
+
+        summary = process_inspected(staging_dir=staging, root=root, dupes_dir=root / 'Dupes',
+                                    group_range=None, dry_run=False, dupes_log=log)
+
+        assert summary.moved_to_dupes == 1
+        assert log.is_file()
+        rows = list(csv.DictReader(log.open(encoding='utf-8')))
+        assert len(rows) == 1
+        assert rows[0]['comment'] == 'https://youtu.be/abc123'
+        assert rows[0]['title'] == 'T'
+        assert rows[0]['track'] == '1'
+        assert rows[0]['logged_at']                      # timestamp present
+
+    def test_dry_run_writes_no_row(self, tmp_path):
+        root = tmp_path / 'Music'
+        staging = root / 'Staging-Dupes'
+        log = tmp_path / 'Logs' / 'dupes-deleted-log.csv'
+        dup = self._stage_dupe(staging=staging, grp='grp-0001', name='x.mp3',
+                               url='https://youtu.be/abc123', verdict='duplicate')
+
+        summary = process_inspected(staging_dir=staging, root=root, dupes_dir=root / 'Dupes',
+                                    group_range=None, dry_run=True, dupes_log=log)
+
+        assert summary.moved_to_dupes == 1
+        assert not log.exists()                          # preview only
+        assert dup.exists()                              # not moved
+
+    def test_original_writes_no_row(self, tmp_path):
+        root = tmp_path / 'Music'
+        staging = root / 'Staging-Dupes'
+        log = tmp_path / 'Logs' / 'dupes-deleted-log.csv'
+        self._stage_dupe(staging=staging, grp='grp-0001', name='x.mp3',
+                         url='https://youtu.be/abc123', verdict='original')
+
+        summary = process_inspected(staging_dir=staging, root=root, dupes_dir=root / 'Dupes',
+                                    group_range=None, dry_run=False, dupes_log=log)
+
+        assert summary.restored == 1 and summary.moved_to_dupes == 0
+        assert not log.exists()
+
+    def test_log_appends_across_runs_with_single_header(self, tmp_path):
+        root = tmp_path / 'Music'
+        staging = root / 'Staging-Dupes'
+        dupes = root / 'Dupes'
+        log = tmp_path / 'Logs' / 'dupes-deleted-log.csv'
+
+        self._stage_dupe(staging=staging, grp='grp-0001', name='x.mp3',
+                         url='https://youtu.be/one', verdict='duplicate')
+        process_inspected(staging_dir=staging, root=root, dupes_dir=dupes,
+                          group_range=(1, 1), dry_run=False, dupes_log=log)
+        self._stage_dupe(staging=staging, grp='grp-0002', name='y.mp3',
+                         url='https://youtu.be/two', verdict='duplicate')
+        process_inspected(staging_dir=staging, root=root, dupes_dir=dupes,
+                          group_range=(2, 2), dry_run=False, dupes_log=log)
+
+        header_lines = [ln for ln in log.read_text(encoding='utf-8').splitlines()
+                        if ln.startswith('logged_at')]
+        assert len(header_lines) == 1
+        rows = list(csv.DictReader(log.open(encoding='utf-8')))
+        assert len(rows) == 2
+        assert {r['comment'] for r in rows} == {'https://youtu.be/one', 'https://youtu.be/two'}
 
 
 class TestStagingGroupHelpers:

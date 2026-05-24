@@ -59,6 +59,9 @@ _FIELDS: dict[str, _FieldSpec] = {
     'verdict': _FieldSpec(id3_key='TCOP', mp4_key='cprt', flac_key='copyright'),
 }
 
+# Descriptive tags captured when a duplicate is deleted (see read_deletion_tags).
+_DELETION_KEYS = ('title', 'artist', 'album', 'year', 'track', 'composer', 'comment')
+
 
 def _read_field(file_path: Path, spec: _FieldSpec) -> str:
     """Return the tag value for spec in a supported file, or '' if absent."""
@@ -150,6 +153,23 @@ def _run_preserving_mtime(file_path: Path, action: Callable[[], None]) -> None:
     os.utime(file_path, (before.st_atime, before.st_mtime))
 
 
+def _empty_deletion_tags() -> dict[str, str]:
+    """Return the deletion-tag dict with every field blank."""
+    return {key: '' for key in _DELETION_KEYS}
+
+
+def _id3_text(id3: ID3, key: str) -> str:
+    """Return the first text value of an ID3 frame (TIT2, COMM, ...), or '' if absent."""
+    frames = id3.getall(key)
+    return str(frames[0].text[0]) if frames and frames[0].text else ''
+
+
+def _mapping_text(tags: MP4 | FLAC, key: str) -> str:
+    """Return the first value of a dict-like MP4/FLAC tag, or '' if absent."""
+    values = tags.get(key, [])
+    return str(values[0]) if values else ''
+
+
 def read_state(file_path: Path, *, field: Field) -> str:
     """Return the raw value of the given state field ('origin' or 'verdict')."""
     return _read_field(file_path=file_path, spec=_FIELDS[field])
@@ -198,3 +218,61 @@ def classify_verdict(value: str) -> str:
     if text == VERDICT_DUPLICATE:
         return VERDICT_DUPLICATE
     return VERDICT_AMBIGUOUS
+
+
+def read_deletion_tags(file_path: Path) -> dict[str, str]:
+    """Read the descriptive tags recorded when a duplicate is deleted.
+
+    Returns a dict keyed by title, artist, album, year, track, composer, comment
+    (blank for any absent tag). 'comment' carries the source URL (PURL->COMMENT)
+    when present, so a wrongly-deleted file can be re-downloaded. Handlers in
+    funcs_audio_tag_handlers/ don't expose comment/composer across all formats,
+    hence this dedicated reader.
+
+    Raises:
+        ValueError: if the file type is not mp3/m4a/flac.
+    """
+    suffix = file_path.suffix.lower()
+    if suffix == '.mp3':
+        try:
+            id3 = ID3(file_path)
+        except ID3NoHeaderError:
+            return _empty_deletion_tags()
+        return {
+            'title': _id3_text(id3=id3, key='TIT2'),
+            'artist': _id3_text(id3=id3, key='TPE1'),
+            'album': _id3_text(id3=id3, key='TALB'),
+            'year': _id3_text(id3=id3, key='TDRC'),
+            'track': _id3_text(id3=id3, key='TRCK'),
+            'composer': _id3_text(id3=id3, key='TCOM'),
+            'comment': _id3_text(id3=id3, key='COMM'),
+        }
+    if suffix == '.m4a':
+        audio = MP4(file_path)
+        if audio.tags is None:
+            return _empty_deletion_tags()
+        trkn = audio.get('trkn', [])
+        track = str(trkn[0][0]) if trkn and trkn[0] else ''
+        return {
+            'title': _mapping_text(tags=audio, key='\xa9nam'),
+            'artist': _mapping_text(tags=audio, key='\xa9ART'),
+            'album': _mapping_text(tags=audio, key='\xa9alb'),
+            'year': _mapping_text(tags=audio, key='\xa9day'),
+            'track': track,
+            'composer': _mapping_text(tags=audio, key='\xa9wrt'),
+            'comment': _mapping_text(tags=audio, key='\xa9cmt'),
+        }
+    if suffix == '.flac':
+        flac = FLAC(file_path)
+        if flac.tags is None:
+            return _empty_deletion_tags()
+        return {
+            'title': _mapping_text(tags=flac, key='title'),
+            'artist': _mapping_text(tags=flac, key='artist'),
+            'album': _mapping_text(tags=flac, key='album'),
+            'year': _mapping_text(tags=flac, key='date'),
+            'track': _mapping_text(tags=flac, key='tracknumber'),
+            'composer': _mapping_text(tags=flac, key='composer'),
+            'comment': _mapping_text(tags=flac, key='comment'),
+        }
+    raise ValueError(f'Unsupported file type for state tag: {file_path.name}')

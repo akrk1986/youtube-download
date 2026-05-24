@@ -1,5 +1,4 @@
-"""Console (Rich) + CSV report rendering for the cross-checker."""
-import csv
+"""Console (Rich) report rendering for the cross-checker."""
 from pathlib import Path
 
 from rich.console import Console
@@ -291,69 +290,3 @@ def render_console(
         f'Folder-dups: {len(in_folder_duplicates)}'
     )
     console.print(f'\n[bold]Summary:[/bold] {summary}')
-
-
-def write_csv(
-        csv_path: Path,
-        only_in_all: list[MatchedRow],
-        only_in_months: list[MatchedRow],
-        in_multiple_months: list[MultiMonthRow],
-        untagged: list[UntaggedRow],
-        in_folder_duplicates: list[InFolderDupRow],
-        cross_month_duplicates: list[CrossMonthDupRow],
-) -> None:
-    """Write the report as a single CSV with a 'section' column."""
-    with csv_path.open('w', encoding='utf-8', newline='') as fh:
-        writer = csv.writer(fh)
-        writer.writerow(['section', 'title', 'artist', 'album', 'year',
-                         'duration', 'file_path', 'extra'])
-        for matched in only_in_all:
-            writer.writerow([
-                'only_in_all',
-                matched.raw_title, matched.raw_artist, matched.raw_album,
-                matched.year, format_duration(seconds=matched.duration_seconds),
-                _display_path(file_path=matched.file_path, month_folder=matched.month_folder), '',
-            ])
-        for matched in only_in_months:
-            writer.writerow([
-                'only_in_months',
-                matched.raw_title, matched.raw_artist, matched.raw_album,
-                matched.year, format_duration(seconds=matched.duration_seconds),
-                _display_path(file_path=matched.file_path, month_folder=matched.month_folder), '',
-            ])
-        for multi in in_multiple_months:
-            writer.writerow([
-                'in_multiple_months',
-                multi.raw_title, multi.raw_artist, multi.raw_album,
-                multi.year, format_duration(seconds=multi.duration_seconds),
-                _display_path(file_path=multi.file_path, month_folder=None),
-                _format_folders(folders=multi.folders),
-            ])
-        for untag in untagged:
-            missing = missing_tag_fields(raw_title=untag.raw_title, raw_artist=untag.raw_artist)
-            extra = 'missing: ' + ' '.join(missing) if missing else ''
-            writer.writerow([
-                'untagged',
-                untag.raw_title, untag.raw_artist, untag.raw_album,
-                '', '', _display_path(file_path=untag.file_path, month_folder=untag.month_folder),
-                extra,
-            ])
-        for dup in in_folder_duplicates:
-            folder_label = 'All' if dup.month_folder is None else dup.month_folder
-            for member in dup.members:
-                writer.writerow([
-                    'in_folder_duplicates',
-                    dup.raw_title, dup.raw_artist, member.raw_album,
-                    '', format_duration(seconds=member.duration_seconds),
-                    _display_path(file_path=member.file_path, month_folder=dup.month_folder),
-                    f'cluster: {dup.dup_count} files in {folder_label}',
-                ])
-        for cross in cross_month_duplicates:
-            for member in cross.members:
-                writer.writerow([
-                    'cross_month_duplicates',
-                    cross.raw_title, cross.raw_artist, member.raw_album,
-                    '', format_duration(seconds=member.duration_seconds),
-                    _display_path(file_path=member.file_path, month_folder=member.month_folder),
-                    f'cluster: {cross.dup_count} files across {cross.distinct_months} months',
-                ])
