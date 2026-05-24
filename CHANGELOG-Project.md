@@ -2,6 +2,15 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-05-24-1404] - Linters: skylos opt-in, bandit excludes Tests/; bump starlette (PYSEC-2026-161)
+
+### Fixed
+- **`requirements.in` / `requirements.txt`**: added a `starlette>=1.0.1` security override (re-compiled to `1.1.0`) to clear **PYSEC-2026-161**, flagged by pip-audit. `starlette` is transitive (via `skylos -> mcp`), not imported directly; the override lives in `requirements.in` (its scope note widened to cover CVE pins on transitive deps). pip-audit now reports no known vulnerabilities.
+- **`pyproject.toml`**: added `Tests` to `[tool.bandit].exclude_dirs`. It already excluded `Tests-Standalone`, and pylint/ty/pydoclint exclude both — bandit was the odd one out. The ffmpeg test fixtures' `subprocess.run([...])` calls were tripping B603/B607 (false positives in test code); bandit `High: 6` → clean.
+
+### Changed
+- **`run-linters.py`**: `skylos` removed from the default `TOOLS` set (it is slow); it stays runnable via `--tool skylos` and listed by `--list` (mirrors how `radon` is opt-in). A no-arg / "run all" invocation no longer includes it.
+
 ## [2026-05-20-2000] - Bump idna 3.11->3.15 (CVE-2026-45409)
 
 ### Fixed

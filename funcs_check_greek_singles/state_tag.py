@@ -229,14 +229,20 @@ def classify_verdict(value: str) -> str:
 def read_deletion_tags(file_path: Path) -> dict[str, str]:
     """Read the descriptive tags recorded when a duplicate is deleted.
 
-    Returns a dict keyed by title, artist, album, year, track, composer, comment
-    (blank for any absent tag). 'comment' carries the source URL (PURL->COMMENT)
-    when present, so a wrongly-deleted file can be re-downloaded. Handlers in
+    'comment' carries the source URL (PURL->COMMENT) when present, so a
+    wrongly-deleted file can be re-downloaded. Handlers in
     funcs_audio_tag_handlers/ don't expose comment/composer across all formats,
     hence this dedicated reader.
 
+    Args:
+        file_path: Path to the mp3/m4a/flac file to read.
+
+    Returns:
+        dict[str, str]: Values keyed by title, artist, album, year, track,
+            composer, comment (blank for any absent tag).
+
     Raises:
-        ValueError: if the file type is not mp3/m4a/flac.
+        ValueError: If the file type is not mp3/m4a/flac.
     """
     suffix = file_path.suffix.lower()
     if suffix == '.mp3':

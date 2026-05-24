@@ -1,9 +1,13 @@
-# Hand-edited input for LOCAL / editable dependencies that cannot live in
-# pyproject.toml's [project.dependencies] (not published to PyPI).
+# Hand-edited input for dependencies that cannot live in pyproject.toml's
+# [project.dependencies]: the local editable sibling package, plus security
+# overrides that force a minimum version on a *transitive* dependency.
 #
-# All PyPI dependencies are declared in pyproject.toml [project.dependencies].
-# This file only adds the local editable sibling package.
+# First-party PyPI dependencies are declared in pyproject.toml
+# [project.dependencies]; this file only adds the editable package and CVE pins.
 #
 # Regenerate the pinned lock (requirements.txt) with:
 #   pip-compile pyproject.toml requirements.in -o requirements.txt
 -e ../common-av-codebase
+
+# Security overrides for transitive dependencies (not imported directly):
+starlette>=1.0.1  # PYSEC-2026-161; pulled in via skylos -> mcp

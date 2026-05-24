@@ -32,7 +32,7 @@ dependencies = [
 ]
 
 [tool.bandit]
-exclude_dirs = ['.venv-linux', 'Beta', 'Tests-Standalone', 'node_modules']
+exclude_dirs = ['.venv-linux', 'Beta', 'Tests', 'Tests-Standalone', 'node_modules']
 skips = ['B101', 'B404']
 
 [tool.mypy]

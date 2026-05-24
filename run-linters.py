@@ -23,11 +23,12 @@ from project_defs import EXCLUDED_DIRS
 
 TOOLS = [
     'ruff', 'mypy', 'ty', 'bandit', 'pip-audit', 'deptry', 'pydoclint', 'pylint',
-    'vulture', 'skylos', 'pyupgrade', 'eslint', 'jshint',
+    'vulture', 'pyupgrade', 'eslint', 'jshint',
 ]
 
-# radon is informational only; excluded from default runs, opt-in via --tool radon or --with-radon
-ALL_TOOLS = TOOLS + ['radon']
+# skylos (slow) and radon (informational) are excluded from default runs; both stay
+# opt-in via --tool <name> (and skylos via --with-radon is not implied -- run it explicitly).
+ALL_TOOLS = TOOLS + ['skylos', 'radon']
 
 # Pre-run file hashes for pyupgrade change detection (populated by run_pyupgrade)
 _PYUPGRADE_PRE_HASHES: dict[str, str] = {}
