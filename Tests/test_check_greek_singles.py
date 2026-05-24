@@ -701,10 +701,21 @@ class TestStateTagParsing:
         assert classify_verdict(value='original') == VERDICT_ORIGINAL
         assert classify_verdict(value='  ORIGINAL ') == VERDICT_ORIGINAL
 
+    def test_verdict_duplicate_abbreviations(self):
+        for token in ('dup', 'dupe', 'duplicate', 'DUP', ' Dupe '):
+            assert classify_verdict(value=token) == VERDICT_DUPLICATE
+
+    def test_verdict_original_abbreviations(self):
+        for token in ('orig', 'original', 'ORIG', ' Orig '):
+            assert classify_verdict(value=token) == VERDICT_ORIGINAL
+
     def test_verdict_free_text_is_ambiguous(self):
-        # 'not a duplicate' contains 'duplicate' but is not an exact token.
+        # 'not a duplicate' contains 'duplicate' but is not an exact token;
+        # partial stems ('dupl', 'origi') are not accepted either.
         assert classify_verdict(value='not a duplicate') == VERDICT_AMBIGUOUS
         assert classify_verdict(value='maybe') == VERDICT_AMBIGUOUS
+        assert classify_verdict(value='dupl') == VERDICT_AMBIGUOUS
+        assert classify_verdict(value='origi') == VERDICT_AMBIGUOUS
 
 
 @pytest.mark.skipif(shutil.which('ffmpeg') is None, reason='ffmpeg not available')
