@@ -106,7 +106,7 @@ python Utils/main-convert.py --source flac --target mp3 --top-level-directory /p
 
 ## Greek Singles Cross-Checker (`Utils/main-check-greek-singles.py`)
 
-Cross-checks a Greek music library organised into two parallel trees and reports mismatches and duplicates. It reads audio tags with `mutagen`, loads everything into an ephemeral SQLite snapshot, and prints a Rich report plus a timestamped CSV.
+Cross-checks a Greek music library organised into two parallel trees and reports mismatches and duplicates. It reads audio tags with `mutagen`, loads everything into an ephemeral SQLite snapshot (`Data/songs.sqlite`, recreated each run), and prints a Rich report to the console.
 
 Expected layout under `--root` (default `~/Music/Greek/`):
 
@@ -163,7 +163,6 @@ python Utils/main-check-greek-singles.py --dupes-scope range --start-month 2023-
 | Argument | Values | Description |
 |---|---|---|
 | `--root` | path | Greek music root containing `01-Singles-All` and `03-Singles-by-Month`. Default `~/Music/Greek`. |
-| `--csv-dir` | path | Directory for the timestamped CSV report. Default `Logs/`. |
 | `--title-prefix` | text | Only check songs whose normalised title starts with this Greek prefix (diacritic-insensitive). |
 | `--start-month` / `--end-month` | `yyyy-mm` or `yyyy` | Inclusive month-folder range. When set, the "only in All" section is suppressed. |
 | `--missing-action` | `copy`, `move` | Copy/move songs missing from `01-Singles-All` into per-folder subdirs under All/. Prompts before acting. Mutually exclusive with `--dupes-scope`. |

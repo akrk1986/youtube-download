@@ -2,6 +2,20 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-24-1342] - Greek singles checker: deletion log, single sqlite, no report CSV, verdict abbreviations
+
+### Added
+- **`Utils/main-check-greek-singles.py`** + **`funcs_check_greek_singles/file_actions.py`** + **`state_tag.py`**: `--dupes-log PATH` (default `Logs/dupes-deleted-log.csv`) — on a `--post-inspection` **milk-run**, each file moved to `Dupes/` appends a timestamped row to a persistent CSV (`logged_at, title, artist, album, year, track, composer, comment`). The **comment carries the source URL** (PURL→COMMENT), so a file deleted by mistake can be re-downloaded after `Dupes/` is emptied. New `read_deletion_tags()` reads those seven tags directly across mp3/m4a/flac (the format handlers don't expose comment/composer); `_append_deletion_log()` writes the header once and swallows any tag-read/write failure so logging never disturbs the completed move. A **dry-run logs nothing**.
+- **`funcs_check_greek_singles/state_tag.py`**: `classify_verdict` now accepts verdict **abbreviations** — `duplicate`/`dupe`/`dup` and `original`/`orig` (case-insensitive, after trim). Partial stems (`dupl`, `origi`) and free text (`not a duplicate`) stay *ambiguous*, so a file is never moved on fuzzy text.
+
+### Removed
+- **Timestamped SQLite backups**: dropped `archive_previous_db`; the checker now keeps a single `Data/songs.sqlite` that is reset each run (`DROP TABLE IF EXISTS songs` prepended to the schema). The DB is ephemeral per-run state — the workflow's durable state lives in tags — so the `songs-*.sqlite` backups were pure clutter (delete any existing ones manually). The `Snapshot:` line still prints the DB path.
+- **The timestamped report CSV** and its `--csv-dir` flag (and `report.write_csv`): the Rich **console** report is the only report output now.
+
+### Changed
+- **`Utils/main-check-greek-singles.py`**: `VERSION` bumped to `2026-05-24-1342`.
+- **`Tests/test_check_greek_singles.py`**: removed `TestArchivePreviousDb` (3); added `TestDeletionLog` (10 — `read_deletion_tags` round-trip incl. Greek text and blank-when-absent for all three formats, duplicate-milk-run appends a row with the URL, dry-run/`original` write no row, append-across-runs with a single header) and two verdict-abbreviation tests.
+
 ## [2026-05-23-1746] - Greek singles checker: per-group staging folders + ranged post-inspection
 
 ### Changed

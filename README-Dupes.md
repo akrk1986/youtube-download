@@ -19,9 +19,10 @@ editable in mp3tag and tagscan, for mp3/m4a/flac:
 
 - **Album Artist** — at staging the script writes `DUPE-ORIGIN[<path relative to
   --root>]` here. Script-managed; you don't touch it. Cleared on restore.
-- **Copyright** — you type your verdict here during inspection: `duplicate` or
-  `original` (leave blank = undecided). The script **never** writes the verdict —
-  only you do — and it **persists** on the file.
+- **Copyright** — you type your verdict here during inspection: `duplicate` (or
+  `dupe`/`dup`) or `original` (or `orig`) — case-insensitive; leave blank =
+  undecided. The script **never** writes the verdict — only you do — and it
+  **persists** on the file.
 
 Both fields are redundant/empty on these files, so using them loses nothing.
 mtimes (file timestamps) are preserved through every move and tag write.
@@ -70,8 +71,8 @@ then **type your verdict in the Copyright field** (leave the Album Artist /
 
 | Decision | Set Copyright to | Meaning |
 |---|---|---|
-| Redundant copy → discard | `duplicate` | A real duplicate → moved to `Dupes/` |
-| A version to keep | `original` | Keep this one → restored; remembered so it isn't re-flagged |
+| Redundant copy → discard | `duplicate` (or `dupe`/`dup`) | A real duplicate → moved to `Dupes/` |
+| A version to keep | `original` (or `orig`) | Keep this one → restored; remembered so it isn't re-flagged |
 | Undecided | leave blank | inspect later |
 
 Two common cases:
@@ -81,8 +82,9 @@ Two common cases:
 - **Different versions** (same title/artist, but genuinely different recordings —
   different year/album): mark **all** of them `original`.
 
-The verdict must be exactly `duplicate` or `original` (case-insensitive). Anything
-else (e.g. `not a duplicate`) is treated as *ambiguous* and the file is left
+The verdict must be one of `duplicate`/`dupe`/`dup` or `original`/`orig`
+(case-insensitive). Anything else — including partial stems like `dupl` or free
+text like `not a duplicate` — is treated as *ambiguous* and the file is left
 untouched.
 
 ### 4. Post-inspection — dry-run (preview)
@@ -113,6 +115,13 @@ python Utils/main-check-greek-singles.py --post-inspection milk-run --staging-gr
 
 A group folder is removed once it has no files left, so finished groups disappear
 from `Staging-Dupes/`.
+
+Every file moved to `Dupes/` on a **milk-run** is also appended to a persistent
+**deletion log** (`Logs/dupes-deleted-log.csv` by default; override with
+`--dupes-log`): one timestamped row per deleted file carrying its title, artist,
+album, year, track, composer, and **comment (the source URL)**. So even after you
+empty `Dupes/`, you keep a permanent record — and can re-download a file you
+deleted by mistake straight from the logged URL. A dry-run writes nothing.
 
 Repeat steps 3–5 as many times as you like — inspect a batch, run
 post-inspection, inspect more. Nothing is deleted by the script.
@@ -147,6 +156,7 @@ post-inspection step.
 | `--staging-groups` | `N1,N2` | Limit `--post-inspection` / `--unstage` to a contiguous inclusive range of group folders (`7,10` = grp-0007..grp-0010; `7,7` = grp-0007 only). Default: all groups. |
 | `--staging-dir` | path | Staging folder. Default `<root>/Staging-Dupes`. |
 | `--dupes-dir` | path | Folder for confirmed duplicates (for eventual deletion). Default `<root>/Dupes`. |
+| `--dupes-log` | path | Persistent CSV appended on every `--post-inspection` milk-run that moves a `duplicate` to `Dupes/` — one row per deleted file with its tags incl. the source URL (from the comment tag). Default `Logs/dupes-deleted-log.csv`. |
 | `--start-month` / `--end-month` | `yyyy-mm` or `yyyy` | Inclusive month-folder range that bounds `--stage-dupes`. |
 | `--root` | path | Greek music root containing `01-Singles-All` and `03-Singles-by-Month`. Default `~/Music/Greek`. |
 
@@ -176,3 +186,8 @@ each other and with `--missing-action` / `--dupes-scope`.
   removed once it is empty.
 - **Staged filenames** are prefixed with the source folder for readability; the
   authoritative origin is the Album Artist `DUPE-ORIGIN[...]` tag, not the filename.
+- **Deletion log:** on a `--post-inspection` milk-run, each file routed to `Dupes/`
+  is appended to `Logs/dupes-deleted-log.csv` (override with `--dupes-log`) — a
+  timestamped row of its tags, including the comment/source URL, so you keep a
+  record after emptying `Dupes/`. The script *reads* the comment for this (it
+  never writes it). A dry-run logs nothing.
