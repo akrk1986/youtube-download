@@ -9,9 +9,9 @@ and tagscan, mutagen-readable, and present in mp3/m4a/flac:
   redundantly = Artist, so repurposing it loses no real information.)
 - **verdict** — the Copyright tag (ID3 ``TCOP`` / MP4 ``cprt`` / Vorbis
   ``COPYRIGHT``). The *user* types a duplicate token (``duplicate`` / ``dupe`` /
-  ``dup``) or an original token (``original`` / ``orig``) here during inspection
-  (case-insensitive); the script only ever reads it and never writes it.
-  ``original`` persists on the file.
+  ``dup`` / ``d``) or an original token (``original`` / ``orig`` / ``o``) here
+  during inspection (case-insensitive); the script only ever reads it and never
+  writes it. ``original`` persists on the file.
 
 Keeping them in separate fields means the user edits a short, clean verdict
 column without ever touching the long origin path. To move either field, change
@@ -43,8 +43,8 @@ VERDICT_PENDING = 'pending'        # verdict field empty -> not inspected yet
 VERDICT_AMBIGUOUS = 'ambiguous'    # verdict field holds unrecognized text
 
 # Accepted user tokens for each verdict (matched after strip + lower-case).
-_ORIGINAL_TOKENS = frozenset({VERDICT_ORIGINAL, 'orig'})
-_DUPLICATE_TOKENS = frozenset({VERDICT_DUPLICATE, 'dupe', 'dup'})
+_ORIGINAL_TOKENS = frozenset({VERDICT_ORIGINAL, 'orig', 'o'})
+_DUPLICATE_TOKENS = frozenset({VERDICT_DUPLICATE, 'dupe', 'dup', 'd'})
 
 # DUPE-ORIGIN[<origin>]. Greedy inside [] so the path may contain spaces.
 _MARKER_RE = re.compile(rf'{re.escape(STATE_TAG_MARKER)}\[(?P<origin>.*)\]',
@@ -211,8 +211,8 @@ def classify_verdict(value: str) -> str:
     """Map a verdict-field value to a verdict constant.
 
     Empty -> VERDICT_PENDING. Otherwise the trimmed, lower-cased text must equal
-    an accepted token exactly -- 'original'/'orig' for VERDICT_ORIGINAL,
-    'duplicate'/'dupe'/'dup' for VERDICT_DUPLICATE -- to count; anything else
+    an accepted token exactly -- 'original'/'orig'/'o' for VERDICT_ORIGINAL,
+    'duplicate'/'dupe'/'dup'/'d' for VERDICT_DUPLICATE -- to count; anything else
     (e.g. "not a duplicate", "dupl") is VERDICT_AMBIGUOUS, so a file is never
     moved on fuzzy text.
     """

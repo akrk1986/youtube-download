@@ -702,11 +702,11 @@ class TestStateTagParsing:
         assert classify_verdict(value='  ORIGINAL ') == VERDICT_ORIGINAL
 
     def test_verdict_duplicate_abbreviations(self):
-        for token in ('dup', 'dupe', 'duplicate', 'DUP', ' Dupe '):
+        for token in ('d', 'dup', 'dupe', 'duplicate', 'DUP', 'D', ' Dupe '):
             assert classify_verdict(value=token) == VERDICT_DUPLICATE
 
     def test_verdict_original_abbreviations(self):
-        for token in ('orig', 'original', 'ORIG', ' Orig '):
+        for token in ('o', 'orig', 'original', 'ORIG', 'O', ' Orig '):
             assert classify_verdict(value=token) == VERDICT_ORIGINAL
 
     def test_verdict_free_text_is_ambiguous(self):

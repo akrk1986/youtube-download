@@ -20,7 +20,7 @@ editable in mp3tag and tagscan, for mp3/m4a/flac:
 - **Album Artist** — at staging the script writes `DUPE-ORIGIN[<path relative to
   --root>]` here. Script-managed; you don't touch it. Cleared on restore.
 - **Copyright** — you type your verdict here during inspection: `duplicate` (or
-  `dupe`/`dup`) or `original` (or `orig`) — case-insensitive; leave blank =
+  `dupe`/`dup`/`d`) or `original` (or `orig`/`o`) — case-insensitive; leave blank =
   undecided. The script **never** writes the verdict — only you do — and it
   **persists** on the file.
 
@@ -71,8 +71,8 @@ then **type your verdict in the Copyright field** (leave the Album Artist /
 
 | Decision | Set Copyright to | Meaning |
 |---|---|---|
-| Redundant copy → discard | `duplicate` (or `dupe`/`dup`) | A real duplicate → moved to `Dupes/` |
-| A version to keep | `original` (or `orig`) | Keep this one → restored; remembered so it isn't re-flagged |
+| Redundant copy → discard | `duplicate` (or `dupe`/`dup`/`d`) | A real duplicate → moved to `Dupes/` |
+| A version to keep | `original` (or `orig`/`o`) | Keep this one → restored; remembered so it isn't re-flagged |
 | Undecided | leave blank | inspect later |
 
 Two common cases:
@@ -82,7 +82,7 @@ Two common cases:
 - **Different versions** (same title/artist, but genuinely different recordings —
   different year/album): mark **all** of them `original`.
 
-The verdict must be one of `duplicate`/`dupe`/`dup` or `original`/`orig`
+The verdict must be one of `duplicate`/`dupe`/`dup`/`d` or `original`/`orig`/`o`
 (case-insensitive). Anything else — including partial stems like `dupl` or free
 text like `not a duplicate` — is treated as *ambiguous* and the file is left
 untouched.

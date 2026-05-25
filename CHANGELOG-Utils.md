@@ -2,6 +2,13 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-25-1924] - Greek singles checker: single-letter verdict synonyms `d` / `o`
+
+### Changed
+- **`funcs_check_greek_singles/state_tag.py`**: `classify_verdict` now also accepts the single letters `d` (duplicate) and `o` (original), alongside the existing `duplicate`/`dupe`/`dup` and `original`/`orig` (case-insensitive, exact match after trim) — less typing during inspection. Fuzzy text (`dupl`, `origi`, `not a duplicate`) still classifies as *ambiguous*, so a file is never moved on accidental input.
+- **`Utils/main-check-greek-singles.py`**: `VERSION` bumped to `2026-05-25-1924`.
+- **`Tests/test_check_greek_singles.py`**: extended the verdict-abbreviation tests with `d`/`D` and `o`/`O`.
+
 ## [2026-05-24-1342] - Greek singles checker: deletion log, single sqlite, no report CSV, verdict abbreviations
 
 ### Added
