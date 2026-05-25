@@ -62,6 +62,11 @@ each file the script writes `DUPE-ORIGIN[<origin>]` into its Album Artist tag, t
 moves it into the group folder (named `<source-folder> — <filename>`). Group
 numbers continue past any folders left from a previous run.
 
+> **Verify (optional):** run `python Utils/main-verify-dupe-groups.py` to confirm
+> every `grp-NNNN/` folder holds exactly one song before you start inspecting. It
+> exits non-zero and flags any folder that is misgrouped (two different songs),
+> a singleton, or empty. See [README-Utils.md](README-Utils.md#verify-dupe-groups-utilsmain-verify-dupe-groupspy).
+
 ### 3. Inspect — manually, in mp3tag / tagscan
 
 Open **one group folder** at a time, e.g. `Staging-Dupes/grp-0001/` — each holds

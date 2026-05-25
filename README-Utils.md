@@ -9,6 +9,7 @@ Change history for these utilities lives in [CHANGELOG-Utils.md](CHANGELOG-Utils
 - [URL Extraction Utility](#url-extraction-utility) — `Tests/main-test-url-extraction.py`
 - [Audio Format Converter](#audio-format-converter-utilsmain-convertpy) — `Utils/main-convert.py`
 - [Greek Singles Cross-Checker](#greek-singles-cross-checker-utilsmain-check-greek-singlespy) — `Utils/main-check-greek-singles.py`
+- [Verify Dupe Groups](#verify-dupe-groups-utilsmain-verify-dupe-groupspy) — `Utils/main-verify-dupe-groups.py`
 - [Audio Volume Booster](#audio-volume-booster-utilsmain-boost-audio-trackpy) — `Utils/main-boost-audio-track.py`
 - [Loudness Boost Suggester](#loudness-boost-suggester-utilsmain-suggest-boostpy) — `Utils/main-suggest-boost.py`
 - [qBittorrent Slack Notification](#qbittorrent-slack-notification-utilsmain-qb-notifypy) — `Utils/main-qb-notify.py`
@@ -172,6 +173,47 @@ python Utils/main-check-greek-singles.py --dupes-scope range --start-month 2023-
 | `--verbose` | flag | DEBUG-level logging. |
 
 The action prompt (`--missing-action`) accepts `n` (cancel), `all` (process every file), or a positive integer to cap the count — files are processed in filename order, file timestamps (mtime) are preserved, and existing targets are overwritten.
+
+## Verify Dupe Groups (`Utils/main-verify-dupe-groups.py`)
+
+Sanity-checks the result of a `--stage-dupes` run: every `Staging-Dupes/grp-NNNN/`
+folder should hold the copies of **one** song. The script re-reads each staged
+file's title/artist tags from disk (so it catches a file moved into the wrong group
+*after* the run, which the run's DB wouldn't reflect), normalises them with the same
+logic the staging used, and reports each group's status.
+
+### Usage
+
+```bash
+# Verify the default staging folder (<root>/Staging-Dupes)
+python Utils/main-verify-dupe-groups.py
+
+# Point at a specific tree, or directly at a staging folder
+python Utils/main-verify-dupe-groups.py --root /mnt/c/Users/user/Music/Greek
+python Utils/main-verify-dupe-groups.py --staging-dir /path/to/Staging-Dupes
+```
+
+### Status per group
+
+| Status | Meaning | Verdict |
+|---|---|---|
+| `ok` | ≥2 files, all one normalised (title, artist) | pass |
+| `misgrouped` | ≥2 *different* songs in one folder | **FAIL** |
+| `singleton` | only 1 file (a group should have ≥2) | **FAIL** |
+| `empty` | no audio files | **FAIL** |
+| `untagged` | a file missing title/artist — can't verify | CHECK |
+
+Prints a Rich table (one row per group) plus a summary line and an overall **PASS** /
+**FAIL** / **CHECK**. **Exit code**: `0` when every group is `ok`, `1` when any group
+is not, `2` on a usage error (staging folder missing).
+
+### Arguments
+
+| Argument | Values | Description |
+|---|---|---|
+| `--root` | path | Greek music root containing the staging folder. Default `~/Music/Greek`. |
+| `--staging-dir` | path | Folder holding the `grp-NNNN` subfolders. Default `<root>/Staging-Dupes`. |
+| `--verbose` | flag | DEBUG-level logging. |
 
 ## Audio Volume Booster (`Utils/main-boost-audio-track.py`)
 

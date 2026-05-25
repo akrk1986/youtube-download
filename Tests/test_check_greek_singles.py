@@ -47,6 +47,10 @@ from funcs_check_greek_singles.state_tag import (  # noqa: E402
     build_origin_marker, classify_verdict, clear_state, parse_origin,
     read_deletion_tags, read_state, write_state,
 )
+from funcs_check_greek_singles.verify_groups import (  # noqa: E402
+    STATUS_EMPTY, STATUS_MISGROUPED, STATUS_OK, STATUS_SINGLETON, STATUS_UNTAGGED,
+    classify_group, verify_staging_dir,
+)
 
 
 class TestNormalize:
@@ -1248,3 +1252,90 @@ class TestApplyMissingAction:
         result = prompt_action_limit(
             action='copy', row_count=10, total_bytes=0, target_is_year=False)
         assert result is None
+
+
+class TestVerifyGroups:
+    """classify_group() status precedence + verify_staging_dir() folder scan."""
+
+    @staticmethod
+    def _song(title: str, artist: str, name: str = 'x.mp3', dur: float = 180.0) -> Song:
+        """Build a Song with a normalized key (None when title or artist is blank)."""
+        norm_title, norm_artist = normalize(text=title), normalize(text=artist)
+        key = SongKey(title=norm_title, artist=norm_artist) if norm_title and norm_artist else None
+        return Song(file_path=Path(name), raw_title=title, raw_artist=artist, raw_album='',
+                    year='', duration_seconds=dur, size_bytes=0, key=key)
+
+    @staticmethod
+    def _audio_with_tags(path: Path, *, title: str, artist: str) -> None:
+        """Create a tiny silent mp3 under path and set its title/artist tags."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            ['ffmpeg', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono',
+             '-t', '0.3', '-y', str(path)],
+            check=True, capture_output=True, encoding='utf-8', errors='replace',
+        )
+        try:
+            id3 = ID3(path)
+        except ID3NoHeaderError:
+            id3 = ID3()
+        id3.setall('TIT2', [TIT2(encoding=3, text=[title])])
+        id3.setall('TPE1', [TPE1(encoding=3, text=[artist])])
+        id3.save(path, v2_version=3)
+
+    def test_ok_single_song_two_copies(self):
+        songs = [self._song(title='Καημός', artist='Χάρις Αλεξίου', name='a.mp3'),
+                 self._song(title='καημος', artist='χαρις αλεξιου', name='b.mp3')]
+        report = classify_group(name='grp-0001', songs=songs)
+        assert report.status == STATUS_OK
+        assert report.is_ok
+        assert len(report.distinct_keys) == 1
+
+    def test_misgrouped_two_different_songs(self):
+        songs = [self._song(title='Κυριακή σε είχα βρει', artist='Ρία Ελληνίδου', name='a.mp3'),
+                 self._song(title='Λες και κράταγες μαχαίρια', artist='Ρία Ελληνίδου', name='b.mp3')]
+        report = classify_group(name='grp-0002', songs=songs)
+        assert report.status == STATUS_MISGROUPED
+        assert not report.is_ok
+        assert len(report.distinct_keys) == 2
+
+    def test_singleton(self):
+        report = classify_group(name='grp-0003', songs=[self._song(title='Solo', artist='X')])
+        assert report.status == STATUS_SINGLETON
+
+    def test_empty(self):
+        report = classify_group(name='grp-0004', songs=[])
+        assert report.status == STATUS_EMPTY
+        assert report.distinct_keys == ()
+
+    def test_untagged_when_key_missing(self):
+        songs = [self._song(title='Tagged', artist='X', name='a.mp3'),
+                 self._song(title='', artist='', name='b.mp3')]
+        report = classify_group(name='grp-0005', songs=songs)
+        assert report.status == STATUS_UNTAGGED
+
+    def test_misgrouped_takes_precedence_over_untagged(self):
+        songs = [self._song(title='Song A', artist='X', name='a.mp3'),
+                 self._song(title='Song B', artist='X', name='b.mp3'),
+                 self._song(title='', artist='', name='c.mp3')]
+        report = classify_group(name='grp-0006', songs=songs)
+        assert report.status == STATUS_MISGROUPED
+
+    @pytest.mark.skipif(shutil.which('ffmpeg') is None, reason='ffmpeg not available')
+    def test_verify_staging_dir_flags_misgrouped(self, tmp_path):
+        staging = tmp_path / 'Staging-Dupes'
+        self._audio_with_tags(staging / 'grp-0001' / '2021-03 — a.mp3',
+                              title='Same Song', artist='Artist')
+        self._audio_with_tags(staging / 'grp-0001' / '2021-06 — b.mp3',
+                              title='same song', artist='artist')
+        self._audio_with_tags(staging / 'grp-0002' / '2021-03 — c.mp3',
+                              title='Song One', artist='Artist')
+        self._audio_with_tags(staging / 'grp-0002' / '2021-06 — d.mp3',
+                              title='Song Two', artist='Artist')
+
+        reports = verify_staging_dir(staging_dir=staging)
+
+        assert [report.name for report in reports] == ['grp-0001', 'grp-0002']  # number-sorted
+        by_name = {report.name: report for report in reports}
+        assert by_name['grp-0001'].status == STATUS_OK
+        assert by_name['grp-0002'].status == STATUS_MISGROUPED
+        assert len(by_name['grp-0002'].distinct_keys) == 2

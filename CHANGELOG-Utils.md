@@ -2,6 +2,12 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-25-1941] - New utility: verify dupe-group staging folders
+
+### Added
+- **`Utils/main-verify-dupe-groups.py`** (new) + **`funcs_check_greek_singles/verify_groups.py`** (new): a standalone checker for the result of a `--stage-dupes` run. It scans every `Staging-Dupes/grp-NNNN/` folder, re-reads each staged file's title/artist tags **from disk** (so a file moved into the wrong group after the run is caught — the run DB wouldn't reflect it), normalises them with the same `normalize()` the staging used, and classifies each folder: `ok` (≥2 files, one song), `misgrouped` (≥2 different songs), `singleton` (1 file), `empty` (0 files), `untagged` (a file missing title/artist). Prints a Rich table + summary; **PASS** only when every group is `ok`. Exit code `0` (all ok) / `1` (any misgrouped/singleton/empty/untagged) / `2` (staging folder missing). Args: `--root` (default `~/Music/Greek`), `--staging-dir` (default `<root>/Staging-Dupes`), `--verbose`. Reuses `audio_reader.collect_songs` and the `Song`/`SongKey` models.
+- **`Tests/test_check_greek_singles.py`**: `TestVerifyGroups` (7 tests) — `classify_group` status precedence (ok / misgrouped / singleton / empty / untagged, and misgrouped-over-untagged) plus an ffmpeg-backed `verify_staging_dir` scan that flags a misgrouped folder.
+
 ## [2026-05-25-1924] - Greek singles checker: single-letter verdict synonyms `d` / `o`
 
 ### Changed

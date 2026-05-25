@@ -7,6 +7,7 @@ Implementation split by concern (SRP / SoC):
 - audio_reader -- file-system scan + tag reading
 - database     -- SQLite schema, archive, insert, diff queries
 - report       -- console (Rich) + CSV rendering
+- verify_groups -- post-staging check that each grp-NNNN folder holds one song
 
 The thin orchestrator lives in Utils/main-check-greek-singles.py.
 """
