@@ -1359,8 +1359,9 @@ class TestInspectGroups:
         return buffer.getvalue()
 
     @staticmethod
-    def _audio(path: Path, *, title: str, artist: str, art: bytes | None = None) -> None:
-        """Create a tiny silent mp3 with title/artist tags and optional embedded art."""
+    def _audio(path: Path, *, title: str, artist: str, art: bytes | None = None,
+               composer: str = '') -> None:
+        """Create a tiny silent mp3 with title/artist (+ optional composer/art) tags."""
         path.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(
             ['ffmpeg', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono',
@@ -1373,6 +1374,8 @@ class TestInspectGroups:
             id3 = ID3()
         id3.setall('TIT2', [TIT2(encoding=3, text=[title])])
         id3.setall('TPE1', [TPE1(encoding=3, text=[artist])])
+        if composer:
+            id3.setall('TCOM', [TCOM(encoding=3, text=[composer])])
         if art is not None:
             id3.setall('APIC', [APIC(encoding=3, mime='image/png', type=3, desc='', data=art)])
         id3.save(path, v2_version=3)
@@ -1401,7 +1404,8 @@ class TestInspectGroups:
     def test_load_groups_labels_art_and_verdict(self, tmp_path):
         staging = tmp_path / 'Staging-Dupes'
         png = self._png_bytes()
-        self._audio(staging / 'grp-0008' / 'a1.mp3', title='Song A', artist='X', art=png)
+        self._audio(staging / 'grp-0008' / 'a1.mp3', title='Song A', artist='X', art=png,
+                    composer='Composer X')
         self._audio(staging / 'grp-0008' / 'a2.mp3', title='Song A', artist='X')
         self._audio(staging / 'grp-0009' / 'b1.mp3', title='Song B', artist='Y', art=png)
         self._audio(staging / 'grp-0009' / 'b2.mp3', title='Song B', artist='Y', art=png)
@@ -1416,6 +1420,7 @@ class TestInspectGroups:
         assert [file.label for file in files] == ['A1', 'A2', 'B1', 'B2', 'B3']
         by_label = {file.label: file for file in files}
         assert by_label['A1'].has_art and not by_label['A2'].has_art
+        assert by_label['A1'].composer == 'Composer X' and by_label['A2'].composer == ''
         assert by_label['A2'].current_verdict == VERDICT_DUPLICATE
         assert by_label['A1'].current_verdict == VERDICT_PENDING
 
@@ -1423,9 +1428,11 @@ class TestInspectGroups:
         png = self._png_bytes()
         group = InspectGroup(name='grp-0008', letter='A', files=(
             InspectFile(path=Path('a1.mp3'), label='A1', group_name='grp-0008',
-                        song=self._song(name='a1.mp3'), art=png, current_verdict=VERDICT_PENDING),
+                        song=self._song(name='a1.mp3'), composer='', art=png,
+                        current_verdict=VERDICT_PENDING),
             InspectFile(path=Path('a2.mp3'), label='A2', group_name='grp-0008',
-                        song=self._song(name='a2.mp3'), art=None, current_verdict=VERDICT_PENDING),
+                        song=self._song(name='a2.mp3'), composer='', art=None,
+                        current_verdict=VERDICT_PENDING),
         ))
         out = tmp_path / 'collage.png'
         result = build_collage(groups=[group], out_path=out)

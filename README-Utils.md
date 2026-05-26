@@ -227,10 +227,10 @@ It only writes the verdict into the Copyright tag — run
 the files.
 
 Each song is labelled by group: `A1`/`A2` are the copies in the first group folder,
-`B1`/`B2`/`B3` the next, and so on. The collage (one row per group, a labelled
-thumbnail per file, an empty box for files with no art) is written to
-`<root>/Dupes-images/grp-NNNN-to-grp-MMMM.png` and opened automatically; clean that
-folder out yourself when done (it is gitignored).
+`B1`/`B2`/`B3` the next, and so on. The collage puts one group per row (with a thin
+divider between groups), cover art cropped to fill each cell and an empty box for
+files with no art; it is written to `<root>/Dupes-images/grp-NNNN-to-grp-MMMM.png`
+and opened automatically. Clean that folder out yourself when done (it is gitignored).
 
 Built for the **Windows + PyCharm Run window** (plain `input()`, no arrow-key menus).
 
@@ -252,7 +252,7 @@ The range accepts `N1-N2`, `N1,N2`, or a single `N`.
 
 ### Per-file actions
 
-At each `<n>-<label>? <a/n/p/d/o/c/v/q>:` prompt:
+At each `<n>-<label> [verdict]  audio[a]/next[n]/prev[p]/dupl[d]/orig[o]/clear[c]/view[v]/quit[q]:` prompt:
 
 | Key | Action |
 |---|---|

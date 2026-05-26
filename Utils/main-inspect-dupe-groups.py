@@ -223,6 +223,7 @@ def render_table(console: Console, groups: list[InspectGroup]) -> None:
     table.add_column('Title', overflow='fold', ratio=2)
     table.add_column('Artist', overflow='fold', ratio=2)
     table.add_column('Album', overflow='fold', ratio=2)
+    table.add_column('Composer', overflow='fold', ratio=2)
     table.add_column('Year', justify='right')
     table.add_column('Duration', justify='right')
     table.add_column('Art', justify='center')
@@ -236,7 +237,7 @@ def render_table(console: Console, groups: list[InspectGroup]) -> None:
             table.add_row(
                 str(flat_index), file.label,
                 file.group_name if member_no == 1 else '',
-                song.raw_title, song.raw_artist, song.raw_album, song.year,
+                song.raw_title, song.raw_artist, song.raw_album, file.composer, song.year,
                 format_duration(seconds=song.duration_seconds),
                 '[green]✓[/green]' if file.has_art else '[red]✗[/red]',
                 _verdict_cell(verdict=file.current_verdict),
@@ -268,7 +269,8 @@ def run_inspection_loop(files: list[InspectFile], *, player: str | None,
     index = 0
     while 0 <= index < len(files):
         file = files[index]
-        reply = _prompt(message=f'{index + 1}-{file.label} [{verdicts[index]}]? <a/n/p/d/o/c/v/q>: ')
+        reply = _prompt(message=f'{index + 1}-{file.label} [{verdicts[index]}]  '
+                                'audio[a]/next[n]/prev[p]/dupl[d]/orig[o]/clear[c]/view[v]/quit[q]: ')
         if reply == 'q':
             break
         if reply == 'a':

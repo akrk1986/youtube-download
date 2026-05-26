@@ -27,7 +27,9 @@ from mutagen.mp4 import MP4
 from funcs_check_greek_singles.audio_reader import collect_songs
 from funcs_check_greek_singles.file_actions import _group_dirs
 from funcs_check_greek_singles.models import Song
-from funcs_check_greek_singles.state_tag import classify_verdict, read_state, write_state
+from funcs_check_greek_singles.state_tag import (
+    classify_verdict, read_deletion_tags, read_state, write_state,
+)
 
 if TYPE_CHECKING:
     from PIL.Image import Image
@@ -48,6 +50,7 @@ class InspectFile:
     label: str                  # 'A1', 'A2', 'B1', ... (group letter + 1-based index)
     group_name: str             # 'grp-0008'
     song: Song
+    composer: str               # the file's composer tag (TCOM / ©wrt / composer), '' if absent
     art: bytes | None           # embedded cover-art bytes, or None if the file has none
     current_verdict: str        # classify_verdict() of the file's Copyright tag
 
@@ -90,15 +93,15 @@ def _draw_cell(*, canvas: Image, draw: ImageDraw, file: InspectFile,
                font: FreeTypeFont | ImageFont, box: tuple[int, int],
                cell_px: int, label_h: int, flat_index: int) -> None:
     """Draw one collage cell (thumbnail or empty box) plus its '<n>-<label>' caption."""
-    from PIL import Image as pil_image  # pylint: disable=import-outside-toplevel
+    from PIL import Image as pil_image, ImageOps as pil_ops  # pylint: disable=import-outside-toplevel
     box_x, box_y = box
     if file.art is not None:
         try:
             thumb = pil_image.open(BytesIO(file.art)).convert('RGB')
-            thumb.thumbnail((cell_px, cell_px))
-            offset_x = box_x + (cell_px - thumb.width) // 2
-            offset_y = box_y + (cell_px - thumb.height) // 2
-            canvas.paste(thumb, (offset_x, offset_y))
+            # Crop-to-fill so the art covers the whole cell (no internal margins,
+            # and small art is scaled up). Album art is square, so nothing is lost.
+            thumb = pil_ops.fit(thumb, (cell_px, cell_px))
+            canvas.paste(thumb, (box_x, box_y))
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.debug(f'thumbnail failed for {file.path.name}: {exc}')
             draw.rectangle((box_x, box_y, box_x + cell_px, box_y + cell_px),
@@ -143,6 +146,15 @@ def read_cover_art(path: Path) -> bytes | None:
     return None
 
 
+def _read_composer(path: Path) -> str:
+    """Return the file's composer tag, or '' if absent/unreadable."""
+    try:
+        return read_deletion_tags(file_path=path).get('composer', '')
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        logger.debug(f'composer read failed for {path.name}: {exc}')
+        return ''
+
+
 def load_groups(staging_dir: Path, group_range: tuple[int, int]) -> list[InspectGroup]:
     """Parse the selected grp-NNNN folders into labelled InspectGroups.
 
@@ -163,6 +175,7 @@ def load_groups(staging_dir: Path, group_range: tuple[int, int]) -> list[Inspect
                 label=f'{letter}{file_index}',
                 group_name=group_dir.name,
                 song=song,
+                composer=_read_composer(path=song.file_path),
                 art=read_cover_art(path=song.file_path),
                 current_verdict=verdict,
             ))
@@ -184,13 +197,15 @@ def set_verdict(file_path: Path, verdict: str) -> None:
 
 
 def build_collage(groups: list[InspectGroup], out_path: Path, *,
-                  cell_px: int = 220, pad: int = 12) -> Path:
+                  cell_px: int = 220, pad: int = 8) -> Path:
     """Render a labelled cover-art grid (one row per group) to a PNG and return its path.
 
-    Each cell shows the file's cover-art thumbnail fit into a cell_px box, or an
-    outlined empty rectangle when the file has no art, with the flat label (e.g.
-    '1-A1') drawn beneath it. Rows are left-aligned and padded to the widest group.
-    Requires Pillow; raises RuntimeError with a clear message if it is missing.
+    Each group folder is its own row, with a thin divider between groups so the
+    groupings stay visible. Within a row, cells show the file's cover art cropped to
+    fill a cell_px square (an outlined box when the file has no art) with the flat
+    label (e.g. '1-A1') beneath. The canvas is as wide as the largest group; shorter
+    groups leave trailing empty cells. Requires Pillow; raises RuntimeError with a
+    clear message if it is missing.
     """
     try:
         from PIL import Image as pil_image, ImageDraw as pil_draw  # pylint: disable=import-outside-toplevel
@@ -198,22 +213,25 @@ def build_collage(groups: list[InspectGroup], out_path: Path, *,
         raise RuntimeError('Pillow is required to build the cover-art collage '
                            '(pip install Pillow).') from exc
 
-    files_by_row = [group.files for group in groups]
-    max_cols = max((len(row) for row in files_by_row), default=0)
+    rows = [group.files for group in groups]
+    max_cols = max((len(row) for row in rows), default=0)
     if max_cols == 0:
         raise RuntimeError('no files to render in the collage')
 
     label_h = 22
     cell_w = cell_px + pad
     cell_h = cell_px + label_h + pad
-    width = max_cols * cell_w + pad
-    height = len(files_by_row) * cell_h + pad
-    canvas = pil_image.new('RGB', (width, height), color=(245, 245, 245))
+    canvas = pil_image.new('RGB', (max_cols * cell_w + pad, len(rows) * cell_h + pad),
+                           color=(245, 245, 245))
     draw = pil_draw.Draw(canvas)
     font = _load_font(size=16)
 
     flat_index = 0
-    for row_no, row in enumerate(files_by_row):
+    for row_no, row in enumerate(rows):
+        if row_no > 0:
+            divider_y = pad + row_no * cell_h - pad // 2
+            draw.line((pad, divider_y, canvas.width - pad, divider_y),
+                      fill=(210, 210, 210), width=1)
         for col_no, file in enumerate(row):
             flat_index += 1
             _draw_cell(canvas=canvas, draw=draw, file=file, font=font,
