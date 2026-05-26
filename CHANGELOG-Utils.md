@@ -2,6 +2,11 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-26-2209] - Greek singles checker: refactor main() into a thin dispatcher
+
+### Changed
+- **`Utils/main-check-greek-singles.py`**: internal refactor of `main()` — **no behavior change** (identical exit codes, stdout/Rich output and side effects). `main()` is now parse → validate → dispatch (radon F/72 → A/5); the action modes moved into focused module-level handlers (`_run_post_inspection`, `_run_unstage`, `_run_stage`, `_run_report`, shared `_scan_into_db`, plus validation/scope helpers). A small `_UsageError` exception collapses the scattered `return 2` guards, and two frozen dataclasses (`_Dirs`, `_Scope`) + a `_ReportData` bundle thread state through the handlers. This let the four `# pylint: disable=too-many-{locals,branches,statements,return-statements}` flags and the four `# type: ignore[var-annotated]` comments be removed while keeping pylint at 10.00/10. `VERSION` bumped to `2026-05-26-2209`.
+
 ## [2026-05-26-1801] - Dupe-group inspector: composer column, grouped collage, clearer prompt
 
 ### Changed
