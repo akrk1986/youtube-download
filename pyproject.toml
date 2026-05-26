@@ -10,6 +10,7 @@ dependencies = [
     "mutagen",
     "mypy",
     "odfpy",
+    "Pillow",
     "pip-audit>=2.10.0",
     "pip-tools",
     "pydoclint",

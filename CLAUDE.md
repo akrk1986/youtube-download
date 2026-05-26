@@ -26,6 +26,7 @@ The codebase follows a modular function-based architecture:
 - `main-convert.py` - Audio format converter: converts between MP3, M4A, and FLAC (no conversion to FLAC; FLAC can convert to MP3, M4A, or both)
 - `main-get-artists-from-trello.py` - Utility to convert Trello board data to artist JSON
 - `main-verify-dupe-groups.py` - Verify a `--stage-dupes` run: every `Staging-Dupes/grp-NNNN/` folder must hold exactly one song (flags misgrouped/singleton/empty; uses `funcs_check_greek_singles/verify_groups.py`)
+- `main-inspect-dupe-groups.py` - Interactive inspector for a range of `Staging-Dupes/grp-NNNN/` groups: tags table grouped by song + cover-art collage, per-file play/verdict prompts; writes the Copyright verdict only (uses `funcs_check_greek_singles/inspect_groups.py`, needs Pillow)
 - `main-boost-audio-track.py` - Audio volume booster for MP3/M4A/MP4 files (not FLAC)
 - `main-qb-notify.py` - qBittorrent Slack notification helper
 - `main-qb-notify-gmail.py` - qBittorrent Gmail notification helper

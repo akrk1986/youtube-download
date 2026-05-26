@@ -2,6 +2,12 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-26-1610] - New utility: interactive dupe-group inspector with cover-art collage
+
+### Added
+- **`Utils/main-inspect-dupe-groups.py`** (new) + **`funcs_check_greek_singles/inspect_groups.py`** (new): an interactive inspector that replaces the tag-app step of the dupe workflow. Given a range of staging groups (`8-9`, `8,9`, or a single `8`), it prints the files' tags in a table grouped by song (labelled `A1`, `A2`, `B1`, …, with an Art ✓/✗ column and the current verdict), builds a **cover-art collage** (`<root>/Dupes-images/grp-NNNN-to-grp-MMMM.png` — a labelled thumbnail per file, empty box when a file has no art) and opens it, then prompts per file: `a` play (foobar2000 / audacious / rhythmbox — single-instance, plays immediately), `n`/`p` next/prev, `v` view that file's art, `d`/`o` verdict, `c` clear verdict, `q` quit. It only **writes the Copyright verdict** (`o`/`d`); routing stays with `--post-inspection`. Groups are selected with the same logic `--post-inspection` routes, so the inspected set matches. Built for the Windows + PyCharm Run-window workflow (plain flushed `input()` — no `prompt_toolkit`; Rich `force_terminal` + width; UTF-8 stdout). Args: `--root`, `--staging-dir`, `--images-dir`, `--player`, `--no-collage`, `--width`, `--verbose`. New dependency: **Pillow**.
+- **`Tests/test_check_greek_singles.py`**: `TestInspectGroups` (5 tests) — `_group_letter` sequence, `read_cover_art` present/absent, `load_groups` labelling + art + verdict, `build_collage` writes a PNG, `set_verdict` round-trip.
+
 ## [2026-05-25-1941] - New utility: verify dupe-group staging folders
 
 ### Added

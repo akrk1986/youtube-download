@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 from mutagen.flac import FLAC
-from mutagen.id3 import COMM, ID3, ID3NoHeaderError, TALB, TCOM, TDRC, TIT2, TPE1, TRCK
+from mutagen.id3 import APIC, COMM, ID3, ID3NoHeaderError, TALB, TCOM, TDRC, TIT2, TPE1, TRCK
 from mutagen.mp4 import MP4
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -50,6 +50,10 @@ from funcs_check_greek_singles.state_tag import (  # noqa: E402
 from funcs_check_greek_singles.verify_groups import (  # noqa: E402
     STATUS_EMPTY, STATUS_MISGROUPED, STATUS_OK, STATUS_SINGLETON, STATUS_UNTAGGED,
     classify_group, verify_staging_dir,
+)
+from funcs_check_greek_singles.inspect_groups import (  # noqa: E402
+    InspectFile, InspectGroup, _group_letter, build_collage, iter_files,
+    load_groups, read_cover_art, set_verdict,
 )
 
 
@@ -1339,3 +1343,100 @@ class TestVerifyGroups:
         assert by_name['grp-0001'].status == STATUS_OK
         assert by_name['grp-0002'].status == STATUS_MISGROUPED
         assert len(by_name['grp-0002'].distinct_keys) == 2
+
+
+class TestInspectGroups:
+    """inspect_groups: cover-art read, group loading/labelling, collage, verdict write."""
+
+    @staticmethod
+    def _png_bytes() -> bytes:
+        """Return a tiny valid PNG image as bytes (for embedded cover art / collage cells)."""
+        from io import BytesIO
+
+        from PIL import Image
+        buffer = BytesIO()
+        Image.new('RGB', (4, 4), color=(10, 120, 200)).save(buffer, format='PNG')
+        return buffer.getvalue()
+
+    @staticmethod
+    def _audio(path: Path, *, title: str, artist: str, art: bytes | None = None) -> None:
+        """Create a tiny silent mp3 with title/artist tags and optional embedded art."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            ['ffmpeg', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono',
+             '-t', '0.3', '-y', str(path)],
+            check=True, capture_output=True, encoding='utf-8', errors='replace',
+        )
+        try:
+            id3 = ID3(path)
+        except ID3NoHeaderError:
+            id3 = ID3()
+        id3.setall('TIT2', [TIT2(encoding=3, text=[title])])
+        id3.setall('TPE1', [TPE1(encoding=3, text=[artist])])
+        if art is not None:
+            id3.setall('APIC', [APIC(encoding=3, mime='image/png', type=3, desc='', data=art)])
+        id3.save(path, v2_version=3)
+
+    @staticmethod
+    def _song(name: str) -> Song:
+        """Build a minimal tagged Song for constructing InspectFiles directly."""
+        return Song(file_path=Path(name), raw_title='T', raw_artist='A', raw_album='',
+                    year='', duration_seconds=180.0, size_bytes=0,
+                    key=SongKey(title='t', artist='a'))
+
+    def test_group_letter(self):
+        assert _group_letter(index=0) == 'A'
+        assert _group_letter(index=25) == 'Z'
+        assert _group_letter(index=26) == 'AA'
+
+    @pytest.mark.skipif(shutil.which('ffmpeg') is None, reason='ffmpeg not available')
+    def test_read_cover_art_present_and_absent(self, tmp_path):
+        with_art, without = tmp_path / 'a.mp3', tmp_path / 'b.mp3'
+        self._audio(with_art, title='T', artist='A', art=self._png_bytes())
+        self._audio(without, title='T', artist='A')
+        assert read_cover_art(path=with_art) is not None
+        assert read_cover_art(path=without) is None
+
+    @pytest.mark.skipif(shutil.which('ffmpeg') is None, reason='ffmpeg not available')
+    def test_load_groups_labels_art_and_verdict(self, tmp_path):
+        staging = tmp_path / 'Staging-Dupes'
+        png = self._png_bytes()
+        self._audio(staging / 'grp-0008' / 'a1.mp3', title='Song A', artist='X', art=png)
+        self._audio(staging / 'grp-0008' / 'a2.mp3', title='Song A', artist='X')
+        self._audio(staging / 'grp-0009' / 'b1.mp3', title='Song B', artist='Y', art=png)
+        self._audio(staging / 'grp-0009' / 'b2.mp3', title='Song B', artist='Y', art=png)
+        self._audio(staging / 'grp-0009' / 'b3.mp3', title='Song B', artist='Y')
+        write_state(file_path=staging / 'grp-0008' / 'a2.mp3', value='d', field='verdict')
+
+        groups = load_groups(staging_dir=staging, group_range=(8, 9))
+
+        assert [group.name for group in groups] == ['grp-0008', 'grp-0009']
+        assert [group.letter for group in groups] == ['A', 'B']
+        files = iter_files(groups=groups)
+        assert [file.label for file in files] == ['A1', 'A2', 'B1', 'B2', 'B3']
+        by_label = {file.label: file for file in files}
+        assert by_label['A1'].has_art and not by_label['A2'].has_art
+        assert by_label['A2'].current_verdict == VERDICT_DUPLICATE
+        assert by_label['A1'].current_verdict == VERDICT_PENDING
+
+    def test_build_collage_writes_png(self, tmp_path):
+        png = self._png_bytes()
+        group = InspectGroup(name='grp-0008', letter='A', files=(
+            InspectFile(path=Path('a1.mp3'), label='A1', group_name='grp-0008',
+                        song=self._song(name='a1.mp3'), art=png, current_verdict=VERDICT_PENDING),
+            InspectFile(path=Path('a2.mp3'), label='A2', group_name='grp-0008',
+                        song=self._song(name='a2.mp3'), art=None, current_verdict=VERDICT_PENDING),
+        ))
+        out = tmp_path / 'collage.png'
+        result = build_collage(groups=[group], out_path=out)
+        assert result == out
+        assert out.is_file() and out.stat().st_size > 0
+
+    @pytest.mark.skipif(shutil.which('ffmpeg') is None, reason='ffmpeg not available')
+    def test_set_verdict_roundtrip(self, tmp_path):
+        path = tmp_path / 'x.mp3'
+        self._audio(path, title='T', artist='A')
+        set_verdict(file_path=path, verdict=VERDICT_DUPLICATE)
+        assert classify_verdict(value=read_state(file_path=path, field='verdict')) == VERDICT_DUPLICATE
+        clear_state(file_path=path, field='verdict')
+        assert classify_verdict(value=read_state(file_path=path, field='verdict')) == VERDICT_PENDING

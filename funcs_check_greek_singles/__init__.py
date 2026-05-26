@@ -8,6 +8,7 @@ Implementation split by concern (SRP / SoC):
 - database     -- SQLite schema, archive, insert, diff queries
 - report       -- console (Rich) + CSV rendering
 - verify_groups -- post-staging check that each grp-NNNN folder holds one song
+- inspect_groups -- load staged groups + build a cover-art collage for interactive inspection
 
 The thin orchestrator lives in Utils/main-check-greek-singles.py.
 """

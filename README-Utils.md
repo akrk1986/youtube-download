@@ -10,6 +10,7 @@ Change history for these utilities lives in [CHANGELOG-Utils.md](CHANGELOG-Utils
 - [Audio Format Converter](#audio-format-converter-utilsmain-convertpy) — `Utils/main-convert.py`
 - [Greek Singles Cross-Checker](#greek-singles-cross-checker-utilsmain-check-greek-singlespy) — `Utils/main-check-greek-singles.py`
 - [Verify Dupe Groups](#verify-dupe-groups-utilsmain-verify-dupe-groupspy) — `Utils/main-verify-dupe-groups.py`
+- [Inspect Dupe Groups](#inspect-dupe-groups-utilsmain-inspect-dupe-groupspy) — `Utils/main-inspect-dupe-groups.py`
 - [Audio Volume Booster](#audio-volume-booster-utilsmain-boost-audio-trackpy) — `Utils/main-boost-audio-track.py`
 - [Loudness Boost Suggester](#loudness-boost-suggester-utilsmain-suggest-boostpy) — `Utils/main-suggest-boost.py`
 - [qBittorrent Slack Notification](#qbittorrent-slack-notification-utilsmain-qb-notifypy) — `Utils/main-qb-notify.py`
@@ -214,6 +215,70 @@ is not, `2` on a usage error (staging folder missing).
 | `--root` | path | Greek music root containing the staging folder. Default `~/Music/Greek`. |
 | `--staging-dir` | path | Folder holding the `grp-NNNN` subfolders. Default `<root>/Staging-Dupes`. |
 | `--verbose` | flag | DEBUG-level logging. |
+
+## Inspect Dupe Groups (`Utils/main-inspect-dupe-groups.py`)
+
+Replaces the manual tag-app step of the dupe workflow (step 3 in
+[README-Dupes.md](README-Dupes.md)). Give it a range of staging groups; it shows the
+files' tags in a table grouped by song, builds a **cover-art collage** so you can
+compare the artwork at a glance, then walks you through each file to record a verdict.
+It only writes the verdict into the Copyright tag — run
+`main-check-greek-singles.py --post-inspection` afterwards to actually move/restore
+the files.
+
+Each song is labelled by group: `A1`/`A2` are the copies in the first group folder,
+`B1`/`B2`/`B3` the next, and so on. The collage (one row per group, a labelled
+thumbnail per file, an empty box for files with no art) is written to
+`<root>/Dupes-images/grp-NNNN-to-grp-MMMM.png` and opened automatically; clean that
+folder out yourself when done (it is gitignored).
+
+Built for the **Windows + PyCharm Run window** (plain `input()`, no arrow-key menus).
+
+### Usage
+
+```bash
+# Inspect groups 8 and 9 (Windows: default --root resolves to C:\Users\<you>\Music\Greek)
+python Utils/main-inspect-dupe-groups.py 8-9
+
+# WSL: point at the C:-drive tree
+python Utils/main-inspect-dupe-groups.py 8-9 --root /mnt/c/Users/user/Music/Greek
+
+# A single group; skip the collage; a specific player
+python Utils/main-inspect-dupe-groups.py 8 --no-collage
+python Utils/main-inspect-dupe-groups.py 41,42 --player "C:\Program Files\foobar2000\foobar2000.exe"
+```
+
+The range accepts `N1-N2`, `N1,N2`, or a single `N`.
+
+### Per-file actions
+
+At each `<n>-<label>? <a/n/p/d/o/c/v/q>:` prompt:
+
+| Key | Action |
+|---|---|
+| `a` | Play the file in the audio player (single-instance: plays in the already-open window) |
+| `v` | Open just this file's cover art |
+| `n` / *blank* | Next file (no verdict change) |
+| `p` | Previous file |
+| `d` | Verdict **duplicate** → advance |
+| `o` | Verdict **original** → advance |
+| `c` | Clear this file's verdict → stay |
+| `q` | Quit (EOF also quits) |
+
+### Arguments
+
+| Argument | Values | Description |
+|---|---|---|
+| `groups` | `N1-N2` / `N1,N2` / `N` | Group range to inspect (positional, required). |
+| `--root` | path | Greek music root containing the staging folder. Default `~/Music/Greek`. |
+| `--staging-dir` | path | Folder holding the `grp-NNNN` subfolders. Default `<root>/Staging-Dupes`. |
+| `--images-dir` | path | Folder for the cover-art collage. Default `<root>/Dupes-images`. |
+| `--player` | path | Audio player executable. Default: foobar2000 on Windows/WSL, audacious/rhythmbox on Linux, else the OS default app. |
+| `--no-collage` | flag | Do not build/open the collage (the per-file `v` still works). |
+| `--width` | int | Console width override. Default: auto-detect (fallback 140). |
+| `--verbose` | flag | DEBUG-level logging. |
+
+Requires **Pillow** for the collage (already in `requirements.txt`).
 
 ## Audio Volume Booster (`Utils/main-boost-audio-track.py`)
 

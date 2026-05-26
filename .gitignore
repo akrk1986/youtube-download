@@ -67,3 +67,6 @@ package-lock.json
 
 # --- Misc tools ---
 .pyscn/
+
+# --- Dupe-inspection cover-art collages (main-inspect-dupe-groups.py) ---
+Dupes-images/

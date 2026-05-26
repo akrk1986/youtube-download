@@ -92,6 +92,12 @@ The verdict must be one of `duplicate`/`dupe`/`dup`/`d` or `original`/`orig`/`o`
 text like `not a duplicate` — is treated as *ambiguous* and the file is left
 untouched.
 
+> **Without a tag app:** `python Utils/main-inspect-dupe-groups.py 1-3` walks a range
+> of groups in the terminal — a table grouped by song, a cover-art collage to compare
+> artwork, and per-file `o`/`d`/`c` prompts (plus `a` to play in foobar2000). It writes
+> the same Copyright verdicts, so steps 4–5 are unchanged. See
+> [README-Utils.md](README-Utils.md#inspect-dupe-groups-utilsmain-inspect-dupe-groupspy).
+
 ### 4. Post-inspection — dry-run (preview)
 
 ```bash
