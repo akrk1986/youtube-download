@@ -48,7 +48,7 @@ from funcs_check_greek_singles.state_tag import (  # noqa: E402
 from funcs_utils import setup_logging  # noqa: E402
 # pylint: enable=wrong-import-position
 
-VERSION = '2026-05-26-1610'
+VERSION = '2026-05-26-1801'
 
 SINGLES_ROOT_DEFAULT = Path.home() / 'Music' / 'Greek'
 IMAGES_DIRNAME = 'Dupes-images'

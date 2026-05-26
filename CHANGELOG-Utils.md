@@ -2,6 +2,15 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-26-1801] - Dupe-group inspector: composer column, grouped collage, clearer prompt
+
+### Changed
+- **`Utils/main-inspect-dupe-groups.py`** + **`funcs_check_greek_singles/inspect_groups.py`**: follow-up tweaks to the inspector:
+  - The inspection table gains a **Composer** column (read via `read_deletion_tags` — `TCOM` / `©wrt` / `composer`), shown between Album and Year.
+  - The per-file prompt is now self-describing: `<n>-<label> [verdict]  audio[a]/next[n]/prev[p]/dupl[d]/orig[o]/clear[c]/view[v]/quit[q]`.
+  - Collage: cover art is now **cropped to fill** each cell (no internal margins, small art scaled up), padding tightened (12→8 px), and a **thin divider** is drawn between the per-group rows so groupings stay visible. `VERSION` bumped to `2026-05-26-1801`.
+- **`Tests/test_check_greek_singles.py`**: `TestInspectGroups` covers the composer tag (read + blank-when-absent) and the updated `InspectFile`.
+
 ## [2026-05-26-1610] - New utility: interactive dupe-group inspector with cover-art collage
 
 ### Added
