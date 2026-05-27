@@ -51,6 +51,7 @@ class InspectFile:
     group_name: str             # 'grp-0008'
     song: Song
     composer: str               # the file's composer tag (TCOM / ©wrt / composer), '' if absent
+    comment: str                # the file's comment tag (COMM / ©cmt / comment), '' if absent
     art: bytes | None           # embedded cover-art bytes, or None if the file has none
     current_verdict: str        # classify_verdict() of the file's Copyright tag
 
@@ -146,13 +147,14 @@ def read_cover_art(path: Path) -> bytes | None:
     return None
 
 
-def _read_composer(path: Path) -> str:
-    """Return the file's composer tag, or '' if absent/unreadable."""
+def _read_composer_comment(path: Path) -> tuple[str, str]:
+    """Return the file's (composer, comment) tags, each '' if absent/unreadable."""
     try:
-        return read_deletion_tags(file_path=path).get('composer', '')
+        tags = read_deletion_tags(file_path=path)
+        return tags.get('composer', ''), tags.get('comment', '')
     except Exception as exc:  # pylint: disable=broad-exception-caught
-        logger.debug(f'composer read failed for {path.name}: {exc}')
-        return ''
+        logger.debug(f'composer/comment read failed for {path.name}: {exc}')
+        return '', ''
 
 
 def load_groups(staging_dir: Path, group_range: tuple[int, int]) -> list[InspectGroup]:
@@ -170,12 +172,14 @@ def load_groups(staging_dir: Path, group_range: tuple[int, int]) -> list[Inspect
         files: list[InspectFile] = []
         for file_index, song in enumerate(collect_songs(directory=group_dir), start=1):
             verdict = classify_verdict(value=read_state(file_path=song.file_path, field='verdict'))
+            composer, comment = _read_composer_comment(path=song.file_path)
             files.append(InspectFile(
                 path=song.file_path,
                 label=f'{letter}{file_index}',
                 group_name=group_dir.name,
                 song=song,
-                composer=_read_composer(path=song.file_path),
+                composer=composer,
+                comment=comment,
                 art=read_cover_art(path=song.file_path),
                 current_verdict=verdict,
             ))

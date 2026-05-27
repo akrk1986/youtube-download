@@ -1428,10 +1428,10 @@ class TestInspectGroups:
         png = self._png_bytes()
         group = InspectGroup(name='grp-0008', letter='A', files=(
             InspectFile(path=Path('a1.mp3'), label='A1', group_name='grp-0008',
-                        song=self._song(name='a1.mp3'), composer='', art=png,
+                        song=self._song(name='a1.mp3'), composer='', comment='', art=png,
                         current_verdict=VERDICT_PENDING),
             InspectFile(path=Path('a2.mp3'), label='A2', group_name='grp-0008',
-                        song=self._song(name='a2.mp3'), composer='', art=None,
+                        song=self._song(name='a2.mp3'), composer='', comment='', art=None,
                         current_verdict=VERDICT_PENDING),
         ))
         out = tmp_path / 'collage.png'

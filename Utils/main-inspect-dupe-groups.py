@@ -211,33 +211,39 @@ def _verdict_cell(verdict: str) -> str:
     return _VERDICT_STYLE.get(verdict, verdict)
 
 
+def _comment_cell(comment: str) -> str:
+    """Render the comment tag: empty stays empty, a URL collapses to '<url>', text truncates to 40 chars."""
+    if not comment or comment.lower().startswith(('http:', 'https:')):
+        return '<url>' if comment else ''
+    return comment if len(comment) <= 40 else comment[:39] + '…'
+
+
 def render_table(console: Console, groups: list[InspectGroup]) -> None:
     """Print one row per file, grouped by song, in the same style as the staging table."""
     total = sum(len(group.files) for group in groups)
     table = Table(
         title=f'{len(groups)} group(s) ({total} files) to inspect',
         title_justify='left', show_lines=False, header_style='bold magenta', expand=True)
-    table.add_column('#', justify='right', width=3, style='dim')
     table.add_column('Label', no_wrap=True)
     table.add_column('Group', overflow='fold')
     table.add_column('Title', overflow='fold', ratio=2)
     table.add_column('Artist', overflow='fold', ratio=2)
     table.add_column('Album', overflow='fold', ratio=2)
     table.add_column('Composer', overflow='fold', ratio=2)
+    table.add_column('Comment', overflow='fold', ratio=2)
     table.add_column('Year', justify='right')
     table.add_column('Duration', justify='right')
     table.add_column('Art', justify='center')
     table.add_column('Verdict', no_wrap=True)
     table.add_column('File', overflow='fold', ratio=3)
-    flat_index = 0
     for group in groups:
         for member_no, file in enumerate(group.files, start=1):
-            flat_index += 1
             song = file.song
             table.add_row(
-                str(flat_index), file.label,
+                file.label,
                 file.group_name if member_no == 1 else '',
-                song.raw_title, song.raw_artist, song.raw_album, file.composer, song.year,
+                song.raw_title, song.raw_artist, song.raw_album, file.composer,
+                _comment_cell(comment=file.comment), song.year,
                 format_duration(seconds=song.duration_seconds),
                 '[green]✓[/green]' if file.has_art else '[red]✗[/red]',
                 _verdict_cell(verdict=file.current_verdict),
