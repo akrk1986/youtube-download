@@ -30,7 +30,7 @@ from funcs_check_greek_singles.audio_reader import (  # noqa: E402
 from funcs_check_greek_singles.database import (  # noqa: E402
     SIDE_MONTH, SIDE_SINGLES_ALL,
     init_db, insert_song,
-    query_cross_month_duplicates, query_in_folder_duplicates,
+    query_all_scope_duplicates, query_cross_month_duplicates, query_in_folder_duplicates,
     query_in_multiple_months, query_only_in_all,
     query_only_in_months, query_total_month_songs, query_untagged,
 )
@@ -40,7 +40,8 @@ from funcs_check_greek_singles.file_actions import (  # noqa: E402
     process_inspected, prompt_action_limit, stage_duplicates, unstage_all,
 )
 from funcs_check_greek_singles.models import (  # noqa: E402
-    CrossMonthDupRow, InFolderDupRow, MatchedRow, MultiMonthRow, StagingGroup, UntaggedRow,
+    AllScopeDupRow, CrossMonthDupRow, InFolderDupRow,
+    MatchedRow, MultiMonthRow, StagingGroup, UntaggedRow,
 )
 from funcs_check_greek_singles.normalize import normalize  # noqa: E402
 from funcs_check_greek_singles.report import (  # noqa: E402
@@ -168,6 +169,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
              'with --post-inspection, --missing-action, --dupes-scope.',
     )
     parser.add_argument(
+        '--scope', choices=['all'], default=None,
+        help="With --stage-dupes only: 'all' reconciles 01-Singles-All against every "
+             'month folder, pooling both sides per song and staging where a master copy '
+             'coexists with duplicates. Auto-marks the lone 01-Singles-All copy '
+             "'original'. Ignores --start-month/--end-month (always scans all months). "
+             'Default: %(default)s (the standard in-folder + cross-month staging).',
+    )
+    parser.add_argument(
         '--post-inspection', choices=['dry-run', 'milk-run'], default=None,
         help='Process inspected files in the staging folder by their Copyright verdict: '
              "'duplicate' -> dupes folder, 'original' -> restored to origin folder. "
@@ -252,6 +261,8 @@ def _validate_action_flags(args: argparse.Namespace) -> None:
     active_actions = [name for name, is_set in exclusive_actions if is_set]
     if len(active_actions) > 1:
         raise _UsageError(f'These options are mutually exclusive: {", ".join(active_actions)}.')
+    if args.scope is not None and args.stage_dupes is None:
+        raise _UsageError('--scope is only valid together with --stage-dupes.')
 
 
 def _resolve_and_check_dirs(args: argparse.Namespace) -> _Dirs:
@@ -428,6 +439,58 @@ def _run_stage(*, args: argparse.Namespace, dirs: _Dirs, conn: sqlite3.Connectio
         cross_month_clusters=query_cross_month_duplicates(conn=conn),
         start_number=next_group_number(staging_dir=dirs.staging_dir),
     )
+    return _stage_and_report(args=args, dirs=dirs, groups=groups)
+
+
+def _build_all_scope_groups(*, clusters: list[AllScopeDupRow],
+                            start_number: int) -> list[StagingGroup]:
+    """Build numbered staging groups from --scope all clusters.
+
+    Each cluster (a song's pooled 01-Singles-All + month copies) becomes one group.
+    Clusters already fully marked 'original' are skipped; otherwise the cluster's
+    staging_members() is used, which auto-flags the sole All/ keeper 'original' when
+    there is exactly one. Numbering starts at start_number.
+    """
+    groups: list[StagingGroup] = []
+    number = start_number
+    for cluster in clusters:
+        if cluster_is_fully_judged(members=cluster.members):
+            continue
+        groups.append(StagingGroup(number=number, raw_title=cluster.raw_title,
+                                   raw_artist=cluster.raw_artist,
+                                   members=cluster.staging_members()))
+        number += 1
+    return groups
+
+
+def _run_stage_all(*, args: argparse.Namespace, dirs: _Dirs, conn: sqlite3.Connection,
+                   scope: _Scope) -> int:
+    """Stage --scope all groups: reconcile 01-Singles-All against every month folder.
+
+    Always scans both sides and every month folder (any --start-month/--end-month is
+    ignored, with a warning). Pools each song across both sides and stages clusters
+    where a master copy coexists with duplicates; the sole All/ keeper is auto-marked
+    'original' at staging time.
+    """
+    if scope.range_active:
+        logger.warning('--scope all ignores --start-month/--end-month; scanning every month folder.')
+    all_scope = _Scope(start_yyyymm='', end_yyyymm='', range_active=False,
+                       title_prefix_norm=scope.title_prefix_norm)
+    logger.info('Staging scope (--scope all): 01-Singles-All + every month folder, '
+                'pooled per song across both sides.')
+    _scan_into_db(conn=conn, dirs=dirs, scope=all_scope,
+                  scan_singles_all=True, scan_months=True)
+    conn.commit()
+    groups = _build_all_scope_groups(
+        clusters=query_all_scope_duplicates(conn=conn),
+        start_number=next_group_number(staging_dir=dirs.staging_dir),
+    )
+    return _stage_and_report(args=args, dirs=dirs, groups=groups)
+
+
+def _stage_and_report(*, args: argparse.Namespace, dirs: _Dirs,
+                      groups: list[StagingGroup]) -> int:
+    """Render, stage, and report a built list of staging groups (shared by both stage modes)."""
     if not groups:
         logger.info('No new suspected duplicates to stage.')
         return 0
@@ -558,6 +621,8 @@ def main(argv: list[str] | None = None) -> int:
         conn = init_db(db_path=db_path)
         try:
             if args.stage_dupes is not None:
+                if args.scope == 'all':
+                    return _run_stage_all(args=args, dirs=dirs, conn=conn, scope=scope)
                 return _run_stage(args=args, dirs=dirs, conn=conn, scope=scope)
             return _run_report(args=args, dirs=dirs, conn=conn, scope=scope, db_path=db_path)
         finally:

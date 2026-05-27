@@ -314,11 +314,14 @@ def stage_duplicates(*, groups: list[StagingGroup], root: Path, staging_dir: Pat
     """Move each dupe group into its own Staging-Dupes/grp-NNNN subfolder.
 
     For each member the script writes the 'DUPE-ORIGIN[<path relative to root>]'
-    marker into the Album Artist tag (it never touches the verdict/Copyright field
-    — only the user does), then moves the file into the group's subfolder under a
-    '<parent-folder> — <name>' name (uniquified on collision). The tag, not the
-    staged name, is authoritative for restore. mtime is preserved across the tag
+    marker into the Album Artist tag, then moves the file into the group's subfolder
+    under a '<parent-folder> — <name>' name (uniquified on collision). The tag, not
+    the staged name, is authoritative for restore. mtime is preserved across the tag
     write and the move. dry_run only logs intended moves.
+
+    The script never writes the verdict/Copyright field -- only the user does --
+    with one scoped exception: a member flagged auto_original (the sole 01-Singles-All
+    keeper of a --scope all group) gets its 'original' verdict written here.
     """
     attempted = staged = skipped = failed = 0
     for group in groups:
@@ -341,11 +344,15 @@ def stage_duplicates(*, groups: list[StagingGroup], root: Path, staging_dir: Pat
             dst = _unique_dest(dest_dir=group_dir, name=f'{src.parent.name} — {src.name}')
             if dry_run:
                 logger.info(f'[dry-run] stage: {rel} -> {group.folder_name}/{dst.name}')
+                if member.auto_original:
+                    logger.info(f'[dry-run] auto-mark original: {group.folder_name}/{dst.name}')
                 staged += 1
                 continue
             try:
                 write_state(file_path=src, value=build_origin_marker(origin_relpath=rel),
                             field='origin')
+                if member.auto_original:
+                    write_state(file_path=src, value=VERDICT_ORIGINAL, field='verdict')
                 _move_preserving_mtime(src=src, dst=dst)
                 logger.info(f'stage: {rel} -> {group.folder_name}/{dst.name}')
                 staged += 1

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from funcs_check_greek_singles.config import DURATION_MATCH_MARGIN_SECONDS
 from funcs_check_greek_singles.models import (
-    CrossMonthDupRow, InFolderDupMember, InFolderDupRow,
+    AllScopeDupRow, CrossMonthDupRow, InFolderDupMember, InFolderDupRow,
     MatchedRow, MultiMonthRow, Song, UntaggedRow,
 )
 from funcs_check_greek_singles.normalize import normalize
@@ -127,6 +127,21 @@ SELECT month_folder, norm_title, norm_artist,
        duration_seconds, file_path
 FROM songs
 WHERE has_key = 1 AND side = 'month'
+ORDER BY norm_title, norm_artist, duration_seconds
+"""
+
+# Candidate rows for --scope all clustering: every tagged song on both sides,
+# ordered so groupby can partition by (norm_title, norm_artist) and a duration
+# sweep can cluster within each partition. month_folder is dropped from the key
+# (like cross-month) so every copy of a song -- the 01-Singles-All master and all
+# its month copies -- pools into one cluster. side is carried so the All/ vs month
+# split (a vs m) can be computed per member.
+_QUERY_ALL_SCOPE_CANDIDATES = """
+SELECT side, month_folder, norm_title, norm_artist,
+       raw_title, raw_artist, raw_album,
+       duration_seconds, file_path
+FROM songs
+WHERE has_key = 1
 ORDER BY norm_title, norm_artist, duration_seconds
 """
 
@@ -283,6 +298,32 @@ def _build_cross_month_cluster(rows: list[sqlite3.Row]) -> CrossMonthDupRow:
     )
 
 
+def _build_all_scope_cluster(rows: list[sqlite3.Row]) -> AllScopeDupRow:
+    first = rows[0]
+    # month_folder None (the All/ copies) sorts first, then by month folder / path,
+    # so the master keeper heads the group in the staging table.
+    members = tuple(sorted(
+        (_member_from_row(row=r) for r in rows),
+        key=lambda member: (member.month_folder or '', member.file_path),
+    ))
+    return AllScopeDupRow(
+        raw_title=first['raw_title'] or '',
+        raw_artist=first['raw_artist'] or '',
+        members=members,
+    )
+
+
+def _all_scope_cluster_qualifies(cluster: AllScopeDupRow) -> bool:
+    """Keep a cluster iff it has >=1 All/ copy and is non-trivial (a>=2 or m>=2).
+
+    Excludes month-only clusters (a==0, already resolved) and a normal song that
+    is simply one All/ copy plus one month copy (a==1, m==1).
+    """
+    all_count = len(cluster.all_members)
+    month_count = len(cluster.month_members)
+    return all_count >= 1 and (all_count >= 2 or month_count >= 2)
+
+
 def query_only_in_all(conn: sqlite3.Connection) -> list[MatchedRow]:
     """Songs in 01-Singles-All with no (title, artist) match in any month folder."""
     rows = conn.execute(_QUERY_ONLY_IN_ALL, (DURATION_MATCH_MARGIN_SECONDS,))
@@ -337,6 +378,26 @@ def query_cross_month_duplicates(
     return [_build_cross_month_cluster(rows=cluster)
             for cluster in _cluster_by_duration(rows=rows, key_func=_cross_month_group_key,
                                                 margin=margin)]
+
+
+def query_all_scope_duplicates(
+        conn: sqlite3.Connection,
+        margin: float = DURATION_MATCH_MARGIN_SECONDS,
+) -> list[AllScopeDupRow]:
+    """Clusters pooling 01-Singles-All and month copies of one song (--scope all).
+
+    Partitions every tagged song on both sides by (norm_title, norm_artist) -- like
+    cross-month, month_folder is dropped -- then single-linkage clusters each
+    partition by duration within `margin` seconds, so the master and its month
+    copies pool together. Only clusters with >=1 All/ copy that are non-trivial
+    (a>=2 or m>=2) are returned: month-only clusters and plain one-All/-one-month
+    songs are filtered out.
+    """
+    rows = conn.execute(_QUERY_ALL_SCOPE_CANDIDATES).fetchall()
+    clusters = (_build_all_scope_cluster(rows=cluster)
+                for cluster in _cluster_by_duration(rows=rows, key_func=_cross_month_group_key,
+                                                    margin=margin))
+    return [cluster for cluster in clusters if _all_scope_cluster_qualifies(cluster=cluster)]
 
 
 def query_total_month_songs(conn: sqlite3.Connection) -> int:

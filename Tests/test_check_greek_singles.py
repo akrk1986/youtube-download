@@ -27,7 +27,7 @@ from funcs_check_greek_singles.config import (  # noqa: E402
 from funcs_check_greek_singles.database import (  # noqa: E402
     SCHEMA_DDL,
     insert_song,
-    query_cross_month_duplicates, query_in_folder_duplicates,
+    query_all_scope_duplicates, query_cross_month_duplicates, query_in_folder_duplicates,
     query_in_multiple_months, query_only_in_all,
     query_only_in_months, query_untagged,
 )
@@ -36,7 +36,7 @@ from funcs_check_greek_singles.file_actions import (  # noqa: E402
     process_inspected, prompt_action_limit, stage_duplicates, unstage_all,
 )
 from funcs_check_greek_singles.models import (  # noqa: E402
-    InFolderDupMember, MatchedRow, Song, SongKey, StagingGroup,
+    AllScopeDupRow, InFolderDupMember, MatchedRow, Song, SongKey, StagingGroup,
 )
 from funcs_check_greek_singles.normalize import (  # noqa: E402
     extract_year, format_duration, normalize,
@@ -618,6 +618,145 @@ class TestCrossMonthDuplicates:
                 file_path='/Months/2021-03/y.mp3')
 
         assert query_cross_month_duplicates(conn=conn) == []
+
+
+class TestAllScopeDuplicates:
+    """--scope all: pool both sides per song; keep clusters with a>=1 and (a>=2 or m>=2)."""
+
+    @staticmethod
+    def _all(conn, name, *, duration=200.0):
+        """Insert one 01-Singles-All copy of (Same, Band) at a distinct path."""
+        _insert(conn=conn, side='singles_all', month_folder=None,
+                title='Same', artist='Band', duration_seconds=duration,
+                file_path=f'/All/{name}.mp3')
+
+    @staticmethod
+    def _month(conn, month, name, *, duration=200.0):
+        """Insert one month-folder copy of (Same, Band) at a distinct path."""
+        _insert(conn=conn, side='month', month_folder=month,
+                title='Same', artist='Band', duration_seconds=duration,
+                file_path=f'/Months/{month}/{name}.mp3')
+
+    def test_one_all_one_month_excluded(self, conn):
+        # a==1, m==1 -> a normal song, not a dupe cluster.
+        self._all(conn=conn, name='x')
+        self._month(conn=conn, month='2021-03', name='y')
+        assert query_all_scope_duplicates(conn=conn) == []
+
+    def test_one_all_two_months_included(self, conn):
+        # a==1, m==2 -> staged; the single All/ copy is the keeper.
+        self._all(conn=conn, name='x')
+        self._month(conn=conn, month='2021-03', name='y')
+        self._month(conn=conn, month='2021-07', name='z')
+        rows = query_all_scope_duplicates(conn=conn)
+        assert len(rows) == 1
+        assert len(rows[0].all_members) == 1
+        assert len(rows[0].month_members) == 2
+
+    def test_two_all_no_months_included(self, conn):
+        # a==2, m==0 -> in-All dupes (task 1) are still in scope.
+        self._all(conn=conn, name='x')
+        self._all(conn=conn, name='y')
+        rows = query_all_scope_duplicates(conn=conn)
+        assert len(rows) == 1
+        assert len(rows[0].all_members) == 2
+        assert rows[0].month_members == ()
+
+    def test_months_only_excluded(self, conn):
+        # a==0, m==3 -> already-resolved month-only clusters are out of scope.
+        self._month(conn=conn, month='2021-03', name='x')
+        self._month(conn=conn, month='2021-07', name='y')
+        self._month(conn=conn, month='2021-11', name='z')
+        assert query_all_scope_duplicates(conn=conn) == []
+
+    def test_two_all_one_month_included(self, conn):
+        # a==2, m==1 -> ambiguous keeper, but still staged.
+        self._all(conn=conn, name='x')
+        self._all(conn=conn, name='y')
+        self._month(conn=conn, month='2021-03', name='z')
+        rows = query_all_scope_duplicates(conn=conn)
+        assert len(rows) == 1
+        assert len(rows[0].all_members) == 2
+        assert len(rows[0].month_members) == 1
+
+    def test_staging_members_flags_sole_all_keeper(self):
+        all_copy = InFolderDupMember(file_path='/All/x.mp3', month_folder=None,
+                                     raw_album='', duration_seconds=200.0)
+        months = tuple(
+            InFolderDupMember(file_path=f'/M/{m}/x.mp3', month_folder=m,
+                              raw_album='', duration_seconds=200.0)
+            for m in ('2021-03', '2021-07')
+        )
+        row = AllScopeDupRow(raw_title='t', raw_artist='a', members=(all_copy, *months))
+        flagged = {m.file_path: m.auto_original for m in row.staging_members()}
+        assert flagged == {'/All/x.mp3': True,
+                           '/M/2021-03/x.mp3': False, '/M/2021-07/x.mp3': False}
+
+    def test_staging_members_no_flag_when_two_all_copies(self):
+        members = (
+            InFolderDupMember(file_path='/All/x.mp3', month_folder=None,
+                              raw_album='', duration_seconds=200.0),
+            InFolderDupMember(file_path='/All/y.mp3', month_folder=None,
+                              raw_album='', duration_seconds=200.0),
+        )
+        row = AllScopeDupRow(raw_title='t', raw_artist='a', members=members)
+        assert all(m.auto_original is False for m in row.staging_members())
+
+
+@pytest.mark.skipif(shutil.which('ffmpeg') is None, reason='ffmpeg not available')
+class TestAllScopeStaging:
+    """stage_duplicates writes the auto_original keeper's 'original' verdict (real files)."""
+
+    @staticmethod
+    def _audio(path: Path) -> None:
+        """Generate a tiny silent audio file via ffmpeg under path (parents created)."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            ['ffmpeg', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono',
+             '-t', '0.3', '-y', str(path)],
+            check=True, capture_output=True, encoding='utf-8', errors='replace',
+        )
+
+    def test_milk_run_writes_original_to_keeper_only(self, tmp_path):
+        root = tmp_path / 'Music'
+        keeper = root / '01-Singles-All' / 'song.mp3'
+        month_copy = root / '03-Singles-by-Month' / '2021-03' / 'song.mp3'
+        self._audio(path=keeper)
+        self._audio(path=month_copy)
+        members = (
+            InFolderDupMember(file_path=str(keeper), month_folder=None,
+                              raw_album='', duration_seconds=1.0, auto_original=True),
+            InFolderDupMember(file_path=str(month_copy), month_folder='2021-03',
+                              raw_album='', duration_seconds=1.0),
+        )
+        group = StagingGroup(number=1, raw_title='Song', raw_artist='Artist', members=members)
+        staging = root / 'Staging-Dupes'
+
+        summary = stage_duplicates(groups=[group], root=root, staging_dir=staging, dry_run=False)
+
+        assert summary.staged == 2
+        staged = sorted((staging / 'grp-0001').iterdir())
+        verdicts = {classify_verdict(value=read_state(file_path=p, field='verdict')) for p in staged}
+        # Exactly one file (the keeper) carries 'original'; the other stays pending.
+        assert VERDICT_ORIGINAL in verdicts and VERDICT_PENDING in verdicts
+        for path in staged:
+            assert parse_origin(value=read_state(file_path=path, field='origin')) is not None
+
+    def test_dry_run_writes_no_verdict(self, tmp_path):
+        root = tmp_path / 'Music'
+        keeper = root / '01-Singles-All' / 'song.mp3'
+        self._audio(path=keeper)
+        members = (
+            InFolderDupMember(file_path=str(keeper), month_folder=None,
+                              raw_album='', duration_seconds=1.0, auto_original=True),
+        )
+        group = StagingGroup(number=1, raw_title='Song', raw_artist='Artist', members=members)
+
+        stage_duplicates(groups=[group], root=root, staging_dir=root / 'Staging-Dupes', dry_run=True)
+
+        # dry-run touches nothing: the source stays put with no verdict written.
+        assert keeper.is_file()
+        assert classify_verdict(value=read_state(file_path=keeper, field='verdict')) == VERDICT_PENDING
 
 
 class TestRowMappers:

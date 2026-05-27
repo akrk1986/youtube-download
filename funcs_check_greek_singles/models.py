@@ -1,5 +1,5 @@
 """Data classes for the Greek singles cross-checker."""
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 
@@ -81,11 +81,15 @@ class InFolderDupMember:
 
     month_folder is the file's own month folder (None for singles-all). In a
     per-folder cluster every member shares it; in a cross-month cluster it varies.
+    auto_original flags the sole 01-Singles-All keeper in a --scope all group, so
+    staging writes its 'original' verdict (the one scoped exception to the rule
+    that only the user writes a verdict); every other path leaves it False.
     """
     file_path: str
     month_folder: str | None
     raw_album: str
     duration_seconds: float
+    auto_original: bool = False
 
 
 @dataclass(frozen=True)
@@ -131,6 +135,45 @@ class CrossMonthDupRow:
     def distinct_months(self) -> int:
         """How many distinct month folders the cluster spans."""
         return len({member.month_folder for member in self.members})
+
+
+@dataclass(frozen=True)
+class AllScopeDupRow:
+    """Cluster pooling 01-Singles-All and month copies of one song (--scope all).
+
+    Members span both sides: all_members are the 01-Singles-All copies
+    (month_folder is None), month_members the month-folder copies. Only kept when
+    a >= 1 and (a >= 2 or m >= 2) -- a normal song (one All/ copy + one month copy)
+    is filtered out by query_all_scope_duplicates.
+    """
+    raw_title: str
+    raw_artist: str
+    members: tuple[InFolderDupMember, ...]
+
+    @property
+    def all_members(self) -> tuple[InFolderDupMember, ...]:
+        """The 01-Singles-All copies in the cluster (those with no month folder)."""
+        return tuple(member for member in self.members if member.month_folder is None)
+
+    @property
+    def month_members(self) -> tuple[InFolderDupMember, ...]:
+        """The month-folder copies in the cluster."""
+        return tuple(member for member in self.members if member.month_folder is not None)
+
+    def staging_members(self) -> tuple[InFolderDupMember, ...]:
+        """Members for staging, auto-flagging the sole All/ copy 'original' when a == 1.
+
+        When exactly one 01-Singles-All copy is present it is the unambiguous master
+        keeper, so it is returned with auto_original=True (the user inspects the month
+        copies). With two or more All/ copies the keeper is ambiguous, so nothing is
+        flagged and the members are returned unchanged.
+        """
+        if len(self.all_members) != 1:
+            return self.members
+        return tuple(
+            replace(member, auto_original=True) if member.month_folder is None else member
+            for member in self.members
+        )
 
 
 @dataclass(frozen=True)
