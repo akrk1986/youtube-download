@@ -2,6 +2,14 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-27-1303] - Dupe-group inspector: drop serial column, add Comment column
+
+### Changed
+- **`Utils/main-inspect-dupe-groups.py`** + **`funcs_check_greek_singles/inspect_groups.py`**: inspection-table tweaks:
+  - Removed the unused serial **`#`** column (and its `flat_index` counter).
+  - Added a **Comment** column after Composer, read via `read_deletion_tags` (`COMM` / `©cmt` / `comment`). An empty tag stays empty; a value starting with `http:`/`https:` collapses to `<url>` (the presence of a source URL is one more factor in the o/d verdict, without cluttering the row); any other text is shown truncated to 40 chars. `InspectFile` gains a `comment` field and `_read_composer` became `_read_composer_comment` (a single tag read returns both). `VERSION` bumped to `2026-05-27-1303`.
+- **`Tests/test_check_greek_singles.py`**: updated the direct `InspectFile` constructions for the new `comment` field.
+
 ## [2026-05-26-2209] - Greek singles checker: refactor main() into a thin dispatcher
 
 ### Changed
