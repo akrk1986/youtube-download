@@ -2,6 +2,13 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-27-1657] - Greek singles checker: `--scope all` to reconcile 01-Singles-All vs months
+
+### Added
+- **`Utils/main-check-greek-singles.py`** + **`funcs_check_greek_singles/`**: a new staging mode `--stage-dupes {dry-run,milk-run} --scope all` that reconciles the master collection `01-Singles-All/` against the month folders in one pass. It pools every tagged song across **both** sides by `(norm_title, norm_artist)` + duration single-linkage and stages a cluster only when a master copy coexists with duplicates — with `a` = the All/ copies and `m` = the month copies, the staging predicate is `a >= 1 AND (a >= 2 OR m >= 2)`. So month-only clusters (`a == 0`, already resolved) and a plain one-All/-one-month song (`a == 1, m == 1`) are skipped, while in-All dupes (`a >= 2`) and an All/ song with ≥2 month copies (`a == 1, m >= 2`) are staged. When exactly one All/ copy is present it is the unambiguous master, so staging **auto-writes its `original` verdict** — the one scoped exception to "only the user writes a verdict"; the user then inspects the month copies. `--scope all` is valid only with `--stage-dupes`, and **ignores `--start-month`/`--end-month`** (it always scans every month, warning if a range was given). Inspection, verification, and post-inspection are reused unchanged. `VERSION` bumped to `2026-05-27-1657`.
+  - Internals: `query_all_scope_duplicates` + `AllScopeDupRow` (with `all_members`/`month_members` and a pure `staging_members()`); `auto_original` flag on `InFolderDupMember`; `stage_duplicates` writes the keeper's verdict (dry-run logs an extra `[dry-run] auto-mark original` line); `_run_stage_all` + shared `_stage_and_report` in the CLI.
+- **`Tests/test_check_greek_singles.py`**: `TestAllScopeDuplicates` (staging predicate across the `a`/`m` cases + `staging_members` keeper logic) and the ffmpeg-gated `TestAllScopeStaging` (milk-run writes `original` to the keeper only; dry-run writes nothing). Suite now 274 tests.
+
 ## [2026-05-27-1303] - Dupe-group inspector: drop serial column, add Comment column
 
 ### Changed

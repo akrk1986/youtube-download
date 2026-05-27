@@ -50,7 +50,7 @@ from funcs_check_greek_singles.report import (  # noqa: E402
 from funcs_utils import setup_logging  # noqa: E402
 # pylint: enable=wrong-import-position
 
-VERSION = '2026-05-26-2209'
+VERSION = '2026-05-27-1657'
 
 SINGLES_ALL_DIRNAME = '01-Singles-All'
 SINGLES_BY_MONTH_DIRNAME = '03-Singles-by-Month'

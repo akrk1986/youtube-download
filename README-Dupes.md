@@ -67,6 +67,35 @@ numbers continue past any folders left from a previous run.
 > exits non-zero and flags any folder that is misgrouped (two different songs),
 > a singleton, or empty. See [README-Utils.md](README-Utils.md#verify-dupe-groups-utilsmain-verify-dupe-groupspy).
 
+### Alternative staging: `--scope all` — reconcile 01-Singles-All against the months
+
+The default `--stage-dupes` (above) catches in-folder duplicates and cross-month
+duplicates. Once those are resolved, **`--scope all`** finds the remaining case:
+copies of a song that live in **both** `01-Singles-All/` and the month folders.
+
+```bash
+python Utils/main-check-greek-singles.py --stage-dupes dry-run --scope all
+python Utils/main-check-greek-singles.py --stage-dupes milk-run --scope all
+```
+
+It pools every song across both sides and stages a group only where a master copy
+coexists with duplicates. With `a` = the `01-Singles-All/` copies and `m` = the
+month copies in a cluster, a group is staged when `a >= 1` **and** (`a >= 2` **or**
+`m >= 2`):
+
+| Case | Meaning | Staged? |
+|---|---|---|
+| `a == 1, m == 1` | the song sits in All/ and exactly one month — normal | no |
+| `a == 1, m >= 2` | one master + several month copies | yes — the lone All/ copy is **auto-marked `original`** |
+| `a >= 2` | duplicates inside `01-Singles-All/` itself | yes — no auto-keeper (you pick) |
+| `a == 0` | month-only cluster (handled by the default run) | no |
+
+When exactly one All/ copy is present it is the unambiguous master, so the script
+writes its `original` verdict for you — the one exception to "the script never
+writes the verdict". You then inspect the month copies and mark the keeper `o`, the
+rest `d`. `--scope all` **ignores `--start-month`/`--end-month`** (it always scans
+every month). Inspection (step 3) onward is identical.
+
 ### 3. Inspect — manually, in mp3tag / tagscan
 
 Open **one group folder** at a time, e.g. `Staging-Dupes/grp-0001/` — each holds
@@ -168,7 +197,8 @@ post-inspection step.
 | `--staging-dir` | path | Staging folder. Default `<root>/Staging-Dupes`. |
 | `--dupes-dir` | path | Folder for confirmed duplicates (for eventual deletion). Default `<root>/Dupes`. |
 | `--dupes-log` | path | Persistent CSV appended on every `--post-inspection` milk-run that moves a `duplicate` to `Dupes/` — one row per deleted file with its tags incl. the source URL (from the comment tag). Default `Logs/dupes-deleted-log.csv`. |
-| `--start-month` / `--end-month` | `yyyy-mm` or `yyyy` | Inclusive month-folder range that bounds `--stage-dupes`. |
+| `--scope` | `all` | With `--stage-dupes` only: reconcile `01-Singles-All/` against every month folder (pools both sides per song; auto-marks the lone All/ copy `original`). Ignores `--start-month`/`--end-month`. |
+| `--start-month` / `--end-month` | `yyyy-mm` or `yyyy` | Inclusive month-folder range that bounds `--stage-dupes` (ignored under `--scope all`). |
 | `--root` | path | Greek music root containing `01-Singles-All` and `03-Singles-by-Month`. Default `~/Music/Greek`. |
 
 `--stage-dupes`, `--post-inspection`, and `--unstage` are mutually exclusive with
