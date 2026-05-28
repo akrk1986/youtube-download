@@ -466,7 +466,7 @@ class TestInFolderDuplicates:
         assert rows[0].dup_count == 2
         assert rows[0].month_folder is None
         assert rows[0].side == 'singles_all'
-        assert rows[0].file_paths == ('/All/a.mp3', '/All/b.mp3')
+        assert rows[0].file_paths == tuple(str(Path(p)) for p in ('/All/a.mp3', '/All/b.mp3'))
 
     def test_two_files_in_same_month_cluster(self, conn):
         _insert(conn=conn, side='month', month_folder='2024-06',
@@ -516,7 +516,7 @@ class TestInFolderDuplicates:
         assert len(rows) == 1
         assert rows[0].dup_count == 3
         assert len(rows[0].file_paths) == 3
-        assert rows[0].file_paths == ('/All/a.mp3', '/All/b.mp3', '/All/c.mp3')
+        assert rows[0].file_paths == tuple(str(Path(p)) for p in ('/All/a.mp3', '/All/b.mp3', '/All/c.mp3'))
 
     def test_margin_clusters_spread_durations(self, conn):
         # Real-world case: 3 files, same (title, artist), durations 2:48 / 2:51 / 2:51
@@ -542,7 +542,7 @@ class TestInFolderDuplicates:
         rows = query_in_folder_duplicates(conn=conn, margin=1.0)
         assert len(rows) == 1
         assert rows[0].dup_count == 2
-        assert rows[0].file_paths == ('/Months/2023-06/b.mp3', '/Months/2023-06/c.mp3')
+        assert rows[0].file_paths == tuple(str(Path(p)) for p in ('/Months/2023-06/b.mp3', '/Months/2023-06/c.mp3'))
 
 
 class TestCrossMonthDuplicates:
