@@ -2,6 +2,11 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-05-28-1556] - Greek singles tests: make in-folder dupe path assertions OS-agnostic
+
+### Fixed
+- **`Tests/test_check_greek_singles.py`**: 3 assertions in `TestInFolderDuplicates` (`test_two_files_in_singles_all_same_key_cluster`, `test_three_in_one_folder_cluster_n_equals_3`, `test_margin_too_small_splits_cluster`) compared `rows[0].file_paths` against hardcoded POSIX strings like `'/All/a.mp3'`, but `_insert` wraps the path in `Path(...)` which stringifies to `'\All\a.mp3'` on Windows. Each expected path is now routed through `str(Path(...))` so the tuple matches whatever the OS produces. Linux unchanged (`Path('/All/a.mp3')` stringifies back to `/All/a.mp3`); Windows pytest goes from 270 → 273 passed.
+
 ## [2026-05-27-1657] - Greek singles checker: `--scope all` to reconcile 01-Singles-All vs months
 
 ### Added
