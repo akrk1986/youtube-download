@@ -20,6 +20,8 @@ from funcs_video_info.metadata import (
     is_playlist,
 )
 from funcs_video_info.url_validation import (
+    are_chapters_supported,
+    are_playlists_supported,
     get_timeout_for_url,
     validate_video_url,
 )
@@ -28,6 +30,8 @@ __all__ = [
     # URL validation
     'get_timeout_for_url',
     'validate_video_url',
+    'are_playlists_supported',
+    'are_chapters_supported',
     # Metadata
     'get_video_info',
     'is_playlist',

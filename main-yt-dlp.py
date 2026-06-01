@@ -24,7 +24,8 @@ from funcs_for_main_yt_dlp import (DownloadOptions, check_output_dirs_empty,
 from funcs_notifications import (GmailNotifier, NotificationData,
                                  NotificationHandler, SlackNotifier,
                                  send_all_notifications)
-from funcs_video_info import (create_chapters_csv, detect_chapters, is_playlist)
+from funcs_video_info import (are_chapters_supported, are_playlists_supported,
+                              create_chapters_csv, detect_chapters, is_playlist)
 from funcs_utils import setup_logging
 from project_defs import VIDEO_OUTPUT_DIR
 
@@ -262,7 +263,8 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
             audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
             audio_dir.mkdir(parents=True, exist_ok=True)
 
-    url_is_playlist = is_playlist(url=args.video_url)
+    # Playlist / chapter detection only run for domains that support them (YouTube today)
+    url_is_playlist = is_playlist(url=args.video_url) if are_playlists_supported(url=args.video_url) else False
 
     if args.list_chapters_only and url_is_playlist:
         logger.error('--list-chapters-only does not support playlist URLs. Provide a single video URL.')
@@ -273,14 +275,17 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         args=args, url_is_playlist=url_is_playlist,
     )
 
-    # Detect chapters and fetch video info
-    has_chapters, video_info, uploader_name, video_title, chapter_name_map = detect_chapters(
-        yt_dlp_exe=yt_dlp_exe,
-        video_url=args.video_url,
-        video_download_timeout=args.video_download_timeout,
-        url_is_playlist=url_is_playlist,
-        show_chapters=args.split_chapters or args.list_chapters_only,
-    )
+    # Detect chapters and fetch video info (only for chapter-capable domains)
+    if are_chapters_supported(url=args.video_url):
+        has_chapters, video_info, uploader_name, video_title, chapter_name_map = detect_chapters(
+            yt_dlp_exe=yt_dlp_exe,
+            video_url=args.video_url,
+            video_download_timeout=args.video_download_timeout,
+            url_is_playlist=url_is_playlist,
+            show_chapters=args.split_chapters or args.list_chapters_only,
+        )
+    else:
+        has_chapters, video_info, uploader_name, video_title, chapter_name_map = False, None, None, None, {}
 
     # --list-chapters-only requires the video to have chapters
     if args.list_chapters_only and not has_chapters:

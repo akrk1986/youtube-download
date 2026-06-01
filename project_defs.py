@@ -40,6 +40,11 @@ VALID_OTHER_DOMAINS = ('www.ertflix.gr', 'ertflix.gr', 'api.ertflix.opentv.com')
 
 VALID_DOMAINS_ALL = VALID_YOUTUBE_DOMAINS + VALID_FACEBOOK_DOMAINS + VALID_OTHER_DOMAINS
 
+# Domains whose URLs should be probed for playlists / chapters.
+# Add a domain here to enable that capability check for it.
+PLAYLIST_CAPABLE_DOMAINS = VALID_YOUTUBE_DOMAINS
+CHAPTER_CAPABLE_DOMAINS = VALID_YOUTUBE_DOMAINS
+
 # File processing constants
 MAX_ALBUM_NAME_LENGTH = 64
 

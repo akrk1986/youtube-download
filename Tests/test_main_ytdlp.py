@@ -699,6 +699,73 @@ class TestPlaylistHandling:
         assert custom_album is None
 
 
+class TestCapabilityHelpers:
+    """Test the per-domain playlist/chapter capability helpers."""
+
+    def test_youtube_urls_support_both(self):
+        """YouTube URLs are flagged as playlist- and chapter-capable."""
+        from funcs_video_info import are_chapters_supported, are_playlists_supported
+
+        for url in ('https://www.youtube.com/watch?v=x', 'https://youtu.be/x'):
+            assert are_playlists_supported(url=url) is True
+            assert are_chapters_supported(url=url) is True
+
+    def test_non_youtube_urls_support_neither(self):
+        """ERTFlix and Facebook URLs are not flagged as playlist- or chapter-capable."""
+        from funcs_video_info import are_chapters_supported, are_playlists_supported
+
+        for url in ('https://ert-ucdn.broadpeak-aas.com/a/index.mpd',
+                    'https://www.facebook.com/v/1'):
+            assert are_playlists_supported(url=url) is False
+            assert are_chapters_supported(url=url) is False
+
+
+class TestNonYoutubeSkipsProbes:
+    """Non-YouTube URLs must skip the playlist and chapter probes."""
+
+    def test_non_youtube_url_skips_playlist_and_chapter_checks(self, tmp_path, sample_args):
+        """A non-YouTube URL never calls is_playlist or detect_chapters."""
+        from importlib import import_module
+        main_module = import_module('main-yt-dlp')
+
+        non_youtube_url = 'https://ert-ucdn.broadpeak-aas.com/a/index.mpd'
+        sample_args.only_audio = True
+        sample_args.video_url = non_youtube_url
+
+        video_dir = tmp_path / 'yt-videos'
+        audio_dir = tmp_path / 'yt-audio'
+        video_dir.mkdir()
+        audio_dir.mkdir()
+
+        is_playlist_mock = MagicMock(return_value=False)
+        detect_chapters_mock = MagicMock(return_value=(False, None, None, None, {}))
+
+        with patch.object(main_module, 'SLACK_WEBHOOK', None), \
+             patch.object(main_module, 'get_ytdlp_path', return_value='/usr/bin/yt-dlp'), \
+             patch.object(main_module, 'get_ffmpeg_path', return_value='/usr/bin/ffmpeg'), \
+             patch.object(main_module, 'validate_and_get_url', return_value=non_youtube_url), \
+             patch.object(main_module, 'is_playlist', is_playlist_mock), \
+             patch.object(main_module, 'detect_chapters', detect_chapters_mock), \
+             patch.object(main_module, 'run_yt_dlp'), \
+             patch.object(main_module, 'extract_audio_with_ytdlp'), \
+             patch.object(main_module, 'organize_and_sanitize_files', return_value={}), \
+             patch.object(main_module, 'process_audio_tags'), \
+             patch('pathlib.Path.resolve', return_value=video_dir), \
+             patch('pathlib.Path.mkdir'), \
+             patch('pathlib.Path.read_text'), \
+             patch('pathlib.Path.write_text'), \
+             patch('pathlib.Path.exists', return_value=True):
+
+            main_module._execute_main(
+                args=sample_args,
+                args_dict={'video_url': non_youtube_url, 'only_audio': True},
+                session_id='test-session'
+            )
+
+            is_playlist_mock.assert_not_called()
+            detect_chapters_mock.assert_not_called()
+
+
 if __name__ == '__main__':
     # Run tests with verbose output
     import subprocess as sp  # nosec B404

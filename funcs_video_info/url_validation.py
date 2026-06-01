@@ -3,7 +3,8 @@ import logging
 from urllib.parse import urlparse
 
 from funcs_video_info.url_extraction import is_valid_domain_url
-from project_defs import (SUBPROCESS_TIMEOUT_FACEBOOK,
+from project_defs import (CHAPTER_CAPABLE_DOMAINS, PLAYLIST_CAPABLE_DOMAINS,
+                          SUBPROCESS_TIMEOUT_FACEBOOK,
                           SUBPROCESS_TIMEOUT_OTHER_SITES,
                           SUBPROCESS_TIMEOUT_YOUTUBE, VALID_FACEBOOK_DOMAINS,
                           VALID_OTHER_DOMAINS, VALID_YOUTUBE_DOMAINS)
@@ -43,6 +44,18 @@ def get_timeout_for_url(url: str, video_download_timeout: int | None = None) -> 
 
     # Default to YouTube timeout for unknown domains
     return SUBPROCESS_TIMEOUT_YOUTUBE
+
+
+def are_playlists_supported(url: str) -> bool:
+    """Return True if the URL's domain is known to support playlists."""
+    parsed = urlparse(url)
+    return any(domain in parsed.netloc for domain in PLAYLIST_CAPABLE_DOMAINS)
+
+
+def are_chapters_supported(url: str) -> bool:
+    """Return True if the URL's domain is known to support chapters."""
+    parsed = urlparse(url)
+    return any(domain in parsed.netloc for domain in CHAPTER_CAPABLE_DOMAINS)
 
 
 def validate_video_url(url: str) -> tuple[bool, str]:
