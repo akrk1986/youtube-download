@@ -19,12 +19,14 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from common_av.linters_defs import LINTER_TOOLS
 from project_defs import EXCLUDED_DIRS
 
-TOOLS = [
-    'ruff', 'mypy', 'ty', 'bandit', 'pip-audit', 'deptry', 'pydoclint', 'pylint',
-    'vulture', 'pyupgrade', 'eslint', 'jshint',
-]
+# Filter the shared superset to the tools this repo runs.
+_FULLY_EXCLUDED: frozenset[str] = frozenset({'deadcode'})  # not used in this repo
+_DEFAULT_SKIP: frozenset[str] = frozenset({'skylos'})       # slow; opt-in via --tool skylos only
+
+TOOLS = [t for t in LINTER_TOOLS if t not in _FULLY_EXCLUDED and t not in _DEFAULT_SKIP]
 
 # skylos (slow) and radon (informational) are excluded from default runs; both stay
 # opt-in via --tool <name> (and skylos via --with-radon is not implied -- run it explicitly).

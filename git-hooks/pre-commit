@@ -1,0 +1,29 @@
+#!/bin/sh
+# Git pre-commit hook: lint staged Python/JS code changes before commit.
+#
+# Wired via: git config core.hooksPath git-hooks  (run Utils/install-git-hooks.py once).
+# POSIX sh so it runs under both Git-for-Windows bash and Linux/WSL.
+# Bypass a single commit with: git commit --no-verify
+
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+        py='../.venv-av-windows/Scripts/python.exe'
+        ;;
+    *)
+        py='../.venv-av-linux/bin/python'
+        ;;
+esac
+
+if [ ! -x "$py" ]; then
+    echo "pre-commit: shared venv python not found at $py" >&2
+    echo "pre-commit: create/activate the shared venv, or bypass with 'git commit --no-verify'" >&2
+    exit 1
+fi
+
+# Put the venv's bin/Scripts on PATH so run-linters.py finds the tool executables
+# (ruff, mypy, vulture, ...) even though the venv is not activated under a git hook.
+venv_bin=$(cd "$(dirname "$py")" && pwd)
+PATH="$venv_bin:$PATH"
+export PATH
+
+exec "$py" git-hooks/pre_commit_lint.py

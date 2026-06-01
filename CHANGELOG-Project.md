@@ -2,6 +2,16 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-01-1926] - Git pre-commit hook + shared linter list
+
+### Added
+- **`git-hooks/pre-commit`** — POSIX `sh` shim selecting the shared per-OS venv (WSL / Git-for-Windows) and prepending its bin to `PATH` (git hooks run without the venv activated).
+- **`git-hooks/pre_commit_lint.py`** — runs the canonical linters via `run-linters.py` only when staged changes include `.py`/`.js` files; skips docs-only and `VERSION`-only commits; exits 1 (blocks) on any failure. Bypass with `git commit --no-verify`.
+- **`Utils/install-git-hooks.py`** — one-time `core.hooksPath` install (`--uninstall` to disable). Idempotent; run once per clone.
+
+### Changed
+- **`run-linters.py`**: the linter tool list now comes from the shared `common_av.linters_defs.LINTER_TOOLS` (single source of truth across the sibling projects). It is filtered locally (`_FULLY_EXCLUDED={'deadcode'}`, `_DEFAULT_SKIP={'skylos'}`); the resulting `TOOLS` / `ALL_TOOLS` (and `--list`) are unchanged. The hook imports `CANONICAL_LINTER_TOOLS` from the same module.
+
 ## [2026-05-24-1404] - Linters: skylos opt-in, bandit excludes Tests/; bump starlette (PYSEC-2026-161)
 
 ### Fixed
