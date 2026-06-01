@@ -55,14 +55,14 @@ class TestParseArguments:
 
         assert args.video_url == test_url
 
-    def test_audio_format_default_mp3(self):
-        """Test that default audio format is mp3."""
+    def test_audio_format_default_m4a(self):
+        """Test that default audio format is m4a."""
         from importlib import import_module
         main_module = import_module('main-yt-dlp')
 
         args = main_module.parse_arguments([])
 
-        assert args.audio_format == 'mp3'
+        assert args.audio_format == 'm4a'
 
     def test_audio_format_comma_separated(self):
         """Test parsing comma-separated audio formats."""

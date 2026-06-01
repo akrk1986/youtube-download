@@ -13,8 +13,8 @@ EXCLUDED_DIRS: list[str] = [
     '.venv-linux',
     # Non-code / third-party
     'Beta', 'node_modules',
-    # Output / runtime (yt-audio-flac is an on-demand output dir; kept even when absent)
-    'yt-videos', 'yt-audio', 'yt-audio-m4a', 'yt-audio-flac', 'yt-chapters',
+    # Output / runtime (yt-audio-flac and yt-audio-mp3 are on-demand output dirs; kept even when absent)
+    'yt-videos', 'yt-audio', 'yt-audio-m4a', 'yt-audio-mp3', 'yt-audio-flac', 'yt-chapters',
     'staging', 'Logs',
     # Tool caches and IDE
     '.git', '.idea', '.mypy_cache', '.pytest_cache', '__pycache__',
@@ -27,7 +27,7 @@ EXCLUDED_DIRS: list[str] = [
 
 # Audio processing constants
 DEFAULT_AUDIO_QUALITY = '192k'
-DEFAULT_AUDIO_FORMAT = 'mp3'
+DEFAULT_AUDIO_FORMAT = 'm4a'
 VALID_AUDIO_FORMATS = {'mp3', 'm4a', 'flac'}
 
 # YouTube URL validation
@@ -50,8 +50,8 @@ MAX_ALBUM_NAME_LENGTH = 64
 
 # Output directories
 VIDEO_OUTPUT_DIR = 'yt-videos'
-AUDIO_OUTPUT_DIR = 'yt-audio'            # For MP3 files
-AUDIO_OUTPUT_DIR_M4A = 'yt-audio-m4a'    # For M4A files
+AUDIO_OUTPUT_DIR_M4A = 'yt-audio'        # M4A is the default format -> primary audio dir
+AUDIO_OUTPUT_DIR_MP3 = 'yt-audio-mp3'    # For MP3 files
 AUDIO_OUTPUT_DIR_FLAC = 'yt-audio-flac'  # For FLAC files
 
 # Logging constants

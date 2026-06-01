@@ -84,8 +84,8 @@ def temp_output_dirs(tmp_path: Path) -> dict[str, Path]:
     """
     dirs = {
         'video': tmp_path / 'yt-videos',
-        'mp3': tmp_path / 'yt-audio',
-        'm4a': tmp_path / 'yt-audio-m4a',
+        'mp3': tmp_path / 'yt-audio-mp3',
+        'm4a': tmp_path / 'yt-audio',
         'flac': tmp_path / 'yt-audio-flac',
     }
     for dir_path in dirs.values():

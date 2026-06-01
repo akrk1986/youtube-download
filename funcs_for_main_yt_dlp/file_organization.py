@@ -4,8 +4,8 @@ import sys
 from pathlib import Path
 
 from funcs_utils import organize_media_files, sanitize_filenames_in_folder
-from project_defs import (AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_FLAC,
-                           AUDIO_OUTPUT_DIR_M4A, VIDEO_OUTPUT_DIR)
+from project_defs import (AUDIO_OUTPUT_DIR_FLAC, AUDIO_OUTPUT_DIR_M4A,
+                           AUDIO_OUTPUT_DIR_MP3, VIDEO_OUTPUT_DIR)
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ def get_audio_dir_for_format(audio_format: str) -> str:
         ValueError: If audio_format is not one of the supported formats.
     """
     if audio_format == 'mp3':
-        return AUDIO_OUTPUT_DIR
+        return AUDIO_OUTPUT_DIR_MP3
     if audio_format == 'm4a':
         return AUDIO_OUTPUT_DIR_M4A
     if audio_format == 'flac':

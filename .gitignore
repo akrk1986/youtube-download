@@ -20,6 +20,7 @@ Tests/.venv-linux
 /yt-audio/
 /yt-chapters/
 /yt-audio-m4a/
+/yt-audio-mp3/
 /yt-audio-flac/
 staging-mp3/
 staging-mp4/

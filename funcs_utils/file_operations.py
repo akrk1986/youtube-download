@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from funcs_utils.string_sanitization import sanitize_string
-from project_defs import (AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_FLAC,
-                          AUDIO_OUTPUT_DIR_M4A, GLOB_FLAC_FILES,
+from project_defs import (AUDIO_OUTPUT_DIR_FLAC, AUDIO_OUTPUT_DIR_M4A,
+                          AUDIO_OUTPUT_DIR_MP3, GLOB_FLAC_FILES,
                           GLOB_FLAC_FILES_UPPER, GLOB_M4A_FILES,
                           GLOB_M4A_FILES_UPPER, GLOB_MP3_FILES,
                           GLOB_MP3_FILES_UPPER, GLOB_MP4_FILES)
@@ -65,9 +65,9 @@ def organize_media_files(video_dir: Path, chapter_name_map: dict[int, str] | Non
     for audio_file in audio_files:
         try:
             if audio_file.suffix.lower() == '.mp3':
-                dest_dir = Path(AUDIO_OUTPUT_DIR)
+                dest_dir = Path(AUDIO_OUTPUT_DIR_MP3)
                 moved_files['mp3'].append(audio_file.name)
-                dest_dir_name = AUDIO_OUTPUT_DIR
+                dest_dir_name = AUDIO_OUTPUT_DIR_MP3
             elif audio_file.suffix.lower() == '.m4a':
                 dest_dir = Path(AUDIO_OUTPUT_DIR_M4A)
                 moved_files['m4a'].append(audio_file.name)

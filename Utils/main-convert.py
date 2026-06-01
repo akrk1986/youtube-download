@@ -23,7 +23,7 @@ from funcs_for_audio_utils import (
     convert_m4a_to_mp3,
     convert_mp3_to_m4a,
 )
-from project_defs import AUDIO_OUTPUT_DIR, AUDIO_OUTPUT_DIR_FLAC, AUDIO_OUTPUT_DIR_M4A
+from project_defs import AUDIO_OUTPUT_DIR_FLAC, AUDIO_OUTPUT_DIR_M4A, AUDIO_OUTPUT_DIR_MP3
 
 
 def normalize_year(year_str: str | int | None) -> str:
@@ -394,7 +394,7 @@ def main() -> int:  # pylint: disable=too-many-branches
 
     # Source directory lookup tables
     _source_default = {
-        'mp3': AUDIO_OUTPUT_DIR,
+        'mp3': AUDIO_OUTPUT_DIR_MP3,
         'm4a': AUDIO_OUTPUT_DIR_M4A,
         'flac': AUDIO_OUTPUT_DIR_FLAC,
     }
@@ -410,7 +410,7 @@ def main() -> int:  # pylint: disable=too-many-branches
         return 1
 
     # Target directory lookup tables
-    _target_default = {'mp3': AUDIO_OUTPUT_DIR, 'm4a': AUDIO_OUTPUT_DIR_M4A}
+    _target_default = {'mp3': AUDIO_OUTPUT_DIR_MP3, 'm4a': AUDIO_OUTPUT_DIR_M4A}
     _target_subdir = {'mp3': 'MP3', 'm4a': 'M4A'}
 
     target_dirs: list[Path] = []

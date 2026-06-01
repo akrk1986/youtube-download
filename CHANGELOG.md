@@ -2,6 +2,14 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-01-1932] - Default audio format m4a; remap audio output dirs
+
+### Changed
+- **`main-yt-dlp.py`** (`VERSION` → `2026-06-01-1932`): the default `--audio-format` is now **m4a** (was mp3).
+- **`project_defs.py`**: `DEFAULT_AUDIO_FORMAT` `'mp3'` → `'m4a'`. Replaced the generic `AUDIO_OUTPUT_DIR` constant with format-specific dirs: `AUDIO_OUTPUT_DIR_M4A='yt-audio'` (m4a is the default → primary dir), `AUDIO_OUTPUT_DIR_MP3='yt-audio-mp3'` (new), `AUDIO_OUTPUT_DIR_FLAC='yt-audio-flac'` (unchanged). `EXCLUDED_DIRS` and `.gitignore` add `yt-audio-mp3`.
+- **`funcs_for_main_yt_dlp/file_organization.py`, `funcs_utils/file_operations.py`, `Utils/main-convert.py`**: use the format-specific output-dir constants.
+- **Tests**: `conftest.py` fixtures and `test_main_ytdlp.py` assertions updated for the new default format and output dirs. Legacy `yt-audio-m4a/` on disk is left as-is (no migration).
+
 ## [2026-06-01-1206] - Skip playlist/chapter probes for non-YouTube URLs
 
 ### Changed
