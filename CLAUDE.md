@@ -31,6 +31,7 @@ The codebase follows a modular function-based architecture:
 - `main-qb-notify.py` - qBittorrent Slack notification helper
 - `main-qb-notify-gmail.py` - qBittorrent Gmail notification helper
 - `fix_m4a_faststart.py` - Bulk-fix M4A files with moov-after-mdat layout
+- `install-git-hooks.py` - Enable/disable the git pre-commit hook via `core.hooksPath` (see the Linting section)
 
 ### Core Function Modules and Packages
 
@@ -108,7 +109,7 @@ The project requires:
 # Download video only
 python main-yt-dlp.py "https://youtube.com/watch?v=..."
 
-# Download with audio extraction (default: MP3)
+# Download with audio extraction (default: M4A)
 python main-yt-dlp.py --with-audio "https://youtube.com/playlist?list=..."
 
 # Download with specific audio format (mp3, m4a, or flac)
@@ -304,10 +305,11 @@ python Utils/main-get-artists-from-trello.py
 ## Output Structure
 
 - `yt-videos/` - Downloaded MP4 video files
-- `yt-audio/` - Downloaded audio files organized by format:
-  - `yt-audio/mp3/` - MP3 files (lossy, ID3v2 tags)
-  - `yt-audio/m4a/` - M4A files (lossy, MP4/iTunes atoms)
-  - `yt-audio/flac/` - FLAC files (lossless, Vorbis Comments)
+- Downloaded audio files, one top-level directory per format (constants in `project_defs.py`):
+  - `yt-audio/` - M4A files (the default format → primary audio dir; `AUDIO_OUTPUT_DIR_M4A`)
+  - `yt-audio-mp3/` - MP3 files (lossy, ID3v2 tags; `AUDIO_OUTPUT_DIR_MP3`)
+  - `yt-audio-flac/` - FLAC files (lossless, Vorbis Comments; `AUDIO_OUTPUT_DIR_FLAC`)
+  - Legacy `yt-audio-m4a/` from before the m4a-default remap is left as-is (no migration)
 - Chapter files are automatically organized into subdirectories when `--split-chapters` is used
 
 ## Audio Tagging System
@@ -611,7 +613,7 @@ The script accurately tracks only files created during the current run:
 - Counts final files after download completes
 - Reports the difference (newly created files only)
 - Works correctly even if output directories contain files from previous runs
-- Applies to video files (yt-videos/), audio files (yt-audio/, yt-audio-m4a/, yt-audio-flac/)
+- Applies to video files (yt-videos/), audio files (yt-audio/, yt-audio-mp3/, yt-audio-flac/)
 
 ### Architecture
 Notifications use a strategy pattern with a `funcs_notifications/` package:
@@ -679,3 +681,17 @@ When asked to "run linters" or "lint the code", Claude should:
 - `ty` exclude list is hardcoded in `_build_cmd()` in `run-linters.py` (mirrors bandit exclude pattern)
 - Running with no arguments runs all tools sequentially (radon excluded)
 - `flake8` and `isort` were removed — replaced by `ruff`
+- The tool list comes from the shared `common_av.linters_defs.LINTER_TOOLS` (single source of truth across the sibling projects). `run-linters.py` filters it locally via `_FULLY_EXCLUDED={'deadcode'}` / `_DEFAULT_SKIP={'skylos'}`; the canonical (blocking) subset for the hook is `common_av.linters_defs.CANONICAL_LINTER_TOOLS`
+
+### Git Pre-Commit Hook
+
+A tracked git hook lints staged `.py`/`.js` changes with the canonical linters before each commit. Enable it once per clone (`.git` is shared between WSL and Windows, so one install covers both):
+
+```bash
+python Utils/install-git-hooks.py              # enable  (sets core.hooksPath=git-hooks)
+python Utils/install-git-hooks.py --uninstall  # disable (unsets core.hooksPath)
+```
+
+- `git-hooks/pre-commit` — POSIX `sh` shim selecting the shared per-OS venv; prepends its bin to `PATH` (hooks run without the venv activated).
+- `git-hooks/pre_commit_lint.py` — runs `CANONICAL_LINTER_TOOLS` (ruff, mypy, bandit, pydoclint, pylint, vulture, pyupgrade) via `run-linters.py`; **skips** commits that touch only docs or only a `VERSION = ...` line; exits 1 (blocks) on any failure. Bypass with `git commit --no-verify`.
+- The hook is **not active until installed** — `core.hooksPath` is a per-clone setting.

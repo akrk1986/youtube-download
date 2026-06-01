@@ -37,7 +37,7 @@ options:
 
   --audio-format AUDIO_FORMAT
                         Audio format for extraction: mp3, m4a, flac, or comma-separated
-                        list (e.g., mp3,m4a). (default: mp3)
+                        list (e.g., mp3,m4a). (default: m4a)
 
   --split-chapters      Process videos with chapters:
                         - Displays chapter list with timing information
@@ -90,7 +90,7 @@ audio extraction mode (mutually exclusive):
 - `video_url` - YouTube or supported video site URL. If not provided, the script will prompt interactively.
 
 **Audio Options:**
-- `--audio-format` - Specify one or more formats: `mp3` (default), `m4a`, `flac`, or comma-separated (e.g., `mp3,m4a,flac`)
+- `--audio-format` - Specify one or more formats: `m4a` (default), `mp3`, `flac`, or comma-separated (e.g., `mp3,m4a,flac`)
 - `--with-audio` - Downloads both video (MP4) and audio in specified format(s)
 - `--only-audio` - Downloads only audio, videos are deleted after extraction
 
@@ -210,8 +210,8 @@ python main-yt-dlp.py --with-audio --subs "https://youtube.com/playlist?list=PLx
 
 You can choose one or more output audio formats using comma-separated values:
 
-- `--audio-format mp3` (default) - Extract as MP3 with ID3v2 tags (lossy)
-- `--audio-format m4a` - Extract as M4A with MP4/iTunes atoms (lossy)
+- `--audio-format m4a` (default) - Extract as M4A with MP4/iTunes atoms (lossy)
+- `--audio-format mp3` - Extract as MP3 with ID3v2 tags (lossy)
 - `--audio-format flac` - Extract as FLAC with Vorbis Comments (lossless, larger files)
 - `--audio-format mp3,m4a` - Extract both MP3 and M4A formats
 - `--audio-format mp3,m4a,flac` - Extract all three formats
@@ -632,10 +632,10 @@ The standalone helper scripts under `Utils/` (and the URL-extraction helper in `
 ## Output Structure
 
 - `yt-videos/` - Downloaded MP4 video files
-- `yt-audio/` - Downloaded audio files organized by format:
-  - `yt-audio/mp3/` - MP3 files
-  - `yt-audio/m4a/` - M4A files
-  - `yt-audio/flac/` - FLAC files
+- Downloaded audio files, one top-level directory per format:
+  - `yt-audio/` - M4A files (the default format → primary audio directory)
+  - `yt-audio-mp3/` - MP3 files
+  - `yt-audio-flac/` - FLAC files
 - Chapter-split files are automatically organized into subdirectories
 
 ## Automatic Cleanup
@@ -715,6 +715,17 @@ pip install yt-dlp
 which yt-dlp
 which ffmpeg
 ```
+
+### Enable the Git Pre-Commit Hook (optional, once per clone)
+
+A tracked git hook lints staged `.py`/`.js` changes with the canonical linters before each commit. Enable it once per clone:
+
+```bash
+python Utils/install-git-hooks.py              # enable  (sets core.hooksPath=git-hooks)
+python Utils/install-git-hooks.py --uninstall  # disable (unsets core.hooksPath)
+```
+
+It blocks the commit if any linter fails, and skips commits that touch only documentation or only a `VERSION = ...` line. Bypass a single commit with `git commit --no-verify`.
 
 ## Documentation
 
