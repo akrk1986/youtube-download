@@ -2,6 +2,14 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-01-1206] - Skip playlist/chapter probes for non-YouTube URLs
+
+### Changed
+- **`main-yt-dlp.py`**: the playlist check (`is_playlist`) and chapter check (`detect_chapters`) — both YouTube-specific network probes — now run only for domains known to support those capabilities. Non-YouTube URLs (e.g. resolved ERTFlix CDN playback URLs, Facebook) skip the probes and are treated as not-a-playlist / no-chapters, avoiding wasted yt-dlp round-trips.
+  - **`project_defs.py`**: added `PLAYLIST_CAPABLE_DOMAINS` / `CHAPTER_CAPABLE_DOMAINS` (both `= VALID_YOUTUBE_DOMAINS` today). A new domain is opted into either check by editing one tuple.
+  - **`funcs_video_info/url_validation.py`**: added `are_playlists_supported()` / `are_chapters_supported()` (exported from `funcs_video_info`), used to gate the two checks.
+- **Tests**: added capability-helper unit tests and a non-YouTube flow test asserting the probes are not called (40 tests pass).
+
 ## [2026-05-23-2218] - Stop filling Album Artist (reserve it for dupe staging)
 
 ### Changed
