@@ -26,7 +26,8 @@
       "Bash(uv sync *)",
       "Bash(uv export *)",
       "Bash(git commit -m ' *)",
-      "WebSearch"
+      "WebSearch",
+      "Read(//mnt/c/Users/user/PycharmProjects/**)"
     ],
     "deny": [],
     "ask": []
