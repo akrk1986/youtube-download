@@ -55,7 +55,8 @@ exclude = ['\.venv', 'Beta', 'Tests-Standalone', 'Tests']
 # common-av is a local editable sibling package (in requirements.in, not on PyPI
 # and intentionally not in [project.dependencies]); deptry sees it installed in the
 # venv via the editable, so its direct import reads as a transitive dep (DEP003).
-DEP003 = ["common_av"]
+# It ships two top-level packages: common_av and common_linters.
+DEP003 = ["common_av", "common_linters"]
 DEP002 = [
     "bandit", "deptry", "mypy", "pip-audit", "pip-tools", "pydoclint", "pylint",
     "pyupgrade", "pygments", "radon", "ruff", "pytest", "skylos", "ty",

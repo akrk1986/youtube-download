@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # pylint: disable=wrong-import-position  # imports below need repo root on sys.path (set above)
-from common_av.linters_defs import CANONICAL_LINTER_TOOLS  # noqa: E402
+from common_linters.linters_defs import CANONICAL_LINTER_TOOLS  # noqa: E402
 from project_defs import EXCLUDED_DIRS  # noqa: E402
 
 CODE_SUFFIXES = {'.py', '.js'}
