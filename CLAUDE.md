@@ -453,6 +453,11 @@ The project uses multiple linting and type checking tools to maintain code quali
 - Functions accept `Path | str` for flexibility
 - Convert to Path early, work with Path throughout
 
+### Subprocess Output Encoding
+- Any `subprocess.run` / `subprocess.Popen` / `subprocess.check_output` call that **captures output in text mode** (`capture_output=True`, `stdout=PIPE`, or `stderr=PIPE`, together with `text=True`) MUST pass `encoding='utf-8', errors='replace'`.
+- **Why**: on Windows, text mode defaults to the cp1252 codec. External tools (yt-dlp, ffmpeg/ffprobe, git) emit UTF-8 — file paths, tags, commit messages — often with non-Latin-1 characters (Greek, Hebrew, CJK). cp1252 can't decode them, so the stdout/stderr reader thread crashes silently and `result.stdout` / `result.stderr` come back `None`, causing a confusing downstream error (e.g. `expected string or bytes-like object, got 'NoneType'`).
+- Byte-mode captures (no `text=True`) return `bytes` and are unaffected; uncaptured calls have no buffer to decode and need nothing.
+
 ## Environment Variables
 
 The tool supports several environment variables for configuration:
