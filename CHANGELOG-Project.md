@@ -2,6 +2,16 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-02-1829] - run-linters uses shared common_linters package
+
+### Added
+- **Line-length-consistency check**: `run-linters.py` now fails when ruff's `line-length` and pylint's `max-line-length` disagree (both are `120` today). It runs on a full `run-linters.py` invocation and on `--tool ruff` / `--tool pylint` (so the pre-commit hook enforces it too), and prints both values with their config sources.
+
+### Changed
+- **`run-linters.py`**: the generic machinery (parsers, tool runners, grouped output, `main()`) moved to the shared `common_linters.linters_funcs` module. This script now keeps only project-specific config (`EXCLUDED_DIRS`, `TOOLS`, `ALL_TOOLS`) and a `build_cmd(name, root)` callable; ~540 lines removed.
+- **Imports**: `common_av.linters_defs` → `common_linters.linters_defs` in `run-linters.py` and `git-hooks/pre_commit_lint.py` (the shared linter-tool lists moved into the new `common_linters` package in `common-av-codebase`).
+- **`pyproject.toml`**: `[tool.deptry.per_rule_ignores] DEP003` extended with `common_linters` (the editable `common-av` dist now ships two top-level packages: `common_av` and `common_linters`).
+
 ## [2026-06-01-1926] - Git pre-commit hook + shared linter list
 
 ### Added
