@@ -2,6 +2,11 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-02-1714] - UTF-8 decode for captured subprocess output
+
+### Fixed
+- **`funcs_for_main_yt_dlp/_download_common.py`, `funcs_for_main_yt_dlp/external_tools.py`, `funcs_video_info/chapters.py`, `funcs_video_info/metadata.py`** (plus `Tests/e2e_main.py`, `Tests-Standalone/setup-chromedriver-windows.py`, `Tests-Standalone/test_real_mp3_tags.py`): added `encoding='utf-8', errors='replace'` to every text-mode output-capturing `subprocess.run` call (yt-dlp download + `--version`, the ffprobe chapter-count / video-info probes, and test helpers). On Windows the default cp1252 codec crashes the stdout/stderr reader thread on non-Latin-1 bytes (e.g. Greek filenames) in yt-dlp/ffprobe output, leaving `stdout`/`stderr` as `None`. Mirrors the `common_av.boost` fix that surfaced this class of bug.
+
 ## [2026-06-01-1932] - Default audio format m4a; remap audio output dirs
 
 ### Changed
