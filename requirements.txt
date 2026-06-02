@@ -212,8 +212,10 @@ pygments==2.20.0
     #   rich
     #   textual
     #   youtube-download (pyproject.toml)
-pyjwt[crypto]==2.12.1
-    # via mcp
+pyjwt[crypto]==2.13.0
+    # via
+    #   -r requirements.in
+    #   mcp
 pylint==4.0.5
     # via youtube-download (pyproject.toml)
 pyparsing==3.3.2
