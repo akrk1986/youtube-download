@@ -351,7 +351,9 @@ def _check_prerequisites() -> bool:
         print(f'✅ yt-dlp found at: {ytdlp_path}')
     else:
         # Check if in PATH
-        result = subprocess.run(['which', 'yt-dlp'], capture_output=True, text=True)  # nosec B603 B607
+        result = subprocess.run(  # nosec B603 B607
+            ['which', 'yt-dlp'], capture_output=True, text=True, encoding='utf-8', errors='replace'
+        )
         if result.returncode != 0:
             print('❌ yt-dlp not found in PATH')
             return False
@@ -366,7 +368,9 @@ def _check_prerequisites() -> bool:
         print(f'✅ ffmpeg found at: {ffmpeg_path}')
     else:
         # Check if in PATH
-        result = subprocess.run(['which', 'ffmpeg'], capture_output=True, text=True)  # nosec B603 B607
+        result = subprocess.run(  # nosec B603 B607
+            ['which', 'ffmpeg'], capture_output=True, text=True, encoding='utf-8', errors='replace'
+        )
         if result.returncode != 0:
             print('❌ ffmpeg not found in PATH')
             return False

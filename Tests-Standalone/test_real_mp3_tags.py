@@ -39,7 +39,9 @@ def download_test_video():
             test_url
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=120
+        )
 
         if result.returncode != 0:
             print(f'Download failed: {result.stderr}')

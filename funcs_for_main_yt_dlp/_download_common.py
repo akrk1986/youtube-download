@@ -157,11 +157,14 @@ def _run_yt_dlp_subprocess(cmd: list[str | Path], timeout: int,
 
         with log_file.open(mode, encoding='utf-8') as f:
             _ = subprocess.run(cmd, check=True, stdout=f,  # nosec B603
-                               stderr=subprocess.PIPE, text=True, timeout=timeout)
+                               stderr=subprocess.PIPE, text=True, encoding='utf-8',
+                               errors='replace', timeout=timeout)
         logger.info(f'{label} completed successfully. Progress logged to {log_file}')
         logger.info(f'Downloaded from URL: {url}')
     else:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=timeout)  # nosec B603
+        result = subprocess.run(  # nosec B603
+            cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=timeout
+        )
         logger.info(f'{label} completed successfully')
         logger.info(f'Downloaded from URL: {url}')
         if result.stdout:

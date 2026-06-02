@@ -94,7 +94,9 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str, video_download_timeout
             cmd[1:1] = cookie_args
 
         logger.debug(f'Getting chapter count with timeout of {timeout} seconds')
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)  # nosec B603
+        result = subprocess.run(  # nosec B603
+            cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', check=True, timeout=timeout
+        )
 
         # Try to parse as single JSON object first
         try:

@@ -58,7 +58,9 @@ def get_video_info(yt_dlp_path: Path, url: str, video_download_timeout: int | No
 
     logger.debug(f'Getting video info with timeout of {timeout} seconds')
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)  # nosec B603
+        result = subprocess.run(  # nosec B603
+            cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', check=True, timeout=timeout
+        )
 
         # Try to parse as single JSON object first
         try:
