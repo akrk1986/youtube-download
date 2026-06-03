@@ -11,3 +11,4 @@
 
 # Security overrides for transitive dependencies (not imported directly):
 starlette>=1.0.1  # PYSEC-2026-161; pulled in via skylos -> mcp
+pyjwt>=2.13.0  # PYSEC-2026-175/177/178/179; pulled in via skylos -> mcp

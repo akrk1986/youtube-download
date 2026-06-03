@@ -2,6 +2,11 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-02-1854] - Bump pyjwt 2.12.1 -> 2.13.0 (PYSEC-2026-175/177/178/179)
+
+### Fixed
+- **`requirements.in` / `requirements.txt`**: added a `pyjwt>=2.13.0` security override (recompiled to `2.13.0`) to clear **PYSEC-2026-175 / 177 / 178 / 179**, flagged by pip-audit in the shared venv. `pyjwt` is transitive (via `skylos -> mcp`, which requires `>=2.10.1`), not imported directly; the override lives in `requirements.in` next to the existing `starlette` pin. pip-audit now reports no known vulnerabilities.
+
 ## [2026-06-02-1829] - run-linters uses shared common_linters package
 
 ### Added
