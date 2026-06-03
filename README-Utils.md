@@ -14,7 +14,7 @@ Change history for these utilities lives in [CHANGELOG-Utils.md](CHANGELOG-Utils
 - [Audio Volume Booster](#audio-volume-booster-utilsmain-boost-audio-trackpy) — `Utils/main-boost-audio-track.py`
 - [Loudness Boost Suggester](#loudness-boost-suggester-utilsmain-suggest-boostpy) — `Utils/main-suggest-boost.py`
 - [DoVi Profile 5 Detection](#dovi-profile-5-detection-utilsmain-check-dovi-profile5py) — `Utils/main-check-dovi-profile5.py`
-- [qBittorrent Post-Download Hook](#qbittorrent-post-download-hook-utilsmain-qb-postdownload-gmailpy--slackpy) — `Utils/main-qb-postdownload-{gmail,slack}.py`
+- [qBittorrent Post-Download Hook](#qbittorrent-post-download-hook-utilsqb-hook-gmailsh--slacksh--main-qb-postdownload-gmailpy--slackpy) — `Utils/qb-hook-{gmail,slack}.sh`
 - [qBittorrent Gmail Notification](#qbittorrent-gmail-notification-utilsmain-qb-notify-gmailpy) — `Utils/main-qb-notify-gmail.py`
 - [qBittorrent Slack Notification](#qbittorrent-slack-notification-utilsmain-qb-notify-slackpy) — `Utils/main-qb-notify-slack.py`
 - [Trello → Artists JSON](#trello--artists-json-utilsmain-get-artists-from-trellopy) — `Utils/main-get-artists-from-trello.py`
@@ -355,17 +355,36 @@ python Utils/main-check-dovi-profile5.py "/downloads/Some Movie.mkv"; echo $?
 |---|---|---|
 | `path` | path (required) | Video file or directory to check. |
 
-## qBittorrent Post-Download Hook (`Utils/main-qb-postdownload-{gmail,slack}.py`)
+## qBittorrent Post-Download Hook (`Utils/qb-hook-{gmail,slack}.sh` → `main-qb-postdownload-{gmail,slack}.py`)
 
-The intended qBittorrent "Run external program on torrent completion" entry points. Each driver runs the DoVi profile-5 check on the downloaded path, then invokes its notifier (Gmail or Slack) with the resulting `--status good|bad`. Both drivers share `funcs_for_qb_notify/hook.py:run_hook`, so they send identical information and differ only in the notifier they call. Pick the one matching the notification channel you configured in `git_excluded.py` (or wire both).
+The qBittorrent "Run external program on torrent completion" entry points. Each driver runs the DoVi profile-5 check on the downloaded path, then invokes its notifier (Gmail or Slack) with the resulting `--status good|bad`. Both drivers share `funcs_for_qb_notify/hook.py:run_hook`, so they send identical information and differ only in the notifier they call. Pick the one matching the notification channel you configured in `git_excluded.py`.
+
+**Use the `.sh` wrappers, not the drivers directly.** The drivers import `common_av`, which exists only in the shared venv — invoking them with the system `python3` fails with `ModuleNotFoundError` before any notification is sent. `qb-hook-gmail.sh` / `qb-hook-slack.sh` self-resolve the venv python (`<project>/../.venv-av-linux/bin/python`) and the driver relative to their own location, so the qBittorrent field is one stable path with no hardcoded interpreter.
 
 ### Usage
 
 ```bash
 # In qBittorrent → Options → Downloads → Run external program on torrent completion:
-python Utils/main-qb-postdownload-gmail.py --name "%N" --path "%F"
-python Utils/main-qb-postdownload-slack.py --name "%N" --path "%F"
+/path/to/youtube-download/Utils/qb-hook-gmail.sh --name "%N" --path "%F"
+/path/to/youtube-download/Utils/qb-hook-slack.sh --name "%N" --path "%F"
 ```
+
+Use `%F` (content path), not `%D` (save path), so the DoVi check examines the torrent's actual file/folder. qBittorrent only runs the program for torrents that complete *after* the setting is saved — already-finished ones won't fire retroactively.
+
+### Setup on the qBittorrent host
+
+The host needs the shared venv and `ffprobe`. Clone `common-av-codebase` as a sibling of `youtube-download`, then:
+
+```bash
+sudo apt install -y python3-venv python3-pip ffmpeg        # Debian/Ubuntu
+python3 -m venv ~/PycharmProjects/.venv-av-linux           # shared venv in the PARENT dir
+source ~/PycharmProjects/.venv-av-linux/bin/activate
+cd ~/PycharmProjects/youtube-download
+pip install -r requirements.txt                            # pulls in -e ../common-av-codebase
+python -c "import common_av; print('common_av OK')"        # verify
+```
+
+`git_excluded.py` (notification credentials) must be present at the project root — it is gitignored, so `git pull` won't create it. The `.sh` wrapper prints a clear error and exits non-zero if the venv python is missing.
 
 ### Arguments
 

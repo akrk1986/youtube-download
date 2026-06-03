@@ -627,7 +627,7 @@ The standalone helper scripts under `Utils/` (and the URL-extraction helper in `
 - **Loudness Boost Suggester** (`Utils/main-suggest-boost.py`) — measure a URL's loudness and suggest an `FFMPEG_OPTS` boost
 - **qBittorrent Notifications** (`Utils/main-qb-notify-gmail.py`, `Utils/main-qb-notify-slack.py`) — Gmail/Slack torrent-complete alerts with a good/bad (✅ / ⚠️ DoVi profile 5) indicator
 - **DoVi Profile 5 Detection** (`Utils/main-check-dovi-profile5.py`) — flag Dolby Vision profile 5 content that Plex can't play on some devices (file or directory)
-- **qBittorrent Post-Download Hook** (`Utils/main-qb-postdownload-gmail.py`, `Utils/main-qb-postdownload-slack.py`) — "run on torrent finished" drivers: DoVi check then notify with the good/bad status
+- **qBittorrent Post-Download Hook** (`Utils/qb-hook-gmail.sh`, `Utils/qb-hook-slack.sh` → `main-qb-postdownload-*.py`) — "run on torrent finished" wrappers: resolve the venv, DoVi-check the content, then notify with the good/bad status
 - **Trello → Artists JSON** (`Utils/main-get-artists-from-trello.py`) — rebuild `Data/artists.json` from a Trello export
 - **M4A Faststart Fix** (`Utils/fix_m4a_faststart.py`) — relocate the `moov` atom before `mdat` for hardware players
 
@@ -763,7 +763,7 @@ The tool includes specialized functionality for Greek music:
   - `funcs_notifications/` - Notification handlers
 - `Data/artists.json` - Greek artists database (exported from Trello)
 - `Tests/` - Pytest tests and E2E test framework
-- `Utils/` - Standalone utility scripts (`main-convert.py`, `main-boost-audio-track.py`, `main-suggest-boost.py`, `main-get-artists-from-trello.py`, `main-qb-notify*.py`, `main-qb-postdownload-*.py`, `main-check-dovi-profile5.py`, `fix_m4a_faststart.py`) — documented in [README-Utils.md](README-Utils.md)
+- `Utils/` - Standalone utility scripts (`main-convert.py`, `main-boost-audio-track.py`, `main-suggest-boost.py`, `main-get-artists-from-trello.py`, `main-qb-notify*.py`, `qb-hook-*.sh`, `main-qb-postdownload-*.py`, `main-check-dovi-profile5.py`, `fix_m4a_faststart.py`) — documented in [README-Utils.md](README-Utils.md)
 - `Tests-Standalone/` - Standalone test scripts and utilities
 - `Docs/` - Documentation files
 - `Beta/` - Experimental features (excluded from global changes)
