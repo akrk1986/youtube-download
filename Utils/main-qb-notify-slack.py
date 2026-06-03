@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # pylint: disable=invalid-name
-"""Send a Gmail notification when a torrent completes downloading.
+"""Send a Slack notification when a torrent completes downloading.
 
 The --status flag marks the content good (green ✅) or bad (orange ⚠️, DoVi
-profile 5). The good/bad message logic is shared with the Slack notifier via
-funcs_notifications.torrent_message; only the SMTP transport lives here.
+profile 5). The good/bad message logic is shared with the Gmail notifier via
+funcs_notifications.torrent_message; only the webhook transport lives here.
 """
 import argparse
-import smtplib
 import sys
 from dataclasses import dataclass
-from email.mime.text import MIMEText
 from pathlib import Path
+
+import requests
 
 # This Utils script imports from packages at the project root; ensure that
 # root is importable when the file is invoked as 'python Utils/...'.
@@ -20,8 +20,8 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 # pylint: disable=wrong-import-position
-from funcs_notifications.torrent_message import build_torrent_email_message  # noqa: E402
-from git_excluded import GMAIL_PARAMS  # noqa: E402
+from funcs_notifications.torrent_message import build_torrent_slack_message  # noqa: E402
+from git_excluded import SLACK_WEBHOOK  # noqa: E402
 # pylint: enable=wrong-import-position
 
 
@@ -40,7 +40,7 @@ def _parse_arguments() -> TorrentInfo:
         TorrentInfo: Parsed torrent name, path, and good/bad flag.
     """
     parser = argparse.ArgumentParser(
-        description='Send Gmail notification for completed torrent'
+        description='Send Slack notification for completed torrent'
     )
     parser.add_argument(
         '--name',
@@ -63,41 +63,35 @@ def _parse_arguments() -> TorrentInfo:
     return TorrentInfo(name=args.name, path=Path(args.path), is_bad=args.status == 'bad')
 
 
-def _send_gmail_message(gmail_params: dict[str, str], subject: str, html_body: str) -> bool:
-    """Send a message via Gmail SMTP.
+def _send_slack_message(webhook_url: str, message: str) -> bool:
+    """Send a message to Slack via webhook.
 
     Args:
-        gmail_params: Dictionary with sender_email, sender_app_password, recipient_email.
-        subject: Email subject line.
-        html_body: Email body in HTML format.
+        webhook_url: The Slack incoming webhook URL.
+        message: The message text to send.
 
     Returns:
         bool: True if successful, False otherwise.
     """
-    msg = MIMEText(html_body, 'html')
-    msg['Subject'] = subject
-    msg['From'] = gmail_params['sender_email']
-    msg['To'] = gmail_params['recipient_email']
+    payload = {'text': message}
 
     try:
-        with smtplib.SMTP('smtp.gmail.com', 587, timeout=15) as server:
-            server.starttls()
-            server.login(gmail_params['sender_email'], gmail_params['sender_app_password'])
-            server.send_message(msg)
-        return True
-    except smtplib.SMTPException as e:
-        print(f'Failed to send Gmail message: {e}')
-        return False
-    except Exception as e:
-        print(f'Unexpected error: {e}')
+        response = requests.post(
+            url=webhook_url,
+            json=payload,
+            timeout=10
+        )
+        return response.status_code == requests.codes.ok
+    except requests.RequestException as e:
+        print(f'Failed to send Slack message: {e}')
         return False
 
 
 def main() -> None:
     """Main entry point."""
     torrent = _parse_arguments()
-    message = build_torrent_email_message(name=torrent.name, path=str(torrent.path), is_bad=torrent.is_bad)
-    success = _send_gmail_message(gmail_params=GMAIL_PARAMS, subject=message.subject, html_body=message.html_body)
+    message = build_torrent_slack_message(name=torrent.name, path=str(torrent.path), is_bad=torrent.is_bad)
+    success = _send_slack_message(webhook_url=SLACK_WEBHOOK, message=message)
 
     if not success:
         raise SystemExit(1)

@@ -2,6 +2,17 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-03-1700] - qBittorrent hook: flag DoVi profile 5, good/bad notifications
+
+### Added
+- **`funcs_for_qb_notify/`** (new package) + **`Utils/main-check-dovi-profile5.py`**: Dolby Vision profile-5 detection for downloaded content (profile 5 is unplayable by Plex on some devices, hence "bad"). `path_is_bad(path)` accepts a file or a directory (recursively scanning video files `.mp4/.mkv/.m4v/.mov/.ts/.webm`) and returns True if any stream is DoVi profile 5, read from the ffprobe `dv_profile` side-data; probe failures are caught and treated as good so the hook never false-alarms or blocks. The CLI wrapper exits 1 (bad) / 0 (good).
+- **`Utils/main-qb-postdownload-gmail.py`** + **`Utils/main-qb-postdownload-slack.py`** (two qBittorrent "run on torrent finished" hook drivers): each runs the DoVi check on `--path`, then invokes its notifier (`main-qb-notify-gmail.py` / `main-qb-notify-slack.py`) with the resulting `--status good|bad`. Both share the detection + invocation logic via `funcs_for_qb_notify.hook.run_hook`, so they send identical information and differ only in the notifier they call. Hook command e.g.: `python Utils/main-qb-postdownload-gmail.py --name "%N" --path "%F"`.
+- **`funcs_notifications/torrent_message.py`** (new shared module): `torrent_status_display`, `build_torrent_slack_message`, `build_torrent_email_message` — single source of truth for the good (✅) / bad (⚠️ DoVi Profile 5) emoji + headline, shared by both qb notifiers so only the transport differs.
+- **`Tests/test_qb_dovi.py`**: 13 tests covering profile detection (5 vs 8 vs none vs probe failure), directory scan, probe-exception handling, the shared `run_hook` status forwarding, and the email/Slack message builders.
+
+### Changed
+- **`Utils/main-qb-notify-gmail.py`** / **`Utils/main-qb-notify.py` → `Utils/main-qb-notify-slack.py`** (renamed for symmetry): both gain a `--status good|bad` flag and now build their message via the shared `funcs_notifications.torrent_message` helpers, so the good/bad logic is identical regardless of transport (SMTP vs Slack webhook).
+
 ## [2026-05-28-1556] - Greek singles tests: make in-folder dupe path assertions OS-agnostic
 
 ### Fixed

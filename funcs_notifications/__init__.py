@@ -15,6 +15,11 @@ from funcs_notifications.gmail_notifier import GmailNotifier
 from funcs_notifications.helpers import send_all_notifications
 from funcs_notifications.message_builder import NotificationData
 from funcs_notifications.slack_notifier import SlackNotifier
+from funcs_notifications.torrent_message import (
+    build_torrent_email_message,
+    build_torrent_slack_message,
+    torrent_status_display,
+)
 
 __all__ = [
     'NotificationHandler',
@@ -22,4 +27,7 @@ __all__ = [
     'GmailNotifier',
     'NotificationData',
     'send_all_notifications',
+    'torrent_status_display',
+    'build_torrent_slack_message',
+    'build_torrent_email_message',
 ]
