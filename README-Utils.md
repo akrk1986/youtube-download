@@ -13,8 +13,10 @@ Change history for these utilities lives in [CHANGELOG-Utils.md](CHANGELOG-Utils
 - [Inspect Dupe Groups](#inspect-dupe-groups-utilsmain-inspect-dupe-groupspy) — `Utils/main-inspect-dupe-groups.py`
 - [Audio Volume Booster](#audio-volume-booster-utilsmain-boost-audio-trackpy) — `Utils/main-boost-audio-track.py`
 - [Loudness Boost Suggester](#loudness-boost-suggester-utilsmain-suggest-boostpy) — `Utils/main-suggest-boost.py`
-- [qBittorrent Slack Notification](#qbittorrent-slack-notification-utilsmain-qb-notifypy) — `Utils/main-qb-notify.py`
+- [DoVi Profile 5 Detection](#dovi-profile-5-detection-utilsmain-check-dovi-profile5py) — `Utils/main-check-dovi-profile5.py`
+- [qBittorrent Post-Download Hook](#qbittorrent-post-download-hook-utilsmain-qb-postdownload-gmailpy--slackpy) — `Utils/main-qb-postdownload-{gmail,slack}.py`
 - [qBittorrent Gmail Notification](#qbittorrent-gmail-notification-utilsmain-qb-notify-gmailpy) — `Utils/main-qb-notify-gmail.py`
+- [qBittorrent Slack Notification](#qbittorrent-slack-notification-utilsmain-qb-notify-slackpy) — `Utils/main-qb-notify-slack.py`
 - [Trello → Artists JSON](#trello--artists-json-utilsmain-get-artists-from-trellopy) — `Utils/main-get-artists-from-trello.py`
 - [M4A Faststart Fix](#m4a-faststart-fix-utilsfix_m4a_faststartpy) — `Utils/fix_m4a_faststart.py`
 
@@ -333,39 +335,54 @@ python Utils/main-suggest-boost.py "<URL>" --baseline reference.mp3 --target-pea
 | `--target-peak-db` | float | True-peak ceiling (dBTP) for the clipping safeguard. |
 | `--verbose` / `-v` | flag | Enable DEBUG logging to stderr. |
 
-## qBittorrent Slack Notification (`Utils/main-qb-notify.py`)
+## DoVi Profile 5 Detection (`Utils/main-check-dovi-profile5.py`)
 
-Sends a Slack message when a torrent finishes downloading. Intended to be wired into qBittorrent's "Run external program on torrent completion" hook. Requires `git_excluded.py` (not tracked by git) to define `SLACK_WEBHOOK` — see the Notifications setup in the [main README](README.md).
+Detects **Dolby Vision profile 5** content. Profile 5 is the non-backwards-compatible DoVi flavour that Plex cannot play on some devices, so such files are flagged "bad". Detection reads the ffprobe `dv_profile` side-data of each video stream — it does not guess from the filename.
+
+The `--path` argument may be a single video file **or** a directory; a directory is scanned recursively (`.mp4/.mkv/.m4v/.mov/.ts/.webm`) and is "bad" if **any** video is profile 5. Probe failures are treated as good so a glitch never raises a false alarm. The core logic lives in `funcs_for_qb_notify/dovi.py` (`path_is_bad`), importable by other code.
 
 ### Usage
 
 ```bash
-# Standalone
-python Utils/main-qb-notify.py --name "My Torrent" --path "/downloads/My Torrent"
-
-# In qBittorrent → Options → Downloads → Run external program on torrent completion:
-python Utils/main-qb-notify.py --name "%N" --path "%F"
+python Utils/main-check-dovi-profile5.py "/downloads/Some Movie.mkv"; echo $?
+# BAD: DoVi profile 5 detected in ...   (exit 1)
+# good: no DoVi profile 5 in ...          (exit 0; exit 2 if the path is missing)
 ```
 
 ### Arguments
 
 | Argument | Values | Description |
 |---|---|---|
-| `--name` | text (required) | Name of the completed torrent. |
-| `--path` | path (required) | Full path to the downloaded content. |
+| `path` | path (required) | Video file or directory to check. |
+
+## qBittorrent Post-Download Hook (`Utils/main-qb-postdownload-{gmail,slack}.py`)
+
+The intended qBittorrent "Run external program on torrent completion" entry points. Each driver runs the DoVi profile-5 check on the downloaded path, then invokes its notifier (Gmail or Slack) with the resulting `--status good|bad`. Both drivers share `funcs_for_qb_notify/hook.py:run_hook`, so they send identical information and differ only in the notifier they call. Pick the one matching the notification channel you configured in `git_excluded.py` (or wire both).
+
+### Usage
+
+```bash
+# In qBittorrent → Options → Downloads → Run external program on torrent completion:
+python Utils/main-qb-postdownload-gmail.py --name "%N" --path "%F"
+python Utils/main-qb-postdownload-slack.py --name "%N" --path "%F"
+```
+
+### Arguments
+
+| Argument | Values | Description |
+|---|---|---|
+| `--name` | text (required) | Name of the completed torrent (forwarded to the notifier). |
+| `--path` | path (required) | Full path to the downloaded content (DoVi-checked, then forwarded). |
 
 ## qBittorrent Gmail Notification (`Utils/main-qb-notify-gmail.py`)
 
-Same as the Slack notifier, but sends a Gmail message via SMTP. Requires `git_excluded.py` to define `GMAIL_PARAMS` (`sender_email`, `sender_app_password`, `recipient_email`) — see the Notifications setup in the [main README](README.md). The app password is a Gmail App Password, not the account password.
+Sends a Gmail message via SMTP when a torrent finishes. Usually invoked by the Gmail post-download driver above, but can be run standalone. Requires `git_excluded.py` to define `GMAIL_PARAMS` (`sender_email`, `sender_app_password`, `recipient_email`) — see the Notifications setup in the [main README](README.md). The app password is a Gmail App Password, not the account password. The message carries a good/bad indicator (✅ vs ⚠️ DoVi profile 5) selected by `--status`; the good/bad message logic is shared with the Slack notifier via `funcs_notifications/torrent_message.py`.
 
 ### Usage
 
 ```bash
 # Standalone
-python Utils/main-qb-notify-gmail.py --name "My Torrent" --path "/downloads/My Torrent"
-
-# In qBittorrent → Options → Downloads → Run external program on torrent completion:
-python Utils/main-qb-notify-gmail.py --name "%N" --path "%F"
+python Utils/main-qb-notify-gmail.py --name "My Torrent" --path "/downloads/My Torrent" --status bad
 ```
 
 ### Arguments
@@ -374,6 +391,26 @@ python Utils/main-qb-notify-gmail.py --name "%N" --path "%F"
 |---|---|---|
 | `--name` | text (required) | Name of the completed torrent. |
 | `--path` | path (required) | Full path to the downloaded content. |
+| `--status` | `good` \| `bad` (default `good`) | `bad` marks the mail with the ⚠️ DoVi-profile-5 headline. |
+
+## qBittorrent Slack Notification (`Utils/main-qb-notify-slack.py`)
+
+Same as the Gmail notifier, but posts to a Slack incoming webhook. Requires `git_excluded.py` to define `SLACK_WEBHOOK` — see the Notifications setup in the [main README](README.md). Carries the same good/bad indicator via `--status`.
+
+### Usage
+
+```bash
+# Standalone
+python Utils/main-qb-notify-slack.py --name "My Torrent" --path "/downloads/My Torrent" --status good
+```
+
+### Arguments
+
+| Argument | Values | Description |
+|---|---|---|
+| `--name` | text (required) | Name of the completed torrent. |
+| `--path` | path (required) | Full path to the downloaded content. |
+| `--status` | `good` \| `bad` (default `good`) | `bad` marks the message with the ⚠️ DoVi-profile-5 headline. |
 
 ## Trello → Artists JSON (`Utils/main-get-artists-from-trello.py`)
 

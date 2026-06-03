@@ -28,14 +28,16 @@ The codebase follows a modular function-based architecture:
 - `main-verify-dupe-groups.py` - Verify a `--stage-dupes` run: every `Staging-Dupes/grp-NNNN/` folder must hold exactly one song (flags misgrouped/singleton/empty; uses `funcs_check_greek_singles/verify_groups.py`)
 - `main-inspect-dupe-groups.py` - Interactive inspector for a range of `Staging-Dupes/grp-NNNN/` groups: tags table grouped by song + cover-art collage, per-file play/verdict prompts; writes the Copyright verdict only (uses `funcs_check_greek_singles/inspect_groups.py`, needs Pillow)
 - `main-boost-audio-track.py` - Audio volume booster for MP3/M4A/MP4 files (not FLAC)
-- `main-qb-notify.py` - qBittorrent Slack notification helper
-- `main-qb-notify-gmail.py` - qBittorrent Gmail notification helper
+- `main-qb-notify-gmail.py` - qBittorrent Gmail notifier: sends a torrent-complete mail with a good/bad indicator (`--status good|bad`)
+- `main-qb-notify-slack.py` - qBittorrent Slack notifier: same as above for Slack (`--status good|bad`). Both build the message via `funcs_notifications/torrent_message.py` so the good/bad logic is shared
+- `main-check-dovi-profile5.py` - Detect Dolby Vision profile 5 (unplayable by Plex on some devices) in a file or directory; exits 1 (bad) / 0 (good). Core logic in `funcs_for_qb_notify/dovi.py`
+- `main-qb-postdownload-gmail.py` / `main-qb-postdownload-slack.py` - qBittorrent "run on torrent finished" hook drivers: run the DoVi check on the downloaded path, then invoke the matching notifier with `--status`. Both share `funcs_for_qb_notify/hook.py:run_hook` so they send identical info. Hook command: `python Utils/main-qb-postdownload-gmail.py --name "%N" --path "%F"`
 - `fix_m4a_faststart.py` - Bulk-fix M4A files with moov-after-mdat layout
 - `install-git-hooks.py` - Enable/disable the git pre-commit hook via `core.hooksPath` (see the Linting section)
 
 ### Core Function Modules and Packages
 
-The codebase uses a modular package-based architecture. All helper functions are organized into 7 logical packages:
+The codebase uses a modular package-based architecture. All helper functions are organized into 8 logical packages:
 
 **Packages:**
 
@@ -81,11 +83,16 @@ The codebase uses a modular package-based architecture. All helper functions are
   - `boost.py` - Audio volume boosting with ffmpeg (single `AudioBooster` class with `preserve_video` flag)
   - `conversion.py` - Audio format conversion utilities (MP3 ↔ M4A, FLAC → MP3/M4A); all M4A output uses `-movflags +faststart`
 
-- `funcs_notifications/` - Notification handlers (4 modules, 353 lines)
+- `funcs_notifications/` - Notification handlers (5 modules)
   - `base.py` - NotificationHandler abstract base class
   - `slack_notifier.py` - SlackNotifier implementation
   - `gmail_notifier.py` - GmailNotifier implementation
   - `message_builder.py` - Shared message formatting
+  - `torrent_message.py` - Shared good/bad (✅ / ⚠️ DoVi profile 5) message builders for the qBittorrent notifiers
+
+- `funcs_for_qb_notify/` - qBittorrent post-download hook helpers
+  - `dovi.py` - DoVi profile-5 detection via ffprobe (`path_is_bad`, file or recursive directory scan)
+  - `hook.py` - Shared driver logic (`run_hook`): detect, then invoke a notifier script with `--status`
 
 ### Data Files
 - `Data/artists.json` - Greek music artists database (~17KB)
