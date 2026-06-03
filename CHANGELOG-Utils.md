@@ -2,6 +2,11 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-03-1753] - qBittorrent hook wrappers (stable venv-resolving entry points)
+
+### Added
+- **`Utils/qb-hook-gmail.sh`** + **`Utils/qb-hook-slack.sh`** (executable POSIX `sh`): thin wrappers wiring qBittorrent's "run on torrent finished" command to a single stable path. Each resolves the shared per-OS venv python (`<project>/../.venv-av-linux/bin/python`) and its post-download driver relative to the script's own location — so the qBittorrent field needs no hardcoded interpreter or project path: `Utils/qb-hook-gmail.sh --name "%N" --path "%F"`. Errors clearly if the venv python is missing. (The driver imports `common_av`, which exists only in the venv, so invoking the bare system `python3` fails — the wrapper avoids that footgun.)
+
 ## [2026-06-03-1700] - qBittorrent hook: flag DoVi profile 5, good/bad notifications
 
 ### Added
