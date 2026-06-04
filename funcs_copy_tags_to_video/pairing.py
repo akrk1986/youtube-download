@@ -1,4 +1,11 @@
-"""Pair audio files with sibling video files by shared basename."""
+"""Pair audio files with sibling video files by shared basename.
+
+A video matches an audio file when the video's stem equals the audio stem (exact) or ends
+with '-<audio-stem>'. The trailing '-<audio-stem>' form covers videos named
+'<prefix>-<song-name>.mp4' against a '<song-name>.m4a/.mp3' audio file, where the last '-'
+is the generated delimiter between the prefix and the song name. Matching the audio's full
+stem as the suffix keeps it correct even when the song name itself contains hyphens.
+"""
 import logging
 from pathlib import Path
 
@@ -11,10 +18,12 @@ VIDEO_SUFFIX = '.mp4'
 def pair_audio_with_video(
         audio_dir: Path,
         video_dir: Path) -> tuple[list[tuple[Path, Path]], list[Path], list[Path]]:
-    """Match each audio file to a same-basename .mp4 in the video folder.
+    """Match each audio file to its .mp4 in the video folder (exact or '<prefix>-' stem).
 
-    Extensions are matched case-insensitively. When two audio files share a stem
-    (e.g. song-01.m4a and song-01.mp3) both pair to the one video; a warning is logged.
+    Extensions and stems are compared case-insensitively. Exact stem matches are assigned
+    first; remaining audio files are then matched to a video whose stem ends with
+    '-<audio-stem>'. Each video pairs at most once. When two audio files share a stem, a
+    warning is logged.
 
     Args:
         audio_dir: Folder containing .m4a/.mp3 source files.
@@ -26,16 +35,11 @@ def pair_audio_with_video(
             audio_without_video lists audio files with no matching video, and
             video_without_audio lists videos with no matching audio.
     """
-    videos = {path.stem.lower(): path
-              for path in sorted(video_dir.iterdir())
-              if path.is_file() and path.suffix.lower() == VIDEO_SUFFIX}
-
+    videos = [path for path in sorted(video_dir.iterdir())
+              if path.is_file() and path.suffix.lower() == VIDEO_SUFFIX]
     audio_files = sorted(path for path in audio_dir.iterdir()
                          if path.is_file() and path.suffix.lower() in AUDIO_SUFFIXES)
 
-    pairs: list[tuple[Path, Path]] = []
-    audio_without_video: list[Path] = []
-    matched_stems: set[str] = set()
     seen_stems: set[str] = set()
     for audio in audio_files:
         stem = audio.stem.lower()
@@ -44,12 +48,30 @@ def pair_audio_with_video(
                            stem, audio.name)
         seen_stems.add(stem)
 
-        video = videos.get(stem)
-        if video is None:
-            audio_without_video.append(audio)
-        else:
-            pairs.append((audio, video))
-            matched_stems.add(stem)
+    matched_videos: set[Path] = set()
+    audio_to_video: dict[Path, Path] = {}
 
-    video_without_audio = [video for stem, video in videos.items() if stem not in matched_stems]
+    # Pass 1: exact stem match (takes priority so it is never claimed by a prefixed match).
+    for audio in audio_files:
+        stem = audio.stem.lower()
+        for video in videos:
+            if video not in matched_videos and video.stem.lower() == stem:
+                audio_to_video[audio] = video
+                matched_videos.add(video)
+                break
+
+    # Pass 2: prefixed match — video stem ends with '-<audio-stem>'.
+    for audio in audio_files:
+        if audio in audio_to_video:
+            continue
+        suffix = f'-{audio.stem.lower()}'
+        for video in videos:
+            if video not in matched_videos and video.stem.lower().endswith(suffix):
+                audio_to_video[audio] = video
+                matched_videos.add(video)
+                break
+
+    pairs = [(audio, audio_to_video[audio]) for audio in audio_files if audio in audio_to_video]
+    audio_without_video = [audio for audio in audio_files if audio not in audio_to_video]
+    video_without_audio = [video for video in videos if video not in matched_videos]
     return pairs, audio_without_video, video_without_audio

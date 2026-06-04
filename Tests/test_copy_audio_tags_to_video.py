@@ -108,6 +108,46 @@ def test_pairing_case_insensitive_extensions(tmp_path):
     assert not video_without_audio
 
 
+def test_pairing_prefixed_video_stem(tmp_path):
+    """Audio '<song>.m4a' matches video '<prefix>-<song>.mp4'; song-name hyphens are kept."""
+    audio_dir = tmp_path / 'audio'
+    video_dir = tmp_path / 'video'
+    audio_dir.mkdir()
+    video_dir.mkdir()
+    _touch(audio_dir, 'parea.m4a')
+    _touch(audio_dir, 'artist - title.mp3')
+    _touch(video_dir, 'Parea S02E26-parea.mp4')
+    _touch(video_dir, 'show-artist - title.mp4')
+
+    pairs, audio_without_video, video_without_audio = pair_audio_with_video(
+        audio_dir=audio_dir, video_dir=video_dir)
+
+    matched = {audio.name: video.name for audio, video in pairs}
+    assert matched == {
+        'parea.m4a': 'Parea S02E26-parea.mp4',
+        'artist - title.mp3': 'show-artist - title.mp4',
+    }
+    assert not audio_without_video
+    assert not video_without_audio
+
+
+def test_pairing_exact_match_preferred_over_prefixed(tmp_path):
+    """An exact stem match wins over a prefixed candidate."""
+    audio_dir = tmp_path / 'audio'
+    video_dir = tmp_path / 'video'
+    audio_dir.mkdir()
+    video_dir.mkdir()
+    _touch(audio_dir, 'song.m4a')
+    _touch(video_dir, 'song.mp4')
+    _touch(video_dir, 'prefix-song.mp4')
+
+    pairs, _, video_without_audio = pair_audio_with_video(
+        audio_dir=audio_dir, video_dir=video_dir)
+
+    assert {audio.name: video.name for audio, video in pairs} == {'song.m4a': 'song.mp4'}
+    assert [video.name for video in video_without_audio] == ['prefix-song.mp4']
+
+
 def test_field_change_will_write_rules():
     """will_write is True only for a non-empty value that differs from the old one."""
     assert FieldChange(label='t', atom=MP4_TITLE, old_value='', new_value='X').will_write
