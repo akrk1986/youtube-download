@@ -2,6 +2,16 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-04-1815] - copy-audio-tags-to-video: match '<prefix>-<song>.mp4' videos
+
+### Changed
+- **`funcs_copy_tags_to_video/pairing.py`**: `pair_audio_with_video` now also matches a video whose stem ends with `-<audio-stem>` (the generated `<prefix>-<song-name>` delimiter), not just exact-stem matches. Two-pass — exact matches are assigned first so a prefixed candidate never claims a video an exact match needs; matching the audio's full stem as the suffix stays correct when the song name itself contains hyphens.
+
+## [2026-06-04-1751] - New copy-audio-tags-to-video utility
+
+### Added
+- **`Utils/main-copy-audio-tags-to-video.py`** + **`funcs_copy_tags_to_video/`** (new package): copies the six tag fields (title, artist, program→album, year, composer, comment) from each `.m4a`/`.mp3` in an audio folder into the same-basename `.mp4` in a sibling video folder, in place with no re-encode. Reading reuses the `funcs_audio_tag_handlers` strategy classes (as the duplicate-finder's reader does), with a raw-ID3 `COMM` fallback for the MP3 comment EasyID3 doesn't expose; writing delegates to `common_av.tags.write_mp4_video_tags`, so composer lands in the `©cpy` atom and shows on VLC's primary General tab (Copyright). Pairs audio↔video by basename (case-insensitive) and prints a correspondence table at startup with `<missing>` on either side; `--dry-run` previews each field's existing→new value without writing. No FLAC (no use case for FLAC→video). Includes pytest coverage and `Tests-Standalone/probe-video-tags-vlc.py` (the VLC atom-visibility probe).
+
 ## [2026-06-03-1753] - qBittorrent hook wrappers (stable venv-resolving entry points)
 
 ### Added

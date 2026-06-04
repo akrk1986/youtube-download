@@ -19,6 +19,7 @@ Change history for these utilities lives in [CHANGELOG-Utils.md](CHANGELOG-Utils
 - [qBittorrent Slack Notification](#qbittorrent-slack-notification-utilsmain-qb-notify-slackpy) — `Utils/main-qb-notify-slack.py`
 - [Trello → Artists JSON](#trello--artists-json-utilsmain-get-artists-from-trellopy) — `Utils/main-get-artists-from-trello.py`
 - [M4A Faststart Fix](#m4a-faststart-fix-utilsfix_m4a_faststartpy) — `Utils/fix_m4a_faststart.py`
+- [Copy Audio Tags to Video](#copy-audio-tags-to-video-utilsmain-copy-audio-tags-to-videopy) — `Utils/main-copy-audio-tags-to-video.py`
 
 ## URL Extraction Utility
 
@@ -476,3 +477,30 @@ python Utils/fix_m4a_faststart.py /path/to/music --recursive
 | `--recursive` | flag | Also scan subdirectories. |
 | `--dry-run` | flag | Report which files would be fixed without changing them. |
 | `--ffmpeg` | path | Path to the ffmpeg executable (default: auto-detected). |
+
+
+## Copy Audio Tags to Video (`Utils/main-copy-audio-tags-to-video.py`)
+
+Copies the six tag fields — **title, artist, program (→ Album), year, composer, comment** — from each `.m4a`/`.mp3` in an audio folder into the same-basename `.mp4` in a sibling video folder, **in place with no re-encode** (mutagen, not ffmpeg). The audio files are never modified.
+
+Tags are read through the project's `funcs_audio_tag_handlers` (the same readers the duplicate-finder uses; the MP3 comment is read via a raw-ID3 `COMM` fallback) and written via the shared `common_av.tags.write_mp4_video_tags`. **Composer is written to the `©cpy` atom** so it appears on VLC's primary **General** tab (as *Copyright*) — the standard `©wrt` composer atom only shows on VLC's secondary *Metadata* tab. FLAC is not supported.
+
+**Pairing.** Each audio file pairs with a video of the same basename (case-insensitive), or with a video named `<prefix>-<song-name>.mp4` (the trailing `-<song-name>` matches the audio stem; exact matches take priority). At startup the tool prints an audio↔video correspondence table with `<missing>` shown wherever one side has no match.
+
+### Usage
+
+```bash
+# Preview every field's existing -> new value; writes nothing
+python Utils/main-copy-audio-tags-to-video.py /path/to/audio /path/to/video --dry-run
+
+# Apply: overwrite the videos' tags in place
+python Utils/main-copy-audio-tags-to-video.py /path/to/audio /path/to/video
+```
+
+### Arguments
+
+| Argument | Values | Description |
+|---|---|---|
+| `audio_dir` | path | Folder of tagged `.m4a`/`.mp3` source files (must exist). |
+| `video_dir` | path | Sibling folder of `.mp4` videos to tag (must exist). |
+| `--dry-run` | flag | Print the per-field existing→new table without writing. |

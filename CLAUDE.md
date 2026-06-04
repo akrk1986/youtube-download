@@ -33,12 +33,13 @@ The codebase follows a modular function-based architecture:
 - `main-check-dovi-profile5.py` - Detect Dolby Vision profile 5 (unplayable by Plex on some devices) in a file or directory; exits 1 (bad) / 0 (good). Core logic in `funcs_for_qb_notify/dovi.py`
 - `main-qb-postdownload-gmail.py` / `main-qb-postdownload-slack.py` - qBittorrent "run on torrent finished" hook drivers: run the DoVi check on the downloaded path, then invoke the matching notifier with `--status`. Both share `funcs_for_qb_notify/hook.py:run_hook` so they send identical info
 - `qb-hook-gmail.sh` / `qb-hook-slack.sh` - **recommended** qBittorrent hook entry points (executable POSIX `sh`). Each self-resolves the shared venv python (`<project>/../.venv-av-linux/bin/python`) + its driver, so the qBittorrent field is one stable path with no hardcoded interpreter: `Utils/qb-hook-gmail.sh --name "%N" --path "%F"`. The driver imports `common_av` (venv-only), so bare `python3` fails — the wrapper avoids that
+- `main-copy-audio-tags-to-video.py` - Copy audio tags (title, artist, program→album, year, composer, comment) from `.m4a`/`.mp3` files into the same-basename `.mp4` videos in a sibling folder, in place (no re-encode). Pairs by basename, including `<prefix>-<song-name>.mp4` videos against a `<song-name>` audio file; prints an audio↔video table (`<missing>` on either side); `--dry-run` previews. Reads via `funcs_audio_tag_handlers`, writes via `common_av.tags.write_mp4_video_tags` (composer → `©cpy` so it shows on VLC's General tab). Uses `funcs_copy_tags_to_video/`
 - `fix_m4a_faststart.py` - Bulk-fix M4A files with moov-after-mdat layout
 - `install-git-hooks.py` - Enable/disable the git pre-commit hook via `core.hooksPath` (see the Linting section)
 
 ### Core Function Modules and Packages
 
-The codebase uses a modular package-based architecture. All helper functions are organized into 8 logical packages:
+The codebase uses a modular package-based architecture. All helper functions are organized into 9 logical packages:
 
 **Packages:**
 
@@ -94,6 +95,12 @@ The codebase uses a modular package-based architecture. All helper functions are
 - `funcs_for_qb_notify/` - qBittorrent post-download hook helpers
   - `dovi.py` - DoVi profile-5 detection via ffprobe (`path_is_bad`, file or recursive directory scan)
   - `hook.py` - Shared driver logic (`run_hook`): detect, then invoke a notifier script with `--status`
+
+- `funcs_copy_tags_to_video/` - copy-audio-tags-to-video helpers (used by `Utils/main-copy-audio-tags-to-video.py`)
+  - `audio_reader.py` - read the six tag fields from `.m4a`/`.mp3` into a `common_av.tags.AudioTags` (reuses `funcs_audio_tag_handlers`; raw-ID3 `COMM` fallback for MP3 comment)
+  - `pairing.py` - pair audio↔video by basename (exact or `<prefix>-<song>` stem); reports unmatched on both sides
+  - `video_writer.py` - compute dry-run diffs and write via `common_av.tags.write_mp4_video_tags`
+  - `tag_set.py` - `FieldChange` + the field→atom→label table (composer → `©cpy`)
 
 ### Data Files
 - `Data/artists.json` - Greek music artists database (~17KB)

@@ -630,6 +630,7 @@ The standalone helper scripts under `Utils/` (and the URL-extraction helper in `
 - **qBittorrent Post-Download Hook** (`Utils/qb-hook-gmail.sh`, `Utils/qb-hook-slack.sh` → `main-qb-postdownload-*.py`) — "run on torrent finished" wrappers: resolve the venv, DoVi-check the content, then notify with the good/bad status
 - **Trello → Artists JSON** (`Utils/main-get-artists-from-trello.py`) — rebuild `Data/artists.json` from a Trello export
 - **M4A Faststart Fix** (`Utils/fix_m4a_faststart.py`) — relocate the `moov` atom before `mdat` for hardware players
+- **Copy Audio Tags to Video** (`Utils/main-copy-audio-tags-to-video.py`) — copy tags (title, artist, program, year, composer, comment) from `.m4a`/`.mp3` files into the same-basename `.mp4` videos (in place, no re-encode); `--dry-run` previews
 
 ## Output Structure
 
