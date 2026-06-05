@@ -2,6 +2,11 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-05-1533] - Remove dead logging constants orphaned by the av-utils split
+
+### Fixed
+- **`project_defs.py`**: removed `MAX_LOG_FILES` and `GLOB_LOG_FILES`, which became unused once `funcs_utils/logger_config.py` moved to `common_av.log_config` (where the constants are inlined). skylos flagged them as new dead code; the rest of the suite stays green.
+
 ## [2026-06-05-1404] - Promote shared code to common-av; split utilities into av-utils
 
 ### Changed

@@ -54,9 +54,6 @@ AUDIO_OUTPUT_DIR_M4A = 'yt-audio'        # M4A is the default format -> primary 
 AUDIO_OUTPUT_DIR_MP3 = 'yt-audio-mp3'    # For MP3 files
 AUDIO_OUTPUT_DIR_FLAC = 'yt-audio-flac'  # For FLAC files
 
-# Logging constants
-MAX_LOG_FILES = 5  # Maximum number of log files to keep
-
 # Subprocess timeout constants (in seconds)
 SUBPROCESS_TIMEOUT_YOUTUBE = 300  # 5 minutes for YouTube yt-dlp operations
 SUBPROCESS_TIMEOUT_FACEBOOK = 300
@@ -85,7 +82,6 @@ GLOB_MP3_FILES_UPPER = '*.MP3'
 GLOB_M4A_FILES_UPPER = '*.M4A'
 GLOB_FLAC_FILES_UPPER = '*.FLAC'
 GLOB_MP4_FILES = '*.mp4'
-GLOB_LOG_FILES = 'yt-dlp_*.log'
 
 # yt-dlp command-line flags
 YT_DLP_WRITE_JSON_FLAG = '--write-info-json'
