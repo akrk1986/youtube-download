@@ -2,6 +2,11 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-05-1404] - Extract the standalone utilities into the new av-utils sibling project
+
+### Changed
+- **The audio/dedupe/qBittorrent utilities were moved out of this repo into a new sibling project, `av-utils`** (`../av-utils`), leaving `youtube-download` with just the download/extract/tag pipeline. Relocated: `main-convert.py`, `main-boost-audio-track.py`, `main-check-dovi-profile5.py`, `main-check-greek-singles.py`, `main-copy-audio-tags-to-video.py`, `main-inspect-dupe-groups.py`, `main-verify-dupe-groups.py`, the four qBittorrent scripts (`main-qb-notify-*`, `main-qb-postdownload-*`) + their `qb-hook-*.sh` wrappers, `fix_m4a_faststart.py`, and the packages `funcs_check_greek_singles/`, `funcs_copy_tags_to_video/`, `funcs_for_audio_utils/`, `funcs_for_qb_notify/` (plus the `test_check_greek_singles`, `test_copy_audio_tags_to_video`, `test_qb_dovi` suites). Their change history continues in `av-utils/CHANGELOG.md`. `main-get-artists-from-trello.py` and `main-suggest-boost.py` stay here (coupled to the main pipeline).
+
 ## [2026-06-04-1815] - copy-audio-tags-to-video: match '<prefix>-<song>.mp4' videos
 
 ### Changed

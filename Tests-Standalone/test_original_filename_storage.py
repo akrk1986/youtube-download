@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
 
-from funcs_audio_tag_handlers import MP3TagHandler, M4ATagHandler
+from common_av.tag_handlers import MP3TagHandler, M4ATagHandler
 
 
 def test_mp3_original_filename():

@@ -1,7 +1,7 @@
 """Audio tag processing package."""
 from pathlib import Path
 
-from funcs_audio_tag_handlers import (
+from common_av.tag_handlers import (
     AudioTagHandler,
     FLACTagHandler, M4ATagHandler, MP3TagHandler,
 )

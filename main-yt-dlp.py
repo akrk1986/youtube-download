@@ -8,6 +8,9 @@ import time
 from pathlib import Path
 from typing import Any
 
+from common_av.notifications import (GmailNotifier, NotificationData,
+                                     NotificationHandler, SlackNotifier,
+                                     send_all_notifications)
 from funcs_for_main_yt_dlp import (DownloadOptions, check_output_dirs_empty,
                                    cleanup_leftover_files, count_initial_files,
                                    count_new_files, determine_audio_mode,
@@ -21,9 +24,6 @@ from funcs_for_main_yt_dlp import (DownloadOptions, check_output_dirs_empty,
                                    remux_video_chapters, run_yt_dlp,
                                    validate_and_get_url,
                                    validate_list_chapters_only)
-from funcs_notifications import (GmailNotifier, NotificationData,
-                                 NotificationHandler, SlackNotifier,
-                                 send_all_notifications)
 from funcs_video_info import (are_chapters_supported, are_playlists_supported,
                               create_chapters_csv, detect_chapters, is_playlist)
 from funcs_utils import setup_logging

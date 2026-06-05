@@ -11,7 +11,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from funcs_notifications import GmailNotifier, SlackNotifier
+from common_av.notifications import GmailNotifier, SlackNotifier
 
 
 def test_notifications_env_var() -> None:
@@ -58,7 +58,7 @@ def test_notif_msg_suffix() -> None:
 
 def test_message_building() -> None:
     """Test message building with suffix."""
-    from funcs_notifications.message_builder import build_email_message, build_slack_message  # type: ignore
+    from common_av.notifications.message_builder import build_email_message, build_slack_message  # type: ignore
 
     print('Testing message building with suffix...\n')
 

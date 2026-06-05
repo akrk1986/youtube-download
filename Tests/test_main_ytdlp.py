@@ -237,7 +237,7 @@ class TestSlackNotifications:
 
     def test_start_notification_sent(self, mock_requests_post):
         """Test that start notification is sent when webhook configured."""
-        from funcs_notifications import NotificationData, SlackNotifier
+        from common_av.notifications import NotificationData, SlackNotifier
 
         notifier = SlackNotifier(webhook_url='https://hooks.slack.com/services/TEST/WEBHOOK/URL')
         result = notifier.send(
@@ -256,7 +256,7 @@ class TestSlackNotifications:
 
     def test_success_notification_sent(self, mock_requests_post):
         """Test that success notification is sent when webhook configured."""
-        from funcs_notifications import NotificationData, SlackNotifier
+        from common_av.notifications import NotificationData, SlackNotifier
 
         notifier = SlackNotifier(webhook_url='https://hooks.slack.com/services/TEST/WEBHOOK/URL')
         result = notifier.send(
@@ -278,7 +278,7 @@ class TestSlackNotifications:
 
     def test_no_notification_when_webhook_none(self, mock_requests_post):
         """Test that no notification is sent when webhook is None."""
-        from funcs_notifications import NotificationData, SlackNotifier
+        from common_av.notifications import NotificationData, SlackNotifier
 
         notifier = SlackNotifier(webhook_url=None)
         assert notifier.is_configured() is False
@@ -296,7 +296,7 @@ class TestSlackNotifications:
 
     def test_cancelled_notification_on_keyboard_interrupt(self, mock_requests_post):
         """Test that cancelled notification is sent correctly."""
-        from funcs_notifications import NotificationData, SlackNotifier
+        from common_av.notifications import NotificationData, SlackNotifier
 
         notifier = SlackNotifier(webhook_url='https://hooks.slack.com/services/TEST/WEBHOOK/URL')
         result = notifier.send(
@@ -322,7 +322,7 @@ class TestGmailNotifications:
 
     def test_gmail_send_success(self):
         """Test that GmailNotifier sends email successfully."""
-        from funcs_notifications import GmailNotifier, NotificationData
+        from common_av.notifications import GmailNotifier, NotificationData
 
         params = {
             'sender_email': 'sender@gmail.com',
@@ -356,7 +356,7 @@ class TestGmailNotifications:
 
     def test_gmail_not_configured_none(self):
         """Test that GmailNotifier with None returns False."""
-        from funcs_notifications import GmailNotifier, NotificationData
+        from common_av.notifications import GmailNotifier, NotificationData
 
         notifier = GmailNotifier(gmail_params=None)
         assert notifier.is_configured() is False
@@ -372,7 +372,7 @@ class TestGmailNotifications:
 
     def test_gmail_not_configured_missing_keys(self):
         """Test that GmailNotifier with incomplete dict returns False."""
-        from funcs_notifications import GmailNotifier
+        from common_av.notifications import GmailNotifier
 
         # Missing sender_app_password
         params = {
@@ -385,7 +385,7 @@ class TestGmailNotifications:
     def test_gmail_auth_failure(self):
         """Test that GmailNotifier handles SMTPAuthenticationError gracefully."""
         import smtplib
-        from funcs_notifications import GmailNotifier, NotificationData
+        from common_av.notifications import GmailNotifier, NotificationData
 
         params = {
             'sender_email': 'sender@gmail.com',
@@ -412,7 +412,7 @@ class TestGmailNotifications:
 
     def test_gmail_connection_timeout(self):
         """Test that GmailNotifier handles TimeoutError gracefully."""
-        from funcs_notifications import GmailNotifier, NotificationData
+        from common_av.notifications import GmailNotifier, NotificationData
 
         params = {
             'sender_email': 'sender@gmail.com',
@@ -440,7 +440,7 @@ class TestSendAllNotifications:
 
     def test_send_all_skips_unconfigured(self):
         """Test that unconfigured notifiers are skipped."""
-        from funcs_notifications import GmailNotifier, NotificationData, SlackNotifier, send_all_notifications
+        from common_av.notifications import GmailNotifier, NotificationData, SlackNotifier, send_all_notifications
 
         slack = SlackNotifier(webhook_url=None)
         gmail = GmailNotifier(gmail_params=None)
@@ -463,7 +463,7 @@ class TestSendAllNotifications:
 
     def test_one_failure_does_not_block_other(self, mock_requests_post):
         """Test that if one notifier fails, others still send."""
-        from funcs_notifications import GmailNotifier, NotificationData, SlackNotifier, send_all_notifications
+        from common_av.notifications import GmailNotifier, NotificationData, SlackNotifier, send_all_notifications
 
         slack = SlackNotifier(webhook_url='https://hooks.slack.com/services/TEST/WEBHOOK/URL')
         gmail = GmailNotifier(gmail_params={

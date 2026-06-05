@@ -2,6 +2,13 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-05-1404] - Source shared tag handlers + notifications from common_av
+
+### Changed
+- **`main-yt-dlp.py`**: notifications are now imported from `common_av.notifications` instead of the in-repo `funcs_notifications` package (promoted to the shared `common-av-codebase`). Behaviour is unchanged.
+- **`funcs_audio_processing/` (`__init__.py`, `unified.py`)**: audio tag handlers are now imported from `common_av.tag_handlers` instead of the in-repo `funcs_audio_tag_handlers` package (also promoted to `common-av-codebase`).
+- **`funcs_utils/`**: `setup_logging` and `remove_diacritics` are re-exported from `common_av.log_config` / `common_av.text` (the bodies moved to `common-av-codebase`); the public `funcs_utils` names are unchanged so existing imports keep working. Removed `funcs_utils/logger_config.py`.
+
 ## [2026-06-02-1714] - UTF-8 decode for captured subprocess output
 
 ### Fixed

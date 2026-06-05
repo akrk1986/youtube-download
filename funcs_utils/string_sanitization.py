@@ -1,8 +1,8 @@
 """String and filename sanitization utilities."""
 import re
-import unicodedata
 
 import emoji
+from common_av.text import remove_diacritics
 
 from project_defs import LEADING_NONALNUM_PATTERN, MULTIPLE_SPACES_PATTERN
 
@@ -101,21 +101,6 @@ def sanitize_string(dirty_string: str) -> str:
     if has_extension:
         return f'untitled.{extension}'
     return name_part
-
-
-def remove_diacritics(text: str) -> str:
-    """
-    Remove diacritics from Greek text by normalizing to NFD form
-    and filtering out combining characters (diacritical marks).
-    """
-    # Normalize to NFD (decomposed form)
-    normalized = unicodedata.normalize('NFD', text)
-    # Filter out combining characters (diacritics)
-    without_diacritics = ''.join(
-        char for char in normalized
-        if unicodedata.category(char) != 'Mn'
-    )
-    return without_diacritics
 
 
 def greek_search(big_string: str, sub_string: str) -> bool:

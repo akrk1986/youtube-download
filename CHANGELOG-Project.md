@@ -2,6 +2,12 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-05-1404] - Promote shared code to common-av; split utilities into av-utils
+
+### Changed
+- **Promoted shared code into `common-av-codebase`**: the `funcs_audio_tag_handlers/` and `funcs_notifications/` packages plus `remove_diacritics` / `setup_logging` now live in `common_av` (`tag_handlers`, `notifications`, `text`, `log_config`), consumed by both this repo and the new `av-utils` sibling. The in-repo copies were removed; `funcs_utils` re-exports the helper names for backward compatibility.
+- **`pyproject.toml` / `requirements.txt`**: dropped `Pillow`, `requests`, and `types-requests` from `[project.dependencies]` (only the now-extracted utilities imported them; `requests` remains transitively). Removed `types-requests` from the deptry `DEP002` ignore list. Recompiled `requirements.txt`.
+
 ## [2026-06-02-1854] - Bump pyjwt 2.12.1 -> 2.13.0 (PYSEC-2026-175/177/178/179)
 
 ### Fixed

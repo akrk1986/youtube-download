@@ -9,7 +9,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from funcs_audio_tag_handlers import MP3TagHandler, M4ATagHandler
+from common_av.tag_handlers import MP3TagHandler, M4ATagHandler
 
 
 def test_mp3_handler():

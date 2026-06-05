@@ -10,7 +10,6 @@ dependencies = [
     "mutagen",
     "mypy",
     "odfpy",
-    "Pillow",
     "pip-audit>=2.10.0",
     "pip-tools",
     "pydoclint",
@@ -19,9 +18,7 @@ dependencies = [
     "radon",
     "ruff",
     "pytest>=9.0.3",
-    "requests>=2.33.0",
     "ty>=0.0.33",
-    "types-requests",
     "types-yt-dlp",
     "vulture",
     "yt-dlp",
@@ -60,7 +57,7 @@ DEP003 = ["common_av", "common_linters"]
 DEP002 = [
     "bandit", "deptry", "mypy", "pip-audit", "pip-tools", "pydoclint", "pylint",
     "pyupgrade", "pygments", "radon", "ruff", "pytest", "skylos", "ty",
-    "types-requests", "types-yt-dlp", "vulture",
+    "types-yt-dlp", "vulture",
 ]
 
 [tool.pylint.basic]

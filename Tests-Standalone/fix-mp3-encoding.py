@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.append('..')
 
-from funcs_audio_tag_handlers import _force_utf16_encoding
+from common_av.tag_handlers import _force_utf16_encoding
 from project_defs import GLOB_MP3_FILES, GLOB_MP3_FILES_UPPER
 import logging
 

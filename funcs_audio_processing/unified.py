@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from mutagen import MutagenError
 
-from funcs_audio_tag_handlers import AudioTagHandler
+from common_av.tag_handlers import AudioTagHandler
 from funcs_audio_processing.common import extract_chapter_info, sanitize_album_name
 from funcs_utils.artist_search import load_artists, find_artists_in_string
 

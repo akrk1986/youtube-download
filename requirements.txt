@@ -15,7 +15,9 @@ anyio==4.13.0
     #   sse-starlette
     #   starlette
 arrow==1.4.0
-    # via youtube-download (pyproject.toml)
+    # via
+    #   common-av
+    #   youtube-download (pyproject.toml)
 astroid==4.0.4
     # via pylint
 attrs==26.1.0
@@ -169,8 +171,6 @@ packaging==26.0
     #   wheel
 pathspec==1.0.4
     # via mypy
-pillow==12.2.0
-    # via youtube-download (pyproject.toml)
 pip-api==0.0.34
     # via pip-audit
 pip-audit==2.10.0
@@ -254,9 +254,9 @@ referencing==0.37.0
 requests==2.33.1
     # via
     #   cachecontrol
+    #   common-av
     #   pip-audit
     #   skylos
-    #   youtube-download (pyproject.toml)
 requirements-parser==0.13.0
     # via deptry
 rich==14.3.3
@@ -319,8 +319,6 @@ tree-sitter-typescript==0.23.2
     # via skylos
 ty==0.0.33
     # via youtube-download (pyproject.toml)
-types-requests==2.32.4.20260107
-    # via youtube-download (pyproject.toml)
 types-yt-dlp==2026.3.3.20260304
     # via youtube-download (pyproject.toml)
 typing-extensions==4.15.0
@@ -346,9 +344,7 @@ tzdata==2025.3
 uc-micro-py==2.0.0
     # via linkify-it-py
 urllib3==2.7.0
-    # via
-    #   requests
-    #   types-requests
+    # via requests
 uvicorn==0.46.0
     # via mcp
 vulture==2.15
