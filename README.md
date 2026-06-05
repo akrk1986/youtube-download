@@ -618,19 +618,13 @@ The `capture-working-play-click.js` script provides:
 
 ## Utility Scripts
 
-The standalone helper scripts under `Utils/` (and the URL-extraction helper in `Tests/`) are documented separately in **[README-Utils.md](README-Utils.md)**:
+The helper scripts that stay with the download pipeline are documented in **[README-Utils.md](README-Utils.md)**:
 
 - **URL Extraction Utility** (`Tests/main-test-url-extraction.py`) — extract valid video URLs from text/ODF documents
-- **Audio Format Converter** (`Utils/main-convert.py`) — convert between MP3, M4A, and FLAC
-- **Greek Singles Cross-Checker** (`Utils/main-check-greek-singles.py`) — cross-check a Greek music library for mismatches and duplicates
-- **Audio Volume Booster** (`Utils/main-boost-audio-track.py`) — boost MP3/M4A/MP4 volume with ffmpeg (not FLAC)
 - **Loudness Boost Suggester** (`Utils/main-suggest-boost.py`) — measure a URL's loudness and suggest an `FFMPEG_OPTS` boost
-- **qBittorrent Notifications** (`Utils/main-qb-notify-gmail.py`, `Utils/main-qb-notify-slack.py`) — Gmail/Slack torrent-complete alerts with a good/bad (✅ / ⚠️ DoVi profile 5) indicator
-- **DoVi Profile 5 Detection** (`Utils/main-check-dovi-profile5.py`) — flag Dolby Vision profile 5 content that Plex can't play on some devices (file or directory)
-- **qBittorrent Post-Download Hook** (`Utils/qb-hook-gmail.sh`, `Utils/qb-hook-slack.sh` → `main-qb-postdownload-*.py`) — "run on torrent finished" wrappers: resolve the venv, DoVi-check the content, then notify with the good/bad status
 - **Trello → Artists JSON** (`Utils/main-get-artists-from-trello.py`) — rebuild `Data/artists.json` from a Trello export
-- **M4A Faststart Fix** (`Utils/fix_m4a_faststart.py`) — relocate the `moov` atom before `mdat` for hardware players
-- **Copy Audio Tags to Video** (`Utils/main-copy-audio-tags-to-video.py`) — copy tags (title, artist, program, year, composer, comment) from `.m4a`/`.mp3` files into the same-basename `.mp4` videos (in place, no re-encode); `--dry-run` previews
+
+The standalone audio-conversion, volume-boost, Dolby-Vision, Greek-singles duplicate, copy-tags-to-video, and qBittorrent utilities were moved out of this repo into the sibling **`av-utils`** project (`../av-utils`) on 2026-06-05. See `av-utils/README-Utils.md`.
 
 ## Output Structure
 
@@ -754,17 +748,16 @@ The tool includes specialized functionality for Greek music:
 ## Project Structure
 
 - `main-yt-dlp.py` - Main entry point
-- `funcs_*/` - Modular function packages organized by purpose (7 packages, 4,017 lines)
+- `funcs_*/` - Modular function packages organized by purpose
   - `funcs_for_main_yt_dlp/` - Main script helpers
   - `funcs_video_info/` - Video metadata and chapters
   - `funcs_utils/` - General utilities
-  - `funcs_audio_processing/` - Audio tag processing
-  - `funcs_audio_tag_handlers/` - Tag handler classes
-  - `funcs_for_audio_utils/` - Audio utilities
-  - `funcs_notifications/` - Notification handlers
+  - `funcs_audio_processing/` - Audio tag processing (uses tag handlers from `common_av.tag_handlers`)
+  - `funcs_ertflix_automation/` - ERTFlix series browser automation
+- Shared audio/video helpers (tag handlers, notifications, ffmpeg/probe/tags, `remove_diacritics`, `setup_logging`) live in the sibling `common-av-codebase` package (`common_av`)
 - `Data/artists.json` - Greek artists database (exported from Trello)
 - `Tests/` - Pytest tests and E2E test framework
-- `Utils/` - Standalone utility scripts (`main-convert.py`, `main-boost-audio-track.py`, `main-suggest-boost.py`, `main-get-artists-from-trello.py`, `main-qb-notify*.py`, `qb-hook-*.sh`, `main-qb-postdownload-*.py`, `main-check-dovi-profile5.py`, `fix_m4a_faststart.py`) — documented in [README-Utils.md](README-Utils.md)
+- `Utils/` - Remaining utility scripts (`main-suggest-boost.py`, `main-get-artists-from-trello.py`) — documented in [README-Utils.md](README-Utils.md). The audio/dedupe/qBittorrent utilities moved to the sibling `av-utils` project.
 - `Tests-Standalone/` - Standalone test scripts and utilities
 - `Docs/` - Documentation files
 - `Beta/` - Experimental features (excluded from global changes)

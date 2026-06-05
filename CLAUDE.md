@@ -23,23 +23,15 @@ The codebase follows a modular function-based architecture:
 - `main-ertflix-series.py` - Interactive ERTFlix series browser (Playwright + Chromium): picks season/episode via arrow-key menus, captures the token API URL when Play is clicked, and hands off to `main-yt-dlp.py --ertflix-program`
 
 ### Utility Scripts (`Utils/`)
-- `main-convert.py` - Audio format converter: converts between MP3, M4A, and FLAC (no conversion to FLAC; FLAC can convert to MP3, M4A, or both)
-- `main-get-artists-from-trello.py` - Utility to convert Trello board data to artist JSON
-- `main-verify-dupe-groups.py` - Verify a `--stage-dupes` run: every `Staging-Dupes/grp-NNNN/` folder must hold exactly one song (flags misgrouped/singleton/empty; uses `funcs_check_greek_singles/verify_groups.py`)
-- `main-inspect-dupe-groups.py` - Interactive inspector for a range of `Staging-Dupes/grp-NNNN/` groups: tags table grouped by song + cover-art collage, per-file play/verdict prompts; writes the Copyright verdict only (uses `funcs_check_greek_singles/inspect_groups.py`, needs Pillow)
-- `main-boost-audio-track.py` - Audio volume booster for MP3/M4A/MP4 files (not FLAC)
-- `main-qb-notify-gmail.py` - qBittorrent Gmail notifier: sends a torrent-complete mail with a good/bad indicator (`--status good|bad`)
-- `main-qb-notify-slack.py` - qBittorrent Slack notifier: same as above for Slack (`--status good|bad`). Both build the message via `funcs_notifications/torrent_message.py` so the good/bad logic is shared
-- `main-check-dovi-profile5.py` - Detect Dolby Vision profile 5 (unplayable by Plex on some devices) in a file or directory; exits 1 (bad) / 0 (good). Core logic in `funcs_for_qb_notify/dovi.py`
-- `main-qb-postdownload-gmail.py` / `main-qb-postdownload-slack.py` - qBittorrent "run on torrent finished" hook drivers: run the DoVi check on the downloaded path, then invoke the matching notifier with `--status`. Both share `funcs_for_qb_notify/hook.py:run_hook` so they send identical info
-- `qb-hook-gmail.sh` / `qb-hook-slack.sh` - **recommended** qBittorrent hook entry points (executable POSIX `sh`). Each self-resolves the shared venv python (`<project>/../.venv-av-linux/bin/python`) + its driver, so the qBittorrent field is one stable path with no hardcoded interpreter: `Utils/qb-hook-gmail.sh --name "%N" --path "%F"`. The driver imports `common_av` (venv-only), so bare `python3` fails — the wrapper avoids that
-- `main-copy-audio-tags-to-video.py` - Copy audio tags (title, artist, program→album, year, composer, comment) from `.m4a`/`.mp3` files into the same-basename `.mp4` videos in a sibling folder, in place (no re-encode). Pairs by basename, including `<prefix>-<song-name>.mp4` videos against a `<song-name>` audio file; prints an audio↔video table (`<missing>` on either side); `--dry-run` previews. Reads via `funcs_audio_tag_handlers`, writes via `common_av.tags.write_mp4_video_tags` (composer → `©cpy` so it shows on VLC's General tab). Uses `funcs_copy_tags_to_video/`
-- `fix_m4a_faststart.py` - Bulk-fix M4A files with moov-after-mdat layout
+- `main-suggest-boost.py` - Loudness Boost Suggester: measure a URL's loudness and suggest an `FFMPEG_OPTS` boost (coupled to the download pipeline)
+- `main-get-artists-from-trello.py` - Convert Trello board data to artist JSON (regenerates `Data/artists.json` for the main pipeline)
 - `install-git-hooks.py` - Enable/disable the git pre-commit hook via `core.hooksPath` (see the Linting section)
+
+> The audio-conversion, volume-boost, Dolby-Vision, Greek-singles duplicate, copy-tags-to-video, and qBittorrent utilities (and their `funcs_check_greek_singles/`, `funcs_copy_tags_to_video/`, `funcs_for_audio_utils/`, `funcs_for_qb_notify/` support packages) were moved to the sibling **`av-utils`** project (`../av-utils`) on 2026-06-05.
 
 ### Core Function Modules and Packages
 
-The codebase uses a modular package-based architecture. All helper functions are organized into 9 logical packages:
+The codebase uses a modular package-based architecture. Shared audio/video helpers (tag handlers, notifications, ffmpeg/probe/tags, `remove_diacritics`, `setup_logging`) live in the sibling `common-av-codebase` package (`common_av`).
 
 **Packages:**
 
@@ -62,45 +54,20 @@ The codebase uses a modular package-based architecture. All helper functions are
   - `url_extraction.py` - URL extraction from text and ODF documents
   - `chapter_extraction.py` - Video chapter detection and processing
 
-- `funcs_utils/` - General utilities (6 modules, 665 lines)
-  - `string_sanitization.py` - String/filename sanitization and Greek text handling
+- `funcs_utils/` - General utilities
+  - `string_sanitization.py` - String/filename sanitization and Greek text handling (`remove_diacritics` re-exported from `common_av.text`)
   - `file_operations.py` - File organization and sanitization
-  - `logger_config.py` - Centralized logging configuration
   - `yt_dlp_utils.py` - yt-dlp specific utilities (error detection, cookies)
   - `security.py` - Security helpers for subprocess calls
   - `artist_search.py` - Greek artist name matching and search variants
+  - `__init__.py` - also re-exports `setup_logging` from `common_av.log_config` (the public `funcs_utils` names are unchanged)
 
-- `funcs_audio_processing/` - Audio tag processing (3 modules, ~350 lines)
-  - `__init__.py` - Dispatch dict (`_HANDLER_MAP`) + `set_artists_for_format()` / `set_chapter_tags_for_format()` + backward-compat aliases
+- `funcs_audio_processing/` - Audio tag processing
+  - `__init__.py` - Dispatch dict (`_HANDLER_MAP`) + `set_artists_for_format()` / `set_chapter_tags_for_format()` + backward-compat aliases (tag handlers imported from `common_av.tag_handlers`)
   - `unified.py` - Unified audio tag processing across formats
   - `common.py` - Common audio tag processing functions
 
-- `funcs_audio_tag_handlers/` - Tag handler classes (4 modules, 425 lines)
-  - `base.py` - Abstract base class (AudioTagHandler) - strategy pattern
-  - `mp3_handler.py` - MP3TagHandler with UTF-16 encoding support
-  - `m4a_handler.py` - M4ATagHandler for MP4/iTunes metadata
-  - `flac_handler.py` - FLACTagHandler for Vorbis Comments
-
-- `funcs_for_audio_utils/` - Audio utilities (2 modules, ~400 lines)
-  - `boost.py` - Audio volume boosting with ffmpeg (single `AudioBooster` class with `preserve_video` flag)
-  - `conversion.py` - Audio format conversion utilities (MP3 ↔ M4A, FLAC → MP3/M4A); all M4A output uses `-movflags +faststart`
-
-- `funcs_notifications/` - Notification handlers (5 modules)
-  - `base.py` - NotificationHandler abstract base class
-  - `slack_notifier.py` - SlackNotifier implementation
-  - `gmail_notifier.py` - GmailNotifier implementation
-  - `message_builder.py` - Shared message formatting
-  - `torrent_message.py` - Shared good/bad (✅ / ⚠️ DoVi profile 5) message builders for the qBittorrent notifiers
-
-- `funcs_for_qb_notify/` - qBittorrent post-download hook helpers
-  - `dovi.py` - DoVi profile-5 detection via ffprobe (`path_is_bad`, file or recursive directory scan)
-  - `hook.py` - Shared driver logic (`run_hook`): detect, then invoke a notifier script with `--status`
-
-- `funcs_copy_tags_to_video/` - copy-audio-tags-to-video helpers (used by `Utils/main-copy-audio-tags-to-video.py`)
-  - `audio_reader.py` - read the six tag fields from `.m4a`/`.mp3` into a `common_av.tags.AudioTags` (reuses `funcs_audio_tag_handlers`; raw-ID3 `COMM` fallback for MP3 comment)
-  - `pairing.py` - pair audio↔video by basename (exact or `<prefix>-<song>` stem); reports unmatched on both sides
-  - `video_writer.py` - compute dry-run diffs and write via `common_av.tags.write_mp4_video_tags`
-  - `tag_set.py` - `FieldChange` + the field→atom→label table (composer → `©cpy`)
+- `funcs_ertflix_automation/` - ERTFlix series browser automation (see the ERTFlix section)
 
 ### Data Files
 - `Data/artists.json` - Greek music artists database (~17KB)
@@ -308,7 +275,6 @@ python Tests/e2e_main.py --resume  # Resume from saved state
 python Tests-Standalone/test_chapter_regex.py  # Test chapter extraction regex
 python Tests-Standalone/main_greek_search.py   # Test Greek text search functionality
 python Tests-Standalone/find-artists-main.py   # Test artist detection in strings
-python Utils/fix_m4a_faststart.py <folder> [--recursive] [--dry-run]  # Bulk-fix M4A moov-after-mdat layout
 ```
 
 ### Updating Artist Database
@@ -401,7 +367,7 @@ The project uses a three-tier testing approach:
 
 Every commit that modifies project files (excluding docs-only changes) must have a corresponding changelog entry. The changelog is split into three files by audience — record the entry in the one that matches what changed:
 - **`CHANGELOG.md`** — the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers).
-- **`CHANGELOG-Utils.md`** — the standalone utilities (`Utils/` scripts, the `funcs_check_greek_singles/` package, and the URL-extraction helper in `Tests/`).
+- **`CHANGELOG-Utils.md`** — the remaining standalone utilities (`Utils/main-suggest-boost.py`, `Utils/main-get-artists-from-trello.py`, and the URL-extraction helper in `Tests/`). The extracted audio/dedupe/qBittorrent utilities are tracked in `av-utils/CHANGELOG.md`.
 - **`CHANGELOG-Project.md`** — project-wide tooling/dependency changes (linters, type checkers, `pip-audit`/CVE bumps, the shared virtual environment, security review).
 
 Conventions (same across all three files):
@@ -636,12 +602,14 @@ The script accurately tracks only files created during the current run:
 - Applies to video files (yt-videos/), audio files (yt-audio/, yt-audio-mp3/, yt-audio-flac/)
 
 ### Architecture
-Notifications use a strategy pattern with a `funcs_notifications/` package:
+Notifications use a strategy pattern in the shared `common_av.notifications` package (promoted from this repo to `common-av-codebase`):
 - `base.py` - NotificationHandler abstract base class
 - `slack_notifier.py` - SlackNotifier implementation
 - `gmail_notifier.py` - GmailNotifier implementation
 - `message_builder.py` - Shared message formatting
 - `__init__.py` - Exports + `send_all_notifications()` helper
+
+`main-yt-dlp.py` imports these via `from common_av.notifications import ...`.
 
 ### Troubleshooting Gmail
 If you get "Authentication failed" errors:
