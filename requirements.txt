@@ -317,7 +317,7 @@ tree-sitter-rust==0.24.2
     # via skylos
 tree-sitter-typescript==0.23.2
     # via skylos
-ty==0.0.34
+ty==0.0.44
     # via youtube-download (pyproject.toml)
 types-yt-dlp==2026.3.3.20260304
     # via youtube-download (pyproject.toml)
