@@ -2,6 +2,11 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-06-1110] - Move ty to 0.0.44 (latest published)
+
+### Changed
+- **`pyproject.toml` / `requirements.txt`**: raised the `ty` floor from `0.0.34` to `0.0.44`, the latest published release. ty checks pass clean across all four sibling projects (youtube-download, LosslessCut-csv, av-utils, common-av-codebase) with no new diagnostics. Floors raised in lockstep so the shared venv stays consistent.
+
 ## [2026-06-06-1043] - Raise ty floor to 0.0.34 (fixes shared-venv project_defs collision)
 
 ### Fixed
