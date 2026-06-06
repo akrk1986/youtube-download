@@ -673,12 +673,12 @@ The shared virtual environment is located at the `PycharmProjects` root and cont
 
 **Linux/WSL**:
 ```bash
-source ../.venv-linux/bin/activate
+source ../.venv-av-linux/bin/activate
 ```
 
 **Windows**:
 ```cmd
-..\.venv-3.14\Scripts\activate
+..\.venv-av-windows\Scripts\activate
 ```
 
 > **Note**: The shared venv uses Python 3.14 on Windows and system Python on Linux/WSL. No `pip install` step is required — packages are pre-installed.
