@@ -1,6 +1,5 @@
-# uv rewrites these files with LF — pin to LF to avoid diff churn after uv add/lock/sync
+# pin dependency manifests to LF to avoid diff churn from Windows-side checkouts
 pyproject.toml   text eol=lf
-uv.lock          text eol=lf
 requirements.txt text eol=lf
 
 # Source / config / docs — pin to LF so Windows editors (PyCharm, etc.) don't

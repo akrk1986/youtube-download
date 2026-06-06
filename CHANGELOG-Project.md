@@ -2,6 +2,15 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-06-1328] - Remove uv; standardize on pip-compile
+
+### Removed
+- **`uv.lock`**: deleted. The project no longer uses `uv`; the shared per-OS venv is provisioned with plain `pip` and the pinned `requirements.txt` is regenerated with `pip-compile pyproject.toml requirements.in -o requirements.txt` (matching the `av-utils` model).
+- **`.gitattributes`**: dropped the `uv.lock` LF rule and the uv-specific comment; `pyproject.toml` / `requirements.txt` stay pinned to LF.
+
+### Changed
+- **`main-ertflix-series.py`, `README.md`, `CLAUDE.md`**: replaced the `uv sync` / `uv add` setup instructions with `source ../.venv-av-linux/bin/activate` + `pip install -r requirements.txt`.
+
 ## [2026-06-06-1110] - Move ty to 0.0.44 (latest published)
 
 ### Changed

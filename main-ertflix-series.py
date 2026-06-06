@@ -9,7 +9,7 @@ Unknown flags are forwarded verbatim to ``main-yt-dlp.py``, so you can still
 use ``--only-audio``, ``--audio-format mp3``, ``--split-chapters``, etc.
 
 Setup (one time):
-    uv add playwright questionary rich
+    pip install -r requirements.txt   # installs playwright, questionary, rich
     python -m playwright install chromium
 
 Example:
@@ -60,7 +60,7 @@ def parse_arguments(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
     parser = argparse.ArgumentParser(
         description='Interactive ERTFlix series browser. Unknown flags are '
                     'forwarded to main-yt-dlp.py.',
-        epilog='One-time setup: uv add playwright questionary rich && '
+        epilog='One-time setup: pip install -r requirements.txt && '
                'python -m playwright install chromium',
     )
     parser.add_argument('series_url', help='ERTFlix series/Parea page URL')

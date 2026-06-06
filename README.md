@@ -469,7 +469,8 @@ The fastest way to download a Parea (or any ERTFlix series) episode — no DevTo
 
 **One-time setup:**
 ```bash
-uv sync                               # installs playwright, questionary, rich
+source ../.venv-av-linux/bin/activate   # Windows: ..\.venv-av-windows\Scripts\activate
+pip install -r requirements.txt         # installs playwright, questionary, rich
 python -m playwright install chromium
 ```
 

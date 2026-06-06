@@ -126,7 +126,8 @@ Top-level CLI that collapses the manual DevTools-console-paste dance into a sing
 
 **Setup (one time):**
 ```bash
-uv sync                                # installs playwright, questionary, rich
+source ../.venv-av-linux/bin/activate  # Windows: ..\.venv-av-windows\Scripts\activate
+pip install -r requirements.txt        # installs playwright, questionary, rich
 python -m playwright install chromium  # downloads Chromium under ~/.cache/ms-playwright
 ```
 
