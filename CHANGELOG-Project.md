@@ -2,6 +2,11 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-06-1421] - Cap skylos <4.12 (Windows/py3.14 build fix; reconcile shared-venv drift)
+
+### Fixed
+- **`pyproject.toml` / `requirements.txt`**: capped `skylos` to `>=4.11.1,<4.12` (was `>=4.11.0`, pinned `4.11.0`). skylos `4.23.x` added a hard dependency on `tree-sitter-dart-orchard`, which ships **sdist-only** (no wheels) and fails to build on Windows + Python 3.14 (`Failed building wheel for tree-sitter-dart-orchard`). Capping below `4.12` drops that grammar and pins `skylos==4.11.1`. Also reconciles a version drift across the shared venv — the four sibling repos had diverged to `4.11.0 / 4.11.1 / 4.23.1 / 4.23.1`; all four now pin `4.11.1` with an identical 6-package tree-sitter set.
+
 ## [2026-06-06-1351] - Drop stale per-project venv references (shared venvs only)
 
 ### Changed
