@@ -2,6 +2,11 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-06-1043] - Raise ty floor to 0.0.34 (fixes shared-venv project_defs collision)
+
+### Fixed
+- **`pyproject.toml` / `requirements.txt`**: raised the `ty` type-checker pin from `0.0.33` to `0.0.34`. ty 0.0.33 folded the shared parent-dir venv (`../.venv-av-windows`) into its first-party search root, so the sibling projects' top-level `project_defs.py` modules collided and ty bound the av-utils stub instead of the local one — emitting 41 false `unresolved-import` errors. 0.0.34 fixes the resolution. The floor was raised in the sibling repos' `pyproject.toml` as well so a reinstall can't regress to 0.0.33.
+
 ## [2026-06-05-1533] - Remove dead logging constants orphaned by the av-utils split
 
 ### Fixed
