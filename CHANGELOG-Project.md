@@ -2,6 +2,11 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-06-1351] - Drop stale per-project venv references (shared venvs only)
+
+### Changed
+- **`pyproject.toml`, `ruff.toml`, `pyrightconfig.json`, `project_defs.py`, `.gitignore`, `Tests-Standalone/test_rerun.py`**: removed all references to the obsolete per-project virtual environments (`.venv`, `.venv-linux`, `.venv-3.14`, `.venv-windows`, `.old-venv-3.14`) from the lint exclude lists, the gitignore, and the test rerun command. Only the two shared parent-dir venvs (`.venv-av-linux` / `.venv-av-windows`) are referenced now; the test command activates `../.venv-av-linux`. The leftover `.venv-linux/` directory (gitignored) was deleted. The radon `*.venv*` exclude glob is kept as a generic safety net.
+
 ## [2026-06-06-1328] - Remove uv; standardize on pip-compile
 
 ### Removed

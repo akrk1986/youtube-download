@@ -17,7 +17,7 @@ def test_rerun_saves_url():
 
     # Run the script with a test URL (use --version to exit immediately after URL validation)
     test_url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-    cmd = f'source .venv-linux/bin/activate && python main-yt-dlp.py "{test_url}" --version'
+    cmd = f'source ../.venv-av-linux/bin/activate && python main-yt-dlp.py "{test_url}" --version'
     _ = os.system(cmd)
 
     # Check if file was created

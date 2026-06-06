@@ -30,7 +30,7 @@ dependencies = [
 ]
 
 [tool.bandit]
-exclude_dirs = ['.venv-linux', 'Beta', 'Tests', 'Tests-Standalone', 'node_modules']
+exclude_dirs = ['Beta', 'Tests', 'Tests-Standalone', 'node_modules']
 skips = ['B101', 'B404']
 
 [tool.mypy]
@@ -46,7 +46,7 @@ venvPath = '..'
 extraPaths = ['../common-av-codebase']
 
 [tool.deptry]
-exclude = ['\.venv', 'Beta', 'Tests-Standalone', 'Tests']
+exclude = ['Beta', 'Tests-Standalone', 'Tests']
 
 [tool.deptry.per_rule_ignores]
 # common-av is a local editable sibling package (in requirements.in, not on PyPI

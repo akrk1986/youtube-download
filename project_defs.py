@@ -9,8 +9,6 @@
 # Category 2 — Scratch files (light or no linting): none currently
 # Category 3 — Non-code (excluded from all tools):
 EXCLUDED_DIRS: list[str] = [
-    # Virtual environments
-    '.venv-linux',
     # Non-code / third-party
     'Beta', 'node_modules',
     # Output / runtime (yt-audio-flac and yt-audio-mp3 are on-demand output dirs; kept even when absent)

@@ -7,14 +7,6 @@ __pycache__/
 .ruff_cache/
 .skylos/cache/
 
-# --- Virtual environments ---
-.venv/
-.venv-linux/
-.venv-windows/
-.venv-3.14/
-.old-venv-3.14/
-Tests/.venv-linux
-
 # --- Download output ---
 /yt-videos/
 /yt-audio/

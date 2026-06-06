@@ -1,10 +1,6 @@
 line-length = 120
 
 exclude = [
-    ".venv-linux",
-    ".venv-3.14",
-    ".venv-windows",
-    ".venv",
     "Beta",
     ".git",
     ".idea",
