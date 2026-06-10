@@ -13,6 +13,7 @@ Usage:
 """
 
 import re
+import sys
 from pathlib import Path
 
 from common_linters.linters_defs import LINTER_TOOLS
@@ -25,9 +26,9 @@ _DEFAULT_SKIP: frozenset[str] = frozenset({'skylos'})       # slow; opt-in via -
 
 TOOLS = [t for t in LINTER_TOOLS if t not in _FULLY_EXCLUDED and t not in _DEFAULT_SKIP]
 
-# skylos (slow) and radon (informational) are excluded from default runs; both stay
-# opt-in via --tool <name>.
-ALL_TOOLS = TOOLS + ['skylos', 'radon']
+# skylos (slow) and radon/freshness (informational) are excluded from default runs; all stay
+# opt-in via --tool <name>. freshness: `pip list --outdated` (needs network, never blocks).
+ALL_TOOLS = TOOLS + ['skylos', 'radon', 'freshness']
 
 
 # pylint: disable-next=too-many-branches,too-many-return-statements
@@ -70,6 +71,10 @@ def build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
         return cmd, False
     if name == 'radon':
         return ['radon', 'cc', '.', '-n', 'C', '--exclude', '*.venv*,Beta/*'], True
+    if name == 'freshness':
+        # Informational: list installed packages with a newer (stable) release on PyPI. Mirrors what
+        # `pip-compile --upgrade` can actually move (pre-releases excluded). always_pass=True.
+        return [sys.executable, '-m', 'pip', 'list', '--outdated'], True
     if name == 'pyupgrade':
         py_files = collect_py_files(root, EXCLUDED_DIRS)
         return ['pyupgrade', '--py311-plus'] + py_files, False
