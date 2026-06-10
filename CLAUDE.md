@@ -638,6 +638,7 @@ The project uses `run-linters.py` (project root) to run all linting tools. Each 
 | `pylint` | Code quality |
 | `vulture` | Dead code detection |
 | `radon` | Cyclomatic complexity (informational only) |
+| `freshness` | `pip list --outdated` — packages with a newer stable release (informational, opt-in) |
 | `pyupgrade` | Syntax modernisation (modifies files in place) |
 | `eslint` | JavaScript linting (`JS-files/`) |
 | `jshint` | JavaScript linting (`JS-files/`) |
@@ -662,6 +663,7 @@ When asked to "run linters" or "lint the code", Claude should:
 
 ### Notes
 - `radon` always exits 0 (complexity is informational)
+- `freshness` always exits 0 (opt-in via `--tool freshness`; needs network). Venv-scoped, so output is identical from any sibling; pre-releases and intentional caps (e.g. `skylos <4.12`) are excluded, mirroring what `pip-compile --upgrade` can move
 - `pyupgrade` detects modifications via file hashes (not `git diff`); exit code 1 means files were changed (review + commit required)
 - `eslint` and `jshint` are skipped automatically when no JS files are found
 - `EXCLUDED_DIRS` is defined in `project_defs.py` — edit there to change which directories are excluded from linting (most tools)
