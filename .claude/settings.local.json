@@ -27,7 +27,8 @@
       "Bash(uv export *)",
       "Bash(git commit -m ' *)",
       "WebSearch",
-      "Read(//mnt/c/Users/user/PycharmProjects/**)"
+      "Read(//mnt/c/Users/user/PycharmProjects/**)",
+      "Bash(git log *)"
     ],
     "deny": [],
     "ask": []
