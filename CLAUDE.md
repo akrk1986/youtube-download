@@ -47,12 +47,13 @@ The codebase uses a modular package-based architecture. Shared audio/video helpe
   - `utilities.py` - General utilities (time formatting, session ID)
   - `ertflix_token_handler.py` - ERTFlix token URL resolution
 
-- `funcs_video_info/` - Video information (5 modules, 819 lines)
+- `funcs_video_info/` - Video information (6 modules, 962 lines)
   - `metadata.py` - Video metadata retrieval using yt-dlp
   - `chapters.py` - Chapter detection, display, and CSV generation
   - `url_validation.py` - URL validation and timeout determination
   - `url_extraction.py` - URL extraction from text and ODF documents
   - `chapter_extraction.py` - Video chapter detection and processing
+  - `composer_extraction.py` - Composer extraction from Greek video descriptions
 
 - `funcs_utils/` - General utilities
   - `string_sanitization.py` - String/filename sanitization and Greek text handling (`remove_diacritics` re-exported from `common_av.text`)
