@@ -34,6 +34,31 @@ class TestExtractComposerFromDescription:
         assert extract_composer_from_description(
             description='Μουσική / Στίχοι : Νίκος Γκάτσος') == 'Νίκος Γκάτσος'
 
+    def test_lyrics_music_order(self):
+        """The reversed 'Στίχοι/Μουσική:' combined label is also accepted."""
+        assert extract_composer_from_description(
+            description='Στίχοι/Μουσική: Νίκος Γκάτσος') == 'Νίκος Γκάτσος'
+
+    def test_label_case_insensitive(self):
+        """The label matches regardless of letter case."""
+        assert extract_composer_from_description(
+            description='ΜΟΥΣΙΚΗ: Σταύρος Ξαρχάκος') == 'Σταύρος Ξαρχάκος'
+
+    def test_label_diacritics_insensitive(self):
+        """The label matches whether or not it carries diacritics."""
+        assert extract_composer_from_description(
+            description='Μουσικη: Σταύρος Ξαρχάκος') == 'Σταύρος Ξαρχάκος'
+
+    def test_name_diacritics_preserved(self):
+        """The captured composer name keeps its original diacritics."""
+        assert extract_composer_from_description(
+            description='μουσικη: Μάνος Χατζιδάκις') == 'Μάνος Χατζιδάκις'
+
+    def test_lyrics_only_label_ignored(self):
+        """A 'Στίχοι:' (lyrics-only) credit does not set the composer."""
+        assert extract_composer_from_description(
+            description='Στίχοι: Νίκος Γκάτσος') is None
+
     def test_trailing_whitespace_trimmed_internal_spaces_kept(self):
         """Trailing whitespace to EOL is trimmed; internal name spaces are preserved."""
         assert extract_composer_from_description(

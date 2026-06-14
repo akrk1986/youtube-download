@@ -2,6 +2,13 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-14-1720] - Composer label matching: case/diacritics-insensitive + extendable
+
+### Changed
+- **`funcs_video_info/composer_extraction.py`** (`main-yt-dlp.py` `VERSION` → `2026-06-14-1720`): composer-credit matching is now case- and diacritics-insensitive and accepts all three orderings — `Μουσική`, `Μουσική/Στίχοι`, and `Στίχοι/Μουσική` (lyrics-only is ignored). The music/lyrics words come from extendable module-level lists (`MUSIC_LABELS` / `LYRICS_LABELS`) so synonyms can be added later. The description is scanned line by line and the first non-empty music credit wins; the captured name keeps its original spacing and diacritics.
+- **`funcs_for_main_yt_dlp/download_audio.py`**: removed the `Video has uploader: ...` log line.
+- **Tests**: `Tests/test_composer_extraction.py` extended for the reversed order, uppercase/accent-less labels, name-diacritics preservation, and lyrics-only being ignored.
+
 ## [2026-06-14-1658] - Set Composer tag from the Greek song description
 
 ### Added

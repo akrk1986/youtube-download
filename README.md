@@ -746,7 +746,7 @@ The tool includes specialized functionality for Greek music:
 - **Name Variants**: Handles different name orders and Greek text variations
 - **Filename Sanitization**: Properly handles English, French, Turkish, Greek, and Hebrew characters in filenames
 - **Metadata Tagging**: Sets the artist tag automatically for detected Greek artists (album artist is reserved for the duplicate-staging workflow and is left unset)
-- **Composer Detection**: When extracting audio from a single video, parses the description for a `Μουσική:` or `Μουσική/Στίχοι:` (music / music & lyrics) credit and sets the Composer tag in MP3, M4A, and FLAC. The captured name keeps its spacing and runs to the end of that line; whitespace around the label and colon is tolerated. Skipped for playlists.
+- **Composer Detection**: When extracting audio from a single video, parses the description for a music credit — `Μουσική:`, `Μουσική/Στίχοι:`, or `Στίχοι/Μουσική:` (music, or music & lyrics by the same person) — and sets the Composer tag in MP3, M4A, and FLAC. Label matching is case- and diacritics-insensitive and tolerates whitespace around the words, slash, and colon; the labels live in extendable lists (`MUSIC_LABELS` / `LYRICS_LABELS`) so synonyms can be added. The captured name keeps its spacing and diacritics and runs to the end of that line. The first non-empty music credit wins. Skipped for playlists.
 
 ## Project Structure
 

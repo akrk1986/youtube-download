@@ -142,7 +142,6 @@ def extract_audio_with_ytdlp(opts: DownloadOptions, audio_formats: list[str]) ->
             logger.info(f"Video has artist: '{artist}'")
         elif have_uploader:
             artist_pat = 'artist:%(uploader)s'
-            logger.info(f"Video has uploader: '{uploader}'")
 
         # Parse the song composer from the (Greek) description, if credited.
         composer = extract_composer_from_description(description=video_info.get('description') or '')
