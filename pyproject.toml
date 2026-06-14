@@ -61,6 +61,8 @@ DEP002 = [
     "bandit", "deptry", "mypy", "pip-audit", "pip-tools", "pydoclint", "pylint",
     "pyupgrade", "pygments", "radon", "ruff", "pytest", "skylos", "ty",
     "types-yt-dlp", "vulture",
+    # Transitive CVE pins (not imported directly; see requirements.in / pip-audit history).
+    "idna", "urllib3",
 ]
 
 [tool.pylint.basic]

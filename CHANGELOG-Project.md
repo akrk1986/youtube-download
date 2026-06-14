@@ -2,6 +2,12 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-14-1745] - pip CVE bump; deptry ignores transitive CVE pins
+
+### Fixed
+- **Shared venv**: upgraded `pip` 26.1.1 → 26.1.2, resolving `PYSEC-2026-196` (flagged by `pip-audit`). `pip` is the venv's own tooling, not a project dependency, so there is no `requirements.txt`/`pyproject.toml` change for it.
+- **`pyproject.toml`**: added `idna` and `urllib3` to `[tool.deptry.per_rule_ignores] DEP002`. Both are intentional transitive CVE pins in `[project.dependencies]` (not imported directly), so deptry flagged them as unused; they are now ignored alongside the dev-tool entries. All linters pass again.
+
 ## [2026-06-06-1421] - Cap skylos <4.12 (Windows/py3.14 build fix; reconcile shared-venv drift)
 
 ### Fixed
