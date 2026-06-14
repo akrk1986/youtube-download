@@ -806,6 +806,76 @@ class TestAlbumArtistBlanking:
         assert 'artist:%(artist)s' in cmd
 
 
+class TestComposerEmbedding:
+    """Verify the composer parsed from the description is embedded via yt-dlp."""
+
+    @staticmethod
+    def _make_opts():
+        """Build a minimal single-video DownloadOptions for the audio path."""
+        from funcs_for_main_yt_dlp._download_common import DownloadOptions
+
+        return DownloadOptions(
+            ytdlp_exe='yt-dlp',
+            url='https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            has_chapters=False,
+            split_chapters=False,
+            is_it_playlist=False,
+        )
+
+    def test_composer_pat_injected_into_command(self, tmp_path):
+        """extract_single_format injects the composer --parse-metadata directive."""
+        from funcs_for_main_yt_dlp.download_audio import extract_single_format
+
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured['cmd'] = cmd
+
+        composer_pat = 'Σταύρος Ξαρχάκος:(?P<meta_composer>.+)'
+        with patch('funcs_for_main_yt_dlp.download_audio._run_yt_dlp_subprocess', side_effect=fake_run):
+            extract_single_format(opts=self._make_opts(), output_folder=tmp_path, format_type='m4a',
+                                  composer_pat=composer_pat)
+        cmd = [str(part) for part in captured['cmd']]
+        assert '--parse-metadata' in cmd
+        assert composer_pat in cmd
+
+    def test_composer_derived_from_description(self, tmp_path):
+        """extract_audio_with_ytdlp builds composer_pat from the description and forwards it."""
+        from funcs_for_main_yt_dlp.download_audio import extract_audio_with_ytdlp
+
+        captured = {}
+
+        def fake_extract(**kwargs):
+            captured['composer_pat'] = kwargs.get('composer_pat')
+
+        info = {'description': 'Μουσική: Σταύρος Ξαρχάκος\nΣτίχοι: Νίκος Γκάτσος'}
+        with patch('funcs_for_main_yt_dlp.download_audio.get_video_info', return_value=info), \
+             patch('funcs_for_main_yt_dlp.download_audio.get_timeout_for_url', return_value=60), \
+             patch('funcs_for_main_yt_dlp.download_audio.get_audio_dir_for_format', return_value=str(tmp_path)), \
+             patch('funcs_for_main_yt_dlp.download_audio.extract_single_format', side_effect=fake_extract):
+            extract_audio_with_ytdlp(opts=self._make_opts(), audio_formats=['m4a'])
+
+        assert captured['composer_pat'] == 'Σταύρος Ξαρχάκος:(?P<meta_composer>.+)'
+
+    def test_no_composer_when_absent_from_description(self, tmp_path):
+        """No composer directive is built when the description lacks the label."""
+        from funcs_for_main_yt_dlp.download_audio import extract_audio_with_ytdlp
+
+        captured = {}
+
+        def fake_extract(**kwargs):
+            captured['composer_pat'] = kwargs.get('composer_pat')
+
+        info = {'description': 'A plain description with no credits.'}
+        with patch('funcs_for_main_yt_dlp.download_audio.get_video_info', return_value=info), \
+             patch('funcs_for_main_yt_dlp.download_audio.get_timeout_for_url', return_value=60), \
+             patch('funcs_for_main_yt_dlp.download_audio.get_audio_dir_for_format', return_value=str(tmp_path)), \
+             patch('funcs_for_main_yt_dlp.download_audio.extract_single_format', side_effect=fake_extract):
+            extract_audio_with_ytdlp(opts=self._make_opts(), audio_formats=['m4a'])
+
+        assert captured['composer_pat'] is None
+
+
 if __name__ == '__main__':
     # Run tests with verbose output
     import subprocess as sp  # nosec B404

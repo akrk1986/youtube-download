@@ -2,6 +2,13 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-14-1658] - Set Composer tag from the Greek song description
+
+### Added
+- **`funcs_video_info/composer_extraction.py`** (new): `extract_composer_from_description()` parses a Greek video description for a `Μουσική:` or `Μουσική/Στίχοι:` (music / music & lyrics) credit and returns the composer name. Whitespace around the slash and colon is tolerated; the name keeps its internal spacing and is captured to the end of that line. Re-exported from `funcs_video_info`.
+- **`funcs_for_main_yt_dlp/download_audio.py`** (`main-yt-dlp.py` `VERSION` → `2026-06-14-1658`): when extracting audio from a single video, the composer parsed from the (already-fetched) description is embedded as the **Composer** tag in mp3/m4a/flac via a yt-dlp `--parse-metadata` directive (sets `meta_composer`), and logged. `extract_single_format()` gained a `composer_pat` parameter. Skipped for playlists, consistent with `artist` handling.
+- **Tests**: `Tests/test_composer_extraction.py` (10 tests for the parser) and `TestComposerEmbedding` in `Tests/test_main_ytdlp.py` (3 tests — directive injection + derivation from the description).
+
 ## [2026-06-05-1404] - Source shared tag handlers + notifications from common_av
 
 ### Changed

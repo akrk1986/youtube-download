@@ -14,6 +14,7 @@ from funcs_video_info.chapters import (
     display_chapters_and_confirm,
     get_chapter_count,
 )
+from funcs_video_info.composer_extraction import extract_composer_from_description
 from funcs_video_info.metadata import (
     get_playlist_entries,
     get_video_info,
@@ -42,4 +43,6 @@ __all__ = [
     'create_chapters_csv',
     'detect_chapters',
     '_format_duration',
+    # Composer
+    'extract_composer_from_description',
 ]
