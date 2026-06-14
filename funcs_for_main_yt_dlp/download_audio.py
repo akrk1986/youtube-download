@@ -61,6 +61,12 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
     if artist_pat:
         yt_dlp_cmd[1:1] = ['--parse-metadata', artist_pat]
 
+    # Force the Album Artist tag empty: yt-dlp's --embed-metadata otherwise carries
+    # the source album_artist (YouTube derives it from the artist/uploader) into the
+    # file. Album Artist is reserved for the dupe-staging workflow (see README-Dupes.md),
+    # so override it to empty during metadata embedding.
+    yt_dlp_cmd[1:1] = ['--parse-metadata', ':(?P<meta_album_artist>)']
+
     # For M4A, ensure moov atom is placed before mdat (required for hardware players)
     if format_type == 'm4a':
         yt_dlp_cmd.extend(['--postprocessor-args', 'ffmpeg:-movflags +faststart'])

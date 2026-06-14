@@ -766,6 +766,46 @@ class TestNonYoutubeSkipsProbes:
             detect_chapters_mock.assert_not_called()
 
 
+class TestAlbumArtistBlanking:
+    """Verify the audio-extraction command forces Album Artist empty."""
+
+    @staticmethod
+    def _capture_cmd(artist_pat, tmp_path):
+        """Run extract_single_format with the subprocess mocked, return the yt-dlp cmd."""
+        from funcs_for_main_yt_dlp.download_audio import extract_single_format
+        from funcs_for_main_yt_dlp._download_common import DownloadOptions
+
+        opts = DownloadOptions(
+            ytdlp_exe='yt-dlp',
+            url='https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            has_chapters=False,
+            split_chapters=False,
+            is_it_playlist=False,
+        )
+
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured['cmd'] = cmd
+
+        with patch('funcs_for_main_yt_dlp.download_audio._run_yt_dlp_subprocess', side_effect=fake_run):
+            extract_single_format(opts=opts, output_folder=tmp_path, format_type='m4a',
+                                  artist_pat=artist_pat)
+        return [str(part) for part in captured['cmd']]
+
+    def test_album_artist_blanked_without_artist(self, tmp_path):
+        """The blanking directive is present even when no artist was detected."""
+        cmd = self._capture_cmd(artist_pat=None, tmp_path=tmp_path)
+        assert '--parse-metadata' in cmd
+        assert ':(?P<meta_album_artist>)' in cmd
+
+    def test_album_artist_blanked_with_artist(self, tmp_path):
+        """Blanking Album Artist does not drop the artist embedding."""
+        cmd = self._capture_cmd(artist_pat='artist:%(artist)s', tmp_path=tmp_path)
+        assert ':(?P<meta_album_artist>)' in cmd
+        assert 'artist:%(artist)s' in cmd
+
+
 if __name__ == '__main__':
     # Run tests with verbose output
     import subprocess as sp  # nosec B404
