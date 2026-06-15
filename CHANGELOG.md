@@ -2,6 +2,19 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-15-1240] - Chapter CSV: --list-chapters json|manual, tracklist recovery, cleanups
+
+### Changed
+- **BREAKING — flag rename**: `--list-chapters-only` (boolean) → **`--list-chapters {json,manual}`**. `json` keeps the previous behavior (CSV from yt-dlp's native chapters); `manual` parses a title-first numbered tracklist from the description. `validate_list_chapters_only` → `validate_list_chapters` (`funcs_for_main_yt_dlp/utilities.py`, `__init__.py`); `main-yt-dlp.py` updated throughout.
+- **`funcs_video_info/chapters.py`** (`VERSION` → `2026-06-15-1240`):
+  - **Manual tracklist parser** (`_parse_numbered_tracklist`, `NUMBERED_TRACKLIST_PATTERN` in `project_defs.py`): recovers segments YouTube's auto-chapters drop when their start times overlap/precede the previous line (title-first `NN. Title  START - END` format). Emits every row as-is (no sort/dedup/overlap-filter); `manual` warns and falls back to native chapters when no tracklist is found. The chapter source is resolved once in `detect_chapters` so the count, on-screen display, and CSV are consistent.
+  - **Song-title cleanup** (`_clean_song_title`): strips a leading `NN.`/`N.` track sequence and trailing periods (applied to the CSV song name and the split filename map).
+  - **Duplicate handling**: identical CSV song names get a unique suffix (`name(01)`, `name(02)`, …) and every occurrence of any repeated name is marked **`SKIP`** in the comment column (e.g. recurring `Συνέντευξη` interview breaks), so the losslesscut-csv step skips them.
+  - **Year column**: written only in the first CSV row; subsequent rows use `-`.
+
+### Fixed
+- **`main-yt-dlp.py`**: force UTF-8 stdout/stderr at startup (`_force_utf8_console`), fixing a `UnicodeEncodeError: 'charmap'` crash when printing Greek chapter titles on a cp1252 Windows console.
+
 ## [2026-06-14-1720] - Composer label matching: case/diacritics-insensitive + extendable
 
 ### Changed

@@ -101,6 +101,10 @@ audio extraction mode (mutually exclusive):
   - Creates `segments-hms-full.txt` CSV file with chapter metadata (includes video title, uploader, URL, and pre-filled year)
   - For audio: splits into separate files per chapter with track numbers
   - For video: downloads full video without splitting (CSV provides chapter reference)
+- `--list-chapters {json,manual}` - Create the segments CSV, download the full video, then stop (for the manual losslesscut-csv split workflow). Aborts on playlists or videos with no chapters; mutually exclusive with `--with-audio`/`--only-audio`/`--subs`/`--split-chapters`.
+  - `json` - use yt-dlp's native chapters (same source as `--split-chapters`).
+  - `manual` - parse a title-first numbered tracklist from the description (`NN. Title  START - END`). This recovers segments that YouTube's auto-chapters drop when start times overlap or are out of order, and uses the description's authored boundaries. Falls back to `json` (with a warning) if no tracklist is found.
+  - CSV hygiene (both modes): song titles drop a leading `NN.` track number and trailing periods; identical names get a unique `name(01)` suffix and are marked `SKIP` in the comment column (so recurring interview breaks are skipped downstream); the year is filled only in the first row.
 - `--subs` - Downloads subtitles in Greek (el), English (en), and Hebrew (he), converted to SRT format
 - `--json` - Saves complete video metadata in JSON format alongside the downloaded file
 
@@ -163,7 +167,8 @@ When combined with `--split-chapters`, the tool:
 - **Creates a CSV file** (`segments-hms-full.txt`) with chapter metadata for manual editing:
   - Columns: start time, end time, song name, original song name, artist name, album name, year, composer, comments
   - Includes comment lines with video title, artist/uploader, and URL
-  - Pre-fills chapter titles and year (from video upload date if available)
+  - Pre-fills chapter titles and the year (from the video upload date, in the first row only)
+  - Cleans song titles (drops a leading `NN.` track number and trailing periods); de-duplicates identical names (`name(01)`, …) and marks every repeat as `SKIP` in the comment column
 - **For videos** (without `--only-audio`):
   - Downloads the full video without chapter splitting
   - CSV file provides chapter information for reference
