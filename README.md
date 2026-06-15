@@ -24,7 +24,8 @@ usage: main-yt-dlp.py [-h] [--audio-format AUDIO_FORMAT] [--split-chapters]
                       [--video-download-timeout VIDEO_DOWNLOAD_TIMEOUT]
                       [--subs] [--json] [--no-log-file] [--progress]
                       [--verbose] [--show-urls] [--rerun] [--title TITLE]
-                      [--artist ARTIST] [--album ALBUM] [--version]
+                      [--artist ARTIST] [--album ALBUM]
+                      [--list-chapters {json,manual}] [--version]
                       [--with-audio | --only-audio | --ertflix-program]
                       [video_url]
 
@@ -61,6 +62,8 @@ options:
 
   --verbose, -v         Enable verbose (DEBUG) logging for detailed troubleshooting
 
+  --show-urls           Allow urllib3/requests to log URLs (WARNING: may expose the Slack webhook URL)
+
   --rerun               Reuse URL from previous run (stored in Data/last_url.txt)
                         Ignored if video_url is provided
 
@@ -72,6 +75,13 @@ options:
 
   --album ALBUM         Custom album tag for audio files (ignored for playlists)
                         Use --album ask or --album prompt to be prompted for the album
+
+  --list-chapters {json,manual}
+                        List chapters, create the segments CSV, then download the full
+                        video and stop. Aborts on playlists or videos with no chapters.
+                        - json: use yt-dlp's native chapters
+                        - manual: parse a numbered tracklist from the description
+                          (falls back to json if none is found)
 
   --version             Show program's version number and exit
 

@@ -2,6 +2,12 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-15-1324] - CLI help: --version last; README sync
+
+### Changed
+- **`funcs_for_main_yt_dlp/utilities.py`** (`VERSION` → `2026-06-15-1324`): `--version` is now the last option before the mutually-exclusive audio group in `--help` (was listed before `--list-chapters`).
+- **`README.md`**: synced the usage/help block with the current CLI — added the missing `--list-chapters {json,manual}` and `--show-urls` entries and reordered `--version` to last.
+
 ## [2026-06-15-1240] - Chapter CSV: --list-chapters json|manual, tracklist recovery, cleanups
 
 ### Changed
