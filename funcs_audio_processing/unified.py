@@ -7,7 +7,6 @@ from pathlib import Path
 from mutagen import MutagenError
 
 from common_av.tag_handlers import AudioTagHandler
-from funcs_audio_processing.common import extract_chapter_info, sanitize_album_name
 from funcs_utils.artist_search import load_artists, find_artists_in_string
 
 logger = logging.getLogger(__name__)
@@ -80,86 +79,3 @@ def set_artists_in_audio_files(audio_folder: Path,
             logger.info(f"Updated {audio_file.name}: artist set to '{artist_string}'")
         else:
             logger.debug(f'No artist found in title for {audio_file.name}')
-
-
-def set_tags_in_chapter_audio_files(
-    audio_folder: Path,
-    handler: AudioTagHandler,
-    uploader: str | None = None,
-    video_title: str | None = None,
-    original_names: dict[str, str] | None = None
-) -> int:
-    """
-    Unified function to set tags in chapter audio files (works for MP3, M4A, or any format).
-    Set 'title' and 'tracknumber' tags in chapter files in the given folder.
-
-    File name pattern from chapters, as extracted by YT-DLP:
-    <original file name> - <song # (3 digits)> <song name from playlist> [<YouTube ID>]
-
-    Args:
-        audio_folder: Path to audio files folder
-        handler: AudioTagHandler instance for the specific format
-        uploader: Video uploader name (used as artist if no artist is set)
-        video_title: Video title (used as album if no album is set)
-        original_names: Optional mapping of final_path -> original_ytdlp_filename
-
-    Returns:
-        int: Number of files whose title was modified
-    """
-    ctr = 0
-
-    if original_names is None:
-        original_names = {}
-
-    for audio_file in audio_folder.glob(handler.get_file_glob()):
-        try:
-            audio = handler.open_audio_file(file_path=audio_file)
-        except MutagenError as e:
-            # Not a valid audio file or corrupted
-            logger.warning(f"Cannot read audio chapter file '{audio_file.name}' in folder '{audio_folder}': {e}")
-            continue
-        except Exception as e:
-            # Unexpected error
-            logger.error(
-                f"Unexpected error reading audio chapter file '{audio_file.name}' in folder '{audio_folder}': {e}"
-            )
-            continue
-
-        original_filename = original_names.get(str(audio_file), audio_file.name)
-        song_name, file_name, song_number = extract_chapter_info(file_name=original_filename)
-        logger.debug(f"title, f_name, song_#: '{song_name}', '{file_name}', '{song_number}'")
-        if song_name is None:
-            continue
-
-        try:
-            handler.set_tag(audio=audio, tag_name=handler.TAG_TITLE, value=song_name)
-            if song_number:
-                handler.set_track_number(audio=audio, track_number=int(song_number))
-
-            # Handle format-specific tasks (e.g., date fixing for M4A)
-            handler.handle_format_specific_tasks(audio=audio)
-
-            # If no artist is set and we have an uploader, use uploader as artist
-            current_artist = handler.get_tag(audio=audio, tag_name=handler.TAG_ARTIST)
-
-            if (not current_artist or current_artist == '' or current_artist == 'NA') and uploader:
-                handler.set_tag(audio=audio, tag_name=handler.TAG_ARTIST, value=uploader)
-                logger.info(f"Set artist to uploader '{uploader}' for chapter file")
-
-            # If no album is set and we have a video title, use sanitized video title as album
-            current_album = handler.get_tag(audio=audio, tag_name=handler.TAG_ALBUM)
-
-            if (not current_album or current_album == '' or current_album == 'NA') and video_title:
-                sanitized_album = sanitize_album_name(title=video_title)
-                if sanitized_album:
-                    handler.set_tag(audio=audio, tag_name=handler.TAG_ALBUM, value=sanitized_album)
-                    logger.info(f"Set album to sanitized video title '{sanitized_album}' for chapter file")
-
-            handler.set_original_filename(audio=audio, file_path=audio_file, original_filename=original_filename)
-            handler.save_audio_file(audio=audio, file_path=audio_file)
-            ctr += 1
-        except Exception as e:
-            # no chapter file, ignore
-            logger.error(f"Failed to save audio tags for file '{audio_file.name}': {e}")
-
-    return ctr

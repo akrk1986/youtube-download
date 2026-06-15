@@ -53,7 +53,7 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
         sanitized_url
     ]
 
-    # Add shared flags (cookies, playlist, split-chapters, progress, custom metadata)
+    # Add shared flags (cookies, playlist, progress, custom metadata)
     _append_common_flags(cmd=yt_dlp_cmd, opts=opts, sanitized_title=sanitized_title)
 
     # Add audio-specific flags. Only 'artist' is embedded; Album Artist is left

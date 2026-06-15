@@ -4,11 +4,10 @@ import sys
 sys.path.append('..')
 
 try:
-    from funcs_audio_processing.m4a import set_artists_in_m4a_files, set_tags_in_chapter_m4a_files  # noqa: F401
+    from funcs_audio_processing import set_artists_in_m4a_files  # noqa: F401
     print("✓ Successfully imported M4A tag processing functions")
     print("✓ Available functions:")
     print("  - set_artists_in_m4a_files()")
-    print("  - set_tags_in_chapter_m4a_files()")
 except ImportError as e:
     print(f"✗ Import error: {e}")
 

@@ -2,6 +2,15 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-16-0107] - Remove the --split-chapters option
+
+### Removed
+- **BREAKING — `--split-chapters` is gone** (`VERSION` → `2026-06-16-0107`). The chapter workflow is now `--list-chapters {json,manual}` (creates the segments CSV for the losslesscut-csv split), so the entire in-app split/remux/per-chapter-tag machinery was removed:
+  - Deleted `funcs_for_main_yt_dlp/chapter_remux.py`, `funcs_audio_processing/common.py`, and `Tests-Standalone/test_chapter_regex.py`.
+  - Removed `set_chapter_tags_for_format` + the `set_tags_in_chapter_*` aliases, `set_tags_in_chapter_audio_files`, `extract_chapter_info`, `sanitize_album_name`, `_build_filename_mapping`, `organize_media_files`, `check_output_dirs_empty`, and the `YT_DLP_SPLIT_CHAPTERS_FLAG` / `CHAPTER_FILENAME_PATTERN` / `MAX_ALBUM_NAME_LENGTH` constants.
+  - Trimmed signatures: `DownloadOptions` (dropped `split_chapters`/`has_chapters`), `detect_chapters` (now a 3-tuple, also drops the unused `uploader_name`), `display_chapters_and_confirm` (display-only), `process_audio_tags`, and `organize_and_sanitize_files`.
+- **Docs**: README and CLAUDE.md updated; the ERTFlix pass-through example and the standalone scripts de-reference the flag.
+
 ## [2026-06-15-1324] - CLI help: --version last; README sync
 
 ### Changed

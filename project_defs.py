@@ -43,8 +43,6 @@ VALID_DOMAINS_ALL = VALID_YOUTUBE_DOMAINS + VALID_FACEBOOK_DOMAINS + VALID_OTHER
 PLAYLIST_CAPABLE_DOMAINS = VALID_YOUTUBE_DOMAINS
 CHAPTER_CAPABLE_DOMAINS = VALID_YOUTUBE_DOMAINS
 
-# File processing constants
-MAX_ALBUM_NAME_LENGTH = 64
 
 # Output directories
 VIDEO_OUTPUT_DIR = 'yt-videos'
@@ -59,7 +57,6 @@ SUBPROCESS_TIMEOUT_OTHER_SITES = 5400  # 1.5 hour for other sites (some are very
 FFMPEG_TIMEOUT_SECONDS = 600  # 10 minutes for audio/video conversion
 
 # Regex patterns
-CHAPTER_FILENAME_PATTERN = r'^(.*?)\s*-\s*(\d{3})\s+(.*?)\s*\[([^\s\[\]]+)\]\.(?:mp3|m4a|flac|MP3|M4A|FLAC)$'
 # Remove leading non-alphanumeric characters (supports English, French, Turkish, Greek, Hebrew)
 # Includes: Latin-1 Supplement (\u00c0-\u00ff) and Latin Extended-A (\u0100-\u017f) for French/Turkish
 LEADING_NONALNUM_PATTERN = r'^[^a-zA-Z0-9\u00c0-\u00ff\u0100-\u017f\u0370-\u03FF\u05d0-\u05ea]+'
@@ -87,5 +84,4 @@ GLOB_MP4_FILES = '*.mp4'
 
 # yt-dlp command-line flags
 YT_DLP_WRITE_JSON_FLAG = '--write-info-json'
-YT_DLP_SPLIT_CHAPTERS_FLAG = '--split-chapters'
 YT_DLP_IS_PLAYLIST_FLAG = '--yes-playlist'

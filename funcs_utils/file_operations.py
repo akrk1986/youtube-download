@@ -1,130 +1,18 @@
 """File organization and management utilities."""
 import logging
-import re
 import shutil
 from pathlib import Path
 from typing import Any
 
 from funcs_utils.string_sanitization import sanitize_string
-from project_defs import (AUDIO_OUTPUT_DIR_FLAC, AUDIO_OUTPUT_DIR_M4A,
-                          AUDIO_OUTPUT_DIR_MP3, GLOB_FLAC_FILES,
-                          GLOB_FLAC_FILES_UPPER, GLOB_M4A_FILES,
-                          GLOB_M4A_FILES_UPPER, GLOB_MP3_FILES,
-                          GLOB_MP3_FILES_UPPER, GLOB_MP4_FILES)
+from project_defs import GLOB_M4A_FILES, GLOB_MP3_FILES, GLOB_MP4_FILES
 
 logger = logging.getLogger(__name__)
-
-# yt-dlp --split-chapters creates files like: "<title> - <3-digit-number> <section_title>.<ext>"
-_CHAPTER_NUM_PATTERN = re.compile(r'^.*?\s*-\s*(\d{3})\s+.+')
-
-
-def _resolve_dest_name(media_file: Path, chapter_name_map: dict[int, str] | None) -> str:
-    """Resolve destination filename using chapter name mapping if available."""
-    if chapter_name_map:
-        match = _CHAPTER_NUM_PATTERN.match(media_file.stem)
-        if match:
-            chapter_num = int(match.group(1))
-            if chapter_num > 0 and chapter_num in chapter_name_map:
-                return chapter_name_map[chapter_num] + media_file.suffix
-            logger.warning(f"Chapter file '{media_file.name}' has number {chapter_num}, not in chapter mapping")
-    return media_file.name
-
-
-def organize_media_files(video_dir: Path, chapter_name_map: dict[int, str] | None = None) -> dict[str, Any]:
-    """
-    Move all MP3/M4A/FLAC files to their respective directories and all MP4 files to video directory.
-    - MP3 files -> yt-audio/
-    - M4A files -> yt-audio-m4a/
-    - FLAC files -> yt-audio-flac/
-    - MP4 files -> yt-videos/
-    Creates the directories if they don't exist.
-
-    Args:
-        video_dir: Path to the video output directory
-        chapter_name_map: Optional mapping of chapter numbers to normalized filenames
-
-    Returns:
-        dict[str, Any]: Summary with moved files counts, any errors, and original_names mapping.
-              original_names maps final_path -> original_filename_before_move
-    """
-    current_dir = Path.cwd()
-
-    moved_files: dict[str, Any] = {'mp3': [], 'mp4': [], 'm4a': [], 'flac': [], 'errors': [], 'original_names': {}}
-
-    # Get all audio-like files including case variations, deduplicated for case-insensitive filesystems (e.g. NTFS)
-    audio_files = list(set(
-        list(current_dir.glob(GLOB_MP3_FILES)) +
-        list(current_dir.glob(GLOB_M4A_FILES)) +
-        list(current_dir.glob(GLOB_FLAC_FILES)) +
-        list(current_dir.glob(GLOB_MP3_FILES_UPPER)) +
-        list(current_dir.glob(GLOB_M4A_FILES_UPPER)) +
-        list(current_dir.glob(GLOB_FLAC_FILES_UPPER))
-    ))
-
-    # Find and move MP3/M4A/FLAC files to their respective directories
-    for audio_file in audio_files:
-        try:
-            if audio_file.suffix.lower() == '.mp3':
-                dest_dir = Path(AUDIO_OUTPUT_DIR_MP3)
-                moved_files['mp3'].append(audio_file.name)
-                dest_dir_name = AUDIO_OUTPUT_DIR_MP3
-            elif audio_file.suffix.lower() == '.m4a':
-                dest_dir = Path(AUDIO_OUTPUT_DIR_M4A)
-                moved_files['m4a'].append(audio_file.name)
-                dest_dir_name = AUDIO_OUTPUT_DIR_M4A
-            elif audio_file.suffix.lower() == '.flac':
-                dest_dir = Path(AUDIO_OUTPUT_DIR_FLAC)
-                moved_files['flac'].append(audio_file.name)
-                dest_dir_name = AUDIO_OUTPUT_DIR_FLAC
-            else:
-                # Skip files that are not MP3, M4A, or FLAC
-                logger.warning(
-                    f"Skipping unsupported audio file '{audio_file.name}' with extension '{audio_file.suffix}'")
-                continue
-
-            # Create destination directory if it doesn't exist
-            dest_dir.mkdir(parents=True, exist_ok=True)
-
-            # Store original filename before moving
-            original_name = audio_file.name
-            dest_name = _resolve_dest_name(media_file=audio_file, chapter_name_map=chapter_name_map)
-            destination = dest_dir / dest_name
-            shutil.move(str(audio_file), str(destination))
-            # Map destination path to original name
-            moved_files['original_names'][str(destination)] = original_name
-            logger.info(f'Moved {audio_file.name} -> {dest_dir_name}/{dest_name}')
-        except Exception as e:
-            error_msg = f'Error moving {audio_file.name}: {str(e)}'
-            moved_files['errors'].append(error_msg)
-            logger.error(error_msg)
-
-    # Find and move MP4 files
-    for mp4_file in current_dir.glob(GLOB_MP4_FILES):
-        try:
-            dest_name = _resolve_dest_name(media_file=mp4_file, chapter_name_map=chapter_name_map)
-            destination = video_dir / dest_name
-            shutil.move(str(mp4_file), str(destination))
-            moved_files['mp4'].append(mp4_file.name)
-            logger.info(f'Moved {mp4_file.name} -> yt-videos/{dest_name}')
-        except Exception as e:
-            error_msg = f'Error moving {mp4_file.name}: {str(e)}'
-            moved_files['errors'].append(error_msg)
-            logger.error(error_msg)
-
-    # Print summary
-    logger.info('Summary:')
-    logger.info(f'MP3 files moved: {len(moved_files["mp3"])}')
-    logger.info(f'M4A files moved: {len(moved_files["m4a"])}')
-    logger.info(f'FLAC files moved: {len(moved_files["flac"])}')
-    logger.info(f'MP4 files moved: {len(moved_files["mp4"])}')
-    if moved_files['errors']:
-        logger.warning(f'Errors: {len(moved_files["errors"])}')
-    return moved_files
 
 
 def organize_media_files_silent() -> dict[str, Any]:
     """
-    Same as organize_media_files() but without print statements.
+    Move MP3/M4A files to yt-audio/ and MP4 files to yt-videos/ without logging each move.
     Returns only the summary dictionary.
     """
     current_dir = Path('.')

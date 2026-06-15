@@ -1,9 +1,8 @@
 """File organization and sanitization utilities."""
 import logging
-import sys
 from pathlib import Path
 
-from funcs_utils import organize_media_files, sanitize_filenames_in_folder
+from funcs_utils import sanitize_filenames_in_folder
 from project_defs import (AUDIO_OUTPUT_DIR_FLAC, AUDIO_OUTPUT_DIR_M4A,
                            AUDIO_OUTPUT_DIR_MP3, VIDEO_OUTPUT_DIR)
 
@@ -33,50 +32,23 @@ def get_audio_dir_for_format(audio_format: str) -> str:
 
 
 def organize_and_sanitize_files(video_folder: Path, audio_formats: list[str],
-                                has_chapters: bool, only_audio: bool, need_audio: bool,
-                                chapter_name_map: dict[int, str] | None = None) -> dict[str, dict[str, str]]:
+                                only_audio: bool, need_audio: bool) -> dict[str, dict[str, str]]:
     """
-    Organize chapter files and sanitize all downloaded file names.
+    Sanitize all downloaded file names.
 
     Args:
         video_folder: Path to video output directory
         audio_formats: List of audio formats (e.g., ['mp3', 'm4a', 'flac'])
-        has_chapters: Whether video has chapters
         only_audio: Whether to skip video processing
         need_audio: Whether audio was downloaded
-        chapter_name_map: Optional mapping of chapter numbers to normalized filenames
 
     Returns:
         dict[str, dict[str, str]]: dict with 'mp3', 'm4a', and 'flac' keys,
             each containing a mapping of final_path -> original_ytdlp_filename
     """
-    original_names_mp3 = {}
-    original_names_m4a = {}
-    original_names_flac = {}
-
-    # If chapters, move chapter files to their respective directories
-    if has_chapters:
-        result = organize_media_files(video_dir=video_folder, chapter_name_map=chapter_name_map)
-
-        # Check move results
-        if result['mp3'] or result['m4a'] or result['flac'] or result['mp4']:
-            logger.info('Files organized successfully!')
-        else:
-            logger.warning('No MP3/M4A/FLAC or MP4 files found in current directory.')
-
-        if result['errors']:
-            logger.error('Errors encountered:')
-            for error in result['errors']:
-                logger.error(f'- {error}')
-
-        # Extract original names for MP3, M4A, and FLAC files
-        for path, orig_name in result.get('original_names', {}).items():
-            if path.lower().endswith('.mp3'):
-                original_names_mp3[path] = orig_name
-            elif path.lower().endswith('.m4a'):
-                original_names_m4a[path] = orig_name
-            elif path.lower().endswith('.flac'):
-                original_names_flac[path] = orig_name
+    original_names_mp3: dict[str, str] = {}
+    original_names_m4a: dict[str, str] = {}
+    original_names_flac: dict[str, str] = {}
 
     # Sanitize downloaded video file names
     if not only_audio:
@@ -133,32 +105,6 @@ def cleanup_leftover_files(video_folder: Path) -> None:
                 logger.warning(f'Failed to remove {leftover_file.name}: {exc}')
     if removed_count > 0:
         logger.info(f'Cleaned up {removed_count} leftover file(s) from previous cancelled downloads')
-
-
-def check_output_dirs_empty(only_audio: bool, need_audio: bool,
-                            audio_formats: list[str]) -> None:
-    """Abort if any output directory is non-empty (for split-chapters runs).
-
-    Args:
-        only_audio: Whether only audio was requested (skip video dir check).
-        need_audio: Whether audio extraction is needed.
-        audio_formats: List of audio format strings.
-    """
-    dirs_to_check: list[Path] = []
-    if not only_audio:
-        dirs_to_check.append(Path(VIDEO_OUTPUT_DIR))
-    if need_audio:
-        for fmt in audio_formats:
-            dirs_to_check.append(Path(get_audio_dir_for_format(audio_format=fmt)))
-    non_empty = [d for d in dirs_to_check if d.exists() and any(d.iterdir())]
-    if non_empty:
-        dir_list = ', '.join(f"'{d}'" for d in non_empty)
-        logger.error(
-            f'Output director{"ies" if len(non_empty) > 1 else "y"} {dir_list} '
-            f'is not empty. Copy any files you want to keep to another location, '
-            f'then clear the director{"ies" if len(non_empty) > 1 else "y"} and run again.'
-        )
-        sys.exit(1)
 
 
 def count_initial_files(only_audio: bool, with_audio: bool,

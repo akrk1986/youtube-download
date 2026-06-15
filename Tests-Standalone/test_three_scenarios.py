@@ -223,9 +223,9 @@ def main():
                 result2 = False
                 results.append(("Test 2 (Chapters Video -> Video Only)", False))
             else:
-                # For video with chapters, extract video only, with chapter splitting
-                args2 = ['--subs', '--split-chapters']
-                description2 = "Video with chapters - Extract video only (split by chapters)"
+                # For video with chapters, extract video only
+                args2 = ['--subs']
+                description2 = "Video with chapters - Extract video only"
                 result2 = run_main_script(url2, args2, description2)
                 results.append(("Test 2 (Chapters Video -> Video Only)", result2))
         else:

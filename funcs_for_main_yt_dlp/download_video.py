@@ -50,7 +50,7 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
         sanitized_url
     ]
 
-    # Add shared flags (cookies, playlist, split-chapters, progress, custom metadata)
+    # Add shared flags (cookies, playlist, progress, custom metadata)
     _append_common_flags(cmd=base_cmd, opts=opts, sanitized_title=sanitized_title)
 
     # Add video-specific flags

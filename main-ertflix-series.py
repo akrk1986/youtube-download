@@ -6,7 +6,7 @@ captures the token API URL that ERTFlix generates when you click Play, and
 hands it off to ``main-yt-dlp.py --ertflix-program`` for the actual download.
 
 Unknown flags are forwarded verbatim to ``main-yt-dlp.py``, so you can still
-use ``--only-audio``, ``--audio-format mp3``, ``--split-chapters``, etc.
+use ``--only-audio``, ``--audio-format mp3``, etc.
 
 Setup (one time):
     pip install -r requirements.txt   # installs playwright, questionary, rich

@@ -46,7 +46,6 @@ def parse_arguments(argv: list[str] | None = None, version: str = '') -> argpars
     parser.add_argument('--audio-format', default=DEFAULT_AUDIO_FORMAT,
                         help='Audio format for extraction: mp3, m4a, flac, or comma-separated list '
                              '(e.g., mp3,m4a). (default: %(default)s)')
-    parser.add_argument('--split-chapters', action='store_true', help='Split to chapters')
     parser.add_argument('--video-download-timeout', type=int,
                         help='Timeout in seconds for video downloads. If specified, applies to all sites. '
                              'If not specified, uses defaults: 300s for YouTube/Facebook, 3600s for other sites')
@@ -169,8 +168,6 @@ def validate_list_chapters(args: argparse.Namespace) -> None:
         conflicting.append('--only-audio')
     if args.subs:
         conflicting.append('--subs')
-    if args.split_chapters:
-        conflicting.append('--split-chapters')
     if conflicting:
         logger.error('--list-chapters cannot be combined with: %s', ', '.join(conflicting))
         sys.exit(1)

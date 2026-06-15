@@ -4,7 +4,6 @@ This package is organized into:
 - _download_common: Shared dataclass, helpers, and progress state
 - download_video: Video download functions
 - download_audio: Audio extraction functions
-- chapter_remux: Chapter remux post-processing
 - external_tools: External tool path detection (ffmpeg, yt-dlp)
 - url_validation: URL validation and input handling
 - file_organization: File organization and sanitization
@@ -16,7 +15,6 @@ This package is organized into:
 # Import all functions to maintain backward compatibility
 from funcs_for_main_yt_dlp._download_common import DownloadOptions
 from funcs_for_main_yt_dlp.audio_processing import process_audio_tags
-from funcs_for_main_yt_dlp.chapter_remux import remux_video_chapters
 from funcs_for_main_yt_dlp.download_audio import extract_audio_with_ytdlp
 from funcs_for_main_yt_dlp.download_video import run_yt_dlp
 from funcs_for_main_yt_dlp.ertflix_token_handler import (
@@ -30,7 +28,6 @@ from funcs_for_main_yt_dlp.external_tools import (
     quote_if_needed,
 )
 from funcs_for_main_yt_dlp.file_organization import (
-    check_output_dirs_empty,
     cleanup_leftover_files,
     count_files,
     count_initial_files,
@@ -54,7 +51,6 @@ __all__ = [
     'DownloadOptions',
     'run_yt_dlp',
     'extract_audio_with_ytdlp',
-    'remux_video_chapters',
     # External tools
     'get_ytdlp_path',
     'get_ytdlp_version',
@@ -67,7 +63,6 @@ __all__ = [
     'get_audio_dir_for_format',
     'count_files',
     'cleanup_leftover_files',
-    'check_output_dirs_empty',
     'count_initial_files',
     'count_new_files',
     # Audio processing

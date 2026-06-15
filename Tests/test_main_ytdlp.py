@@ -31,7 +31,6 @@ class TestParseArguments:
 
         assert args.video_url is None
         assert args.audio_format == DEFAULT_AUDIO_FORMAT
-        assert args.split_chapters is False
         assert args.subs is False
         assert args.json is False
         assert args.no_log_file is False
@@ -80,15 +79,6 @@ class TestParseArguments:
 
         with pytest.raises(SystemExit):
             main_module.parse_arguments(['--with-audio', '--only-audio'])
-
-    def test_split_chapters_flag(self):
-        """Test --split-chapters flag parsing."""
-        from importlib import import_module
-        main_module = import_module('main-yt-dlp')
-
-        args = main_module.parse_arguments(['--split-chapters'])
-
-        assert args.split_chapters is True
 
     def test_verbose_flag(self):
         """Test --verbose flag parsing."""
@@ -508,10 +498,9 @@ class TestMainExecution:
         # Mock all external dependencies
         with patch.object(main_module, 'SLACK_WEBHOOK', None), \
              patch.object(main_module, 'get_ytdlp_path', return_value='/usr/bin/yt-dlp'), \
-             patch.object(main_module, 'get_ffmpeg_path', return_value='/usr/bin/ffmpeg'), \
              patch.object(main_module, 'validate_and_get_url', return_value=sample_args.video_url), \
              patch.object(main_module, 'is_playlist', return_value=False), \
-             patch.object(main_module, 'detect_chapters', return_value=(False, None, None, None, {})), \
+             patch.object(main_module, 'detect_chapters', return_value=(False, None, None)), \
              patch.object(main_module, 'run_yt_dlp'), \
              patch.object(main_module, 'extract_audio_with_ytdlp'), \
              patch.object(main_module, 'organize_and_sanitize_files', return_value={}), \
@@ -545,10 +534,9 @@ class TestMainExecution:
 
         with patch.object(main_module, 'SLACK_WEBHOOK', None), \
              patch.object(main_module, 'get_ytdlp_path', return_value='/usr/bin/yt-dlp'), \
-             patch.object(main_module, 'get_ffmpeg_path', return_value='/usr/bin/ffmpeg'), \
              patch.object(main_module, 'validate_and_get_url', return_value=sample_args.video_url), \
              patch.object(main_module, 'is_playlist', return_value=False), \
-             patch.object(main_module, 'detect_chapters', return_value=(False, None, None, None, {})), \
+             patch.object(main_module, 'detect_chapters', return_value=(False, None, None)), \
              patch.object(main_module, 'run_yt_dlp', run_yt_dlp_mock), \
              patch.object(main_module, 'extract_audio_with_ytdlp'), \
              patch.object(main_module, 'organize_and_sanitize_files', return_value={}), \
@@ -587,10 +575,9 @@ class TestMainExecution:
 
         with patch.object(main_module, 'SLACK_WEBHOOK', None), \
              patch.object(main_module, 'get_ytdlp_path', return_value='/usr/bin/yt-dlp'), \
-             patch.object(main_module, 'get_ffmpeg_path', return_value='/usr/bin/ffmpeg'), \
              patch.object(main_module, 'validate_and_get_url', return_value=sample_args.video_url), \
              patch.object(main_module, 'is_playlist', return_value=False), \
-             patch.object(main_module, 'detect_chapters', return_value=(False, None, None, None, {})), \
+             patch.object(main_module, 'detect_chapters', return_value=(False, None, None)), \
              patch.object(main_module, 'extract_audio_with_ytdlp', extract_audio_mock), \
              patch.object(main_module, 'organize_and_sanitize_files', return_value={}), \
              patch.object(main_module, 'process_audio_tags'), \
@@ -738,11 +725,10 @@ class TestNonYoutubeSkipsProbes:
         audio_dir.mkdir()
 
         is_playlist_mock = MagicMock(return_value=False)
-        detect_chapters_mock = MagicMock(return_value=(False, None, None, None, {}))
+        detect_chapters_mock = MagicMock(return_value=(False, None, None))
 
         with patch.object(main_module, 'SLACK_WEBHOOK', None), \
              patch.object(main_module, 'get_ytdlp_path', return_value='/usr/bin/yt-dlp'), \
-             patch.object(main_module, 'get_ffmpeg_path', return_value='/usr/bin/ffmpeg'), \
              patch.object(main_module, 'validate_and_get_url', return_value=non_youtube_url), \
              patch.object(main_module, 'is_playlist', is_playlist_mock), \
              patch.object(main_module, 'detect_chapters', detect_chapters_mock), \
@@ -778,8 +764,6 @@ class TestAlbumArtistBlanking:
         opts = DownloadOptions(
             ytdlp_exe='yt-dlp',
             url='https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-            has_chapters=False,
-            split_chapters=False,
             is_it_playlist=False,
         )
 
@@ -817,8 +801,6 @@ class TestComposerEmbedding:
         return DownloadOptions(
             ytdlp_exe='yt-dlp',
             url='https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-            has_chapters=False,
-            split_chapters=False,
             is_it_playlist=False,
         )
 

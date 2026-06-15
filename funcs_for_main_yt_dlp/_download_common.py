@@ -7,7 +7,7 @@ from pathlib import Path
 
 from funcs_utils import get_cookie_args, sanitize_string
 from funcs_video_info import get_video_info
-from project_defs import YT_DLP_IS_PLAYLIST_FLAG, YT_DLP_SPLIT_CHAPTERS_FLAG
+from project_defs import YT_DLP_IS_PLAYLIST_FLAG
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +18,6 @@ class DownloadOptions:
 
     ytdlp_exe: str | Path
     url: str
-    has_chapters: bool
-    split_chapters: bool
     is_it_playlist: bool
     show_progress: bool = False
     video_download_timeout: int | None = None
@@ -101,8 +99,8 @@ def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,
                          sanitized_title: str | None = None) -> None:
     """Insert shared conditional flags into a yt-dlp command list (mutates cmd).
 
-    Handles: cookies, playlist flag, split-chapters + windows-filenames,
-    progress, custom_title metadata replacement, custom_artist/album ffmpeg metadata.
+    Handles: cookies, playlist flag, progress, custom_title metadata replacement,
+    custom_artist/album ffmpeg metadata.
     """
     cookie_args = get_cookie_args()
     if cookie_args:
@@ -110,11 +108,6 @@ def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,
 
     if opts.is_it_playlist:
         cmd[1:1] = [YT_DLP_IS_PLAYLIST_FLAG]
-
-    if opts.split_chapters and opts.has_chapters:
-        cmd[1:1] = [YT_DLP_SPLIT_CHAPTERS_FLAG]
-        # Chapter titles often contain ':' which is invalid on NTFS (/mnt/c/)
-        cmd[1:1] = ['--windows-filenames']
 
     if opts.show_progress:
         cmd[1:1] = ['--progress']

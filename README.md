@@ -7,7 +7,7 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 - Download YouTube videos and playlists as MP4 files with embedded URL metadata and thumbnail (cover art)
 - **Download ERTFlix programs** (Greek public broadcaster) using token API URLs
 - Extract audio as MP3, M4A, and/or FLAC with embedded metadata and thumbnails
-- Split videos by chapters automatically
+- List a video's chapters and export a segments CSV for the losslesscut-csv split workflow
 - Process audio tags to identify and set Greek artists
 - Detect the song composer from a Greek video description (`Μουσική:` / `Μουσική/Στίχοι:`) and set the Composer tag
 - Handle subtitle downloads in multiple languages (Greek, English, Hebrew)
@@ -20,7 +20,7 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 ## Usage
 
 ```
-usage: main-yt-dlp.py [-h] [--audio-format AUDIO_FORMAT] [--split-chapters]
+usage: main-yt-dlp.py [-h] [--audio-format AUDIO_FORMAT]
                       [--video-download-timeout VIDEO_DOWNLOAD_TIMEOUT]
                       [--subs] [--json] [--no-log-file] [--progress]
                       [--verbose] [--show-urls] [--rerun] [--title TITLE]
@@ -40,12 +40,6 @@ options:
   --audio-format AUDIO_FORMAT
                         Audio format for extraction: mp3, m4a, flac, or comma-separated
                         list (e.g., mp3,m4a). (default: m4a)
-
-  --split-chapters      Process videos with chapters:
-                        - Displays chapter list with timing information
-                        - Creates CSV file (segments-hms-full.txt) with chapter metadata
-                        - For audio: splits into separate files per chapter
-                        - For video: downloads full video (no chapter splitting)
 
   --video-download-timeout VIDEO_DOWNLOAD_TIMEOUT
                         Timeout in seconds for video downloads. If specified, applies to all sites.
@@ -106,13 +100,8 @@ audio extraction mode (mutually exclusive):
 - `--only-audio` - Downloads only audio, videos are deleted after extraction
 
 **Video Processing:**
-- `--split-chapters` - Process videos with chapters:
-  - Displays chapter list with names, start/end times, and durations
-  - Creates `segments-hms-full.txt` CSV file with chapter metadata (includes video title, uploader, URL, and pre-filled year)
-  - For audio: splits into separate files per chapter with track numbers
-  - For video: downloads full video without splitting (CSV provides chapter reference)
-- `--list-chapters {json,manual}` - Create the segments CSV, download the full video, then stop (for the manual losslesscut-csv split workflow). Aborts on playlists or videos with no chapters; mutually exclusive with `--with-audio`/`--only-audio`/`--subs`/`--split-chapters`.
-  - `json` - use yt-dlp's native chapters (same source as `--split-chapters`).
+- `--list-chapters {json,manual}` - Create the segments CSV, download the full video, then stop (for the manual losslesscut-csv split workflow). Aborts on playlists or videos with no chapters; mutually exclusive with `--with-audio`/`--only-audio`/`--subs`.
+  - `json` - use yt-dlp's native chapters.
   - `manual` - parse a title-first numbered tracklist from the description (`NN. Title  START - END`). This recovers segments that YouTube's auto-chapters drop when start times overlap or are out of order, and uses the description's authored boundaries. Falls back to `json` (with a warning) if no tracklist is found.
   - CSV hygiene (both modes): song titles drop a leading `NN.` track number and trailing periods; identical names get a unique `name(01)` suffix and are marked `SKIP` in the comment column (so recurring interview breaks are skipped downstream); the year is filled only in the first row.
 - `--subs` - Downloads subtitles in Greek (el), English (en), and Hebrew (he), converted to SRT format
@@ -171,33 +160,23 @@ python main-yt-dlp.py --with-audio "https://youtube.com/watch?v=dQw4w9WgXcQ"
 ### Single Video With Chapters
 **URL format:** `https://youtube.com/watch?v=VIDEO_ID` (video must have chapters in description)
 
-When combined with `--split-chapters`, the tool:
-- Detects chapter timestamps in the video description
-- Displays chapter list with timing information (start time, end time, duration)
+With `--list-chapters {json,manual}`, the tool:
+- Detects the video's chapters (native yt-dlp chapters for `json`, or a numbered tracklist parsed from the description for `manual`)
+- Displays the chapter list with timing information (start time, end time, duration)
 - **Creates a CSV file** (`segments-hms-full.txt`) with chapter metadata for manual editing:
   - Columns: start time, end time, song name, original song name, artist name, album name, year, composer, comments
   - Includes comment lines with video title, artist/uploader, and URL
   - Pre-fills chapter titles and the year (from the video upload date, in the first row only)
   - Cleans song titles (drops a leading `NN.` track number and trailing periods); de-duplicates identical names (`name(01)`, …) and marks every repeat as `SKIP` in the comment column
-- **For videos** (without `--only-audio`):
-  - Downloads the full video without chapter splitting
-  - CSV file provides chapter information for reference
-- **For audio** (`--only-audio` or `--with-audio`):
-  - Splits audio into separate files per chapter
-  - Automatically sets track numbers and titles based on chapter names
-  - Organizes files into a subdirectory
-  - Each audio format gets its own chapter files
+- Downloads the full video, then stops. You split the segments later from the CSV with the sibling **losslesscut-csv** tool.
 
 **Example:**
 ```bash
-# Audio only - splits audio by chapters + creates CSV
-python main-yt-dlp.py --only-audio --split-chapters --audio-format m4a "https://youtube.com/watch?v=VIDEO_ID"
+# Native chapters -> CSV + full video
+python main-yt-dlp.py --list-chapters json "https://youtube.com/watch?v=VIDEO_ID"
 
-# Video + Audio - downloads full video, splits audio by chapters + creates CSV
-python main-yt-dlp.py --with-audio --split-chapters "https://youtube.com/watch?v=VIDEO_ID"
-
-# Video only - downloads full video + creates CSV (no audio splitting)
-python main-yt-dlp.py --split-chapters "https://youtube.com/watch?v=VIDEO_ID"
+# Numbered tracklist parsed from the description -> CSV + full video
+python main-yt-dlp.py --list-chapters manual "https://youtube.com/watch?v=VIDEO_ID"
 ```
 
 **CSV File Output:**
@@ -242,8 +221,8 @@ python main-yt-dlp.py --only-audio --audio-format flac "https://youtube.com/watc
 # Multiple formats - MP3 and M4A
 python main-yt-dlp.py --with-audio --audio-format mp3,m4a "https://youtube.com/watch?v=VIDEO_ID"
 
-# All formats with chapters
-python main-yt-dlp.py --only-audio --audio-format mp3,m4a,flac --split-chapters "https://youtube.com/playlist?list=PLxxxxxxxx"
+# All formats
+python main-yt-dlp.py --only-audio --audio-format mp3,m4a,flac "https://youtube.com/playlist?list=PLxxxxxxxx"
 ```
 
 **Note:** FLAC is a lossless format that preserves audio quality but produces larger file sizes compared to MP3/M4A.
@@ -260,10 +239,10 @@ python main-yt-dlp.py "https://youtube.com/watch?v=VIDEO_ID"
 python main-yt-dlp.py --with-audio "https://youtube.com/playlist?list=PLxxxxxxxx"
 ```
 
-### Audio only with chapter splitting and CSV generation
+### List chapters and create the segments CSV
 ```bash
-python main-yt-dlp.py --only-audio --split-chapters "https://youtube.com/watch?v=VIDEO_ID"
-# Creates: individual chapter audio files + segments-hms-full.txt
+python main-yt-dlp.py --list-chapters manual "https://youtube.com/watch?v=VIDEO_ID"
+# Creates: yt-chapters/segments-hms-full.txt + downloads the full video, then stops
 ```
 
 ### Download with subtitles and JSON metadata
@@ -286,7 +265,7 @@ python main-yt-dlp.py --rerun --only-audio
 
 # Try different options with same URL
 python main-yt-dlp.py --rerun --with-audio --audio-format m4a
-python main-yt-dlp.py --rerun --split-chapters
+python main-yt-dlp.py --rerun --list-chapters manual
 ```
 
 ### Download with custom timeout (useful for slow connections)
@@ -330,7 +309,7 @@ python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 **Important:** When using cookies, the tool automatically:
 - Disables yt-dlp's cache (`--no-cache-dir`) to ensure fresh authentication for each operation
 - Adds 1-second delay between requests (`--sleep-requests 1`) to avoid YouTube rate limiting
-- This prevents 403 errors and makes downloads more reliable, especially with `--split-chapters`
+- This prevents 403 errors and makes downloads more reliable, especially for long videos
 - Downloads will be slower but much more stable for authenticated content
 
 ### Configure download retry behavior
@@ -524,7 +503,7 @@ python main-ertflix-series.py --debug-dom <URL>
 - **Navigation**: in the season picker, `q`/`0` quits. In the episode picker, `q`/`0` quits and `s` goes back to the season selector.
 - **`--program` flag**: when provided, the hand-off includes `--title "<program> S<NN>E<NN>"` (zero-padded season + episode). The same string is set as `NOTIF_MSG` so Slack/Gmail notifications identify the episode. `NOTIFICATIONS=ALL` is set automatically.
 - **Numbering matches the page**: seasons and episodes are listed newest-to-oldest on ERTFlix, so the newest gets the highest index. `S02E26` means season 2's 26th (oldest) episode.
-- **Pass-through**: unknown flags go straight to `main-yt-dlp.py` — use `--only-audio`, `--audio-format`, `--split-chapters`, `--subs`, etc. exactly as you would on the main script.
+- **Pass-through**: unknown flags go straight to `main-yt-dlp.py` — use `--only-audio`, `--audio-format`, `--subs`, etc. exactly as you would on the main script.
 - **Fallback prompt**: on consoles where `prompt_toolkit` can't drive the TTY (e.g. PyCharm's Run console), the script falls back to a plain numbered `input()` list — the numbers you type match what the Rich table shows.
 - **Dry-run**: `--dry-run` prints the hand-off command using `shlex.join(...)` so you can copy-paste the command even when `--title` contains whitespace.
 
@@ -650,7 +629,7 @@ The standalone audio-conversion, volume-boost, Dolby-Vision, Greek-singles dupli
   - `yt-audio/` - M4A files (the default format → primary audio directory)
   - `yt-audio-mp3/` - MP3 files
   - `yt-audio-flac/` - FLAC files
-- Chapter-split files are automatically organized into subdirectories
+- `yt-chapters/` - segments CSV (`segments-hms-full.txt`) created by `--list-chapters`
 
 ## Automatic Cleanup
 

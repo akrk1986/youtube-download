@@ -56,7 +56,6 @@ def sample_args() -> argparse.Namespace:
     return argparse.Namespace(
         video_url='https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         audio_format=DEFAULT_AUDIO_FORMAT,
-        split_chapters=False,
         video_download_timeout=None,
         subs=False,
         json=False,

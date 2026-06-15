@@ -15,8 +15,6 @@ from project_defs import NUMBERED_TRACKLIST_PATTERN
 
 logger = logging.getLogger(__name__)
 
-_MAX_NAME_WITHOUT_EXT = 59  # 64 max total - 1 dot - 4 chars for longest ext (.flac)
-_MAX_CHAPTER_TITLE_LEN = 53  # _MAX_NAME_WITHOUT_EXT - 6 chars for ' - NNN' suffix
 _MIN_NUMBERED_TRACKLIST_ROWS = 2  # below this, treat the description as not a tracklist
 _NUMBERED_TRACKLIST_RE = re.compile(NUMBERED_TRACKLIST_PATTERN, re.MULTILINE)
 
@@ -136,27 +134,6 @@ def _sanitize_chapter_title(title: str, max_len: int, fallback: str = '') -> str
     return sanitized
 
 
-def _build_filename_mapping(video_info: dict[str, Any]) -> dict[int, str]:
-    """Build mapping of chapter numbers to normalized filenames without extension.
-
-    Key 0 is the base video title. Keys 1..N are chapter titles with ' - NNN' suffix.
-    Values are sanitized and truncated to fit within filename length limits.
-    """
-    video_title = video_info.get('title', 'Unknown')
-    chapters = video_info.get('chapters', [])
-
-    base_name = _sanitize_chapter_title(video_title, _MAX_NAME_WITHOUT_EXT, fallback='Unknown')
-    mapping = {0: base_name}
-
-    for i, chapter in enumerate(chapters, 1):
-        title = chapter.get('title', f'Chapter {i}')
-        sanitized = _sanitize_chapter_title(_clean_song_title(title), _MAX_CHAPTER_TITLE_LEN,
-                                            fallback=f'Chapter {i}')
-        mapping[i] = f'{sanitized} - {i:03d}'
-
-    return mapping
-
-
 def get_chapter_count(ytdlp_exe: Path, playlist_url: str, video_download_timeout: int | None = None) -> int:
     """
     Get the number of chapters in a YouTube video using yt-dlp.
@@ -228,20 +205,16 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str, video_download_timeout
         return 0
 
 
-def display_chapters_and_confirm(video_info: dict[str, Any]) -> dict[int, str]:
+def display_chapters_and_confirm(video_info: dict[str, Any]) -> None:
     """
-    Display chapter list with timing information and build filename mapping.
+    Display the chapter list with timing information.
 
     Args:
         video_info: Video information dictionary from yt-dlp
-
-    Returns:
-        dict[int, str]: Mapping of chapter numbers to normalized filenames (without extension).
-                        Empty dict if no chapters found.
     """
     chapters = video_info.get('chapters', [])
     if not chapters:
-        return {}  # No chapters to display
+        return  # No chapters to display
 
     video_title = video_info.get('title', 'Unknown')
     video_duration = video_info.get('duration', 0)
@@ -250,10 +223,6 @@ def display_chapters_and_confirm(video_info: dict[str, Any]) -> dict[int, str]:
     print(f"Video: '{video_title}'")
     print(f'Total duration: {_format_duration(seconds=video_duration)}')
     print(f'Found {len(chapters)} chapters:')
-    print('='*80)
-    print('NOTE: Video chapters are cut at the nearest keyframe (I-frame) for clean splits.')
-    print('      This may result in slightly longer durations than shown below.')
-    print('      Audio chapters will match the exact times shown.')
     print('='*80)
     print(f"{'#':<4} {'Chapter Name':<50} {'Start':<10} {'End':<10} {'Duration':<10}")
     print('-'*80)
@@ -277,21 +246,6 @@ def display_chapters_and_confirm(video_info: dict[str, Any]) -> dict[int, str]:
         print(f'{i:<4} {display_title:<50} {start_str:<10} {end_str:<10} {duration_str:<10}')
 
     print('='*80)
-
-    # Build and print filename mapping
-    mapping = _build_filename_mapping(video_info=video_info)
-    print('\n' + '='*80)
-    print('Filename Mapping:')
-    print('='*80)
-    print(f"{'#':<4} {'Original Name':<50} {'Normalized Name'}")
-    print('-'*80)
-    for num in sorted(mapping.keys()):
-        orig = video_title if num == 0 else chapters[num - 1].get('title', f'Chapter {num}')
-        orig_display = orig[:47] + '...' if len(orig) > 50 else orig
-        print(f'{num:<4} {orig_display:<50} {mapping[num]}')
-    print('='*80)
-
-    return mapping
 
 
 def create_chapters_csv(video_info: dict[str, Any], output_dir: Path | str, video_title: str) -> None:
@@ -408,7 +362,7 @@ def detect_chapters(
     url_is_playlist: bool,
     show_chapters: bool,
     chapter_source: str = 'json',
-) -> tuple[bool, dict[str, Any] | None, str | None, str | None, dict[int, str]]:
+) -> tuple[bool, dict[str, Any] | None, str | None]:
     """Detect chapters and fetch video info if chapters exist.
 
     Args:
@@ -416,17 +370,17 @@ def detect_chapters(
         video_url: Video URL to check.
         video_download_timeout: Timeout for video downloads in seconds.
         url_is_playlist: Whether the URL is a playlist.
-        show_chapters: Whether to display chapters and build name map.
+        show_chapters: Whether to display the chapter table.
         chapter_source: 'manual' to use a numbered tracklist parsed from the description
             (safe here because manual mode never splits audio); otherwise native chapters.
 
     Returns:
-        tuple[bool, dict[str, Any] | None, str | None, str | None, dict[int, str]]:
-            (has_chapters, video_info, uploader_name, video_title, chapter_name_map)
+        tuple[bool, dict[str, Any] | None, str | None]:
+            (has_chapters, video_info, video_title)
     """
     if url_is_playlist:
         logger.info('URL is a playlist, not extracting chapters')
-        return False, None, None, None, {}
+        return False, None, None
 
     chapters_count = get_chapter_count(
         ytdlp_exe=Path(yt_dlp_exe),
@@ -435,7 +389,7 @@ def detect_chapters(
     )
     has_chapters = chapters_count > 0
     if not has_chapters:
-        return False, None, None, None, {}
+        return False, None, None
 
     logger.info(f'Video has {chapters_count} native chapters')
     video_info = get_video_info(
@@ -452,8 +406,7 @@ def detect_chapters(
     if video_title and video_title not in ('NA', ''):
         logger.debug(f"Video title for chapters: '{video_title}'")
 
-    chapter_name_map: dict[int, str] = {}
     if show_chapters:
-        chapter_name_map = display_chapters_and_confirm(video_info=video_info)
+        display_chapters_and_confirm(video_info=video_info)
 
-    return has_chapters, video_info, uploader_name, video_title, chapter_name_map
+    return has_chapters, video_info, video_title

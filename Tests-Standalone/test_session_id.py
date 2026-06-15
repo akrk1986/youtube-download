@@ -24,5 +24,4 @@ if __name__ == '__main__':
     print()
     print('*Parameters:*')
     print('  • only_audio: True')
-    print('  • split_chapters: True')
     print('=' * 60)

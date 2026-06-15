@@ -11,17 +11,17 @@ from typing import Any
 from common_av.notifications import (GmailNotifier, NotificationData,
                                      NotificationHandler, SlackNotifier,
                                      send_all_notifications)
-from funcs_for_main_yt_dlp import (DownloadOptions, check_output_dirs_empty,
+from funcs_for_main_yt_dlp import (DownloadOptions,
                                    cleanup_leftover_files, count_initial_files,
                                    count_new_files, determine_audio_mode,
                                    extract_audio_with_ytdlp,
                                    format_elapsed_time, generate_session_id,
                                    get_audio_dir_for_format, get_custom_metadata,
-                                   get_ffmpeg_path, get_ytdlp_path,
+                                   get_ytdlp_path,
                                    get_ytdlp_version, organize_and_sanitize_files,
                                    parse_and_validate_audio_formats,
                                    parse_arguments, process_audio_tags,
-                                   remux_video_chapters, run_yt_dlp,
+                                   run_yt_dlp,
                                    validate_and_get_url,
                                    validate_list_chapters)
 from funcs_video_info import (are_chapters_supported, are_playlists_supported,
@@ -41,7 +41,7 @@ except ImportError:
     pass
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-06-15-1324'
+VERSION = '2026-06-16-0107'
 
 logger = logging.getLogger(__name__)
 
@@ -247,14 +247,6 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
 
     video_folder = Path(VIDEO_OUTPUT_DIR).resolve()
 
-    # Pre-flight check for --split-chapters: abort if output dirs are non-empty
-    if args.split_chapters:
-        check_output_dirs_empty(
-            only_audio=args.only_audio,
-            need_audio=need_audio,
-            audio_formats=audio_formats,
-        )
-
     if not args.only_audio:
         video_folder.mkdir(parents=True, exist_ok=True)
         cleanup_leftover_files(video_folder=video_folder)
@@ -278,16 +270,16 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
     # Detect chapters and fetch video info (only for chapter-capable domains)
     chapter_source = 'manual' if args.list_chapters == 'manual' else 'json'
     if are_chapters_supported(url=args.video_url):
-        has_chapters, video_info, uploader_name, video_title, chapter_name_map = detect_chapters(
+        has_chapters, video_info, video_title = detect_chapters(
             yt_dlp_exe=yt_dlp_exe,
             video_url=args.video_url,
             video_download_timeout=args.video_download_timeout,
             url_is_playlist=url_is_playlist,
-            show_chapters=bool(args.split_chapters or args.list_chapters),
+            show_chapters=bool(args.list_chapters),
             chapter_source=chapter_source,
         )
     else:
-        has_chapters, video_info, uploader_name, video_title, chapter_name_map = False, None, None, None, {}
+        has_chapters, video_info, video_title = False, None, None
 
     # --list-chapters requires the video to have chapters
     if args.list_chapters and not has_chapters:
@@ -298,8 +290,6 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
     download_opts = DownloadOptions(
         ytdlp_exe=yt_dlp_exe,
         url=args.video_url,
-        has_chapters=has_chapters,
-        split_chapters=args.split_chapters,
         is_it_playlist=url_is_playlist,
         show_progress=args.progress,
         video_download_timeout=args.video_download_timeout,
@@ -308,8 +298,8 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         custom_album=custom_album
     )
 
-    # Create chapters CSV for user reference (always when split_chapters or list_chapters is active)
-    if (args.split_chapters or args.list_chapters) and has_chapters and video_info is not None:
+    # Create chapters CSV for user reference (when --list-chapters is active)
+    if args.list_chapters and has_chapters and video_info is not None:
         chapters_dir = Path('yt-chapters')
         chapters_dir.mkdir(parents=True, exist_ok=True)
         create_chapters_csv(video_info=video_info, output_dir=chapters_dir,
@@ -321,23 +311,17 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         if args.list_chapters:
             logger.info('--list-chapters: chapters CSV created and video downloaded. Done.')
             return
-        if args.split_chapters and has_chapters and video_info is not None:
-            remux_video_chapters(ffmpeg_path=get_ffmpeg_path(), video_folder=video_folder,
-                                 chapters=video_info.get('chapters', []),
-                                 video_title=video_title)
 
     # Download audios if requested
     if need_audio:
         extract_audio_with_ytdlp(opts=download_opts, audio_formats=audio_formats)
 
-    # Organize chapter files and sanitize filenames
+    # Sanitize downloaded file names
     original_names = organize_and_sanitize_files(
         video_folder=video_folder,
         audio_formats=audio_formats,
-        has_chapters=has_chapters,
         only_audio=args.only_audio,
         need_audio=need_audio,
-        chapter_name_map=chapter_name_map
     )
 
     # Process audio tags
@@ -345,9 +329,6 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         process_audio_tags(
             audio_formats=audio_formats,
             artists_json=artists_json,
-            has_chapters=has_chapters,
-            uploader_name=uploader_name,
-            video_title=video_title,
             original_names=original_names
         )
 
@@ -378,7 +359,6 @@ def main() -> None:
     args_dict = {
         'video_url': args.video_url,
         'audio_format': args.audio_format,
-        'split_chapters': args.split_chapters,
         'list_chapters': args.list_chapters,
         'video_download_timeout': args.video_download_timeout,
         'subs': args.subs,

@@ -9,7 +9,7 @@ This is a Python-based YouTube downloader and media processing tool that uses `y
 - Download YouTube videos/playlists as MP4 files
 - Download ERTFlix (Greek public broadcaster) programs using token API URLs
 - Extract audio as MP3, M4A, and/or FLAC with embedded metadata and thumbnails
-- Split videos by chapters automatically
+- List a video's chapters and export a segments CSV for the losslesscut-csv split workflow
 - Process audio tags to identify and set Greek artists
 - Handle subtitle downloads in multiple languages (Greek, English, Hebrew)
 - Sanitize filenames for multiple languages (English, French, Turkish, Greek, Hebrew)
@@ -35,11 +35,10 @@ The codebase uses a modular package-based architecture. Shared audio/video helpe
 
 **Packages:**
 
-- `funcs_for_main_yt_dlp/` - Main script helpers (10 modules, ~1000 lines)
+- `funcs_for_main_yt_dlp/` - Main script helpers
   - `_download_common.py` - Shared `DownloadOptions` dataclass, helpers, progress state
   - `download_video.py` - Video download (`run_yt_dlp`, `VIDEO_FORMAT_FALLBACKS`)
   - `download_audio.py` - Audio extraction (`extract_single_format`, `extract_audio_with_ytdlp`)
-  - `chapter_remux.py` - Chapter remux post-processing (`remux_video_chapters`)
   - `audio_processing.py` - Audio tag processing coordination
   - `file_organization.py` - File organization and sanitization
   - `external_tools.py` - External tool path detection (ffmpeg, yt-dlp)
@@ -101,8 +100,8 @@ python main-yt-dlp.py --only-audio --audio-format m4a "URL"
 # Download with multiple audio formats (comma-separated)
 python main-yt-dlp.py --only-audio --audio-format mp3,m4a,flac "URL"
 
-# Audio only with chapters (delete videos after extraction)
-python main-yt-dlp.py --only-audio --split-chapters "https://youtube.com/watch?v=..."
+# List chapters and create the segments CSV (downloads full video, then stops)
+python main-yt-dlp.py --list-chapters manual "https://youtube.com/watch?v=..."
 
 # With subtitles and JSON metadata
 python main-yt-dlp.py --with-audio --subs --json "URL"
@@ -293,7 +292,7 @@ python Utils/main-get-artists-from-trello.py
   - `yt-audio-mp3/` - MP3 files (lossy, ID3v2 tags; `AUDIO_OUTPUT_DIR_MP3`)
   - `yt-audio-flac/` - FLAC files (lossless, Vorbis Comments; `AUDIO_OUTPUT_DIR_FLAC`)
   - Legacy `yt-audio-m4a/` from before the m4a-default remap is left as-is (no migration)
-- Chapter files are automatically organized into subdirectories when `--split-chapters` is used
+- `yt-chapters/` holds the segments CSV (`segments-hms-full.txt`) created by `--list-chapters`
 
 ## Audio Tagging System
 
@@ -590,7 +589,7 @@ GMAIL_PARAMS = {
   - Use `--show-urls` flag only for debugging (exposes webhook URL in logs)
 
 ### Message Content
-- **Start message**: URL, selected parameters (with-audio, only-audio, split-chapters, title, artist, album)
+- **Start message**: URL, selected parameters (with-audio, only-audio, title, artist, album)
 - **Success/failure/cancellation message**: All parameters, file counts, elapsed time
 - **Slack format**: Markdown with `*bold*` and bullet points
 - **Gmail format**: HTML email with subject line indicating status

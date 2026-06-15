@@ -13,7 +13,6 @@ Logging configuration (``setup_logging``) and diacritic removal
 # Import all functions to maintain backward compatibility
 from common_av.log_config import setup_logging
 from funcs_utils.file_operations import (
-    organize_media_files,
     organize_media_files_silent,
     sanitize_filenames_in_folder,
 )
@@ -33,7 +32,6 @@ from funcs_utils.yt_dlp_utils import (
 
 __all__ = [
     # File operations
-    'organize_media_files',
     'organize_media_files_silent',
     'sanitize_filenames_in_folder',
     # String sanitization
