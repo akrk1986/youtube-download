@@ -46,7 +46,7 @@ from funcs_for_main_yt_dlp.utilities import (
     get_custom_metadata,
     parse_and_validate_audio_formats,
     parse_arguments,
-    validate_list_chapters_only,
+    validate_list_chapters,
 )
 
 __all__ = [
@@ -78,7 +78,7 @@ __all__ = [
     'parse_arguments',
     'parse_and_validate_audio_formats',
     'get_custom_metadata',
-    'validate_list_chapters_only',
+    'validate_list_chapters',
     'determine_audio_mode',
     # ERTFlix token handling
     'is_ertflix_token_url',

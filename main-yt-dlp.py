@@ -23,7 +23,7 @@ from funcs_for_main_yt_dlp import (DownloadOptions, check_output_dirs_empty,
                                    parse_arguments, process_audio_tags,
                                    remux_video_chapters, run_yt_dlp,
                                    validate_and_get_url,
-                                   validate_list_chapters_only)
+                                   validate_list_chapters)
 from funcs_video_info import (are_chapters_supported, are_playlists_supported,
                               create_chapters_csv, detect_chapters, is_playlist)
 from funcs_utils import setup_logging
@@ -211,7 +211,7 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
     """Execute the main download logic."""
 
     audio_formats = parse_and_validate_audio_formats(audio_format_str=args.audio_format)
-    validate_list_chapters_only(args=args)
+    validate_list_chapters(args=args)
     need_audio = determine_audio_mode(args=args, audio_formats=audio_formats)
 
     # Detect platform and set appropriate executable path
@@ -266,8 +266,8 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
     # Playlist / chapter detection only run for domains that support them (YouTube today)
     url_is_playlist = is_playlist(url=args.video_url) if are_playlists_supported(url=args.video_url) else False
 
-    if args.list_chapters_only and url_is_playlist:
-        logger.error('--list-chapters-only does not support playlist URLs. Provide a single video URL.')
+    if args.list_chapters and url_is_playlist:
+        logger.error('--list-chapters does not support playlist URLs. Provide a single video URL.')
         sys.exit(1)
 
     # Get custom metadata (--title, --artist, --album)
@@ -276,20 +276,22 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
     )
 
     # Detect chapters and fetch video info (only for chapter-capable domains)
+    chapter_source = 'manual' if args.list_chapters == 'manual' else 'json'
     if are_chapters_supported(url=args.video_url):
         has_chapters, video_info, uploader_name, video_title, chapter_name_map = detect_chapters(
             yt_dlp_exe=yt_dlp_exe,
             video_url=args.video_url,
             video_download_timeout=args.video_download_timeout,
             url_is_playlist=url_is_playlist,
-            show_chapters=args.split_chapters or args.list_chapters_only,
+            show_chapters=bool(args.split_chapters or args.list_chapters),
+            chapter_source=chapter_source,
         )
     else:
         has_chapters, video_info, uploader_name, video_title, chapter_name_map = False, None, None, None, {}
 
-    # --list-chapters-only requires the video to have chapters
-    if args.list_chapters_only and not has_chapters:
-        logger.error('--list-chapters-only: video has no chapters. Aborting.')
+    # --list-chapters requires the video to have chapters
+    if args.list_chapters and not has_chapters:
+        logger.error('--list-chapters: video has no chapters. Aborting.')
         sys.exit(1)
 
     # Create download options dataclass for common parameters
@@ -306,17 +308,18 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         custom_album=custom_album
     )
 
-    # Create chapters CSV for user reference (always when split_chapters or list_chapters_only is active)
-    if (args.split_chapters or args.list_chapters_only) and has_chapters and video_info is not None:
+    # Create chapters CSV for user reference (always when split_chapters or list_chapters is active)
+    if (args.split_chapters or args.list_chapters) and has_chapters and video_info is not None:
         chapters_dir = Path('yt-chapters')
         chapters_dir.mkdir(parents=True, exist_ok=True)
-        create_chapters_csv(video_info=video_info, output_dir=chapters_dir, video_title=video_title or 'Unknown')
+        create_chapters_csv(video_info=video_info, output_dir=chapters_dir,
+                            video_title=video_title or 'Unknown')
 
     # Download videos if requested
     if not args.only_audio:
         run_yt_dlp(opts=download_opts, video_folder=video_folder, get_subs=args.subs, write_json=args.json)
-        if args.list_chapters_only:
-            logger.info('--list-chapters-only: chapters CSV created and video downloaded. Done.')
+        if args.list_chapters:
+            logger.info('--list-chapters: chapters CSV created and video downloaded. Done.')
             return
         if args.split_chapters and has_chapters and video_info is not None:
             remux_video_chapters(ffmpeg_path=get_ffmpeg_path(), video_folder=video_folder,
@@ -351,8 +354,21 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
     logger.info('Download completed successfully')
 
 
+def _force_utf8_console() -> None:
+    """Reconfigure stdout/stderr to UTF-8 so Greek/Hebrew text never crashes on Windows.
+
+    Windows consoles default to cp1252, which raises UnicodeEncodeError when printing
+    non-Latin-1 characters (e.g. Greek chapter titles).
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, 'reconfigure', None)
+        if reconfigure is not None:
+            reconfigure(encoding='utf-8', errors='replace')
+
+
 def main() -> None:
     """Entry point: parse arguments, set up logging, and run the download."""
+    _force_utf8_console()
     args = parse_arguments(version=VERSION)
 
     # Setup logging (must be done early)
@@ -363,7 +379,7 @@ def main() -> None:
         'video_url': args.video_url,
         'audio_format': args.audio_format,
         'split_chapters': args.split_chapters,
-        'list_chapters_only': args.list_chapters_only,
+        'list_chapters': args.list_chapters,
         'video_download_timeout': args.video_download_timeout,
         'subs': args.subs,
         'json': args.json,

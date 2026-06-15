@@ -69,6 +69,10 @@ CHAPTER_TIMESTAMP_PATTERNS = (
     r'(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+?)(?=\n|$)',  # 12:34 Chapter Name
     r'(\d{1,2}:\d{2}(?::\d{2})?)\s*[:\-–—]\s*(.+?)(?=\n|$)',  # 12:34: Chapter Name
 )
+# Title-first numbered tracklist: 'NN. Title  START[ - END]' (leading number optional,
+# title before the first timestamp = start). Used with re.MULTILINE for --list-chapters manual.
+# Inter-token whitespace is horizontal-only ([^\S\n]) so a match never spans line breaks.
+NUMBERED_TRACKLIST_PATTERN = r'^[^\S\n]*(?:\d+\.[^\S\n]*)?(.+?)[^\S\n]+(\d{1,2}:\d{2}(?::\d{2})?)\b'
 SAFE_FILENAME_PATTERN = r'[^\w\s-]'
 WHITESPACE_TO_UNDERSCORE_PATTERN = r'[-\s]+'
 

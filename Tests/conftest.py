@@ -71,7 +71,7 @@ def sample_args() -> argparse.Namespace:
         with_audio=False,
         only_audio=False,
         ertflix_program=False,
-        list_chapters_only=False
+        list_chapters=None
     )
 
 

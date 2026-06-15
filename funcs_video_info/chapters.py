@@ -2,18 +2,23 @@
 import csv
 import json
 import logging
+import re
 import subprocess
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
 from funcs_utils import get_cookie_args, sanitize_string, sanitize_url_for_subprocess
 from funcs_video_info.metadata import get_video_info
 from funcs_video_info.url_validation import get_timeout_for_url
+from project_defs import NUMBERED_TRACKLIST_PATTERN
 
 logger = logging.getLogger(__name__)
 
 _MAX_NAME_WITHOUT_EXT = 59  # 64 max total - 1 dot - 4 chars for longest ext (.flac)
 _MAX_CHAPTER_TITLE_LEN = 53  # _MAX_NAME_WITHOUT_EXT - 6 chars for ' - NNN' suffix
+_MIN_NUMBERED_TRACKLIST_ROWS = 2  # below this, treat the description as not a tracklist
+_NUMBERED_TRACKLIST_RE = re.compile(NUMBERED_TRACKLIST_PATTERN, re.MULTILINE)
 
 
 def _format_duration(seconds: float) -> str:
@@ -35,6 +40,92 @@ def _seconds_to_hhmmss(seconds: float) -> str:
     minutes = (total_seconds % 3600) // 60
     secs = total_seconds % 60
     return f'{hours:02d}{minutes:02d}{secs:02d}'
+
+
+# Leading track sequence, e.g. '01. ', '1.', '12.  ' at the start of a song title.
+_LEADING_SEQUENCE_RE = re.compile(r'^\s*\d+\.\s*')
+# Any trailing run of whitespace and periods (e.g. 'Title.', 'Title...').
+_TRAILING_PERIODS_RE = re.compile(r'[\s.]+$')
+
+
+def _clean_song_title(title: str) -> str:
+    """Strip a leading track-sequence number and trailing periods from a song title.
+
+    Removes a leading 'NN. ' / 'N.' sequence (as used in tracklists) and any
+    trailing period(s), so 'NN. Song Title...' becomes 'Song Title'.
+
+    Args:
+        title: Raw chapter/song title.
+
+    Returns:
+        str: The title without the leading sequence number or trailing periods.
+    """
+    cleaned = _LEADING_SEQUENCE_RE.sub('', title)
+    return _TRAILING_PERIODS_RE.sub('', cleaned)
+
+
+def _hms_to_seconds(time_str: str) -> int:
+    """Convert a 'MM:SS' or 'HH:MM:SS' timestamp to seconds."""
+    parts = [int(p) for p in time_str.split(':')]
+    if len(parts) == 2:
+        return parts[0] * 60 + parts[1]
+    return parts[0] * 3600 + parts[1] * 60 + parts[2]
+
+
+def _parse_numbered_tracklist(description: str, video_duration: float) -> list[dict[str, Any]]:
+    """Parse a title-first numbered tracklist from a video description.
+
+    Matches lines of the form 'NN. Title  START[ - END]' (leading number optional),
+    taking the first timestamp on each line as the chapter start. Titles are cleaned
+    with _clean_song_title(). End times are derived from the next row's start (the last
+    row uses video_duration), so a malformed end range does not break parsing.
+
+    Args:
+        description: Full video description text.
+        video_duration: Video duration in seconds (used for the last chapter's end).
+
+    Returns:
+        list[dict[str, Any]]: Chapters as dicts with 'start_time', 'end_time', 'title',
+        in description order. Empty if no tracklist lines are found.
+    """
+    rows: list[dict[str, Any]] = []
+    for title, time_str in _NUMBERED_TRACKLIST_RE.findall(description):
+        clean_title = _clean_song_title(title.strip())
+        if clean_title:
+            rows.append({'start_time': _hms_to_seconds(time_str=time_str), 'title': clean_title})
+
+    for i, row in enumerate(rows):
+        row['end_time'] = rows[i + 1]['start_time'] if i + 1 < len(rows) else video_duration
+
+    return rows
+
+
+def _resolve_csv_chapters(video_info: dict[str, Any], chapter_source: str) -> list[dict[str, Any]]:
+    """Choose the chapter list used to build the CSV based on the requested source.
+
+    'manual' parses a numbered tracklist from the description; if none is found it warns
+    and falls back to the native yt-dlp chapters. Any other value uses native chapters.
+
+    Args:
+        video_info: Video information dictionary from yt-dlp.
+        chapter_source: 'manual' to parse the description, otherwise native chapters.
+
+    Returns:
+        list[dict[str, Any]]: The chapters to write to the CSV.
+    """
+    native = video_info.get('chapters') or []
+    if chapter_source != 'manual':
+        return native
+
+    parsed = _parse_numbered_tracklist(description=video_info.get('description') or '',
+                                       video_duration=video_info.get('duration') or 0)
+    if len(parsed) >= _MIN_NUMBERED_TRACKLIST_ROWS:
+        logger.info(f'Using {len(parsed)} chapters parsed from the description (manual mode)')
+        return parsed
+
+    logger.warning('manual mode found no numbered tracklist in the description; '
+                   'using native yt-dlp chapters instead')
+    return native
 
 
 def _sanitize_chapter_title(title: str, max_len: int, fallback: str = '') -> str:
@@ -59,7 +150,8 @@ def _build_filename_mapping(video_info: dict[str, Any]) -> dict[int, str]:
 
     for i, chapter in enumerate(chapters, 1):
         title = chapter.get('title', f'Chapter {i}')
-        sanitized = _sanitize_chapter_title(title, _MAX_CHAPTER_TITLE_LEN, fallback=f'Chapter {i}')
+        sanitized = _sanitize_chapter_title(_clean_song_title(title), _MAX_CHAPTER_TITLE_LEN,
+                                            fallback=f'Chapter {i}')
         mapping[i] = f'{sanitized} - {i:03d}'
 
     return mapping
@@ -206,6 +298,9 @@ def create_chapters_csv(video_info: dict[str, Any], output_dir: Path | str, vide
     """
     Create a CSV file with chapter information instead of downloading video chapters.
 
+    The chapter source (native vs. description-parsed) is already resolved by
+    detect_chapters, so this reads video_info['chapters'] directly.
+
     Args:
         video_info: Dictionary containing video metadata including chapters
         output_dir: Directory where CSV file should be saved
@@ -258,22 +353,37 @@ def create_chapters_csv(video_info: dict[str, Any], output_dir: Path | str, vide
             # upload_date is typically in YYYYMMDD format
             year = upload_date[:4] if len(upload_date) >= 4 else ''
 
+        # Pre-compute sanitized song names to find repeats. A name that appears more than
+        # once (e.g. recurring 'Συνέντευξη' interview breaks) is marked 'SKIP' in the comment
+        # column for every occurrence, so the losslesscut-csv step skips those rows entirely.
+        base_names = [_sanitize_chapter_title(_clean_song_title(ch.get('title', '')), 60)
+                      for ch in chapters]
+        name_totals = Counter(base_names)
+
         # Write chapter data
+        seen_song_names: dict[str, int] = {}
         for i, chapter in enumerate(chapters):
             start_seconds = chapter.get('start_time', 0)
             end_seconds = chapter.get('end_time', 0)
-            title = chapter.get('title', '')
+            song_name = base_names[i]
+            comment = 'SKIP' if name_totals[song_name] > 1 else ''
 
-            # Normalize title to a valid filename on Linux and Windows, truncated to 60 chars
-            song_name = _sanitize_chapter_title(title, 60)
+            # De-duplicate identical song names so they don't map to the same file:
+            # the 2nd occurrence becomes 'name(01)', the 3rd 'name(02)', etc.
+            seen_count = seen_song_names.get(song_name, 0)
+            seen_song_names[song_name] = seen_count + 1
+            if seen_count > 0:
+                song_name = f'{song_name}({seen_count:02d})'
 
             # Convert seconds to HHMMSS format
             start_time = _seconds_to_hhmmss(seconds=start_seconds)
             end_time = _seconds_to_hhmmss(seconds=end_seconds)
 
-            # First row: placeholder artist/album for user to fill in; subsequent rows: '-'
+            # First row carries the artist/album placeholders and the year; subsequent rows
+            # use '-' so the value is not repeated down the column.
             artist_name = 'Artist-name' if i == 0 else '-'
             album_name = 'Album-name' if i == 0 else '-'
+            year_cell = year if i == 0 else '-'
 
             writer.writerow([
                 start_time,                # start time
@@ -283,9 +393,9 @@ def create_chapters_csv(video_info: dict[str, Any], output_dir: Path | str, vide
                 '',                        # original song name (empty for user to fill)
                 artist_name,               # artist name
                 album_name,                # album name
-                year,                      # year (from video upload date if available)
+                year_cell,                 # year (from video upload date; first row only)
                 '',                        # composer (empty for user to fill)
-                ''                         # comments (empty for user to fill)
+                comment                    # comments ('SKIP' for repeated song names)
             ])
 
     logger.info(f"Chapters CSV was created successfully: '{csv_path}'")
@@ -297,6 +407,7 @@ def detect_chapters(
     video_download_timeout: int | None,
     url_is_playlist: bool,
     show_chapters: bool,
+    chapter_source: str = 'json',
 ) -> tuple[bool, dict[str, Any] | None, str | None, str | None, dict[int, str]]:
     """Detect chapters and fetch video info if chapters exist.
 
@@ -306,6 +417,8 @@ def detect_chapters(
         video_download_timeout: Timeout for video downloads in seconds.
         url_is_playlist: Whether the URL is a playlist.
         show_chapters: Whether to display chapters and build name map.
+        chapter_source: 'manual' to use a numbered tracklist parsed from the description
+            (safe here because manual mode never splits audio); otherwise native chapters.
 
     Returns:
         tuple[bool, dict[str, Any] | None, str | None, str | None, dict[int, str]]:
@@ -324,12 +437,14 @@ def detect_chapters(
     if not has_chapters:
         return False, None, None, None, {}
 
-    logger.info(f'Video has {chapters_count} chapters')
+    logger.info(f'Video has {chapters_count} native chapters')
     video_info = get_video_info(
         yt_dlp_path=Path(yt_dlp_exe),
         url=video_url,
         video_download_timeout=video_download_timeout,
     )
+    # Resolve the chapter source once so the count, display, and CSV are consistent.
+    video_info['chapters'] = _resolve_csv_chapters(video_info=video_info, chapter_source=chapter_source)
     uploader_name = video_info.get('uploader')
     video_title = video_info.get('title')
     if uploader_name and uploader_name not in ('NA', ''):

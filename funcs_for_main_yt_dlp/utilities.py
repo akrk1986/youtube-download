@@ -68,9 +68,11 @@ def parse_arguments(argv: list[str] | None = None, version: str = '') -> argpars
     parser.add_argument('--album',
                         help='Custom album tag (ignored for playlists)')
     parser.add_argument('--version', action='version', version=f'%(prog)s {version}')
-    parser.add_argument('--list-chapters-only', action='store_true',
-                        help='List chapters, create segments CSV, then download video and stop. '
-                             'Aborts if the video has no chapters.')
+    parser.add_argument('--list-chapters', choices=['json', 'manual'], default=None,
+                        help="List chapters, create the segments CSV, then download the video and "
+                             "stop (aborts if the video has no chapters). 'json' uses yt-dlp's "
+                             "native chapters; 'manual' parses a numbered tracklist from the "
+                             "description (falls back to 'json' if none is found).")
 
     audio_group = parser.add_mutually_exclusive_group()
     audio_group.add_argument('--with-audio', action='store_true',
@@ -151,13 +153,13 @@ def get_custom_metadata(
     return custom_title, custom_artist, custom_album
 
 
-def validate_list_chapters_only(args: argparse.Namespace) -> None:
-    """Abort if --list-chapters-only is combined with conflicting flags.
+def validate_list_chapters(args: argparse.Namespace) -> None:
+    """Abort if --list-chapters is combined with conflicting flags.
 
     Args:
         args: Parsed command-line arguments.
     """
-    if not args.list_chapters_only:
+    if not args.list_chapters:
         return
     conflicting = []
     if args.with_audio:
@@ -169,7 +171,7 @@ def validate_list_chapters_only(args: argparse.Namespace) -> None:
     if args.split_chapters:
         conflicting.append('--split-chapters')
     if conflicting:
-        logger.error('--list-chapters-only cannot be combined with: %s', ', '.join(conflicting))
+        logger.error('--list-chapters cannot be combined with: %s', ', '.join(conflicting))
         sys.exit(1)
 
 
