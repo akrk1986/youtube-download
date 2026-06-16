@@ -643,10 +643,15 @@ The project uses `run-linters.py` (project root) to run all linting tools. Each 
 | `eslint` | JavaScript linting (`JS-files/`) |
 | `jshint` | JavaScript linting (`JS-files/`) |
 
-### Running a Single Tool
+### Running One or More Tools
 ```bash
 source ../.venv-av-linux/bin/activate && python run-linters.py --tool ruff
+python run-linters.py --tool ruff mypy pylint   # several tools; rich PASS/FAIL summary at the end
 ```
+
+`--tool` accepts one or more names. Each runs, its pass/fail is cached, and a `rich` columnar
+summary of every invoked tool is printed at the end (the run-all path prints it too). Exit code
+is `0` only if all passed, else `1`.
 
 ### List All Tools
 ```bash
