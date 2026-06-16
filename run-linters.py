@@ -5,11 +5,11 @@ Generic machinery lives in ``common_linters.linters_funcs``; this script only de
 project-specific tool set and per-tool commands.
 
 Usage:
-    python run-linters.py --tool <name>                  Run a single tool (raw output)
-    python run-linters.py --tool <name> --group-by-files Run one tool, group output by file
+    python run-linters.py --tool <name> [<name> ...]     Run one or more tools, show a PASS/FAIL summary
+    python run-linters.py --tool <name> --group-by-files Run tool(s), group output by file
     python run-linters.py --group-by-files               Run all tools, group output by file
     python run-linters.py --list                         Print all tool names (one per line)
-    python run-linters.py                                Run all tools (raw output, radon excluded)
+    python run-linters.py                                Run all tools (raw output + PASS/FAIL summary, radon excluded)
 """
 
 import re
