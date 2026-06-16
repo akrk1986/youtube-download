@@ -720,6 +720,23 @@ python Utils/install-git-hooks.py --uninstall  # disable (unsets core.hooksPath)
 
 It blocks the commit if any linter fails, and skips commits that touch only documentation or only a `VERSION = ...` line. Bypass a single commit with `git commit --no-verify`.
 
+## Linting
+
+The project runs its linter stack via `run-linters.py` (project root):
+
+```bash
+source ../.venv-av-linux/bin/activate
+python run-linters.py                       # run all tools + PASS/FAIL summary
+python run-linters.py --tool ruff           # run a single tool
+python run-linters.py --tool ruff mypy ty   # run several tools; rich PASS/FAIL summary at the end
+python run-linters.py --list                # list available tools
+```
+
+`--tool` accepts one or more tool names. Each tool runs, its pass/fail is cached, and a
+`rich` columnar summary of every invoked tool is printed at the end (the run-all path prints
+it too). The exit code is `0` only if all tools passed, else `1`, so the script doubles as the
+pre-commit hook backend.
+
 ## Documentation
 
 - **[Configuring mp3tag to Display yt-dlp Generated Audio Files](Docs/Configuring%20mp3tag%20to%20display%20yt-dlp%20generated%20audio%20files.md)** - Guide for viewing and editing metadata in mp3tag for MP3, M4A, and FLAC files
