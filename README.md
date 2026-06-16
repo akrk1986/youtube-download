@@ -737,6 +737,9 @@ python run-linters.py --list                # list available tools
 it too). The exit code is `0` only if all tools passed, else `1`, so the script doubles as the
 pre-commit hook backend.
 
+This project also lints the JavaScript in `JS-files/` — `eslint` and `jshint` run alongside
+the Python tools (skipped automatically when no `.js` files are present).
+
 ## Documentation
 
 - **[Configuring mp3tag to Display yt-dlp Generated Audio Files](Docs/Configuring%20mp3tag%20to%20display%20yt-dlp%20generated%20audio%20files.md)** - Guide for viewing and editing metadata in mp3tag for MP3, M4A, and FLAC files
