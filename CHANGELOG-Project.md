@@ -2,6 +2,12 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-19-2014] - freshness: release-age column + generated upgrade scripts
+
+### Changed
+- **`run-linters.py`**: the `freshness` tool now runs `pip list --outdated --format=json` so the shared `common_linters.run_freshness()` can post-process it. Output is now a `rich` table (Package / Current / Latest / Age (days) / Action): **Age** is days since the latest release was published on PyPI with a red **`New`** (`< 8` days) / green **`Stable`** (`≥ 8` days) badge, and **Action** flags sdist-only releases as `⚠ build from source` (the old always-`wheel` Type column is gone). It then writes `pip-upgrade-stable.sh` + `pip-upgrade-stable.ps1` (Stable packages only) and interactively offers to display/run the platform script; non-interactive callers skip the prompts. The feature itself lives in the shared `common-av-codebase` `common_linters/linters_funcs.py`.
+- **`.gitignore`**: ignore the generated `pip-upgrade-stable.sh` / `pip-upgrade-stable.ps1` (regenerated every run, not source).
+
 ## [2026-06-14-1745] - pip CVE bump; deptry ignores transitive CVE pins
 
 ### Fixed

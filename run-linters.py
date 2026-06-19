@@ -27,7 +27,8 @@ _DEFAULT_SKIP: frozenset[str] = frozenset({'skylos'})       # slow; opt-in via -
 TOOLS = [t for t in LINTER_TOOLS if t not in _FULLY_EXCLUDED and t not in _DEFAULT_SKIP]
 
 # skylos (slow) and radon/freshness (informational) are excluded from default runs; all stay
-# opt-in via --tool <name>. freshness: `pip list --outdated` (needs network, never blocks).
+# opt-in via --tool <name>. freshness: outdated packages with release age + upgrade scripts
+# (needs network, never blocks; post-processed by common_linters.run_freshness).
 ALL_TOOLS = TOOLS + ['skylos', 'radon', 'freshness']
 
 
@@ -74,7 +75,8 @@ def build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
     if name == 'freshness':
         # Informational: list installed packages with a newer (stable) release on PyPI. Mirrors what
         # `pip-compile --upgrade` can actually move (pre-releases excluded). always_pass=True.
-        return [sys.executable, '-m', 'pip', 'list', '--outdated'], True
+        # JSON output is post-processed by run_freshness() (age column, upgrade-script generation).
+        return [sys.executable, '-m', 'pip', 'list', '--outdated', '--format=json'], True
     if name == 'pyupgrade':
         py_files = collect_py_files(root, EXCLUDED_DIRS)
         return ['pyupgrade', '--py311-plus'] + py_files, False
