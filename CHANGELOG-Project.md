@@ -2,6 +2,11 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-24-1854] - add python3 shebang to entry-point scripts
+
+### Added
+- **All entry-point scripts** (anything with a `__main__` guard — `main-yt-dlp.py`, `main-ertflix-series.py`, `run-linters.py`, `Utils/main-get-artists-from-trello.py`, and the `Tests-Standalone/` scripts): now start with `#!/usr/bin/env python3` so they can be run directly (`./script.py`) instead of failing in the shell. Non-functional tooling change; main-script `VERSION` constants are unchanged.
+
 ## [2026-06-19-2014] - freshness: release-age column + generated upgrade scripts
 
 ### Changed
