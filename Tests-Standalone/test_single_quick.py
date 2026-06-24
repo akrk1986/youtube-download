@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Quick test for just the first video to verify artists.json path fix."""
 import sys
 import subprocess

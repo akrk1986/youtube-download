@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Test script for three YouTube URL scenarios:
 1. Simple single video (extract audio)

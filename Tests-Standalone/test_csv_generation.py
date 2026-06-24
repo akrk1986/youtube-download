@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Test the chapters CSV generation functionality."""
 
 import sys

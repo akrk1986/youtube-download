@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Test script to demonstrate the session ID format for Slack notifications."""
 import socket
 import arrow

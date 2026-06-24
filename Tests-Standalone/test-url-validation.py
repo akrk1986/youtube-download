@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Test script for URL validation using the new is_valid_domain_url function.
 """

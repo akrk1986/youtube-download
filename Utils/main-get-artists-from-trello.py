@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Convert export from the Greek artists Trello board to a simpler JSON."""
 # pylint: disable=invalid-name
 import argparse

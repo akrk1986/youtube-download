@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Test only the playlist functionality (Test Case #3)."""
 import sys
 import subprocess

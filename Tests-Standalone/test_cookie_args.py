@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Test the cookie argument handling functionality."""
 
 import os

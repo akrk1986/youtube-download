@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Test 'both' format functionality."""
 import sys
 sys.path.append('..')

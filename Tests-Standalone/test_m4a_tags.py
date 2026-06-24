@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Test M4A tag processing functions."""
 import sys
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Test program to search strings ignoring Greek diacritics."""
 
 from greek_substr_search import greek_search

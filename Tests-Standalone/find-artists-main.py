@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Search for Greek music artists in a string using artists.json."""
 
 import argparse

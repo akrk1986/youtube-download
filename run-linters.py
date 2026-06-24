@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Linting orchestration script.
 
 Run a single linter tool by name. Designed to be called by Claude sub-agents in parallel.

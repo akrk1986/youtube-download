@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Test that main-yt-dlp.py correctly validates URLs without downloading.
 """

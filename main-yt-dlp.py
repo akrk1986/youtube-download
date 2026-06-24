@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Using yt-dlp, download videos from URL, and extract the MP3 files."""
 # pylint: disable=invalid-name
 import argparse

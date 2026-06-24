@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Test the chapter display and confirmation functionality."""
 
 import sys

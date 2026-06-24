@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Test the video_download_timeout parameter functionality."""
 
 import sys

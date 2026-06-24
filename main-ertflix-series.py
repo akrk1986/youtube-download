@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Interactive ERTFlix series browser: pick season + episode, then download.
 
 This script drives Chromium (via Playwright) to the series URL, scrapes

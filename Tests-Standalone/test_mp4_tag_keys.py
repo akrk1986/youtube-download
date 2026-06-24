@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Test MP4 tag key mappings and functionality."""
 import sys
 sys.path.append('..')

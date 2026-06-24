@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """In specified folders, sanitize all file names."""
 
 import argparse
