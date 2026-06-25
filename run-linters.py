@@ -50,8 +50,8 @@ def build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
     if name == 'pip-audit':
         # --skip-editable skips common-av (local editable install not on PyPI) and surfaces
         # the skip in the output. --strict is dropped because it treats --skip-editable
-        # skips as failures.
-        return ['pip-audit', '--skip-editable'], False
+        # skips as failures. --format=json is post-processed by run_pip_audit (fix-version stability).
+        return ['pip-audit', '--skip-editable', '--format=json'], False
     if name == 'deptry':
         return ['deptry', '.', '--no-ansi'], False
     if name == 'pydoclint':
