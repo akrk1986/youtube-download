@@ -2,6 +2,11 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-25-1306] - gate the download on linter freshness
+
+### Added
+- **`main-yt-dlp.py`** (`VERSION` → `2026-06-25-1306`): `main()` now calls `gate_on_linter_freshness()` (from the shared `common_linters.watch_state`) right after parsing arguments. `pip-audit` and `freshness` are the two linters whose results drift without any code change (new CVEs, new releases); if neither has run in the last 24 hours the script prints what is stale and prompts `Exit now and run the linters? [Y/n]` (Enter/`y` aborts with `exit 1`, `n` continues). The prompt shows even in PyCharm's Run window (where `isatty()` is False). Bypass with `LINTER_GATE=off`; a genuinely headless stdin continues without blocking, so the qB-launched path never hangs. Refresh the state it reads with `python run-linters.py --tool pip-audit freshness` (or let the `av-utils` background watcher do it).
+
 ## [2026-06-16-0107] - Remove the --split-chapters option
 
 ### Removed

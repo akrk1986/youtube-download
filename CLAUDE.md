@@ -444,6 +444,14 @@ The project uses multiple linting and type checking tools to maintain code quali
 
 The tool supports several environment variables for configuration:
 
+### LINTER_GATE
+Controls the linter-freshness gate that runs at the start of `main()`.
+
+- **Default**: gate enabled. `main-yt-dlp.py` calls `gate_on_linter_freshness()` (from the shared `common_linters.watch_state`) right after parsing arguments.
+- **Behaviour**: `pip-audit` and `freshness` drift without any code change (new CVEs, new releases). If neither has run in the last 24 hours, the script prints what is stale and prompts `Exit now and run the linters? [Y/n]` (Enter/`y` aborts with `exit 1`, `n` continues). The prompt shows even in PyCharm's Run window (where `isatty()` is False); a genuinely headless stdin continues without blocking, so the qB-launched path never hangs.
+- **Set `LINTER_GATE=off`** to skip the gate entirely.
+- **Refresh the state** it reads with `python run-linters.py --tool pip-audit freshness`, or let the `av-utils` background watcher (`Utils/main-linter-watch.py`) do it on a schedule. State lives in `av-utils/Data/linter-watch-state-<os>.json`.
+
 ### YTDLP_RETRIES
 Controls the number of download retries for handling YouTube throttling and connection drops.
 
