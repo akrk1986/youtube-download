@@ -12,6 +12,7 @@ from typing import Any
 from common_av.notifications import (GmailNotifier, NotificationData,
                                      NotificationHandler, SlackNotifier,
                                      send_all_notifications)
+from common_linters.watch_state import gate_on_linter_freshness
 from funcs_for_main_yt_dlp import (DownloadOptions,
                                    cleanup_leftover_files, count_initial_files,
                                    count_new_files, determine_audio_mode,
@@ -352,6 +353,9 @@ def main() -> None:
     """Entry point: parse arguments, set up logging, and run the download."""
     _force_utf8_console()
     args = parse_arguments(version=VERSION)
+
+    # Refuse to run on a venv whose security/freshness linters are stale (skippable via LINTER_GATE=off).
+    gate_on_linter_freshness()
 
     # Setup logging (must be done early)
     setup_logging(verbose=args.verbose, log_to_file=not args.no_log_file, show_urls=args.show_urls)
