@@ -2,6 +2,23 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-26-1626] - pip-audit WARNING state; pylint lints entry-point scripts
+
+### Changed
+- **`pip-audit`** (via the shared `common_linters`): now **blocks only on actionable findings**. It
+  rates each CVE's fix versions for release-age stability and resolves to **FAIL** only when a CVE
+  has a Stable, installable fix to apply; when CVEs exist but every fix is too new / missing / pinned
+  away it is a **WARN** (summary shows `pip-audit (Warning)`, exit 0) — nothing safe to do, so the
+  run is not failed; **PASS** when clean. The linter summary gained a `WARNING` status
+  (`common_linters.core.ToolStatus`); only `FAIL` fails the run.
+
+### Added
+- **`run-linters.py`**: pylint now lints the hyphenated entry-point scripts (`main-yt-dlp.py`,
+  `main-ertflix-series.py`, `run-linters.py`, `Utils/*.py`). `pylint .` skips hyphenated files during
+  directory traversal, so they are passed as explicit file paths via `_PYLINT_ENTRY_POINTS`;
+  `[tool.pylint.basic] module-naming-style = "any"` (already set) suppresses only the unavoidable
+  module-name `C0103`. Rates 10.00/10.
+
 ## [2026-06-24-1854] - add python3 shebang to entry-point scripts
 
 ### Added

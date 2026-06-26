@@ -413,9 +413,9 @@ The project uses multiple linting and type checking tools to maintain code quali
 - **mypy**: Static type checking
 - **ty**: Fast type checker (Astral; stricter than mypy)
 - **bandit**: Security scanning
-- **pip-audit**: Dependency CVE scanner
+- **pip-audit**: Dependency CVE scanner. Blocks only on actionable findings — FAIL when a CVE has a Stable, installable fix; WARN (`pip-audit (Warning)`, exit 0) when CVEs exist but every fix is too new / missing / pinned; PASS when clean (logic in `common_linters.pip_audit`)
 - **deptry**: Unused/missing/misplaced dependency detection
-- **pylint**: Code quality metrics, unused variable detection
+- **pylint**: Code quality metrics, unused variable detection. Also lints the hyphenated entry-point scripts (`_PYLINT_ENTRY_POINTS` in `run-linters.py`, passed as explicit file paths since `pylint .` skips hyphenated files during directory traversal); `[tool.pylint.basic] module-naming-style = "any"` suppresses only the module-name `C0103`
 - **pydoclint**: Docstring linting
 - **vulture**: Dead code detection
 - **pyupgrade**: Syntax modernisation (modifies files in place)
