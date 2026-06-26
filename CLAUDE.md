@@ -86,38 +86,44 @@ The project requires:
 
 ## Common Commands
 
+> **Script invocation:** Entry-point scripts carry a `#!/usr/bin/env python3` shebang and are
+> executable, so they are invoked directly as `./script.py …` (not `python3 script.py …`). The
+> shebang resolves `python3` from PATH, so after activating the shared venv it points at the venv
+> interpreter. Activate the venv first — the shebang only selects the interpreter, it does not load
+> the venv's site-packages — and keep the `./` prefix, since `.` is not on `PATH`.
+
 ### Running the Main Tool
 ```bash
 # Download video only
-python main-yt-dlp.py "https://youtube.com/watch?v=..."
+./main-yt-dlp.py "https://youtube.com/watch?v=..."
 
 # Download with audio extraction (default: M4A)
-python main-yt-dlp.py --with-audio "https://youtube.com/playlist?list=..."
+./main-yt-dlp.py --with-audio "https://youtube.com/playlist?list=..."
 
 # Download with specific audio format (mp3, m4a, or flac)
-python main-yt-dlp.py --only-audio --audio-format m4a "URL"
+./main-yt-dlp.py --only-audio --audio-format m4a "URL"
 
 # Download with multiple audio formats (comma-separated)
-python main-yt-dlp.py --only-audio --audio-format mp3,m4a,flac "URL"
+./main-yt-dlp.py --only-audio --audio-format mp3,m4a,flac "URL"
 
 # List chapters and create the segments CSV (downloads full video, then stops)
-python main-yt-dlp.py --list-chapters manual "https://youtube.com/watch?v=..."
+./main-yt-dlp.py --list-chapters manual "https://youtube.com/watch?v=..."
 
 # With subtitles and JSON metadata
-python main-yt-dlp.py --with-audio --subs --json "URL"
+./main-yt-dlp.py --with-audio --subs --json "URL"
 
 # With custom title, artist, and album (single videos only)
-python main-yt-dlp.py --only-audio --title "Custom Title" --artist "Artist Name" --album "Album" "URL"
+./main-yt-dlp.py --only-audio --title "Custom Title" --artist "Artist Name" --album "Album" "URL"
 
 # Interactive prompts for metadata (use 'ask' or 'prompt')
-python main-yt-dlp.py --only-audio --title ask --artist prompt "URL"
+./main-yt-dlp.py --only-audio --title ask --artist prompt "URL"
 
 # Verbose logging with URL debugging (WARNING: may expose Slack webhook)
-python main-yt-dlp.py --verbose --show-urls --only-audio "URL"
+./main-yt-dlp.py --verbose --show-urls --only-audio "URL"
 
 # ERTFlix program download (video only, uses token API)
 export YTDLP_USE_COOKIES=firefox
-python main-yt-dlp.py --ertflix-program "https://api.ertflix.opentv.com/..."
+./main-yt-dlp.py --ertflix-program "https://api.ertflix.opentv.com/..."
 ```
 
 ### ERTFlix Interactive Series Browser (`main-ertflix-series.py`)
@@ -134,18 +140,18 @@ python -m playwright install chromium  # downloads Chromium under ~/.cache/ms-pl
 **Usage:**
 ```bash
 # Arrow-key pick + download (unknown flags forward to main-yt-dlp.py)
-python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
+./main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
     --only-audio --audio-format mp3
 
 # With program name: sets --title "Parea S02E26" and NOTIF_MSG to the same string
-python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
+./main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
     --program Parea --only-audio --audio-format mp3
 
 # Print would-be hand-off command (uses shlex.join for shell-safe quoting) and exit
-python main-ertflix-series.py <URL> --program Parea --dry-run --only-audio
+./main-ertflix-series.py <URL> --program Parea --dry-run --only-audio
 
 # Dump rendered DOM + selector probes to Logs/ for diagnosis
-python main-ertflix-series.py <URL> --debug-dom
+./main-ertflix-series.py <URL> --debug-dom
 ```
 
 **Flags:**
@@ -197,10 +203,10 @@ The tool supports downloading from ERTFlix (Greek public broadcaster) using toke
 export YTDLP_USE_COOKIES=firefox  # or chrome
 
 # Download ERTFlix program (video only)
-python main-yt-dlp.py --ertflix-program "TOKEN_URL"
+./main-yt-dlp.py --ertflix-program "TOKEN_URL"
 
 # Download audio only
-python main-yt-dlp.py --only-audio "TOKEN_URL"
+./main-yt-dlp.py --only-audio "TOKEN_URL"
 ```
 
 **Browser Scripts:**
@@ -267,21 +273,20 @@ pytest Tests/test_notifications.py               # Notification tests (35 tests)
 
 **End-to-end tests** (in `Tests/` directory):
 ```bash
-python Tests/e2e_main.py           # Interactive E2E test runner
-python Tests/e2e_main.py --resume  # Resume from saved state
+./Tests/e2e_main.py           # Interactive E2E test runner
+./Tests/e2e_main.py --resume  # Resume from saved state
 ```
 
 **Standalone test scripts** (in `Tests-Standalone/` directory):
 ```bash
-python Tests-Standalone/test_chapter_regex.py  # Test chapter extraction regex
-python Tests-Standalone/main_greek_search.py   # Test Greek text search functionality
-python Tests-Standalone/find-artists-main.py   # Test artist detection in strings
+./Tests-Standalone/main_greek_search.py   # Test Greek text search functionality
+./Tests-Standalone/find-artists-main.py   # Test artist detection in strings
 ```
 
 ### Updating Artist Database
 When the Trello board is updated:
 ```bash
-python Utils/main-get-artists-from-trello.py
+./Utils/main-get-artists-from-trello.py
 ```
 
 ## Output Structure
@@ -450,7 +455,7 @@ Controls the linter-freshness gate that runs at the start of `main()`.
 - **Default**: gate enabled. `main-yt-dlp.py` calls `gate_on_linter_freshness()` (from the shared `common_linters.watch_state`) right after parsing arguments.
 - **Behaviour**: `pip-audit` and `freshness` drift without any code change (new CVEs, new releases). If neither has run in the last 24 hours, the script prints what is stale and prompts `Exit now and run the linters? [Y/n]` (Enter/`y` aborts with `exit 1`, `n` continues). The prompt shows even in PyCharm's Run window (where `isatty()` is False); a genuinely headless stdin continues without blocking, so the qB-launched path never hangs.
 - **Set `LINTER_GATE=off`** to skip the gate entirely.
-- **Refresh the state** it reads with `python run-linters.py --tool pip-audit freshness`, or let the `av-utils` background watcher (`Utils/main-linter-watch.py`) do it on a schedule. State lives in `av-utils/Data/linter-watch-state-<os>.json`.
+- **Refresh the state** it reads with `./run-linters.py --tool pip-audit freshness`, or let the `av-utils` background watcher (`Utils/main-linter-watch.py`) do it on a schedule. State lives in `av-utils/Data/linter-watch-state-<os>.json`.
 
 ### YTDLP_RETRIES
 Controls the number of download retries for handling YouTube throttling and connection drops.
@@ -464,11 +469,11 @@ Controls the number of download retries for handling YouTube throttling and conn
 ```bash
 # Linux/WSL/macOS
 export YTDLP_RETRIES=50
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 
 # Windows PowerShell
 $env:YTDLP_RETRIES="50"
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 ```
 
 **Implementation:** `_get_download_retries()` in `funcs_for_main_yt_dlp/_download_common.py` validates the value and raises `ValueError` if not a positive integer.
@@ -483,19 +488,19 @@ Controls whether Slack and/or Gmail notifications are sent.
 **Usage:**
 ```bash
 # No notifications (default)
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 
 # Slack only
 export NOTIFICATIONS=S
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 
 # Gmail only
 export NOTIFICATIONS=G
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 
 # Both Slack and Gmail
 export NOTIFICATIONS=ALL
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 ```
 
 **Implementation:** Checked in `main()` before building notifiers list. Invalid values log warning and disable notifications.
@@ -516,7 +521,7 @@ Adds custom suffix to notification titles for environment identification.
 ```bash
 export NOTIFICATIONS=ALL
 export NOTIF_MSG="PROD"
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 # Slack: "🚀 Download STARTED - PROD"
 # Gmail subject: "🚀 yt-dlp Download STARTED - PROD"
 ```
@@ -533,10 +538,10 @@ Optional ffmpeg audio-filter string injected into the `ExtractAudio` postprocess
 **Usage:**
 ```bash
 # Linux/WSL/macOS — double amplitude
-FFMPEG_OPTS='volume=2.0' python main-yt-dlp.py --only-audio --audio-format m4a "URL"
+FFMPEG_OPTS='volume=2.0' ./main-yt-dlp.py --only-audio --audio-format m4a "URL"
 
 # EBU R128 normalisation
-FFMPEG_OPTS='loudnorm=I=-16:TP=-1.5:LRA=11' python main-yt-dlp.py --only-audio "URL"
+FFMPEG_OPTS='loudnorm=I=-16:TP=-1.5:LRA=11' ./main-yt-dlp.py --only-audio "URL"
 ```
 
 **Implementation:** read in `extract_single_format()` (`funcs_for_main_yt_dlp/download_audio.py`); empty/unset is the normal case and is a no-op.
@@ -552,11 +557,11 @@ Enables downloading age-restricted or private videos using browser cookies.
 ```bash
 # Linux/WSL/macOS
 export YTDLP_USE_COOKIES=firefox
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 
 # Windows PowerShell
 $env:YTDLP_USE_COOKIES="chrome"
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 ```
 
 ## Notifications (Slack and Gmail)
@@ -624,7 +629,7 @@ Notifications use a strategy pattern in the shared `common_av.notifications` pac
 If you get "Authentication failed" errors:
 ```bash
 # Run diagnostic tool
-python Tests-Standalone/test_gmail_auth.py
+./Tests-Standalone/test_gmail_auth.py
 ```
 This will test your Gmail configuration and show specific error messages.
 
@@ -653,8 +658,8 @@ The project uses `run-linters.py` (project root) to run all linting tools. Each 
 
 ### Running One or More Tools
 ```bash
-source ../.venv-av-linux/bin/activate && python run-linters.py --tool ruff
-python run-linters.py --tool ruff mypy pylint   # several tools; rich PASS/FAIL summary at the end
+source ../.venv-av-linux/bin/activate && ./run-linters.py --tool ruff
+./run-linters.py --tool ruff mypy pylint   # several tools; rich PASS/FAIL summary at the end
 ```
 
 `--tool` accepts one or more names. Each runs, its pass/fail is cached, and a `rich` columnar
@@ -663,15 +668,15 @@ is `0` only if all passed, else `1`.
 
 ### List All Tools
 ```bash
-python run-linters.py --list
+./run-linters.py --list
 ```
 
 ### Running All Linters (Claude Sub-Agent Workflow)
 
 When asked to "run linters" or "lint the code", Claude should:
-1. Call `python run-linters.py --list` to get tool names
+1. Call `./run-linters.py --list` to get tool names
 2. Spawn **one `general-purpose` sub-agent per tool in parallel** (single message, multiple Agent tool calls)
-3. Each sub-agent runs: `source ../.venv-av-linux/bin/activate && python run-linters.py --tool <name>`
+3. Each sub-agent runs: `source ../.venv-av-linux/bin/activate && ./run-linters.py --tool <name>`
 4. Report pass/fail summary after all sub-agents complete
 
 ### Notes
@@ -692,8 +697,8 @@ When asked to "run linters" or "lint the code", Claude should:
 A tracked git hook lints staged `.py`/`.js` changes with the canonical linters before each commit. Enable it once per clone (`.git` is shared between WSL and Windows, so one install covers both):
 
 ```bash
-python Utils/install-git-hooks.py              # enable  (sets core.hooksPath=git-hooks)
-python Utils/install-git-hooks.py --uninstall  # disable (unsets core.hooksPath)
+./Utils/install-git-hooks.py              # enable  (sets core.hooksPath=git-hooks)
+./Utils/install-git-hooks.py --uninstall  # disable (unsets core.hooksPath)
 ```
 
 - `git-hooks/pre-commit` — POSIX `sh` shim selecting the shared per-OS venv; prepends its bin to `PATH` (hooks run without the venv activated).

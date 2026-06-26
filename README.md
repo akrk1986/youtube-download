@@ -19,6 +19,11 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 
 ## Usage
 
+> **Script invocation:** Entry-point scripts carry a `#!/usr/bin/env python3` shebang and are
+> executable, so they are invoked directly as `./script.py …` (not `python3 script.py …`).
+> Activate the shared venv first — the shebang only selects the interpreter, it does not load the
+> venv's site-packages — and keep the `./` prefix, since `.` is not on `PATH`.
+
 ```
 usage: main-yt-dlp.py [-h] [--audio-format AUDIO_FORMAT]
                       [--video-download-timeout VIDEO_DOWNLOAD_TIMEOUT]
@@ -154,7 +159,7 @@ Downloads a single video file with embedded thumbnail (cover art). If `--with-au
 
 **Example:**
 ```bash
-python main-yt-dlp.py --with-audio "https://youtube.com/watch?v=dQw4w9WgXcQ"
+./main-yt-dlp.py --with-audio "https://youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
 ### Single Video With Chapters
@@ -173,10 +178,10 @@ With `--list-chapters {json,manual}`, the tool:
 **Example:**
 ```bash
 # Native chapters -> CSV + full video
-python main-yt-dlp.py --list-chapters json "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --list-chapters json "https://youtube.com/watch?v=VIDEO_ID"
 
 # Numbered tracklist parsed from the description -> CSV + full video
-python main-yt-dlp.py --list-chapters manual "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --list-chapters manual "https://youtube.com/watch?v=VIDEO_ID"
 ```
 
 **CSV File Output:**
@@ -198,7 +203,7 @@ Downloads all videos in the playlist. Each video is processed individually with 
 
 **Example:**
 ```bash
-python main-yt-dlp.py --with-audio --subs "https://youtube.com/playlist?list=PLxxxxxxxx"
+./main-yt-dlp.py --with-audio --subs "https://youtube.com/playlist?list=PLxxxxxxxx"
 ```
 
 ### Audio Format Selection
@@ -216,13 +221,13 @@ You can choose one or more output audio formats using comma-separated values:
 **Examples:**
 ```bash
 # Single format - FLAC (lossless)
-python main-yt-dlp.py --only-audio --audio-format flac "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --only-audio --audio-format flac "https://youtube.com/watch?v=VIDEO_ID"
 
 # Multiple formats - MP3 and M4A
-python main-yt-dlp.py --with-audio --audio-format mp3,m4a "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --with-audio --audio-format mp3,m4a "https://youtube.com/watch?v=VIDEO_ID"
 
 # All formats
-python main-yt-dlp.py --only-audio --audio-format mp3,m4a,flac "https://youtube.com/playlist?list=PLxxxxxxxx"
+./main-yt-dlp.py --only-audio --audio-format mp3,m4a,flac "https://youtube.com/playlist?list=PLxxxxxxxx"
 ```
 
 **Note:** FLAC is a lossless format that preserves audio quality but produces larger file sizes compared to MP3/M4A.
@@ -231,77 +236,77 @@ python main-yt-dlp.py --only-audio --audio-format mp3,m4a,flac "https://youtube.
 
 ### Download video only
 ```bash
-python main-yt-dlp.py "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py "https://youtube.com/watch?v=VIDEO_ID"
 ```
 
 ### Download with audio extraction (MP3)
 ```bash
-python main-yt-dlp.py --with-audio "https://youtube.com/playlist?list=PLxxxxxxxx"
+./main-yt-dlp.py --with-audio "https://youtube.com/playlist?list=PLxxxxxxxx"
 ```
 
 ### List chapters and create the segments CSV
 ```bash
-python main-yt-dlp.py --list-chapters manual "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --list-chapters manual "https://youtube.com/watch?v=VIDEO_ID"
 # Creates: yt-chapters/segments-hms-full.txt + downloads the full video, then stops
 ```
 
 ### Download with subtitles and JSON metadata
 ```bash
-python main-yt-dlp.py --with-audio --subs --json "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --with-audio --subs --json "https://youtube.com/watch?v=VIDEO_ID"
 ```
 
 ### Download playlist with multiple audio formats
 ```bash
-python main-yt-dlp.py --only-audio --audio-format mp3,m4a "https://youtube.com/playlist?list=PLxxxxxxxx"
+./main-yt-dlp.py --only-audio --audio-format mp3,m4a "https://youtube.com/playlist?list=PLxxxxxxxx"
 ```
 
 ### Rerun with same URL (convenient for testing)
 ```bash
 # First run - saves URL to Data/last_url.txt
-python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 
 # Subsequent runs - reuse the saved URL
-python main-yt-dlp.py --rerun --only-audio
+./main-yt-dlp.py --rerun --only-audio
 
 # Try different options with same URL
-python main-yt-dlp.py --rerun --with-audio --audio-format m4a
-python main-yt-dlp.py --rerun --list-chapters manual
+./main-yt-dlp.py --rerun --with-audio --audio-format m4a
+./main-yt-dlp.py --rerun --list-chapters manual
 ```
 
 ### Download with custom timeout (useful for slow connections)
 ```bash
 # Set 10-minute timeout for all sites
-python main-yt-dlp.py --only-audio --video-download-timeout 600 "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --only-audio --video-download-timeout 600 "https://youtube.com/watch?v=VIDEO_ID"
 
 # Set 30-minute timeout for slow sites
-python main-yt-dlp.py --with-audio --video-download-timeout 1800 "https://www.ertflix.gr/video/VIDEO_ID"
+./main-yt-dlp.py --with-audio --video-download-timeout 1800 "https://www.ertflix.gr/video/VIDEO_ID"
 ```
 
 ### Download with custom metadata
 ```bash
 # Set custom title, artist, and album
-python main-yt-dlp.py --only-audio --title "My Song Title" --artist "Artist Name" --album "Album Name" "URL"
+./main-yt-dlp.py --only-audio --title "My Song Title" --artist "Artist Name" --album "Album Name" "URL"
 
 # Be prompted for custom metadata interactively
-python main-yt-dlp.py --only-audio --title ask --artist ask --album ask "URL"
+./main-yt-dlp.py --only-audio --title ask --artist ask --album ask "URL"
 
 # Mix: specify some, prompt for others
-python main-yt-dlp.py --only-audio --title "Known Title" --artist prompt "URL"
+./main-yt-dlp.py --only-audio --title "Known Title" --artist prompt "URL"
 ```
 
 ### Download age-restricted or private videos using browser cookies
 ```bash
 # Use cookies from Chrome browser (Windows, Linux, WSL)
 export YTDLP_USE_COOKIES=chrome
-python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 
 # Use cookies from Firefox browser
 export YTDLP_USE_COOKIES=firefox
-python main-yt-dlp.py --with-audio "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --with-audio "https://youtube.com/watch?v=VIDEO_ID"
 
 # On Windows (PowerShell):
 $env:YTDLP_USE_COOKIES="chrome"
-python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 ```
 
 **Note:** Browser cookies allow downloading videos that require authentication or age verification. The tool will use your logged-in browser session to access the video. Supported browsers: Chrome and Firefox.
@@ -319,14 +324,14 @@ By default, yt-dlp will retry failed downloads up to 100 times. This handles tem
 ```bash
 # Set custom retry limit (Linux, WSL, macOS)
 export YTDLP_RETRIES=50
-python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 
 # On Windows (PowerShell):
 $env:YTDLP_RETRIES="50"
-python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 
 # Use default of 100 retries (no environment variable needed)
-python main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --only-audio "https://youtube.com/watch?v=VIDEO_ID"
 ```
 
 **Note:** The retry count must be a positive integer. If `YTDLP_RETRIES` is unset or empty, the default of 100 retries is used. This is particularly useful for:
@@ -340,14 +345,14 @@ When set, `FFMPEG_OPTS` is passed verbatim to ffmpeg as `-af <value>` during the
 
 ```bash
 # Linux/WSL/macOS — double amplitude
-FFMPEG_OPTS='volume=2.0' python main-yt-dlp.py --only-audio --audio-format m4a "URL"
+FFMPEG_OPTS='volume=2.0' ./main-yt-dlp.py --only-audio --audio-format m4a "URL"
 
 # EBU R128 loudness normalisation
-FFMPEG_OPTS='loudnorm=I=-16:TP=-1.5:LRA=11' python main-yt-dlp.py --only-audio "URL"
+FFMPEG_OPTS='loudnorm=I=-16:TP=-1.5:LRA=11' ./main-yt-dlp.py --only-audio "URL"
 
 # Windows PowerShell
 $env:FFMPEG_OPTS='volume=2.0'
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 ```
 
 **Notes:**
@@ -363,19 +368,19 @@ The tool can send notifications when downloads start, succeed, fail, or are canc
 ```bash
 # No notifications (default - opt-in model)
 # Leave NOTIFICATIONS unset or set to empty/N/NO
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 
 # Slack notifications only
 export NOTIFICATIONS=S
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 
 # Gmail notifications only
 export NOTIFICATIONS=G
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 
 # Both Slack and Gmail notifications
 export NOTIFICATIONS=ALL
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 ```
 
 **Accepted values** (case-insensitive):
@@ -389,7 +394,7 @@ python main-yt-dlp.py --only-audio "URL"
 # Add custom suffix to notification titles (e.g., "PROD", "TEST", "DEV")
 export NOTIFICATIONS=ALL
 export NOTIF_MSG="PROD"
-python main-yt-dlp.py --only-audio "URL"
+./main-yt-dlp.py --only-audio "URL"
 
 # Result:
 #   Slack title: "🚀 Download STARTED - PROD"
@@ -439,7 +444,7 @@ Each notification includes a session ID `[YYYY-MM-DD HH:mm hostname]` to correla
 If you see "Authentication failed" errors:
 ```bash
 # Run diagnostic tool to test your Gmail configuration
-python Tests-Standalone/test_gmail_auth.py
+./Tests-Standalone/test_gmail_auth.py
 ```
 
 This will verify your credentials and show specific error messages if something is wrong.
@@ -474,26 +479,26 @@ python -m playwright install chromium
 **Usage:**
 ```bash
 # Pick an episode interactively, then download video
-python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea
+./main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea
 
 # Same, audio-only as MP3 (unknown flags forward to main-yt-dlp.py)
-python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
+./main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
     --only-audio --audio-format mp3
 
 # With a program name — sets --title and NOTIF_MSG to "<program> S<NN>E<NN>"
-python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
+./main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
     --program Parea --only-audio --audio-format mp3
 # → hand-off includes: --title "Parea S02E26"   NOTIF_MSG="Parea S02E26"
 
 # Print the would-be hand-off command without running it
-python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
+./main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
     --program Parea --dry-run --only-audio
 
 # Force headless (default is headed so you can log in the first time)
-python main-ertflix-series.py --headless <URL>
+./main-ertflix-series.py --headless <URL>
 
 # Dump the rendered DOM + selector probes and exit (diagnostic)
-python main-ertflix-series.py --debug-dom <URL>
+./main-ertflix-series.py --debug-dom <URL>
 ```
 
 **Key features:**
@@ -536,12 +541,12 @@ export YTDLP_USE_COOKIES=firefox  # or chrome
 
 **Download video only (recommended for full programs):**
 ```bash
-python main-yt-dlp.py --ertflix-program "https://api.ertflix.opentv.com/urlbuilder/v1/playout/content/token?content_id=..."
+./main-yt-dlp.py --ertflix-program "https://api.ertflix.opentv.com/urlbuilder/v1/playout/content/token?content_id=..."
 ```
 
 **Download audio only:**
 ```bash
-python main-yt-dlp.py --only-audio "https://api.ertflix.opentv.com/urlbuilder/v1/playout/content/token?content_id=..."
+./main-yt-dlp.py --only-audio "https://api.ertflix.opentv.com/urlbuilder/v1/playout/content/token?content_id=..."
 ```
 
 **Batch download multiple episodes:**
@@ -557,7 +562,7 @@ EOF
 
 # Download all
 while IFS= read -r url; do
-  python main-yt-dlp.py --ertflix-program "$url"
+  ./main-yt-dlp.py --ertflix-program "$url"
 done < episodes.txt
 ```
 
@@ -714,8 +719,8 @@ which ffmpeg
 A tracked git hook lints staged `.py`/`.js` changes with the canonical linters before each commit. Enable it once per clone:
 
 ```bash
-python Utils/install-git-hooks.py              # enable  (sets core.hooksPath=git-hooks)
-python Utils/install-git-hooks.py --uninstall  # disable (unsets core.hooksPath)
+./Utils/install-git-hooks.py              # enable  (sets core.hooksPath=git-hooks)
+./Utils/install-git-hooks.py --uninstall  # disable (unsets core.hooksPath)
 ```
 
 It blocks the commit if any linter fails, and skips commits that touch only documentation or only a `VERSION = ...` line. Bypass a single commit with `git commit --no-verify`.
@@ -726,10 +731,10 @@ The project runs its linter stack via `run-linters.py` (project root):
 
 ```bash
 source ../.venv-av-linux/bin/activate
-python run-linters.py                       # run all tools + PASS/FAIL summary
-python run-linters.py --tool ruff           # run a single tool
-python run-linters.py --tool ruff mypy ty   # run several tools; rich PASS/FAIL summary at the end
-python run-linters.py --list                # list available tools
+./run-linters.py                       # run all tools + PASS/FAIL summary
+./run-linters.py --tool ruff           # run a single tool
+./run-linters.py --tool ruff mypy ty   # run several tools; rich PASS/FAIL summary at the end
+./run-linters.py --list                # list available tools
 ```
 
 `--tool` accepts one or more tool names. Each tool runs, its pass/fail is cached, and a
