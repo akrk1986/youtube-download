@@ -32,6 +32,16 @@ TOOLS = [t for t in LINTER_TOOLS if t not in _FULLY_EXCLUDED and t not in _DEFAU
 # (needs network, never blocks; post-processed by common_linters.run_freshness).
 ALL_TOOLS = TOOLS + ['skylos', 'radon', 'freshness']
 
+# Hyphenated entry-point scripts. `pylint .` discovers files by directory traversal and skips
+# hyphenated ones (they aren't importable submodules), so they must be passed as explicit file
+# paths. Their module-name C0103 is suppressed by [tool.pylint.basic] module-naming-style = "any";
+# every other check still applies. Snake-case scripts are already covered by the `.` traversal.
+_PYLINT_ENTRY_POINTS = [
+    'main-ertflix-series.py', 'main-yt-dlp.py', 'run-linters.py',
+    'Utils/install-git-hooks.py', 'Utils/main-get-artists-from-trello.py',
+    'Utils/main-suggest-boost.py',
+]
+
 
 # pylint: disable-next=too-many-branches,too-many-return-statements
 def build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
@@ -62,7 +72,8 @@ def build_cmd(name: str, root: Path) -> tuple[list[str], bool]:
     if name == 'pylint':
         # Tests/ and Tests-Standalone excluded: pytest patterns confuse pylint, split pending
         ignore_str = ','.join(EXCLUDED_DIRS + ['Tests', 'Tests-Standalone'])
-        return ['pylint', '.', f'--ignore={ignore_str}'], False
+        scripts = [s for s in _PYLINT_ENTRY_POINTS if (root / s).exists()]
+        return ['pylint', '.'] + scripts + [f'--ignore={ignore_str}'], False
     if name == 'vulture':
         exclude_str = ','.join(EXCLUDED_DIRS)
         return ['vulture', '.', '--exclude', exclude_str, '--min-confidence', '80'], False
