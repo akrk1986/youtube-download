@@ -10,7 +10,7 @@ import importlib.util
 import shlex
 from pathlib import Path
 
-from nicegui import background_tasks, ui
+from nicegui import app, background_tasks, ui
 
 from webapp.config import CONFIG_FILENAME, AppConfig, ThemeConfig, load_config, resolve_host_port
 from webapp.form import FormView
@@ -37,23 +37,17 @@ def run_app() -> None:
 
 
 def _build_page(config: AppConfig, repo_root: Path) -> None:
-    """Assemble the whole UI: theme, form, command preview, output log, Launch/Cancel.
+    """Assemble the whole UI: theme, form, command preview, controls, output log.
+
+    The Launch / Cancel / Stop-web-app controls sit above the output log. The controls are capped to
+    a readable width; only the output log spans the full browser width (useful on desktop).
 
     Args:
         config: The app configuration.
         repo_root: Repository root (the driver and linter scripts live here).
     """
     _apply_theme(theme=config.theme)
-    page = ui.column().classes('w-full max-w-3xl mx-auto p-4 gap-3')
-    with page:
-        ui.label('yt-dlp — download driver').classes('text-2xl font-bold')
-
     state: dict[str, DriverProcess | None] = {'proc': None}
-    with page:
-        form = FormView(config=config)
-        preview = ui.label().classes('w-full font-mono text-sm break-all driver-preview')
-        log = ui.log(max_lines=5000).classes('w-full h-96 driver-log')
-        banner = ui.label().classes('text-lg font-bold')
 
     def _refresh_preview() -> None:
         argv, env = build_command(params=form.collect(), repo_root=repo_root)
@@ -99,9 +93,25 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
             proc.cancel()
             log.push('— cancelled —')
 
-    with page, ui.row():
-        launch_btn = ui.button('Launch', icon='play_arrow', on_click=_launch)
-        cancel_btn = ui.button('Cancel', icon='stop', on_click=_cancel).props('color=negative')
+    def _stop_webapp() -> None:
+        log.push('— stopping web app —')
+        ui.notify('Stopping the web app…', type='warning')
+        app.shutdown()
+
+    page = ui.column().classes('w-full p-4 gap-3')
+    with page:
+        # Controls are capped to a readable width; only the output log spans the full window.
+        with ui.column().classes('w-full max-w-3xl gap-3'):
+            ui.label('yt-dlp — download driver').classes('text-2xl font-bold')
+            form = FormView(config=config)
+            preview = ui.label().classes('w-full font-mono text-sm break-all driver-preview')
+            with ui.row():
+                launch_btn = ui.button('Launch', icon='play_arrow', on_click=_launch)
+                cancel_btn = ui.button('Cancel', icon='stop', on_click=_cancel).props('color=negative')
+                ui.button('Stop web app', icon='power_settings_new',
+                          on_click=_stop_webapp).props('color=grey')
+        log = ui.log(max_lines=5000).classes('w-full h-96 driver-log')
+        banner = ui.label().classes('text-lg font-bold')
     cancel_btn.set_enabled(False)
     ui.timer(0.4, _refresh_preview)
 

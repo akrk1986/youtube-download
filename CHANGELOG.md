@@ -2,6 +2,13 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-30-1408] - webapp: platform-aware cookie default + UI tweaks
+
+### Changed
+- **`webapp/`**: the preset **cookie default is now platform-aware and configurable** — `firefox` on native Windows, `none` on WSL/Linux/macOS (where the Windows Firefox profile is unreachable, so `yt-dlp --cookies-from-browser firefox` would fail). Overridable via a `cookies` key in `webapp/config.json` (`none`/`firefox`/`chrome`). Presets carry a `COOKIES_FROM_CONFIG` sentinel that `FormView.apply_preset` resolves against `AppConfig.default_cookies` (the ERTFlix preset still forces `none`); the sentinel never reaches `build_command`.
+- **UI**: the Launch / Cancel controls moved **above** the output log; added a **Stop web app** button (`app.shutdown()`); the controls (title, form, preview, buttons) are capped to a readable width while only the **output log** spans the full browser width (useful on desktop).
+- **Tests**: `Tests/test_webapp.py` updated for the sentinel; added `test_default_cookies_resolution` (config override / blank / invalid → platform default).
+
 ## [2026-06-30-1319] - NiceGUI web app wrapping main-yt-dlp.py
 
 ### Added

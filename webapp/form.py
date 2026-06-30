@@ -11,7 +11,7 @@ created per page load.
 from nicegui import ui
 
 from webapp.config import AppConfig
-from webapp.presets import PRESETS, PRESETS_BY_KEY, Preset
+from webapp.presets import COOKIES_FROM_CONFIG, PRESETS, PRESETS_BY_KEY, Preset
 from webapp.runner import DRIVER_SCRIPT, LINTER_SCRIPT, DriverParams
 
 _MODES = {
@@ -131,7 +131,8 @@ class FormView:  # pylint: disable=too-many-instance-attributes
         self._timeout.value = params.video_timeout
         self._boost.value = params.boost
         self._boost_vol.value = params.boost_volume
-        self._cookies.value = params.cookies
+        self._cookies.value = (self._config.default_cookies
+                               if params.cookies == COOKIES_FROM_CONFIG else params.cookies)
         self._notif.value = params.notifications
         self._notif_msg.value = params.notif_msg
         self._retries.value = params.retries

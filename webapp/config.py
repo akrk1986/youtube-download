@@ -9,6 +9,7 @@ by the app module, not from here.
 
 import json
 import os
+import sys
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -17,6 +18,7 @@ DEFAULT_PORT: int = 8081
 # Binding to all interfaces is intentional: reachable across the local 192.168.1.x / 10.0.0.x
 # subnets (no external exposure).
 DEFAULT_HOST: str = '0.0.0.0'  # nosec B104
+_COOKIE_CHOICES = ('none', 'firefox', 'chrome')
 
 
 @dataclass(frozen=True)
@@ -40,6 +42,7 @@ class AppConfig:
     native: bool
     reload: bool
     boost_default: float
+    default_cookies: str
     theme: ThemeConfig
 
 
@@ -63,14 +66,31 @@ def load_config(config_path: Path) -> AppConfig:
         font_size=theme_raw.get('font_size', '16px'),
         output_font_size=theme_raw.get('output_font_size', '13px'),
     )
+    configured_cookies = str(raw.get('cookies', '')).strip().lower()
+    default_cookies = configured_cookies if configured_cookies in _COOKIE_CHOICES \
+        else _platform_default_cookies()
     return AppConfig(
         host=raw.get('host', DEFAULT_HOST),
         port=int(raw.get('port', DEFAULT_PORT)),
         native=bool(raw.get('native', False)),
         reload=bool(raw.get('reload', False)),
         boost_default=float(raw.get('boost_default', 2.0)),
+        default_cookies=default_cookies,
         theme=theme,
     )
+
+
+def _platform_default_cookies() -> str:
+    """Return the platform-appropriate default cookie source for presets.
+
+    Native Windows can read its Firefox profile in place; WSL/Linux/macOS cannot reach the Windows
+    Firefox profile (and usually have none of their own), so they default to no cookies. Overridden
+    by a ``cookies`` value in config.json.
+
+    Returns:
+        str: 'firefox' on native Windows, 'none' elsewhere.
+    """
+    return 'firefox' if sys.platform == 'win32' else 'none'
 
 
 def resolve_host_port(config: AppConfig, cli_host: str | None, cli_port: int | None) -> AppConfig:

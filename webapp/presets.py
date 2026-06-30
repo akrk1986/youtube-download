@@ -10,6 +10,11 @@ from dataclasses import dataclass
 
 from webapp.runner import DRIVER_SCRIPT, LINTER_SCRIPT, DriverParams
 
+# Sentinel cookies value on a preset meaning "use AppConfig.default_cookies" (platform-aware:
+# firefox on native Windows, none on WSL/Linux/macOS, overridable in config.json). Resolved by
+# FormView.apply_preset; it is never a selectable widget value and never reaches build_command.
+COOKIES_FROM_CONFIG: str = 'default'
+
 
 @dataclass(frozen=True)
 class Preset:
@@ -25,40 +30,40 @@ PRESETS: tuple[Preset, ...] = (
     # ---- Folder: YT-DLP-presets (main-yt-dlp.py) ----
     Preset(key='presets/av-m4a-boost', folder='YT-DLP-presets', label='audio+video M4A boost',
            params=DriverParams(script=DRIVER_SCRIPT, mode='with-audio', audio_format='m4a',
-                               subs=True, boost=True, boost_volume=2.0, cookies='firefox',
+                               subs=True, boost=True, boost_volume=2.0, cookies=COOKIES_FROM_CONFIG,
                                notifications='NO')),
     Preset(key='presets/av-m4a', folder='YT-DLP-presets', label='audio+video M4A',
            params=DriverParams(script=DRIVER_SCRIPT, mode='with-audio', audio_format='m4a',
-                               subs=True, cookies='firefox', notifications='NO')),
+                               subs=True, cookies=COOKIES_FROM_CONFIG, notifications='NO')),
     Preset(key='presets/audio-m4a-boost', folder='YT-DLP-presets', label='audio-only M4A boost',
            params=DriverParams(script=DRIVER_SCRIPT, mode='only-audio', audio_format='m4a',
-                               verbose=True, boost=True, boost_volume=2.0, cookies='firefox',
+                               verbose=True, boost=True, boost_volume=2.0, cookies=COOKIES_FROM_CONFIG,
                                notifications='NO')),
     Preset(key='presets/audio-m4a', folder='YT-DLP-presets', label='audio-only M4A',
            params=DriverParams(script=DRIVER_SCRIPT, mode='only-audio', audio_format='m4a',
-                               verbose=True, cookies='firefox', notifications='NO')),
+                               verbose=True, cookies=COOKIES_FROM_CONFIG, notifications='NO')),
     # ---- Folder: YT-DLP-prompt (main-yt-dlp.py) ----
     Preset(key='prompt/all', folder='YT-DLP-prompt', label='prompt-all',
            params=DriverParams(script=DRIVER_SCRIPT, mode='with-audio', subs=True,
-                               cookies='firefox', notifications='NO')),
+                               cookies=COOKIES_FROM_CONFIG, notifications='NO')),
     Preset(key='prompt/both', folder='YT-DLP-prompt', label='prompt-both',
-           params=DriverParams(script=DRIVER_SCRIPT, mode='with-audio', cookies='firefox',
+           params=DriverParams(script=DRIVER_SCRIPT, mode='with-audio', cookies=COOKIES_FROM_CONFIG,
                                notifications='NO')),
     Preset(key='prompt/both-boost', folder='YT-DLP-prompt', label='prompt-both-boost',
            params=DriverParams(script=DRIVER_SCRIPT, mode='with-audio', boost=True,
-                               boost_volume=2.0, cookies='firefox', notifications='NO')),
+                               boost_volume=2.0, cookies=COOKIES_FROM_CONFIG, notifications='NO')),
     Preset(key='prompt/audio-only', folder='YT-DLP-prompt', label='prompt-audio-only',
-           params=DriverParams(script=DRIVER_SCRIPT, mode='only-audio', cookies='firefox',
+           params=DriverParams(script=DRIVER_SCRIPT, mode='only-audio', cookies=COOKIES_FROM_CONFIG,
                                notifications='NO')),
     Preset(key='prompt/chapters', folder='YT-DLP-prompt', label='chapters list+download',
            params=DriverParams(script=DRIVER_SCRIPT, mode='video-only', list_chapters='manual',
-                               progress=True, cookies='firefox', retries=50, notifications='ALL')),
+                               progress=True, cookies=COOKIES_FROM_CONFIG, retries=50, notifications='ALL')),
     Preset(key='prompt/ertflix', folder='YT-DLP-prompt', label='ertflix-program',
            params=DriverParams(script=DRIVER_SCRIPT, mode='ertflix-program', verbose=True,
                                cookies='none', notifications='ALL')),
     Preset(key='prompt/video-only-rerun', folder='YT-DLP-prompt', label='video-only rerun',
            params=DriverParams(script=DRIVER_SCRIPT, mode='video-only', subs=True,
-                               video_timeout=1800, rerun=True, cookies='firefox',
+                               video_timeout=1800, rerun=True, cookies=COOKIES_FROM_CONFIG,
                                notifications='NO')),
     # ---- Folder: Run Linters (run-linters.py) ----
     Preset(key='linters/all', folder='Run Linters', label='run-linters all',

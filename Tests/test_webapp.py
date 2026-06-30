@@ -5,9 +5,11 @@ argv flag or environment variable, that every preset targets a script that exist
 URL validator works — without launching yt-dlp or the NiceGUI runtime.
 """
 
+import sys
 from pathlib import Path
 
-from webapp.presets import PRESETS, PRESETS_BY_KEY, folders
+from webapp.config import load_config
+from webapp.presets import COOKIES_FROM_CONFIG, PRESETS, PRESETS_BY_KEY, folders
 from webapp.runner import DRIVER_SCRIPT, LINTER_SCRIPT, DriverParams, build_command
 from webapp.validate import is_safe_color, is_safe_url
 
@@ -123,14 +125,28 @@ def test_every_preset_script_exists() -> None:
 
 
 def test_preset_default_rules() -> None:
-    """Cookies default to firefox except ertflix; notif defaults to ALL only for the two configs."""
+    """Cookies follow the config default except ertflix (none); notif=ALL only for the two configs."""
     by_key = PRESETS_BY_KEY
     assert by_key['prompt/ertflix'].params.cookies == 'none'
-    assert all(by_key[k].params.cookies == 'firefox'
+    assert all(by_key[k].params.cookies == COOKIES_FROM_CONFIG
                for k in by_key if by_key[k].params.script == DRIVER_SCRIPT and k != 'prompt/ertflix')
     all_notif = {k for k in by_key if by_key[k].params.notifications == 'ALL'}
     assert all_notif == {'prompt/ertflix', 'prompt/chapters'}
     assert folders() == ['YT-DLP-presets', 'YT-DLP-prompt', 'Run Linters']
+
+
+def test_default_cookies_resolution(tmp_path: Path) -> None:
+    """config.json 'cookies' overrides the platform default; blank/invalid falls back to platform."""
+    cfg = tmp_path / 'config.json'
+    cfg.write_text('{"cookies": "chrome"}', encoding='utf-8')
+    assert load_config(config_path=cfg).default_cookies == 'chrome'
+
+    cfg.write_text('{"cookies": ""}', encoding='utf-8')
+    platform_default = 'firefox' if sys.platform == 'win32' else 'none'
+    assert load_config(config_path=cfg).default_cookies == platform_default
+
+    cfg.write_text('{"cookies": "bogus"}', encoding='utf-8')
+    assert load_config(config_path=cfg).default_cookies == platform_default
 
 
 def test_validators() -> None:
