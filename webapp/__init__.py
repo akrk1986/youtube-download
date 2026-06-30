@@ -7,4 +7,4 @@ into a scrollable log. The driver scripts themselves are never modified.
 
 # The web app carries its own version, independent of main-yt-dlp.py's VERSION (the app only drives
 # that script as a subprocess). Bump it when the webapp changes; see webapp/CHANGELOG.md.
-VERSION = '2026-06-30-1520'
+VERSION = '2026-06-30-1839'

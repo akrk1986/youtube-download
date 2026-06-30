@@ -4,7 +4,8 @@
 Runnable from a PyCharm run configuration or the command line on every OS (Windows PowerShell,
 WSL, Linux) after activating the shared venv: ``./webapp-yt-dlp.py``. Optional ``--host`` / ``--port``
 override config.json (which defaults to port 8081); ``WEBAPP_HOST`` / ``WEBAPP_PORT`` env vars sit
-between them in precedence. All logic lives in the ``webapp`` package.
+between them in precedence. ``--native`` launches a standalone desktop window instead of a browser
+tab (needs ``pip install pywebview``). All logic lives in the ``webapp`` package.
 """
 
 from webapp.app import run_app

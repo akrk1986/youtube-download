@@ -169,6 +169,14 @@ class FormView:  # pylint: disable=too-many-instance-attributes
             retries=int(self._retries.value or 0),
         )
 
+    def set_url(self, url: str) -> None:
+        """Overwrite the URL field (used by the clipboard watcher / external callers).
+
+        Args:
+            url: The URL to place in the field, replacing any current value.
+        """
+        self._url.value = url
+
     def _on_preset_change(self) -> None:
         """Apply the newly selected preset to the form widgets."""
         self.apply_preset(preset=PRESETS_BY_KEY[str(self._preset.value)])

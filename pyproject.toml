@@ -15,12 +15,14 @@ dependencies = [
     "pip-audit>=2.10.0",
     "pip-tools",
     "pydoclint",
+    "pyperclip",
     "pylint",
     "pyupgrade",
     "radon",
     "ruff",
     "pytest>=9.0.3",
     "ty>=0.0.44",
+    "types-pyperclip",
     "types-yt-dlp",
     "urllib3>=2.7.0",
     "vulture",
@@ -61,7 +63,7 @@ DEP003 = ["common_av", "common_linters"]
 DEP002 = [
     "bandit", "deptry", "mypy", "pip-audit", "pip-tools", "pydoclint", "pylint",
     "pyupgrade", "pygments", "radon", "ruff", "pytest", "skylos", "ty",
-    "types-yt-dlp", "vulture",
+    "types-pyperclip", "types-yt-dlp", "vulture",
     # Transitive CVE pins (not imported directly; see requirements.in / pip-audit history).
     "idna", "urllib3",
 ]

@@ -17,6 +17,7 @@ from webapp import VERSION
 from webapp.config import CONFIG_FILENAME, AppConfig, ThemeConfig, load_config, resolve_host_port
 from webapp.form import FormView
 from webapp.runner import DRIVER_SCRIPT, DriverProcess, build_command
+from webapp.services.clipboard_watcher import ClipboardWatcher
 from webapp.validate import (is_safe_color, is_safe_font_family, is_safe_font_size, is_safe_url)
 
 _DEFAULT_SECRET: str = 'yt-dlp-webapp-dev-secret'
@@ -26,15 +27,17 @@ def run_app() -> None:
     """Load config (with env/CLI host/port overrides), register the page, and start the server."""
     repo_root = Path(__file__).resolve().parent.parent
     config = load_config(config_path=Path(__file__).resolve().parent / CONFIG_FILENAME)
-    cli_host, cli_port = _parse_cli()
+    cli_host, cli_port, cli_native = _parse_cli()
     config = resolve_host_port(config=config, cli_host=cli_host, cli_port=cli_port)
     secret = _load_storage_secret(repo_root=repo_root)
+    # --native forces the desktop window on; config.json `native` still works as a fallback.
+    native = cli_native or config.native
 
     # Register the single page; built fresh per user/page-load so all run state stays page-local.
     ui.page('/')(lambda: _build_page(config=config, repo_root=repo_root))
 
     # reload (file-watch hot reload) is opt-in via config; default off is the safe deployment stance.
-    ui.run(host=config.host, port=config.port, native=config.native, reload=config.reload,
+    ui.run(host=config.host, port=config.port, native=native, reload=config.reload,
            storage_secret=secret, title='yt-dlp', show=False)
 
 
@@ -105,6 +108,27 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
         # so the cleared/replacement page reaches the client before the websocket closes.
         background_tasks.create(_delayed_shutdown(), name='exit-webapp')
 
+    def _on_clip_url(url: str) -> None:
+        form.set_url(url=url)
+        # Persist until dismissed (timeout=0) with an OK button. Its text is forced black via CSS
+        # (.q-notification__actions .q-btn in _apply_theme) — the default is blue-on-green.
+        ui.notify('Picked up URL from the clipboard', type='positive', close_button='OK', timeout=0)
+
+    watcher = ClipboardWatcher(on_youtube_url=_on_clip_url)
+
+    def _sync_watch_btns() -> None:
+        on = watcher.is_enabled()
+        start_watch_btn.set_enabled(not on)
+        stop_watch_btn.set_enabled(on)
+
+    def _start_watch() -> None:
+        watcher.start()
+        _sync_watch_btns()
+
+    def _stop_watch() -> None:
+        watcher.stop()
+        _sync_watch_btns()
+
     page = ui.column().classes('w-full p-4 gap-3')
     with page:
         # Controls are capped to a readable width; only the output log spans the full window.
@@ -118,10 +142,17 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
                 cancel_btn = ui.button('Cancel', icon='stop', on_click=_cancel).props('color=negative')
                 ui.button('Exit web app', icon='dangerous',
                           on_click=_stop_webapp).props('color=orange')
+                start_watch_btn = ui.button('Start watching', icon='content_paste',
+                                            on_click=_start_watch).props('color=positive')
+                stop_watch_btn = ui.button('Stop watching', icon='content_paste_off',
+                                           on_click=_stop_watch).props('color=grey')
         log = ui.log(max_lines=5000).classes('w-full h-96 driver-log')
         banner = ui.label().classes('text-lg font-bold')
     cancel_btn.set_enabled(False)
+    stop_watch_btn.set_enabled(False)  # not watching yet
     ui.timer(0.4, _refresh_preview)
+    # Clipboard poll: always ticks, but watcher.poll() no-ops until 'Start watching' enables it.
+    ui.timer(1.0, watcher.poll)
 
 
 async def _delayed_shutdown() -> None:
@@ -130,18 +161,22 @@ async def _delayed_shutdown() -> None:
     app.shutdown()
 
 
-def _parse_cli() -> tuple[str | None, int | None]:
-    """Parse the optional ``--host`` / ``--port`` overrides from the command line.
+def _parse_cli() -> tuple[str | None, int | None, bool]:
+    """Parse the optional ``--host`` / ``--port`` / ``--native`` overrides from the command line.
 
     Returns:
-        tuple[str | None, int | None]: The CLI host and port (None when not given).
+        tuple[str | None, int | None, bool]: The CLI host, port (None when not given), and the
+        ``--native`` flag (launch as a desktop window instead of a browser tab).
     """
     parser = argparse.ArgumentParser(description='yt-dlp download web app.')
     parser.add_argument('--host', help='Override the listen host (else WEBAPP_HOST, else config.json)')
     parser.add_argument('--port', type=int,
                         help='Override the listen port (else WEBAPP_PORT, else config.json)')
+    parser.add_argument('--native', action='store_true',
+                        help='Launch as a standalone desktop window (needs pywebview) instead of a '
+                             'browser tab')
     args, _ = parser.parse_known_args()
-    return args.host, args.port
+    return args.host, args.port, args.native
 
 
 def _apply_theme(theme: ThemeConfig) -> None:
@@ -164,6 +199,9 @@ def _apply_theme(theme: ThemeConfig) -> None:
             'background-color': bg, 'color': fg, 'font-family': family, 'font-size': size}),
         _css_rule(selector='.driver-log', declarations={
             'font-size': out_size, 'white-space': 'pre-wrap', 'word-break': 'break-word'}),
+        # Force the notification close button ('OK') text black — the Quasar default is a hard-to-read
+        # blue on the green positive-notification background.
+        _css_rule(selector='.q-notification__actions .q-btn', declarations={'color': '#000 !important'}),
     ]))
 
 

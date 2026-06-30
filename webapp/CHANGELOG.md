@@ -5,6 +5,28 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-06-30-1839] - clipboard watcher for YouTube URLs + --native launch flag
+
+### Added
+- **`--native` CLI flag** — launches a standalone desktop window instead of a browser tab (forces it
+  on; `config.json` `native` still works as a fallback). Needs `pywebview` installed (manual/optional;
+  on Windows it renders via the built-in Edge WebView2). `_parse_cli` now returns the native flag.
+- **Clipboard watcher** (`webapp/services/clipboard_watcher.py`, UI-free): while the **Start watching**
+  toggle is on, a 1 s `ui.timer` polls the OS clipboard (`pyperclip` off the event loop via
+  `asyncio.to_thread`); on a **new** YouTube URL (`youtube.com/watch?v=`, `youtu.be/`, `m.youtube.com`)
+  it fills the URL field (`FormView.set_url`) and shows a persistent OK notification. It never
+  auto-starts a download. Enabling it ignores whatever is already on the clipboard. Empty/unreadable
+  reads are skipped silently and watching continues (WSL's PowerShell-backed clipboard *raises* on an
+  empty clipboard — a normal state, not a failure).
+- **Start watching / Stop watching** buttons in the controls row (enabled-state mirrors the watcher).
+- **`Tests/test_clipboard_watcher.py`** (8 tests): URL matching, last-seen reset on start, new-URL
+  delivery, non-YouTube ignored, disabled no-op, and skip-and-stay-enabled on a failing read.
+
+### Changed
+- Dependency: `pyperclip` promoted to a declared direct dependency (+ `types-pyperclip` stub). The
+  cross-platform `uvloop` lock marker (see project changelog) makes the shared lock installable on
+  Windows, which `--native` needs there.
+
 ## [2026-06-30-1520] - "Exit web app" button + own version/changelog/readme
 
 ### Added

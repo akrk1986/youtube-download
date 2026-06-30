@@ -12,3 +12,9 @@
 # Security overrides for transitive dependencies (not imported directly):
 starlette>=1.3.1  # PYSEC-2026-161, CVE-2026-54282/54283; pulled in via skylos -> mcp
 pyjwt>=2.13.0  # PYSEC-2026-175/177/178/179; pulled in via skylos -> mcp
+
+# Platform marker for a Unix-only transitive dep: uvloop (via nicegui -> uvicorn[standard]) has no
+# Windows wheel and fails to build there. It's only a uvicorn speed-up, optional on every OS. The
+# marker keeps it out of the shared lock on Windows so `pip install -r requirements.txt` works in
+# the .venv-av-windows venv.
+uvloop ; sys_platform != "win32"

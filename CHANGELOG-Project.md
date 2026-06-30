@@ -2,6 +2,20 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-06-30-1839] - shared lock installs on Windows (uvloop marker); pyperclip direct dep
+
+### Fixed
+- **`requirements.in` / `requirements.txt`**: `uvloop` (pulled transitively by `nicegui` →
+  `uvicorn[standard]`) now carries a `sys_platform != "win32"` marker. It has no Windows wheel and
+  failed to build there (`RuntimeError: uvloop does not support Windows`), breaking
+  `pip install -r requirements.txt` in the `.venv-av-windows` venv. uvloop is only a uvicorn
+  speed-up (optional on every OS), so excluding it on Windows is safe; the marker is sourced from
+  `requirements.in` so it survives recompiles.
+
+### Changed
+- **`pyproject.toml`**: `pyperclip` promoted to a declared direct dependency (used by the web app's
+  clipboard watcher); `types-pyperclip` stub added (and to the deptry DEP002 ignore list).
+
 ## [2026-06-26-1626] - pip-audit WARNING state; pylint lints entry-point scripts
 
 ### Changed
