@@ -96,11 +96,18 @@ def _build_output_template(opts: DownloadOptions,
 
 
 def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,
-                         sanitized_title: str | None = None) -> None:
+                         sanitized_title: str | None = None,
+                         extra_ffmpeg_args: list[str] | None = None) -> None:
     """Insert shared conditional flags into a yt-dlp command list (mutates cmd).
 
     Handles: cookies, playlist flag, progress, custom_title metadata replacement,
     custom_artist/album ffmpeg metadata.
+
+    Any ``extra_ffmpeg_args`` are merged into the SAME generic ``ffmpeg:`` ``--postprocessor-args``
+    entry as the custom artist/album metadata. yt-dlp keeps only the last ``--postprocessor-args``
+    for a given postprocessor key, so emitting a second ``ffmpeg:...`` elsewhere would silently
+    drop the metadata — which is exactly why custom artist/album vanished from the M4A (it adds
+    ``-movflags +faststart``) while the MP4 kept them. Callers pass such extras here instead.
     """
     cookie_args = get_cookie_args()
     if cookie_args:
@@ -116,17 +123,20 @@ def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,
         # Set the title metadata tag to the custom title
         cmd[1:1] = ['--replace-in-metadata', 'title', '.+', sanitized_title]
 
-    if opts.custom_artist or opts.custom_album:
-        # Set metadata tags using ffmpeg postprocessor args
-        ffmpeg_metadata: list[str] = []
-        if opts.custom_artist:
-            # Album Artist is intentionally not set -- it's reserved for the dupe
-            # staging workflow (see README-Dupes.md).
-            quoted_artist = _quote_if_needed(opts.custom_artist)
-            ffmpeg_metadata.extend(['-metadata', f'artist={quoted_artist}'])
-        if opts.custom_album:
-            quoted_album = _quote_if_needed(opts.custom_album)
-            ffmpeg_metadata.extend(['-metadata', f'album={quoted_album}'])
+    # Build a single generic 'ffmpeg:' postprocessor-args entry combining custom artist/album
+    # metadata and any caller-supplied extras (e.g. M4A faststart), so they never overwrite.
+    ffmpeg_metadata: list[str] = []
+    if opts.custom_artist:
+        # Album Artist is intentionally not set -- it's reserved for the dupe
+        # staging workflow (see README-Dupes.md).
+        quoted_artist = _quote_if_needed(opts.custom_artist)
+        ffmpeg_metadata.extend(['-metadata', f'artist={quoted_artist}'])
+    if opts.custom_album:
+        quoted_album = _quote_if_needed(opts.custom_album)
+        ffmpeg_metadata.extend(['-metadata', f'album={quoted_album}'])
+    if extra_ffmpeg_args:
+        ffmpeg_metadata.extend(extra_ffmpeg_args)
+    if ffmpeg_metadata:
         cmd[1:1] = ['--postprocessor-args', 'ffmpeg:' + ' '.join(ffmpeg_metadata)]
 
 

@@ -53,8 +53,12 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
         sanitized_url
     ]
 
-    # Add shared flags (cookies, playlist, progress, custom metadata)
-    _append_common_flags(cmd=yt_dlp_cmd, opts=opts, sanitized_title=sanitized_title)
+    # Add shared flags (cookies, playlist, progress, custom metadata). For M4A, place the moov atom
+    # before mdat (faststart) via the SAME ffmpeg postprocessor-args entry as the custom metadata —
+    # a separate '--postprocessor-args ffmpeg:...' would replace it and drop the custom artist/album.
+    extra_ffmpeg_args = ['-movflags', '+faststart'] if format_type == 'm4a' else None
+    _append_common_flags(cmd=yt_dlp_cmd, opts=opts, sanitized_title=sanitized_title,
+                         extra_ffmpeg_args=extra_ffmpeg_args)
 
     # Add audio-specific flags. Only 'artist' is embedded; Album Artist is left
     # empty for the dupe staging workflow (see README-Dupes.md).
@@ -71,9 +75,8 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
     # so override it to empty during metadata embedding.
     yt_dlp_cmd[1:1] = ['--parse-metadata', ':(?P<meta_album_artist>)']
 
-    # For M4A, ensure moov atom is placed before mdat (required for hardware players)
-    if format_type == 'm4a':
-        yt_dlp_cmd.extend(['--postprocessor-args', 'ffmpeg:-movflags +faststart'])
+    # (M4A faststart -movflags is added via _append_common_flags' extra_ffmpeg_args above, so it
+    # shares the single 'ffmpeg:' postprocessor-args entry with the custom artist/album metadata.)
 
     # Optional ffmpeg audio filter from FFMPEG_OPTS env var (e.g. 'volume=2.0' or
     # 'loudnorm=I=-16:TP=-1.5:LRA=11'). Mirrors the losslesscut-csv FFMPEG_OPTS convention.

@@ -2,6 +2,11 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-06-30-1549] - fix: apply custom --artist/--album to the M4A, not just the MP4
+
+### Fixed
+- **`funcs_for_main_yt_dlp/_download_common.py`, `download_audio.py`** (`VERSION` → `2026-06-30-1549`): custom `--artist` / `--album` now reach the extracted **M4A** file, not only the MP4. yt-dlp keeps only the last `--postprocessor-args` for a given postprocessor key; the M4A path emitted a separate `ffmpeg:-movflags +faststart`, which silently replaced the `ffmpeg:-metadata artist=… album=…` entry that `_append_common_flags` adds (the MP4 path has no faststart arg, so it was unaffected). `_append_common_flags` now accepts `extra_ffmpeg_args` and merges the M4A faststart into the single shared `ffmpeg:` postprocessor-args entry. Added `Tests/test_download_metadata_args.py` (4 regression tests).
+
 ## [2026-06-30-1332] - abort early (with a warning) on an empty playlist
 
 ### Added
