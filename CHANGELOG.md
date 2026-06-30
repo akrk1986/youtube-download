@@ -2,6 +2,11 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-30-1044] - print playlist size at download start
+
+### Added
+- **`main-yt-dlp.py`** (`VERSION` → `2026-06-30-1044`): when the URL is a playlist, the script now enumerates its size up front (via `get_playlist_entries`) and logs `Playlist contains N video(s)`. Playlist detection was moved ahead of the start notification so the count is also passed as `playlist_count` into the `start` `NotificationData` — the Slack/Gmail start message now reports the playlist size. Single-video URLs are unaffected; enumeration failures fall back to a `debug` log. Relies on `NotificationData.playlist_count` added in `common-av-codebase` (`2026-06-30-1041`).
+
 ## [2026-06-30-1015] - warn on auth-style download failures; quiet cookie INFO log
 
 ### Added

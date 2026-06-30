@@ -27,7 +27,8 @@ from funcs_for_main_yt_dlp import (DownloadOptions,
                                    validate_and_get_url,
                                    validate_list_chapters)
 from funcs_video_info import (are_chapters_supported, are_playlists_supported,
-                              create_chapters_csv, detect_chapters, is_playlist)
+                              create_chapters_csv, detect_chapters,
+                              get_playlist_entries, is_playlist)
 from funcs_utils import setup_logging
 from project_defs import VIDEO_OUTPUT_DIR
 
@@ -43,7 +44,7 @@ except ImportError:
     pass
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-06-30-1015'
+VERSION = '2026-06-30-1044'
 
 logger = logging.getLogger(__name__)
 
@@ -232,6 +233,18 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
     args.video_url = _resolve_url(args=args, yt_dlp_exe=yt_dlp_exe)
     logger.info(f'Processing URL: {args.video_url}')
 
+    # Playlist / chapter detection only run for domains that support them (YouTube today).
+    # Done before the start notification so the playlist size can be reported up front.
+    url_is_playlist = is_playlist(url=args.video_url) if are_playlists_supported(url=args.video_url) else False
+
+    playlist_count: int | None = None
+    if url_is_playlist:
+        try:
+            playlist_count = len(get_playlist_entries(url=args.video_url))
+            logger.info(f'Playlist contains {playlist_count} video(s)')
+        except RuntimeError as exc:
+            logger.debug(f'Could not enumerate playlist size: {exc}')
+
     # Send start notification
     if notifiers:
         send_all_notifications(
@@ -243,6 +256,7 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
                 session_id=session_id,
                 script_version=VERSION,
                 ytdlp_version=ytdlp_version,
+                playlist_count=playlist_count,
                 notif_msg_suffix=notif_msg_suffix
             )
         )
@@ -256,9 +270,6 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         for audio_format in audio_formats:
             audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
             audio_dir.mkdir(parents=True, exist_ok=True)
-
-    # Playlist / chapter detection only run for domains that support them (YouTube today)
-    url_is_playlist = is_playlist(url=args.video_url) if are_playlists_supported(url=args.video_url) else False
 
     if args.list_chapters and url_is_playlist:
         logger.error('--list-chapters does not support playlist URLs. Provide a single video URL.')
