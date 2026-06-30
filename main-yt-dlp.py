@@ -26,9 +26,9 @@ from funcs_for_main_yt_dlp import (DownloadOptions,
                                    run_yt_dlp,
                                    validate_and_get_url,
                                    validate_list_chapters)
-from funcs_video_info import (are_chapters_supported, are_playlists_supported,
-                              create_chapters_csv, detect_chapters,
-                              get_playlist_entries, is_playlist)
+from funcs_video_info import (EmptyPlaylistError, are_chapters_supported,
+                              are_playlists_supported, create_chapters_csv,
+                              detect_chapters, get_playlist_entries, is_playlist)
 from funcs_utils import setup_logging
 from project_defs import VIDEO_OUTPUT_DIR
 
@@ -44,7 +44,7 @@ except ImportError:
     pass
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-06-30-1044'
+VERSION = '2026-06-30-1332'
 
 logger = logging.getLogger(__name__)
 
@@ -242,6 +242,9 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         try:
             playlist_count = len(get_playlist_entries(url=args.video_url))
             logger.info(f'Playlist contains {playlist_count} video(s)')
+        except EmptyPlaylistError:
+            logger.warning('Playlist is empty — nothing to download.')
+            sys.exit(0)
         except RuntimeError as exc:
             logger.debug(f'Could not enumerate playlist size: {exc}')
 

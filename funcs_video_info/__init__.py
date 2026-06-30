@@ -16,6 +16,7 @@ from funcs_video_info.chapters import (
 )
 from funcs_video_info.composer_extraction import extract_composer_from_description
 from funcs_video_info.metadata import (
+    EmptyPlaylistError,
     get_playlist_entries,
     get_video_info,
     is_playlist,
@@ -37,6 +38,7 @@ __all__ = [
     'get_video_info',
     'is_playlist',
     'get_playlist_entries',
+    'EmptyPlaylistError',
     # Chapters
     'get_chapter_count',
     'display_chapters_and_confirm',

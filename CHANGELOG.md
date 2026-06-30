@@ -2,6 +2,15 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-30-1332] - abort early (with a warning) on an empty playlist
+
+### Added
+- **`funcs_video_info/metadata.py`**: `EmptyPlaylistError` (subclass of `RuntimeError`) — `get_playlist_entries()` now raises it for the no-entries case instead of a plain `RuntimeError`, so callers can tell an empty playlist apart from a genuine enumeration failure. Exported from `funcs_video_info`.
+
+### Changed
+- **`main-yt-dlp.py`** (`VERSION` → `2026-06-30-1332`): an empty playlist now aborts as early as possible — right after playlist detection, before the start notification, output-dir creation, chapter detection, and any yt-dlp run. `main()` catches `EmptyPlaylistError`, logs `Playlist is empty — nothing to download.` at **warning** level (an empty playlist is a normal outcome, not an error), and exits `0`. Previously the empty case was swallowed at `debug` level and the script fell through to a no-op download. Genuine enumeration failures still fall through to the quiet `debug` log.
+- **Tests**: `Tests/test_playlist_entries.py` (4 tests) covers the empty → `EmptyPlaylistError` signal, the RuntimeError-subclass guarantee, the populated-playlist result, and that extraction failures stay a plain `RuntimeError`.
+
 ## [2026-06-30-1044] - print playlist size at download start
 
 ### Added

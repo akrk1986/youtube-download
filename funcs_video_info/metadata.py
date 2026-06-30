@@ -15,6 +15,14 @@ from funcs_video_info.url_validation import get_timeout_for_url
 logger = logging.getLogger(__name__)
 
 
+class EmptyPlaylistError(RuntimeError):
+    """Raised when a URL is a valid playlist but contains no entries.
+
+    A subclass of RuntimeError so existing ``except RuntimeError`` callers keep working, while
+    callers that care can distinguish an empty playlist from a genuine enumeration failure.
+    """
+
+
 class _SilentLogger:
     """Custom logger for yt-dlp that suppresses format errors."""
 
@@ -128,7 +136,7 @@ def get_playlist_entries(url: str) -> list[tuple[str, str]]:
 
     Uses the yt-dlp Python library with extract_flat so it never downloads media.
     Builds the per-entry watch URL from the entry id when 'url' is absent.
-    Raises RuntimeError if the URL is not actually a playlist or extraction fails."""
+    Raises EmptyPlaylistError if the playlist has no entries, or RuntimeError if extraction fails."""
     ydl_opts = _build_flat_ydl_opts()
     with yt_dlp.YoutubeDL(params=ydl_opts) as ydl:  # type: ignore
         try:
@@ -138,7 +146,7 @@ def get_playlist_entries(url: str) -> list[tuple[str, str]]:
 
     entries = info.get('entries') or []  # type: ignore[union-attr]
     if not entries:
-        raise RuntimeError(f"No playlist entries found for URL '{url}'")
+        raise EmptyPlaylistError(f"No playlist entries found for URL '{url}'")
 
     result: list[tuple[str, str]] = []
     for entry in entries:  # type: ignore[union-attr]
