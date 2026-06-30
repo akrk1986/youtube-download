@@ -21,6 +21,7 @@ The codebase follows a modular function-based architecture:
 ### Main Entry Points
 - `main-yt-dlp.py` - Primary CLI tool for downloading and processing YouTube content
 - `main-ertflix-series.py` - Interactive ERTFlix series browser (Playwright + Chromium): picks season/episode via arrow-key menus, captures the token API URL when Play is clicked, and hands off to `main-yt-dlp.py --ertflix-program`
+- `webapp-yt-dlp.py` - Local NiceGUI web app that wraps `main-yt-dlp.py`: exposes curated run-config presets as an editable browser form, shells out to the driver (or `run-linters.py`) as a subprocess, and streams output to a log. Code lives in the `webapp/` package; it has its own `VERSION` (`webapp/__init__.py`), `webapp/CHANGELOG.md`, and `webapp/README.md`. See the "Web App" section below.
 
 ### Utility Scripts (`Utils/`)
 - `main-suggest-boost.py` - Loudness Boost Suggester: measure a URL's loudness and suggest an `FFMPEG_OPTS` boost (coupled to the download pipeline)
@@ -258,6 +259,27 @@ https://api.ertflix.opentv.com/urlbuilder/v1/playout/content/token?
 
 The script extracts the URL-encoded `content_URL` parameter, which contains the actual CDN playback URL.
 
+### Web App (`webapp-yt-dlp.py` + `webapp/`)
+
+A local NiceGUI browser UI that wraps `main-yt-dlp.py`. It exposes a curated subset of the project's
+PyCharm run configurations as editable presets, builds the equivalent argv + env, shells out to the
+driver (or `run-linters.py`) via `asyncio.create_subprocess_exec`, and streams the live output into a
+log. The driver scripts are never modified — the app only drives them as subprocesses. Full details
+(presets, config keys, architecture) are in `webapp/README.md`.
+
+```bash
+source ../.venv-av-linux/bin/activate   # nicegui is in [project.dependencies] + requirements.txt
+./webapp-yt-dlp.py                       # then open http://localhost:8081
+./webapp-yt-dlp.py --port 9000           # or WEBAPP_PORT=9000; precedence: CLI > env > config.json > 8081
+```
+
+Key facts when working on it:
+- **Own version**: `webapp/__init__.py` `VERSION` (independent of `main-yt-dlp.py`), shown in the page header. Changelog: `webapp/CHANGELOG.md`.
+- **Port 8081** (8080 is the sibling `losslesscut-csv` web app). Non-secret settings in `webapp/config.json`; NiceGUI `storage_secret` from the gitignored `git_excluded.py`.
+- **Cookie default is platform-aware**: `firefox` on native Windows, `none` on WSL/Linux/macOS (the Windows Firefox profile is unreachable there); overridable via `cookies` in `webapp/config.json`.
+- **Module split**: UI-free, unit-tested core (`config.py`, `presets.py`, `runner.py`, `validate.py`) imports no nicegui; the nicegui shell (`form.py`, `app.py`) does. Tests: `Tests/test_webapp.py` (no NiceGUI runtime).
+- The interactive ERTFlix series browser is intentionally **not** exposed (its headed-Chromium / arrow-key flow can't run headless).
+
 ### Testing Individual Components
 The project has three categories of tests:
 
@@ -371,12 +393,13 @@ The project uses a three-tier testing approach:
 
 ### CHANGELOG Rule
 
-Every commit that modifies project files (excluding docs-only changes) must have a corresponding changelog entry. The changelog is split into three files by audience — record the entry in the one that matches what changed:
+Every commit that modifies project files (excluding docs-only changes) must have a corresponding changelog entry. The changelog is split into four files by audience — record the entry in the one that matches what changed:
 - **`CHANGELOG.md`** — the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers).
 - **`CHANGELOG-Utils.md`** — the remaining standalone utilities (`Utils/main-suggest-boost.py`, `Utils/main-get-artists-from-trello.py`, and the URL-extraction helper in `Tests/`). The extracted audio/dedupe/qBittorrent utilities are tracked in `av-utils/CHANGELOG.md`.
 - **`CHANGELOG-Project.md`** — project-wide tooling/dependency changes (linters, type checkers, `pip-audit`/CVE bumps, the shared virtual environment, security review).
+- **`webapp/CHANGELOG.md`** — the web app (`webapp-yt-dlp.py` + the `webapp/` package). Bump `webapp/__init__.py`'s `VERSION` (independent of `main-yt-dlp.py`) for webapp code changes.
 
-Conventions (same across all three files):
+Conventions (same across all four files):
 - Use the actual commit timestamp: `git log -1 --format=%cd --date=format:'%Y-%m-%d-%H%M'`
 - Record under `### Added`, `### Changed`, or `### Fixed` as appropriate
 - Can be included in the same commit or a follow-up commit

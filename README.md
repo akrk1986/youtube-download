@@ -16,6 +16,20 @@ A Python-based YouTube downloader and media processing tool that uses `yt-dlp` f
 - Store source YouTube URL in both video and audio file metadata
 - Automatic format fallback when preferred video/audio formats are unavailable
 - **Control notifications** via `NOTIFICATIONS` environment variable
+- **Local web app** (NiceGUI) that wraps the downloader with one-click presets — see [Web App](#web-app)
+
+## Web App
+
+A local browser UI ([NiceGUI](https://nicegui.io/)) wraps `main-yt-dlp.py`: pick a preset, tweak the
+form, and Launch — output streams into a log. It shells out to the driver as a subprocess (the driver
+is never modified). It has its own version and changelog and full docs in
+[`webapp/README.md`](webapp/README.md).
+
+```bash
+source ../.venv-av-linux/bin/activate   # nicegui ships in requirements.txt
+./webapp-yt-dlp.py                       # then open http://localhost:8081
+./webapp-yt-dlp.py --port 9000           # or WEBAPP_PORT=9000 (precedence: CLI > env > config.json > 8081)
+```
 
 ## Usage
 
