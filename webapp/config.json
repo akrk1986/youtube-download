@@ -1,0 +1,16 @@
+{
+  "host": "0.0.0.0",
+  "port": 8081,
+  "native": false,
+  "reload": false,
+  "boost_default": 2.0,
+  "cookies": "",
+  "theme": {
+    "dark": true,
+    "fg_color": "#e8e8e8",
+    "bg_color": "#1e1e1e",
+    "font_family": "Roboto, sans-serif",
+    "font_size": "16px",
+    "output_font_size": "13px"
+  }
+}

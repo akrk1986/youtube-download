@@ -2,6 +2,13 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-30-1408] - webapp: platform-aware cookie default + UI tweaks
+
+### Changed
+- **`webapp/`**: the preset **cookie default is now platform-aware and configurable** — `firefox` on native Windows, `none` on WSL/Linux/macOS (where the Windows Firefox profile is unreachable, so `yt-dlp --cookies-from-browser firefox` would fail). Overridable via a `cookies` key in `webapp/config.json` (`none`/`firefox`/`chrome`). Presets carry a `COOKIES_FROM_CONFIG` sentinel that `FormView.apply_preset` resolves against `AppConfig.default_cookies` (the ERTFlix preset still forces `none`); the sentinel never reaches `build_command`.
+- **UI**: the Launch / Cancel controls moved **above** the output log; added a **Stop web app** button (`app.shutdown()`); the controls (title, form, preview, buttons) are capped to a readable width while only the **output log** spans the full browser width (useful on desktop).
+- **Tests**: `Tests/test_webapp.py` updated for the sentinel; added `test_default_cookies_resolution` (config override / blank / invalid → platform default).
+
 ## [2026-06-30-1332] - abort early (with a warning) on an empty playlist
 
 ### Added
@@ -10,6 +17,17 @@ All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.
 ### Changed
 - **`main-yt-dlp.py`** (`VERSION` → `2026-06-30-1332`): an empty playlist now aborts as early as possible — right after playlist detection, before the start notification, output-dir creation, chapter detection, and any yt-dlp run. `main()` catches `EmptyPlaylistError`, logs `Playlist is empty — nothing to download.` at **warning** level (an empty playlist is a normal outcome, not an error), and exits `0`. Previously the empty case was swallowed at `debug` level and the script fell through to a no-op download. Genuine enumeration failures still fall through to the quiet `debug` log.
 - **Tests**: `Tests/test_playlist_entries.py` (4 tests) covers the empty → `EmptyPlaylistError` signal, the RuntimeError-subclass guarantee, the populated-playlist result, and that extraction failures stay a plain `RuntimeError`.
+
+## [2026-06-30-1319] - NiceGUI web app wrapping main-yt-dlp.py
+
+### Added
+- **New web UI** (`webapp-yt-dlp.py` + `webapp/` package): a local NiceGUI app that exposes a curated set of the project's PyCharm run configurations as editable presets, shells out to `main-yt-dlp.py` (or `run-linters.py`) via `asyncio.create_subprocess_exec`, and streams the live output into a scrollable log. Mirrors the sibling `losslesscut-csv` web app. `main-yt-dlp.py` itself is unchanged (its `VERSION` stays `2026-06-30-1044`); the app drives it as a subprocess.
+  - Listens on **port 8081** by default (8080 is the sibling app); configurable via `--port` / `WEBAPP_PORT` env / `webapp/config.json` (in that precedence), same for host.
+  - UI-free core (`config.py`, `presets.py`, `runner.py`, `validate.py`) is unit-tested without the NiceGUI runtime; `form.py` / `app.py` hold the nicegui shell.
+  - Presets cover the `YT-DLP-presets`, `YT-DLP-prompt`, and `Run Linters` folders. Cookies default to `firefox` (except the ERTFlix-token preset); `NOTIFICATIONS` is a radio defaulting to `NO` (`ALL` for the `ertflix-program` and `chapters list+download` presets); the three `*-boost` presets pre-fill the boost volume to `2.0`. The stale `--video` flag from the old run config is normalized to `--video-download-timeout`. Console-prompt sentinels (`--title prompt`) become editable Title/Artist/Album fields.
+  - The interactive ERTFlix series browser (`main-ertflix-series.py`) is intentionally **not** exposed (its headed-Chromium / arrow-key flow can't run headless).
+- **`Tests/test_webapp.py`** (12 tests): command-mapping, preset-registry, and validator coverage.
+- **Dependency**: `nicegui` added to `pyproject.toml`; `requirements.txt` recompiled (pins the nicegui/fastapi/uvicorn/starlette stack).
 
 ## [2026-06-30-1044] - print playlist size at download start
 
