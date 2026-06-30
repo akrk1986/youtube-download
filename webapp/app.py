@@ -6,12 +6,14 @@ command preview, and streams the selected script's output into a wrapped, scroll
 """
 
 import argparse
+import asyncio
 import importlib.util
 import shlex
 from pathlib import Path
 
 from nicegui import app, background_tasks, ui
 
+from webapp import VERSION
 from webapp.config import CONFIG_FILENAME, AppConfig, ThemeConfig, load_config, resolve_host_port
 from webapp.form import FormView
 from webapp.runner import DRIVER_SCRIPT, DriverProcess, build_command
@@ -39,7 +41,7 @@ def run_app() -> None:
 def _build_page(config: AppConfig, repo_root: Path) -> None:
     """Assemble the whole UI: theme, form, command preview, controls, output log.
 
-    The Launch / Cancel / Stop-web-app controls sit above the output log. The controls are capped to
+    The Launch / Cancel / Exit-web-app controls sit above the output log. The controls are capped to
     a readable width; only the output log spans the full browser width (useful on desktop).
 
     Args:
@@ -94,26 +96,38 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
             log.push('— cancelled —')
 
     def _stop_webapp() -> None:
-        log.push('— stopping web app —')
-        ui.notify('Stopping the web app…', type='warning')
-        app.shutdown()
+        page.clear()
+        with page:
+            ui.label('Web application was stopped').classes(
+                'w-full text-center text-xl font-bold p-4'
+            ).style('background-color: #ffeb3b; color: #000')
+        # Shut down on a background task (no UI slot needed, unlike ui.timer) after a short delay,
+        # so the cleared/replacement page reaches the client before the websocket closes.
+        background_tasks.create(_delayed_shutdown(), name='exit-webapp')
 
     page = ui.column().classes('w-full p-4 gap-3')
     with page:
         # Controls are capped to a readable width; only the output log spans the full window.
         with ui.column().classes('w-full max-w-3xl gap-3'):
             ui.label('yt-dlp — download driver').classes('text-2xl font-bold')
+            ui.label(f'webapp v{VERSION}').classes('text-xs text-grey -mt-3')
             form = FormView(config=config)
             preview = ui.label().classes('w-full font-mono text-sm break-all driver-preview')
             with ui.row():
                 launch_btn = ui.button('Launch', icon='play_arrow', on_click=_launch)
                 cancel_btn = ui.button('Cancel', icon='stop', on_click=_cancel).props('color=negative')
-                ui.button('Stop web app', icon='power_settings_new',
-                          on_click=_stop_webapp).props('color=grey')
+                ui.button('Exit web app', icon='dangerous',
+                          on_click=_stop_webapp).props('color=orange')
         log = ui.log(max_lines=5000).classes('w-full h-96 driver-log')
         banner = ui.label().classes('text-lg font-bold')
     cancel_btn.set_enabled(False)
     ui.timer(0.4, _refresh_preview)
+
+
+async def _delayed_shutdown() -> None:
+    """Stop the NiceGUI server after a short delay so the client renders the final page first."""
+    await asyncio.sleep(0.5)
+    app.shutdown()
 
 
 def _parse_cli() -> tuple[str | None, int | None]:
