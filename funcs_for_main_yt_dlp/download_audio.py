@@ -12,7 +12,7 @@ from funcs_for_main_yt_dlp._download_common import (
     _run_yt_dlp_subprocess,
 )
 from funcs_for_main_yt_dlp.file_organization import get_audio_dir_for_format
-from funcs_utils import is_format_error, sanitize_url_for_subprocess
+from funcs_utils import is_format_error, sanitize_url_for_subprocess, warn_if_auth_error
 from funcs_video_info import extract_composer_from_description, get_timeout_for_url, get_video_info
 from project_defs import DEFAULT_AUDIO_QUALITY
 
@@ -112,6 +112,7 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
         logger.error(f"{format_type.upper()} audio download failed for URL '{opts.url}' (exit code {e.returncode})")
         if e.stderr:
             logger.error(f'Error details: {e.stderr}')
+        warn_if_auth_error(error_text=error_output)
         if opts.is_it_playlist:
             logger.warning(f"Some videos in playlist '{opts.url}' may have failed, continuing...")
         else:

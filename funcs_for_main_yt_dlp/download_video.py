@@ -10,7 +10,7 @@ from funcs_for_main_yt_dlp._download_common import (
     _get_download_retries,
     _run_yt_dlp_subprocess,
 )
-from funcs_utils import is_format_error, sanitize_url_for_subprocess
+from funcs_utils import is_format_error, sanitize_url_for_subprocess, warn_if_auth_error
 from funcs_video_info import get_timeout_for_url
 from project_defs import YT_DLP_WRITE_JSON_FLAG
 
@@ -101,6 +101,7 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
             logger.error(f"Video download failed for URL '{opts.url}' (exit code {e.returncode})")
             if e.stderr:
                 logger.error(f'Error details: {e.stderr}')
+            warn_if_auth_error(error_text=error_output)
             if opts.is_it_playlist:
                 logger.warning(f"Some videos in playlist '{opts.url}' may have failed, continuing...")
                 return
@@ -112,4 +113,5 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
         logger.warning(f"Some videos in playlist '{opts.url}' may have failed, continuing...")
     else:
         stderr = last_error.stderr if last_error else 'Unknown error'
+        warn_if_auth_error(error_text=stderr)
         raise RuntimeError(f"No compatible format found for '{opts.url}': {stderr}")

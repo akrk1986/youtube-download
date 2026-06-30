@@ -552,6 +552,7 @@ Enables downloading age-restricted or private videos using browser cookies.
 - **Valid values**: `chrome`, `firefox`
 - **Purpose**: Use logged-in browser session to access restricted content
 - **Auto-includes**: `--no-cache-dir` and `--sleep-requests 1` flags for reliability
+- **Failure hint**: when a download fails with an auth-style error, `warn_if_auth_error()` (`funcs_utils/yt_dlp_utils.py`) logs a warning that the cause may be cookies — none configured, or the configured cookies are missing/expired/wrong-browser. Detected via `is_auth_error()` (sign-in / private / members-only / age-restricted / HTTP 403 patterns). The previous per-call `INFO` "Using cookies from … browser" line is now `DEBUG`.
 
 **Usage:**
 ```bash

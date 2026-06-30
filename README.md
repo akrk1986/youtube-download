@@ -317,6 +317,8 @@ $env:YTDLP_USE_COOKIES="chrome"
 - This prevents 403 errors and makes downloads more reliable, especially for long videos
 - Downloads will be slower but much more stable for authenticated content
 
+**Authentication hint on failure:** When a download fails with an error that looks like an authentication problem (sign-in required, private/members-only video, age restriction, HTTP 403), the tool logs a warning suggesting the cause may be browser cookies — either that none are configured (set `YTDLP_USE_COOKIES=firefox` or `chrome`) or that the configured cookies are missing/expired/for the wrong browser.
+
 ### Configure download retry behavior
 
 By default, yt-dlp will retry failed downloads up to 100 times. This handles temporary network issues and YouTube throttling. You can customize this behavior:

@@ -2,6 +2,16 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-06-30-1015] - warn on auth-style download failures; quiet cookie INFO log
+
+### Added
+- **`funcs_utils/yt_dlp_utils.py`**: `is_auth_error()` detects authentication/cookie-style failures (sign-in required, private/members-only video, age restriction, HTTP 403) and `warn_if_auth_error()` logs a hint when a download fails for such a reason — either that no browser cookies are configured (set `YTDLP_USE_COOKIES=firefox`/`chrome`) or that the configured cookies are missing/expired/for the wrong browser. Both are exported from `funcs_utils`.
+- Wired into the non-format error paths of `funcs_for_main_yt_dlp/download_video.py` (per-format and all-formats-exhausted) and `funcs_for_main_yt_dlp/download_audio.py`.
+
+### Changed
+- **`funcs_utils/yt_dlp_utils.py`** (`VERSION` → `2026-06-30-1015`): demoted the per-call `Using cookies from <browser> browser (YTDLP_USE_COOKIES=…)` message from `INFO` to `DEBUG` — `get_cookie_args()` is called several times per run, so it printed repeatedly. It is still visible with `--verbose`.
+- **Docs**: README and CLAUDE.md cookie sections note the new auth-failure hint.
+
 ## [2026-06-25-1306] - gate the download on linter freshness
 
 ### Added
