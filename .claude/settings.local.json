@@ -28,7 +28,8 @@
       "Bash(git commit -m ' *)",
       "WebSearch",
       "Read(//mnt/c/Users/user/PycharmProjects/**)",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "Bash(git checkout *)"
     ],
     "deny": [],
     "ask": []
