@@ -163,13 +163,24 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
         watcher.stop()
         _sync_watch_btns()
 
+    def _sync_watch_visibility() -> None:
+        visible = form.current_is_prompt()
+        start_watch_btn.set_visibility(visible)
+        stop_watch_btn.set_visibility(visible)
+
+    def _on_preset_changed() -> None:
+        # A non-prompt preset has no URL field to fill — stop watching if it was left on, then hide.
+        if not form.current_is_prompt() and watcher.is_enabled():
+            _stop_watch()
+        _sync_watch_visibility()
+
     page = ui.column().classes('w-full p-4 gap-3')
     with page:
         # Controls are capped to a readable width; only the output log spans the full window.
         with ui.column().classes('w-full max-w-3xl gap-3'):
             ui.label('yt-dlp — download driver').classes('text-2xl font-bold')
             ui.label(f'webapp v{VERSION}').classes('text-xs text-grey -mt-3')
-            form = FormView(config=config)
+            form = FormView(config=config, on_change=_on_preset_changed)
             preview = ui.label().classes('w-full font-mono text-sm break-all driver-preview')
             with ui.row():
                 launch_btn = ui.button('Launch', icon='play_arrow', on_click=_launch)
@@ -184,6 +195,7 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
         banner = ui.label().classes('text-lg font-bold')
     cancel_btn.set_enabled(False)
     stop_watch_btn.set_enabled(False)  # not watching yet
+    _sync_watch_visibility()  # first preset is non-prompt → both watch buttons hidden on load
     ui.timer(0.4, _refresh_preview)
     # Clipboard poll: always ticks, but watcher.poll() no-ops until 'Start watching' enables it.
     ui.timer(1.0, watcher.poll)

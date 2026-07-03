@@ -1,7 +1,8 @@
 """Clipboard watcher for YouTube URLs (UI-free).
 
 Polls the OS clipboard (via pyperclip, off the event loop) while enabled and invokes a callback when
-a *new* YouTube URL is copied. Holds no NiceGUI references — the UI layer drives ``poll()`` from a
+a *new* YouTube URL is copied — a video, playlist, youtu.be, or shorts link (whatever the main
+script would accept). Holds no NiceGUI references — the UI layer drives ``poll()`` from a
 ``ui.timer`` and supplies the callback for updating the URL field.
 
 An unreadable clipboard (empty / non-text, or no Linux backend) is treated as "nothing new this
@@ -16,9 +17,13 @@ from collections.abc import Callable
 
 import pyperclip
 
-# Matches youtube.com/watch?v=…, youtu.be/<id>, and m.youtube.com/watch?v=… (optional scheme/www/m).
+# Matches the YouTube URL forms yt-dlp accepts, so the watcher never rejects a link the main script
+# would happily download: a video (watch?v=…), a playlist (playlist?list=…), a youtu.be/<id> short
+# link, or a shorts/<id> link — with an optional scheme and www./m./music. subdomain. A watch link
+# that also carries a &list=… playlist matches via the watch?v= branch.
 _YOUTUBE_RE = re.compile(
-    r'^(?:https?://)?(?:www\.|m\.)?(?:youtube\.com/watch\?v=|youtu\.be/)',
+    r'^(?:https?://)?(?:www\.|m\.|music\.)?'
+    r'(?:youtube\.com/(?:watch\?v=|playlist\?list=|shorts/)|youtu\.be/)',
     re.IGNORECASE,
 )
 

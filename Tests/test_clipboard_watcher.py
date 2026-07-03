@@ -29,6 +29,12 @@ def test_is_youtube_url_accepts() -> None:
     assert _is_youtube_url('youtu.be/abc')
     assert _is_youtube_url('https://m.youtube.com/watch?v=abc')
     assert _is_youtube_url('  https://youtu.be/abc  ')
+    # Playlists, shorts, YouTube Music, and watch+list combos are all valid yt-dlp inputs.
+    assert _is_youtube_url('https://www.youtube.com/playlist?list=PLabc123')
+    assert _is_youtube_url('https://youtube.com/playlist?list=PLabc')
+    assert _is_youtube_url('https://music.youtube.com/playlist?list=PLabc')
+    assert _is_youtube_url('https://www.youtube.com/shorts/abc123')
+    assert _is_youtube_url('https://www.youtube.com/watch?v=abc&list=PLabc')
 
 
 def test_is_youtube_url_rejects() -> None:

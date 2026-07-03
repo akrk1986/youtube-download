@@ -10,7 +10,7 @@ from pathlib import Path
 
 from webapp.ansi import ansi_to_html
 from webapp.config import load_config
-from webapp.presets import COOKIES_FROM_CONFIG, PRESETS, PRESETS_BY_KEY, folders
+from webapp.presets import COOKIES_FROM_CONFIG, PRESETS, PRESETS_BY_KEY, folders, is_prompt_preset
 from webapp.runner import DRIVER_SCRIPT, LINTER_SCRIPT, DriverParams, build_command
 from webapp.validate import is_safe_color, is_safe_url
 
@@ -134,6 +134,15 @@ def test_preset_default_rules() -> None:
     all_notif = {k for k in by_key if by_key[k].params.notifications == 'ALL'}
     assert all_notif == {'prompt/ertflix', 'prompt/chapters'}
     assert folders() == ['YT-DLP-presets', 'YT-DLP-prompt', 'Run Linters']
+
+
+def test_is_prompt_preset() -> None:
+    """Only the YT-DLP-prompt presets are URL-prompting; quick presets and linters are not."""
+    for preset in PRESETS:
+        expected = preset.key.startswith('prompt/')
+        assert is_prompt_preset(preset=preset) is expected, preset.key
+    # Sanity: every folder is represented so the assertion above is non-trivial.
+    assert {preset.folder for preset in PRESETS if is_prompt_preset(preset=preset)} == {'YT-DLP-prompt'}
 
 
 def test_default_cookies_resolution(tmp_path: Path) -> None:

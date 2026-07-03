@@ -28,19 +28,29 @@ class Preset:
 
 PRESETS: tuple[Preset, ...] = (
     # ---- Folder: YT-DLP-presets (main-yt-dlp.py) ----
+    # These four carry the playlist URL hardcoded in the original PyCharm run configs, so selecting
+    # one pre-fills the URL field (no clipboard watcher needed — hence they show no watch buttons).
     Preset(key='presets/av-m4a-boost', folder='YT-DLP-presets', label='audio+video M4A boost',
-           params=DriverParams(script=DRIVER_SCRIPT, mode='with-audio', audio_format='m4a',
+           params=DriverParams(script=DRIVER_SCRIPT,
+                               url='https://www.youtube.com/playlist?list=PLRXnwzqAlx1MCOsyZ-5uMCeZTDclK_2SC',
+                               mode='with-audio', audio_format='m4a',
                                subs=True, boost=True, boost_volume=2.0, cookies=COOKIES_FROM_CONFIG,
                                notifications='NO')),
     Preset(key='presets/av-m4a', folder='YT-DLP-presets', label='audio+video M4A',
-           params=DriverParams(script=DRIVER_SCRIPT, mode='with-audio', audio_format='m4a',
+           params=DriverParams(script=DRIVER_SCRIPT,
+                               url='https://www.youtube.com/playlist?list=PLRXnwzqAlx1NehOIsFdwtVbsZ0Orf71cE',
+                               mode='with-audio', audio_format='m4a',
                                subs=True, cookies=COOKIES_FROM_CONFIG, notifications='NO')),
     Preset(key='presets/audio-m4a-boost', folder='YT-DLP-presets', label='audio-only M4A boost',
-           params=DriverParams(script=DRIVER_SCRIPT, mode='only-audio', audio_format='m4a',
+           params=DriverParams(script=DRIVER_SCRIPT,
+                               url='https://www.youtube.com/playlist?list=PLRXnwzqAlx1NRqFohqBVngXZyAB1M-oML',
+                               mode='only-audio', audio_format='m4a',
                                verbose=True, boost=True, boost_volume=2.0, cookies=COOKIES_FROM_CONFIG,
                                notifications='NO')),
     Preset(key='presets/audio-m4a', folder='YT-DLP-presets', label='audio-only M4A',
-           params=DriverParams(script=DRIVER_SCRIPT, mode='only-audio', audio_format='m4a',
+           params=DriverParams(script=DRIVER_SCRIPT,
+                               url='https://www.youtube.com/playlist?list=PLRXnwzqAlx1OjuERxW0S7XEdJCgl_lf_L',
+                               mode='only-audio', audio_format='m4a',
                                verbose=True, cookies=COOKIES_FROM_CONFIG, notifications='NO')),
     # ---- Folder: YT-DLP-prompt (main-yt-dlp.py) ----
     Preset(key='prompt/all', folder='YT-DLP-prompt', label='prompt-all',
@@ -77,6 +87,18 @@ PRESETS: tuple[Preset, ...] = (
 )
 
 PRESETS_BY_KEY: dict[str, Preset] = {preset.key: preset for preset in PRESETS}
+
+
+def is_prompt_preset(preset: Preset) -> bool:
+    """Return True when a preset expects a user-supplied URL (the YT-DLP-prompt folder).
+
+    Args:
+        preset: The preset to classify.
+
+    Returns:
+        bool: True for ``prompt/*`` presets, False for the quick presets and the linters.
+    """
+    return preset.folder == 'YT-DLP-prompt'
 
 
 def folders() -> list[str]:

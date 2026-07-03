@@ -8,10 +8,12 @@ preset hides the download form (its command is fixed). Holds no module-level sta
 created per page load.
 """
 
+from collections.abc import Callable
+
 from nicegui import ui
 
 from webapp.config import AppConfig
-from webapp.presets import COOKIES_FROM_CONFIG, PRESETS, PRESETS_BY_KEY, Preset
+from webapp.presets import COOKIES_FROM_CONFIG, PRESETS, PRESETS_BY_KEY, Preset, is_prompt_preset
 from webapp.runner import DRIVER_SCRIPT, LINTER_SCRIPT, DriverParams
 
 _MODES = {
@@ -35,13 +37,16 @@ _NOTIF = {'NO': 'None', 'S': 'Slack', 'G': 'Gmail', 'ALL': 'Slack + Gmail'}
 class FormView:  # pylint: disable=too-many-instance-attributes
     """Builds the preset + parameter form and collects a :class:`DriverParams` from the widgets."""
 
-    def __init__(self, config: AppConfig) -> None:
+    def __init__(self, config: AppConfig, on_change: Callable[[], None] | None = None) -> None:
         """Build the preset selector and all download-parameter controls.
 
         Args:
             config: The app configuration (boost default).
+            on_change: Optional callback invoked after the user switches presets (not on the initial
+                build), so the page can re-sync preset-dependent controls.
         """
         self._config = config
+        self._on_change = on_change
         first_key = PRESETS[0].key
 
         preset_options = {preset.key: f'{preset.folder}  /  {preset.label}' for preset in PRESETS}
@@ -177,9 +182,19 @@ class FormView:  # pylint: disable=too-many-instance-attributes
         """
         self._url.value = url
 
+    def current_is_prompt(self) -> bool:
+        """Return True when the currently-selected preset is a URL-prompting (YT-DLP-prompt) preset.
+
+        Returns:
+            bool: True for a ``prompt/*`` preset, False otherwise.
+        """
+        return is_prompt_preset(preset=PRESETS_BY_KEY[str(self._preset.value)])
+
     def _on_preset_change(self) -> None:
-        """Apply the newly selected preset to the form widgets."""
+        """Apply the newly selected preset to the form widgets, then notify the page."""
         self.apply_preset(preset=PRESETS_BY_KEY[str(self._preset.value)])
+        if self._on_change is not None:
+            self._on_change()
 
 
 def _section(title: str) -> None:

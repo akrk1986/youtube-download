@@ -5,6 +5,25 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-07-03-2008] - watch buttons only for prompt presets + preset URL prefill + wider clipboard match
+
+### Added
+- **Quick presets pre-fill the URL** (`webapp/presets.py`): the four `YT-DLP-presets` configs now
+  carry the playlist URL hardcoded in their original PyCharm run configs, so selecting one fills the
+  URL field (they never needed the clipboard watcher).
+
+### Changed
+- **Clipboard watcher shown only for URL-prompting presets** (`webapp/app.py`, `webapp/form.py`,
+  `webapp/presets.py`): the **Start/Stop watching** buttons are visible only while a `YT-DLP-prompt`
+  preset is selected (which is the only group that expects a user-supplied URL); they are hidden for
+  the URL-prefilled quick presets and the linters. New `is_prompt_preset()` predicate +
+  `FormView.current_is_prompt()`; `FormView` gains an `on_change` hook so the page re-syncs button
+  visibility on preset switches (and stops an active watcher when leaving a prompt preset).
+- **Clipboard watcher matches all download-able YouTube forms** (`webapp/services/clipboard_watcher.py`):
+  the URL matcher now also accepts playlist (`playlist?list=`), `shorts/`, and YouTube Music
+  (`music.youtube.com`) links, not just `watch?v=` / `youtu.be/` — so it never rejects a link the
+  main script would download (a copied playlist now fills the field too).
+
 ## [2026-07-03-1858] - colour output log (ANSI→HTML) + non-interactive linter runs
 
 ### Added
