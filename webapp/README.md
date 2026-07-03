@@ -52,13 +52,17 @@ display — not available on a headless WSL box, where the browser tab is the wa
 3. **Launch** — output streams into the log below. **Cancel** terminates the running process.
 4. **Exit web app** (orange, octagon-✕) replaces the page with a "Web application was stopped"
    notice and stops the server.
-5. **Watch clipboard** (toggle) — while on, the app polls the OS clipboard once a second; when you
-   copy a new **YouTube URL** (`youtube.com/watch?v=`, `youtu.be/`, `m.youtube.com`) it fills the URL
-   field and shows a notification. It never auto-starts a download. Enabling it ignores whatever was
-   already on the clipboard, so it only reacts to copies made after you turn it on; toggling off
-   stops it. Works in both browser and native modes (the clipboard is read directly from the OS, not
-   the browser). On Linux/WSL it needs a clipboard backend (`xclip`/`xsel`); if none is available the
-   toggle self-disables with a warning.
+5. **Start/Stop watching** (clipboard) — these two buttons appear **only when a `YT-DLP-prompt`
+   preset is selected**, i.e. the presets that expect you to supply a URL. They are hidden for the
+   quick `YT-DLP-presets` (which pre-fill their URL, see below) and the linters (which take no URL);
+   switching away from a prompt preset also stops an active watcher. While watching, the app polls
+   the OS clipboard once a second; when you copy a new **YouTube URL** — a video (`watch?v=`),
+   playlist (`playlist?list=`), `youtu.be/`, `shorts/`, or `music.youtube.com` link — it fills the
+   URL field and shows a notification. It never auto-starts a download. Enabling it ignores whatever
+   was already on the clipboard, so it only reacts to copies made after you turn it on. The clipboard
+   is read directly from the OS (not the browser); reading it natively — including from Windows,
+   where the pipeline is most reliable — is recommended. An unreadable clipboard is skipped silently
+   and watching continues.
 
 Controls are capped to a readable width; only the output log spans the full browser width.
 
@@ -66,7 +70,7 @@ Controls are capped to a readable width; only the output log spans the full brow
 
 | Folder           | Target            | Notes |
 |------------------|-------------------|-------|
-| `YT-DLP-presets` | `main-yt-dlp.py`  | audio-only / audio+video M4A, with and without volume boost |
+| `YT-DLP-presets` | `main-yt-dlp.py`  | audio-only / audio+video M4A, with and without volume boost; each **pre-fills its playlist URL** (hardcoded in the original run config), so no watcher is needed |
 | `YT-DLP-prompt`  | `main-yt-dlp.py`  | interactive-metadata variants, chapters list+download, ertflix-program (token URL), video-only rerun |
 | `Run Linters`    | `run-linters.py`  | all tools / `--tool pip-audit` / `--tool freshness` (the download form is hidden) |
 
