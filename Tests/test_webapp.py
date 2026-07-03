@@ -7,9 +7,13 @@ URL validator works — without launching yt-dlp or the NiceGUI runtime.
 
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
+import pytest
+
+from webapp import config
 from webapp.ansi import ansi_to_html
-from webapp.config import load_config
+from webapp.config import is_wsl, load_config
 from webapp.presets import COOKIES_FROM_CONFIG, PRESETS, PRESETS_BY_KEY, folders, is_prompt_preset
 from webapp.runner import DRIVER_SCRIPT, LINTER_SCRIPT, DriverParams, build_command
 from webapp.validate import is_safe_color, is_safe_url
@@ -157,6 +161,31 @@ def test_default_cookies_resolution(tmp_path: Path) -> None:
 
     cfg.write_text('{"cookies": "bogus"}', encoding='utf-8')
     assert load_config(config_path=cfg).default_cookies == platform_default
+
+
+def test_is_wsl(monkeypatch: pytest.MonkeyPatch) -> None:
+    """WSL is detected via the WSL env vars or the microsoft kernel marker; Windows/Linux are not."""
+    monkeypatch.delenv('WSL_DISTRO_NAME', raising=False)
+    monkeypatch.delenv('WSL_INTEROP', raising=False)
+
+    # Windows: never WSL (short-circuits before the Linux-only checks).
+    monkeypatch.setattr(config.sys, 'platform', 'win32')
+    assert is_wsl() is False
+
+    # Native Linux: linux platform, no WSL env vars, plain kernel release.
+    monkeypatch.setattr(config.sys, 'platform', 'linux')
+    monkeypatch.setattr(config.platform, 'uname', lambda: SimpleNamespace(release='6.1.0-generic'))
+    assert is_wsl() is False
+
+    # WSL via env var (even with a plain kernel release).
+    monkeypatch.setenv('WSL_DISTRO_NAME', 'Ubuntu')
+    assert is_wsl() is True
+    monkeypatch.delenv('WSL_DISTRO_NAME')
+
+    # WSL via the kernel-release marker.
+    monkeypatch.setattr(config.platform, 'uname',
+                        lambda: SimpleNamespace(release='5.15.167.4-microsoft-standard-WSL2'))
+    assert is_wsl() is True
 
 
 def test_validators() -> None:

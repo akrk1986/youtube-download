@@ -5,6 +5,22 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-07-03-2034] - disable clipboard watcher under WSL
+
+### Changed
+- **Clipboard watcher disabled under WSL** (`webapp/config.py`, `webapp/app.py`): the Start/Stop
+  watching buttons are hidden and the poll timer is not created when running under WSL, where reading
+  the Windows clipboard from the running NiceGUI server proved unreliable (works cleanly run natively
+  on Windows). New UI-free `is_wsl()` helper (WSL env vars + `microsoft` kernel-release marker); the
+  page gates both button visibility and the poll timer on `not is_wsl()`. The watcher code
+  (`ClipboardWatcher`, start/stop handlers) is left intact — just never started under WSL. Windows and
+  native Linux keep the feature active.
+
+### Docs
+- `webapp/README.md`: new **Known issues** section — the WSL disable, and that **native Linux is
+  untested** (watch buttons left active there, but the pyperclip clipboard path is unverified — open
+  item). New `test_is_wsl`.
+
 ## [2026-07-03-2008] - watch buttons only for prompt presets + preset URL prefill + wider clipboard match
 
 ### Added

@@ -9,6 +9,7 @@ by the app module, not from here.
 
 import json
 import os
+import platform
 import sys
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -91,6 +92,23 @@ def _platform_default_cookies() -> str:
         str: 'firefox' on native Windows, 'none' elsewhere.
     """
     return 'firefox' if sys.platform == 'win32' else 'none'
+
+
+def is_wsl() -> bool:
+    """Return whether the app is running under Windows Subsystem for Linux (not native Linux).
+
+    Uses two independent signals: the WSL-only environment variables, and the ``microsoft`` marker in
+    the kernel release (e.g. ``5.15.167.4-microsoft-standard-WSL2``). Windows and native Linux both
+    return False.
+
+    Returns:
+        bool: True under WSL, False on Windows, macOS, and native Linux.
+    """
+    if sys.platform != 'linux':
+        return False
+    if os.environ.get('WSL_DISTRO_NAME') or os.environ.get('WSL_INTEROP'):
+        return True
+    return 'microsoft' in platform.uname().release.lower()
 
 
 def resolve_host_port(config: AppConfig, cli_host: str | None, cli_port: int | None) -> AppConfig:

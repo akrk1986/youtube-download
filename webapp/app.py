@@ -15,7 +15,8 @@ from nicegui import app, background_tasks, ui
 
 from webapp import VERSION
 from webapp.ansi import ansi_to_html
-from webapp.config import CONFIG_FILENAME, AppConfig, ThemeConfig, load_config, resolve_host_port
+from webapp.config import (CONFIG_FILENAME, AppConfig, ThemeConfig, is_wsl, load_config,
+                           resolve_host_port)
 from webapp.form import FormView
 from webapp.runner import DRIVER_SCRIPT, DriverProcess, build_command
 from webapp.services.clipboard_watcher import ClipboardWatcher
@@ -87,6 +88,10 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
     """
     _apply_theme(theme=config.theme)
     state: dict[str, DriverProcess | None] = {'proc': None}
+    # Clipboard watching is unreliable from the running server under WSL (the Windows clipboard bridge
+    # doesn't deliver reliably); disable it there — the buttons are hidden and the poll timer is not
+    # created. Native Linux keeps it active but is UNTESTED — see webapp/README.md "Known issues".
+    watching_supported = not is_wsl()
 
     def _refresh_preview() -> None:
         argv, env = build_command(params=form.collect(), repo_root=repo_root)
@@ -164,7 +169,7 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
         _sync_watch_btns()
 
     def _sync_watch_visibility() -> None:
-        visible = form.current_is_prompt()
+        visible = watching_supported and form.current_is_prompt()
         start_watch_btn.set_visibility(visible)
         stop_watch_btn.set_visibility(visible)
 
@@ -197,8 +202,10 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
     stop_watch_btn.set_enabled(False)  # not watching yet
     _sync_watch_visibility()  # first preset is non-prompt → both watch buttons hidden on load
     ui.timer(0.4, _refresh_preview)
-    # Clipboard poll: always ticks, but watcher.poll() no-ops until 'Start watching' enables it.
-    ui.timer(1.0, watcher.poll)
+    # Clipboard poll: ticks while enabled (poll() no-ops until 'Start watching'). Not created under
+    # WSL, where the watcher is disabled entirely (buttons hidden above).
+    if watching_supported:
+        ui.timer(1.0, watcher.poll)
 
 
 async def _delayed_shutdown() -> None:

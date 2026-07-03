@@ -55,14 +55,15 @@ display — not available on a headless WSL box, where the browser tab is the wa
 5. **Start/Stop watching** (clipboard) — these two buttons appear **only when a `YT-DLP-prompt`
    preset is selected**, i.e. the presets that expect you to supply a URL. They are hidden for the
    quick `YT-DLP-presets` (which pre-fill their URL, see below) and the linters (which take no URL);
-   switching away from a prompt preset also stops an active watcher. While watching, the app polls
-   the OS clipboard once a second; when you copy a new **YouTube URL** — a video (`watch?v=`),
-   playlist (`playlist?list=`), `youtu.be/`, `shorts/`, or `music.youtube.com` link — it fills the
-   URL field and shows a notification. It never auto-starts a download. Enabling it ignores whatever
-   was already on the clipboard, so it only reacts to copies made after you turn it on. The clipboard
-   is read directly from the OS (not the browser); reading it natively — including from Windows,
-   where the pipeline is most reliable — is recommended. An unreadable clipboard is skipped silently
-   and watching continues.
+   switching away from a prompt preset also stops an active watcher. **They are also hidden entirely
+   under WSL** (the watcher is disabled there — see [Known issues](#known-issues)). While watching,
+   the app polls the OS clipboard once a second; when you copy a new **YouTube URL** — a video
+   (`watch?v=`), playlist (`playlist?list=`), `youtu.be/`, `shorts/`, or `music.youtube.com` link — it
+   fills the URL field and shows a notification. It never auto-starts a download. Enabling it ignores
+   whatever was already on the clipboard, so it only reacts to copies made after you turn it on. The
+   clipboard is read directly from the OS (not the browser); reading it natively — from Windows, where
+   the pipeline is most reliable — is recommended. An unreadable clipboard is skipped silently and
+   watching continues.
 
 Controls are capped to a readable width; only the output log spans the full browser width.
 
@@ -122,3 +123,14 @@ pytest Tests/test_webapp.py
 
 Covers the UI-free logic only (command mapping, preset registry, cookie-default resolution,
 validators) — it never boots the NiceGUI runtime.
+
+## Known issues
+
+- **Clipboard watching is disabled under WSL.** Even though `pyperclip.paste()` can read the Windows
+  clipboard from a WSL shell, the same read from the *running NiceGUI server* did not reliably fill
+  the URL field in testing. Under WSL the Start/Stop-watching buttons are hidden and the poll timer is
+  not created (`is_wsl()` in `config.py` gates it). Run the app **natively on Windows** for reliable
+  clipboard watching. All other features work under WSL.
+- **Native Linux is untested.** The web app has only been exercised on Windows and WSL. On native
+  Linux the watch buttons are left **active**, but the pyperclip clipboard path there (which needs an
+  `xclip` / `xsel` / `wl-paste` backend) is **unverified** — treat it as an open item until confirmed.
