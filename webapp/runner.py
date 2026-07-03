@@ -60,7 +60,9 @@ def build_command(params: DriverParams, repo_root: Path) -> tuple[list[str], dic
     """
     argv = [sys.executable, str(repo_root / params.script)]
     if params.script == LINTER_SCRIPT:
-        return argv + list(params.extra_argv), {}
+        # FORCE_COLOR makes rich emit ANSI even though its stdout is a pipe (the web app renders the
+        # codes as colour); COLUMNS pins the width so the wide rich tables render at a stable size.
+        return argv + list(params.extra_argv), {'FORCE_COLOR': '1', 'COLUMNS': '120'}
     return argv + _download_argv(params=params), _download_env(params=params)
 
 

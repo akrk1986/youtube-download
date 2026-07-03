@@ -66,12 +66,14 @@ PRESETS: tuple[Preset, ...] = (
                                video_timeout=1800, rerun=True, cookies=COOKIES_FROM_CONFIG,
                                notifications='NO')),
     # ---- Folder: Run Linters (run-linters.py) ----
+    # --batch on every linter preset: the web app streams output but cannot forward keystrokes, so
+    # the freshness upgrade-script prompt (its only interactive step) must be skipped.
     Preset(key='linters/all', folder='Run Linters', label='run-linters all',
-           params=DriverParams(script=LINTER_SCRIPT, extra_argv=())),
+           params=DriverParams(script=LINTER_SCRIPT, extra_argv=('--batch',))),
     Preset(key='linters/pip-audit', folder='Run Linters', label='run-linters pip-audit',
-           params=DriverParams(script=LINTER_SCRIPT, extra_argv=('--tool', 'pip-audit'))),
+           params=DriverParams(script=LINTER_SCRIPT, extra_argv=('--batch', '--tool', 'pip-audit'))),
     Preset(key='linters/freshness', folder='Run Linters', label='run-linters freshness',
-           params=DriverParams(script=LINTER_SCRIPT, extra_argv=('--tool', 'freshness'))),
+           params=DriverParams(script=LINTER_SCRIPT, extra_argv=('--batch', '--tool', 'freshness'))),
 )
 
 PRESETS_BY_KEY: dict[str, Preset] = {preset.key: preset for preset in PRESETS}

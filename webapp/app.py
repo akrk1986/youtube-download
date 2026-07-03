@@ -2,7 +2,7 @@
 
 Registers the single ``/`` page (built fresh per user, so all run state is page-local), applies the
 config-driven theme through validated CSS, wires Launch/Cancel to the UI-free runner, shows a live
-command preview, and streams the selected script's output into a wrapped, scrollable ``ui.log``.
+command preview, and streams the selected script's output into a wrapped, scrollable colour log.
 """
 
 import argparse
@@ -14,6 +14,7 @@ from pathlib import Path
 from nicegui import app, background_tasks, ui
 
 from webapp import VERSION
+from webapp.ansi import ansi_to_html
 from webapp.config import CONFIG_FILENAME, AppConfig, ThemeConfig, load_config, resolve_host_port
 from webapp.form import FormView
 from webapp.runner import DRIVER_SCRIPT, DriverProcess, build_command
@@ -21,6 +22,39 @@ from webapp.services.clipboard_watcher import ClipboardWatcher
 from webapp.validate import (is_safe_color, is_safe_font_family, is_safe_font_size, is_safe_url)
 
 _DEFAULT_SECRET: str = 'yt-dlp-webapp-dev-secret'
+
+
+class _AnsiLog:
+    """A scrollable output log that renders ANSI SGR colour codes as HTML.
+
+    Covers the slice of ``ui.log`` the page relies on — a ``push(line)`` method with max-line
+    trimming and auto-scroll to the newest line — but converts each line from ANSI to safe HTML, so
+    the linter's coloured rich tables and New/Stable badges render as colour rather than raw escapes.
+    """
+
+    def __init__(self, *, max_lines: int, css_class: str) -> None:
+        """Build the scroll area and inner column that host the rendered log lines.
+
+        Args:
+            max_lines: Oldest lines beyond this count are dropped.
+            css_class: Extra CSS class on the scroll area (the theme font-size/monospace hook).
+        """
+        self._max_lines = max_lines
+        self._scroll = ui.scroll_area().classes(f'w-full h-96 {css_class}')
+        with self._scroll:
+            self._col = ui.column().classes('w-full gap-0')
+
+    def push(self, line: str) -> None:
+        """Append one ANSI-rendered line, trim to ``max_lines``, and scroll to the bottom.
+
+        Args:
+            line: The raw output line (may contain ANSI SGR escape codes).
+        """
+        with self._col:
+            ui.html(ansi_to_html(text=line)).classes('driver-log-line')
+        while len(self._col.default_slot.children) > self._max_lines:
+            self._col.remove(0)
+        self._scroll.scroll_to(percent=1.0)
 
 
 def run_app() -> None:
@@ -146,7 +180,7 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
                                             on_click=_start_watch).props('color=positive')
                 stop_watch_btn = ui.button('Stop watching', icon='content_paste_off',
                                            on_click=_stop_watch).props('color=grey')
-        log = ui.log(max_lines=5000).classes('w-full h-96 driver-log')
+        log = _AnsiLog(max_lines=5000, css_class='driver-log')
         banner = ui.label().classes('text-lg font-bold')
     cancel_btn.set_enabled(False)
     stop_watch_btn.set_enabled(False)  # not watching yet
@@ -197,8 +231,12 @@ def _apply_theme(theme: ThemeConfig) -> None:
     ui.add_css('\n'.join([
         _css_rule(selector='body', declarations={
             'background-color': bg, 'color': fg, 'font-family': family, 'font-size': size}),
+        # Monospace so the linter's rich box-drawing tables line up; font-size from the theme.
         _css_rule(selector='.driver-log', declarations={
-            'font-size': out_size, 'white-space': 'pre-wrap', 'word-break': 'break-word'}),
+            'font-size': out_size, 'font-family': 'monospace'}),
+        # Each rendered log line wraps rather than overflowing the log's width.
+        _css_rule(selector='.driver-log-line', declarations={
+            'white-space': 'pre-wrap', 'word-break': 'break-word'}),
         # Force the notification close button ('OK') text black — the Quasar default is a hard-to-read
         # blue on the green positive-notification background.
         _css_rule(selector='.q-notification__actions .q-btn', declarations={'color': '#000 !important'}),

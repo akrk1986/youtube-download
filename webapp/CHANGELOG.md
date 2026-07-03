@@ -5,6 +5,32 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-07-03-1858] - colour output log (ANSI→HTML) + non-interactive linter runs
+
+### Added
+- **`webapp/ansi.py`** (UI-free, unit-tested): `ansi_to_html()` converts the ANSI SGR subset rich
+  emits — bold / dim / italic / underline and the 16 basic + 24-bit truecolour foreground colours —
+  into safe `<span style=…>` HTML, HTML-escaping the text first so no output line can inject markup;
+  non-SGR escapes (cursor moves, OSC) are stripped. Emoji that rich places in a table cell (e.g.
+  freshness's ⛔ held-by / ⚠ build-from-source badges) are wrapped in a `display:inline-block` sized
+  to the exact `ch` count rich reserved for them (via rich's own `cell_len`), so the surrounding
+  rich-table borders stay aligned in the browser's monospace font.
+
+### Changed
+- **Output log renders colour** (`webapp/app.py`): the `ui.log` is replaced by a small
+  ANSI-rendering `_AnsiLog` (a `ui.scroll_area` of per-line `ui.html`, same max-lines trim +
+  auto-scroll-to-bottom) so the linter's coloured rich tables and New/Stable badges show as colour
+  instead of raw escape codes. The log is now **monospace** so the box-drawing tables line up.
+- **Linter subprocess forces colour** (`webapp/runner.py`): running `run-linters.py` now sets
+  `FORCE_COLOR=1` (so all rich output emits ANSI through the pipe, not just the one table that
+  already forced it) and `COLUMNS=120` (a stable width for the wide tables).
+- **Linter presets run non-interactively** (`webapp/presets.py`): every Run-Linters preset now
+  passes `--batch`, so the freshness upgrade-script prompt (its only interactive step) is skipped —
+  the web app streams output but cannot forward keystrokes. Requires the shared `common_linters`
+  `--batch` flag (see the common-av-codebase changelog).
+- `Tests/test_webapp.py`: added `ansi_to_html` coverage (escaping, colours, bold/italic, truecolour,
+  escape-stripping, no-injection, emoji cell-width pinning); updated the linter-env assertion.
+
 ## [2026-06-30-1839] - clipboard watcher for YouTube URLs + --native launch flag
 
 ### Added
