@@ -57,6 +57,10 @@ class _AnsiLog:
             self._col.remove(0)
         self._scroll.scroll_to(percent=1.0)
 
+    def clear(self) -> None:
+        """Remove every rendered line from the log."""
+        self._col.clear()
+
 
 def run_app() -> None:
     """Load config (with env/CLI host/port overrides), register the page, and start the server."""
@@ -137,6 +141,10 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
             proc.cancel()
             log.push('— cancelled —')
 
+    def _clear_log() -> None:
+        log.clear()
+        banner.set_text('')
+
     def _stop_webapp() -> None:
         page.clear()
         with page:
@@ -190,6 +198,7 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
             with ui.row():
                 launch_btn = ui.button('Launch', icon='play_arrow', on_click=_launch)
                 cancel_btn = ui.button('Cancel', icon='stop', on_click=_cancel).props('color=negative')
+                ui.button('Clear log', icon='delete_sweep', on_click=_clear_log).props('color=grey')
                 ui.button('Exit web app', icon='dangerous',
                           on_click=_stop_webapp).props('color=orange')
                 start_watch_btn = ui.button('Start watching', icon='content_paste',
@@ -252,7 +261,8 @@ def _apply_theme(theme: ThemeConfig) -> None:
             'background-color': bg, 'color': fg, 'font-family': family, 'font-size': size}),
         # Monospace so the linter's rich box-drawing tables line up; font-size from the theme.
         _css_rule(selector='.driver-log', declarations={
-            'font-size': out_size, 'font-family': 'monospace'}),
+            'font-size': out_size, 'font-family': 'monospace',
+            'border': '1px solid rgba(128,128,128,0.4)', 'border-radius': '4px'}),
         # Each rendered log line wraps rather than overflowing the log's width.
         _css_rule(selector='.driver-log-line', declarations={
             'white-space': 'pre-wrap', 'word-break': 'break-word'}),

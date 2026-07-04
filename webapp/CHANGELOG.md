@@ -5,6 +5,16 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-07-04-1515] - framed output log + Clear-log button
+
+### Added
+- **Framed output log** (`webapp/app.py`): the `.driver-log` scroll area now has a subtle rounded
+  border (`rgba(128,128,128,0.4)`, visible in both dark and light themes) so the log region is
+  clearly delimited from the rest of the page.
+- **Clear-log button** (`webapp/app.py`): a grey **Clear log** button (next to Cancel) empties the
+  log and clears the status banner — handy between runs. New `_AnsiLog.clear()` method. It only
+  wipes the display; it does not stop a running process (that's Cancel's job).
+
 ## [2026-07-03-2034] - disable clipboard watcher under WSL
 
 ### Changed
