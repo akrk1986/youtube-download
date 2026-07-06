@@ -139,6 +139,8 @@ idna==3.18
     #   youtube-download (pyproject.toml)
 ifaddr==0.2.0
     # via nicegui
+inflect==7.5.0
+    # via common-av
 iniconfig==2.3.0
     # via pytest
 inquirer==3.4.1
@@ -202,6 +204,7 @@ mdurl==0.1.2
     # via markdown-it-py
 more-itertools==11.1.0
     # via
+    #   inflect
     #   jaraco-classes
     #   jaraco-functools
 msgpack==1.1.2
@@ -441,6 +444,8 @@ ty==0.0.46
     # via
     #   common-av
     #   youtube-download (pyproject.toml)
+typeguard==4.5.2
+    # via inflect
 types-pyperclip==1.11.0.20260508
     # via youtube-download (pyproject.toml)
 types-yt-dlp==2026.3.17.20260605
@@ -461,6 +466,7 @@ typing-extensions==4.15.0
     #   referencing
     #   starlette
     #   textual
+    #   typeguard
     #   typing-inspection
 typing-inspection==0.4.2
     # via

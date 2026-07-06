@@ -2,6 +2,14 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-07-06-1017] - grammatically-correct pluralization of counted nouns
+
+### Changed
+- **`main-yt-dlp.py`** (`VERSION` → `2026-07-06-1017`) and its helpers now pluralize counted nouns
+  with the `inflect`-backed helpers in `common_av.text` (`count_noun` / `plural_noun` / `plural_verb`)
+  instead of the manual `"(s)"` idiom, so messages read `1 video` / `2 videos` / `0 videos` (acronyms
+  as `URLs`) and count-governed verbs agree.
+
 ## [2026-06-30-1549] - fix: apply custom --artist/--album to the M4A, not just the MP4
 
 ### Fixed

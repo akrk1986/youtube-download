@@ -83,7 +83,7 @@ The project requires:
 - `ffmpeg` executable
   - **Windows**: Expected at `~/Apps/yt-dlp/ffmpeg.exe`
   - **Linux**: Must be in `$PATH`
-- Python packages: `mutagen`, `yt-dlp` (imported as module), `arrow`, `emoji`
+- Python packages: `mutagen`, `yt-dlp` (imported as module), `arrow`, `emoji`, `inflect` (English pluralization, via `common_av.text`)
 
 ## Common Commands
 
@@ -414,6 +414,7 @@ Conventions (same across all four files):
 - any python packages that you install should be added to requirements.txt file. make sure file is in git
 
 - parse date strings with 'arrow' package
+- pluralize counted nouns with the `inflect` package — never the manual `"(s)"` idiom. Use the shared helpers in `common_av.text`: `count_noun(count, noun)` → `'0 videos'`/`'1 video'`/`'2 videos'`, `plural_noun(noun, count)` for the bare word (when an adjective sits between the count and the noun, e.g. `N leftover files`), and `plural_verb(verb, count)` (pass the singular third-person form, e.g. `'has'`, `'remains'`) so a count-governed verb agrees too
 - quoted strings should use single quotes instead of double except for these cases:
   - the string to be displayed contains single quotes
   - use double quotes for docstrings

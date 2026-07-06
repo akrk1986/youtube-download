@@ -2,6 +2,16 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-07-06-1017] - inflect dependency for English pluralization
+
+### Added
+- **`requirements.txt`**: `inflect==7.5.0` (+ its `typeguard` dep) now pinned in the shared lock. It
+  is a runtime dependency of the sibling `common-av-codebase` editable package (declared in that
+  repo's `pyproject.toml`), pulled in transitively via `-e ../common-av-codebase`, and used through
+  the new `common_av.text` pluralization helpers (`count_noun` / `plural_noun` / `plural_verb`). It is
+  **not** added to this repo's `pyproject.toml` — youtube-download imports it only through `common_av`,
+  never directly. Regenerated with `pip-compile pyproject.toml requirements.in -o requirements.txt`.
+
 ## [2026-06-30-1839] - shared lock installs on Windows (uvloop marker); pyperclip direct dep
 
 ### Fixed

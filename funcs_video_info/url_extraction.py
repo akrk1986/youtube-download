@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from urllib.parse import urlparse
 
+from common_av.text import count_noun
 from project_defs import VALID_DOMAINS_ALL
 
 
@@ -162,7 +163,7 @@ def print_urls_from_file(file_path: Path | str) -> None:
             print(f'No URLs found in {file_path}')
             return
 
-        print(f'Found {len(urls)} URL(s) in {file_path}:')
+        print(f'Found {count_noun(len(urls), "URL")} in {file_path}:')
         print()
         for i, url in enumerate(urls, 1):
             print(f'{i}. {url}')

@@ -12,6 +12,7 @@ from typing import Any
 from common_av.notifications import (GmailNotifier, NotificationData,
                                      NotificationHandler, SlackNotifier,
                                      send_all_notifications)
+from common_av.text import count_noun
 from common_linters.watch_state import gate_on_linter_freshness
 from funcs_for_main_yt_dlp import (DownloadOptions,
                                    cleanup_leftover_files, count_initial_files,
@@ -44,7 +45,7 @@ except ImportError:
     pass
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-06-30-1549'
+VERSION = '2026-07-06-1017'
 
 logger = logging.getLogger(__name__)
 
@@ -241,7 +242,7 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
     if url_is_playlist:
         try:
             playlist_count = len(get_playlist_entries(url=args.video_url))
-            logger.info(f'Playlist contains {playlist_count} video(s)')
+            logger.info(f'Playlist contains {count_noun(playlist_count, "video")}')
         except EmptyPlaylistError:
             logger.warning('Playlist is empty — nothing to download.')
             sys.exit(0)

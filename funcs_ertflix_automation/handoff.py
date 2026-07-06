@@ -5,6 +5,7 @@ import subprocess  # nosec B404
 import sys
 from pathlib import Path
 
+from common_av.text import plural_noun
 from funcs_utils import sanitize_url_for_subprocess
 
 
@@ -45,7 +46,8 @@ def hand_off_to_ytdlp(token_url: str, passthrough_args: list[str],
         int: The child process exit code.
     """
     argv = build_ytdlp_argv(token_url=token_url, passthrough_args=passthrough_args)
-    logger.info(f'Handing off to main-yt-dlp.py with {len(passthrough_args)} pass-through flag(s)')
+    logger.info(f'Handing off to main-yt-dlp.py with {len(passthrough_args)} '
+                f'pass-through {plural_noun("flag", len(passthrough_args))}')
     logger.debug(f'Subprocess argv: {argv}')
     env: dict[str, str] | None = None
     if env_overrides:

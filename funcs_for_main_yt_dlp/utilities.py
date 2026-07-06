@@ -6,6 +6,7 @@ import sys
 
 import arrow
 
+from common_av.text import plural_noun
 from project_defs import DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS
 
 logger = logging.getLogger(__name__)
@@ -98,7 +99,7 @@ def parse_and_validate_audio_formats(audio_format_str: str) -> list[str]:
     audio_formats = [fmt.strip() for fmt in audio_format_str.split(',')]
     invalid_formats = [fmt for fmt in audio_formats if fmt not in VALID_AUDIO_FORMATS]
     if invalid_formats:
-        logger.error(f"Invalid audio format(s): {', '.join(invalid_formats)}")
+        logger.error(f"Invalid audio {plural_noun('format', len(invalid_formats))}: {', '.join(invalid_formats)}")
         logger.error(f"Valid formats are: {', '.join(sorted(VALID_AUDIO_FORMATS))}")
         sys.exit(1)
     seen: set[str] = set()

@@ -7,6 +7,7 @@ from pathlib import Path
 import arrow
 from playwright.sync_api import Page
 
+from common_av.text import plural_noun, plural_verb
 from funcs_ertflix_automation.errors import NoSeasonsOrEpisodesFound
 from funcs_ertflix_automation.season_scraper import (ASSET_CARD_SELECTOR,
                                                      PLAY_BUTTON_IN_CARD_SELECTOR,
@@ -125,7 +126,8 @@ def discover_episodes(page: Page, debug_dump_dir: Path | None = None) -> list[Ep
     placeholder_count = _placeholder_card_count(page=page)
     if placeholder_count > 0 and debug_dump_dir is not None:
         logger.warning(
-            f'{placeholder_count} placeholder card(s) remain un-hydrated '
+            f'{placeholder_count} placeholder {plural_noun("card", placeholder_count)} '
+            f'{plural_verb("remains", placeholder_count)} un-hydrated '
             'after settle window — dumping DOM for diagnosis'
         )
         try:

@@ -2,6 +2,7 @@
 import logging
 from pathlib import Path
 
+from common_av.text import plural_noun
 from funcs_utils import sanitize_filenames_in_folder
 from project_defs import (AUDIO_OUTPUT_DIR_FLAC, AUDIO_OUTPUT_DIR_M4A,
                            AUDIO_OUTPUT_DIR_MP3, VIDEO_OUTPUT_DIR)
@@ -104,7 +105,8 @@ def cleanup_leftover_files(video_folder: Path) -> None:
             except Exception as exc:
                 logger.warning(f'Failed to remove {leftover_file.name}: {exc}')
     if removed_count > 0:
-        logger.info(f'Cleaned up {removed_count} leftover file(s) from previous cancelled downloads')
+        logger.info(f'Cleaned up {removed_count} leftover {plural_noun("file", removed_count)} '
+                    'from previous cancelled downloads')
 
 
 def count_initial_files(only_audio: bool, with_audio: bool,

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from playwright.sync_api import ElementHandle, Page
 
+from common_av.text import count_noun
 from funcs_ertflix_automation.errors import NoSeasonsOrEpisodesFound
 
 
@@ -51,7 +52,7 @@ def discover_seasons(page: Page, debug_dom: bool = False) -> list[Season]:
             logger.debug(f'Selector {selector!r} raised: {exc}')
             continue
         if debug_dom:
-            logger.info(f'Selector {selector!r} matched {len(handles)} element(s)')
+            logger.info(f'Selector {selector!r} matched {count_noun(len(handles), "element")}')
         for handle in handles:
             label = _label_for_button(handle=handle)
             if not label or label in seen_labels:
