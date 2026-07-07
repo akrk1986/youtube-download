@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 def process_audio_tags(
         audio_formats: list[str],
         artists_json: Path,
-        original_names: dict[str, dict[str, str]] | None = None
+        original_names: dict[str, dict[str, str]] | None = None,
+        custom_artist: str | None = None
 ) -> None:
     """
     Process audio file tags based on formats.
@@ -24,6 +25,8 @@ def process_audio_tags(
         artists_json: Path to artists database JSON file
         original_names: Optional dict with format keys
             containing final_path -> original_ytdlp_filename
+        custom_artist: User-specified artist (--artist); when set,
+            artist detection is skipped so it is never overwritten
     """
     if original_names is None:
         original_names = {'mp3': {}, 'm4a': {}, 'flac': {}}
@@ -44,5 +47,6 @@ def process_audio_tags(
         set_artists_for_format(
             audio_format, audio_folder=audio_dir,
             artists_json=artists_json,
-            original_names=format_names
+            original_names=format_names,
+            custom_artist=custom_artist
         )

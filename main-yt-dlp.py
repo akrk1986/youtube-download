@@ -45,7 +45,7 @@ except ImportError:
     pass
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-07-06-1017'
+VERSION = '2026-07-07-1427'
 
 logger = logging.getLogger(__name__)
 
@@ -346,7 +346,8 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         process_audio_tags(
             audio_formats=audio_formats,
             artists_json=artists_json,
-            original_names=original_names
+            original_names=original_names,
+            custom_artist=custom_artist
         )
 
     logger.info('Download completed successfully')

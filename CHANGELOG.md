@@ -2,6 +2,25 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-07-07-1427] - fix: --artist no longer overwritten by artist detection
+
+### Fixed
+- **`funcs_audio_processing/unified.py` + `__init__.py`, `funcs_for_main_yt_dlp/audio_processing.py` +
+  `download_audio.py`, `main-yt-dlp.py`** (`VERSION` → `2026-07-07-1427`): a user-specified
+  `--artist` was silently replaced whenever the video title contained a known artist from
+  `Data/artists.json` — the post-download artist detection overwrote the tag unconditionally. With
+  Greek music the title nearly always names the artist/channel, so `--artist` appeared to be ignored
+  in favour of the uploader. `custom_artist` is now threaded through `process_audio_tags` →
+  `set_artists_for_format` → `set_artists_in_audio_files`, which skips artist detection when it is
+  set (the date-format fix, track-number clearing, and original-filename tagging still run). The
+  value itself is embedded during download via the ffmpeg postprocessor-args, as before — that part
+  already won over yt-dlp's uploader mapping.
+- The yt-dlp command no longer derives artist from the video
+  (`--parse-metadata 'artist:%(artist|uploader)s'`) when `--artist` is given
+  (`extract_audio_with_ytdlp`), and logs that the custom artist takes precedence.
+- Misleading log fixed: files updated without an artist change now log
+  `(metadata fixes, artist unchanged)` instead of `artist set to ''`.
+
 ## [2026-07-06-1017] - grammatically-correct pluralization of counted nouns
 
 ### Changed

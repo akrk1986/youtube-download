@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 def set_artists_in_audio_files(audio_folder: Path,
                                artists_json: Path,
                                handler: AudioTagHandler,
-                               original_names: dict[str, str] | None = None) -> None:
+                               original_names: dict[str, str] | None = None,
+                               custom_artist: str | None = None) -> None:
     """
     Unified function to set artists in audio files (works for MP3, M4A, or any format).
     Based on artists list loaded from an external file, scan the audio file title,
@@ -27,6 +28,9 @@ def set_artists_in_audio_files(audio_folder: Path,
         artists_json: Path to artists JSON file
         handler: AudioTagHandler instance for the specific format
         original_names: Optional mapping of final_path -> original_ytdlp_filename
+        custom_artist: User-specified artist (--artist). When set, artist detection is
+            skipped so the custom value embedded during download is never overwritten
+            (the other fixes — date format, track number, original filename — still run).
     """
     artists = load_artists(artists_json_path=artists_json)
 
@@ -53,16 +57,21 @@ def set_artists_in_audio_files(audio_folder: Path,
         # Handle format-specific tasks (e.g., date fixing for M4A)
         upd_format_specific = handler.handle_format_specific_tasks(audio=audio)
 
-        # Look for known artists in title
-        count, artist_string = find_artists_in_string(text=title, artists=artists)
-        if count > 0:
-            handler.set_tag(audio=audio, tag_name=handler.TAG_ARTIST, value=artist_string)
-            # Album Artist is left untouched: this library reserves it for the dupe
-            # staging workflow (see README-Dupes.md), so the pipeline no longer fills it.
+        # Look for known artists in title — unless the user passed --artist, whose value was
+        # embedded during download and must not be overwritten by detection.
+        count, artist_string = 0, ''
+        if custom_artist:
+            logger.debug(f"Custom artist '{custom_artist}' specified, artist detection skipped")
         else:
-            art = handler.get_tag(audio=audio, tag_name=handler.TAG_ARTIST)
-            alb_art = handler.get_tag(audio=audio, tag_name=handler.TAG_ALBUMARTIST)
-            logger.debug(f"No known artist in title, a/aa tags='{art}'/'{alb_art}'")
+            count, artist_string = find_artists_in_string(text=title, artists=artists)
+            if count > 0:
+                handler.set_tag(audio=audio, tag_name=handler.TAG_ARTIST, value=artist_string)
+                # Album Artist is left untouched: this library reserves it for the dupe
+                # staging workflow (see README-Dupes.md), so the pipeline no longer fills it.
+            else:
+                art = handler.get_tag(audio=audio, tag_name=handler.TAG_ARTIST)
+                alb_art = handler.get_tag(audio=audio, tag_name=handler.TAG_ALBUMARTIST)
+                logger.debug(f"No known artist in title, a/aa tags='{art}'/'{alb_art}'")
 
         # Clear track number for non-chapter files (single videos and playlists)
         upd_track = False
@@ -76,6 +85,9 @@ def set_artists_in_audio_files(audio_folder: Path,
             handler.set_original_filename(audio=audio, file_path=audio_file, original_filename=original_filename)
             # Save audio file (for M4A this saves; for MP3 this is redundant but harmless)
             handler.save_audio_file(audio=audio, file_path=audio_file)
-            logger.info(f"Updated {audio_file.name}: artist set to '{artist_string}'")
+            if count > 0:
+                logger.info(f"Updated {audio_file.name}: artist set to '{artist_string}'")
+            else:
+                logger.info(f'Updated {audio_file.name} (metadata fixes, artist unchanged)')
         else:
             logger.debug(f'No artist found in title for {audio_file.name}')

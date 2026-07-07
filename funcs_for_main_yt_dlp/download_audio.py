@@ -136,16 +136,22 @@ def extract_audio_with_ytdlp(opts: DownloadOptions, audio_formats: list[str]) ->
     else:
         video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url,
                                     video_download_timeout=opts.video_download_timeout)
-        artist = video_info.get('artist')
-        uploader = video_info.get('uploader')
-        have_artist = bool(artist and artist not in ('NA', ''))
-        have_uploader = bool(uploader and uploader not in ('NA', ''))
+        if opts.custom_artist:
+            # --artist takes precedence: it is embedded via the ffmpeg postprocessor-args (see
+            # _append_common_flags), so do not derive artist from the video's artist/uploader.
+            logger.info(f"Custom artist '{opts.custom_artist}' specified, "
+                        'not deriving artist from video artist/uploader')
+        else:
+            artist = video_info.get('artist')
+            uploader = video_info.get('uploader')
+            have_artist = bool(artist and artist not in ('NA', ''))
+            have_uploader = bool(uploader and uploader not in ('NA', ''))
 
-        if have_artist:
-            artist_pat = 'artist:%(artist)s'
-            logger.info(f"Video has artist: '{artist}'")
-        elif have_uploader:
-            artist_pat = 'artist:%(uploader)s'
+            if have_artist:
+                artist_pat = 'artist:%(artist)s'
+                logger.info(f"Video has artist: '{artist}'")
+            elif have_uploader:
+                artist_pat = 'artist:%(uploader)s'
 
         # Parse the song composer from the (Greek) description, if credited.
         composer = extract_composer_from_description(description=video_info.get('description') or '')

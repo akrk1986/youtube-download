@@ -18,7 +18,8 @@ _HANDLER_MAP: dict[str, type[AudioTagHandler]] = {
 def set_artists_for_format(
         audio_format: str, audio_folder: Path,
         artists_json: Path,
-        original_names: dict[str, str] | None = None
+        original_names: dict[str, str] | None = None,
+        custom_artist: str | None = None
 ) -> None:
     """
     Set artists in audio files for the given format.
@@ -29,6 +30,8 @@ def set_artists_for_format(
         artists_json: Path to artists database JSON file
         original_names: Optional mapping of
             final_path -> original_ytdlp_filename
+        custom_artist: User-specified artist (--artist); when set,
+            artist detection is skipped so it is never overwritten
 
     Raises:
         ValueError: If audio_format is not one of the supported formats.
@@ -40,7 +43,8 @@ def set_artists_for_format(
         audio_folder=audio_folder,
         artists_json=artists_json,
         handler=handler_cls(),
-        original_names=original_names
+        original_names=original_names,
+        custom_artist=custom_artist
     )
 
 
