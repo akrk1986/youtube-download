@@ -29,7 +29,8 @@
       "WebSearch",
       "Read(//mnt/c/Users/user/PycharmProjects/**)",
       "Bash(git log *)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(git config *)"
     ],
     "deny": [],
     "ask": []
