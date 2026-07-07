@@ -57,7 +57,7 @@ class FormView:  # pylint: disable=too-many-instance-attributes
         with self._card:
             _section('URL')
             self._url = ui.input('Playlist / video / token URL').props(
-                'outlined stack-label dense').classes('w-full')
+                'outlined stack-label dense clearable').classes('w-full')
 
             ui.separator()
             _section('Mode')
@@ -67,9 +67,12 @@ class FormView:  # pylint: disable=too-many-instance-attributes
 
             ui.separator()
             _section('Metadata (single videos only)')
-            self._title = ui.input('Title').props('outlined stack-label dense').classes('w-full')
-            self._artist = ui.input('Artist').props('outlined stack-label dense').classes('w-full')
-            self._album = ui.input('Album').props('outlined stack-label dense').classes('w-full')
+            self._title = ui.input('Title').props(
+                'outlined stack-label dense clearable').classes('w-full')
+            self._artist = ui.input('Artist').props(
+                'outlined stack-label dense clearable').classes('w-full')
+            self._album = ui.input('Album').props(
+                'outlined stack-label dense clearable').classes('w-full')
 
             ui.separator()
             _section('Options')
@@ -104,7 +107,7 @@ class FormView:  # pylint: disable=too-many-instance-attributes
                     self._notif = ui.radio(_NOTIF, value='NO').props('inline')
             with ui.row().classes('items-center gap-2'):
                 self._notif_msg = ui.input('NOTIF_MSG suffix').props(
-                    'outlined stack-label dense').classes('w-72')
+                    'outlined stack-label dense clearable').classes('w-72')
                 self._retries = ui.number('Retries (0=default)', value=0, min=0,
                                           format='%d').props('outlined dense').classes('w-56')
 
@@ -151,9 +154,11 @@ class FormView:  # pylint: disable=too-many-instance-attributes
         preset = PRESETS_BY_KEY[str(self._preset.value)]
         if preset.params.script == LINTER_SCRIPT:
             return preset.params
+        # The text fields read `value or ''`: Quasar's clear (✕) icon sets the value to None, which
+        # str() would otherwise render as the literal 'None'.
         return DriverParams(
             script=DRIVER_SCRIPT,
-            url=str(self._url.value).strip(),
+            url=str(self._url.value or '').strip(),
             mode=str(self._mode.value),
             audio_format=str(self._fmt.value),
             subs=bool(self._subs.value),
@@ -161,16 +166,16 @@ class FormView:  # pylint: disable=too-many-instance-attributes
             progress=bool(self._progress.value),
             verbose=bool(self._verbose.value),
             rerun=bool(self._rerun.value),
-            title=str(self._title.value).strip(),
-            artist=str(self._artist.value).strip(),
-            album=str(self._album.value).strip(),
+            title=str(self._title.value or '').strip(),
+            artist=str(self._artist.value or '').strip(),
+            album=str(self._album.value or '').strip(),
             list_chapters=str(self._chapters.value),
             video_timeout=int(self._timeout.value or 0),
             boost=bool(self._boost.value),
             boost_volume=float(self._boost_vol.value or 0),
             cookies=str(self._cookies.value),
             notifications=str(self._notif.value),
-            notif_msg=str(self._notif_msg.value).strip(),
+            notif_msg=str(self._notif_msg.value or '').strip(),
             retries=int(self._retries.value or 0),
         )
 

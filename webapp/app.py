@@ -161,7 +161,7 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
         # (.q-notification__actions .q-btn in _apply_theme) — the default is blue-on-green.
         ui.notify('Picked up URL from the clipboard', type='positive', close_button='OK', timeout=0)
 
-    watcher = ClipboardWatcher(on_youtube_url=_on_clip_url)
+    watcher = ClipboardWatcher(on_media_url=_on_clip_url)
 
     def _sync_watch_btns() -> None:
         on = watcher.is_enabled()

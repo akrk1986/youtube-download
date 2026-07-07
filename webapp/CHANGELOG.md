@@ -5,6 +5,34 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-07-07-1426] - Facebook + Gmail-wrapped clipboard URLs, clearable text fields
+
+### Added
+- **Facebook URLs in the clipboard watcher** (`webapp/services/clipboard_watcher.py`): the watcher
+  now intercepts Facebook video links — `watch?v=` / `watch/?v=`, `<page>/videos/<id>`,
+  `video.php?v=`, `reel/`, `share/v/` and `share/r/`, and `fb.watch/` short links (optional scheme,
+  `www.`/`m.`/`web.` subdomains) — in addition to the YouTube shapes. `_is_youtube_url` /
+  `on_youtube_url` renamed to `_is_media_url` / `on_media_url`.
+- **Gmail-copied links are unwrapped**: right-clicking a link inside a Gmail message copies a Google
+  redirect (`google.<tld>/url?q=<encoded target>&source=gmail…`), not the target URL. The watcher
+  now unwraps it (`_unwrap_google_redirect` / `_extract_media_url`) and delivers the clean decoded
+  target URL to the form.
+- **Clear (✕) icons on the text inputs** (`webapp/form.py`): URL, Title, Artist, Album, and
+  NOTIF_MSG suffix now carry Quasar's `clearable` prop. `collect()` reads the text fields as
+  `value or ''` because Quasar's clear sets the value to `None` (which would otherwise reach the
+  argv as the literal string `'None'`).
+- **Diagnostic probe** `Tests-Standalone/main-clipboard-probe.py`: polls the OS clipboard and prints
+  each new value (repr) with the watcher's verdict — for diagnosing interception misses on Windows.
+
+### Fixed
+- **'Start watching' now picks up a URL already on the clipboard**: the natural flow is
+  copy-the-link-first, then click Start watching — but `start()` recorded the current clipboard as
+  the do-not-fire baseline, and re-copying the identical link never registers as a change, so the
+  URL was silently ignored. A media URL present when watching starts is now delivered immediately
+  (and still never re-delivered by subsequent polls).
+- Tests: `Tests/test_clipboard_watcher.py` grew from 8 to 14 tests (Facebook shapes, Gmail
+  unwrapping, start-delivery semantics).
+
 ## [2026-07-04-1515] - framed output log + Clear-log button
 
 ### Added
