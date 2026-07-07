@@ -149,6 +149,8 @@ audio extraction mode (mutually exclusive):
   - Use `--artist ask` or `--artist prompt` to be prompted interactively
   - Sets the artist tag only (album artist is left unset)
   - Ignored for playlists
+  - Takes precedence: the artist is not derived from the video's artist/uploader, and the
+    post-download Greek-artist detection is skipped so the custom value is never overwritten
 - `--album ALBUM` - Set custom album tag in audio files
   - Use `--album ask` or `--album prompt` to be prompted interactively
   - Ignored for playlists

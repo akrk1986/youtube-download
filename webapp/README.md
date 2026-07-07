@@ -47,8 +47,9 @@ display — not available on a headless WSL box, where the browser tab is the wa
 
 1. Pick a **preset** from the dropdown (grouped by the originating run-config folder).
 2. The form fields fill in from the preset; tweak anything (URL, mode, audio format, title/artist/
-   album, boost, cookies, notifications, …). The read-only **command preview** shows the exact
-   `env … python main-yt-dlp.py …` that will run.
+   album, boost, cookies, notifications, …). The text fields (URL, Title, Artist, Album, NOTIF_MSG
+   suffix) show a **clear (✕) icon** while they hold text. The read-only **command preview** shows
+   the exact `env … python main-yt-dlp.py …` that will run.
 3. **Launch** — output streams into the log below. **Cancel** terminates the running process.
 4. **Exit web app** (orange, octagon-✕) replaces the page with a "Web application was stopped"
    notice and stops the server.
@@ -58,12 +59,18 @@ display — not available on a headless WSL box, where the browser tab is the wa
    switching away from a prompt preset also stops an active watcher. **They are also hidden entirely
    under WSL** (the watcher is disabled there — see [Known issues](#known-issues)). While watching,
    the app polls the OS clipboard once a second; when you copy a new **YouTube URL** — a video
-   (`watch?v=`), playlist (`playlist?list=`), `youtu.be/`, `shorts/`, or `music.youtube.com` link — it
-   fills the URL field and shows a notification. It never auto-starts a download. Enabling it ignores
-   whatever was already on the clipboard, so it only reacts to copies made after you turn it on. The
-   clipboard is read directly from the OS (not the browser); reading it natively — from Windows, where
-   the pipeline is most reliable — is recommended. An unreadable clipboard is skipped silently and
-   watching continues.
+   (`watch?v=`), playlist (`playlist?list=`), `youtu.be/`, `shorts/`, or `music.youtube.com` link —
+   or a **Facebook video URL** (`watch?v=`, `<page>/videos/<id>`, `video.php?v=`, `reel/`,
+   `share/v/` / `share/r/`, or an `fb.watch/` short link), it fills the URL field and shows a
+   notification. A link copied out of a **Gmail message** (which arrives wrapped in a
+   `google.com/url?q=…` redirect) is unwrapped and delivered as the clean target URL. It never
+   auto-starts a download. A media URL **already on the clipboard when you click Start watching is
+   picked up immediately** (the natural copy-the-link-first flow); a non-URL clipboard value is just
+   the ignore-baseline. The clipboard is read directly from the OS (not the browser); reading it
+   natively — from Windows, where the pipeline is most reliable — is recommended. An unreadable
+   clipboard is skipped silently and watching continues. To diagnose a link that is not picked up,
+   run `Tests-Standalone/main-clipboard-probe.py` — it prints every new clipboard value with the
+   watcher's verdict.
 
 Controls are capped to a readable width; only the output log spans the full browser width.
 
@@ -110,7 +117,7 @@ UI-free, unit-tested core vs. the NiceGUI shell:
 | `presets.py`          | no               | the preset registry (each a `DriverParams`) |
 | `runner.py`           | no               | `DriverParams`, `build_command` (argv vs env routing), `DriverProcess` (async subprocess + stream + cancel) |
 | `validate.py`         | no               | URL / theme-string guards |
-| `services/clipboard_watcher.py` | no     | `ClipboardWatcher` (pyperclip poll off the event loop, start/stop, new-YouTube-URL callback) + `_is_youtube_url` |
+| `services/clipboard_watcher.py` | no     | `ClipboardWatcher` (pyperclip poll off the event loop, start/stop, new-media-URL callback) + `_is_media_url` (YouTube + Facebook) and `_extract_media_url` (Gmail/Google-redirect unwrapping) |
 | `form.py`             | yes              | `FormView` widgets; `apply_preset` / `collect` / `set_url` |
 | `app.py`              | yes              | page assembly, theme, Launch/Cancel/Exit/Watch-clipboard, `ui.run` |
 | `webapp-yt-dlp.py`    | (entry)          | thin entry point → `webapp.app.run_app` |
@@ -118,11 +125,12 @@ UI-free, unit-tested core vs. the NiceGUI shell:
 ## Tests
 
 ```bash
-pytest Tests/test_webapp.py
+pytest Tests/test_webapp.py Tests/test_clipboard_watcher.py
 ```
 
 Covers the UI-free logic only (command mapping, preset registry, cookie-default resolution,
-validators) — it never boots the NiceGUI runtime.
+validators, clipboard-watcher URL matching/unwrapping and delivery semantics) — it never boots the
+NiceGUI runtime.
 
 ## Known issues
 
