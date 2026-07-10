@@ -30,7 +30,8 @@
       "Read(//mnt/c/Users/user/PycharmProjects/**)",
       "Bash(git log *)",
       "Bash(git checkout *)",
-      "Bash(git config *)"
+      "Bash(git config *)",
+      "Read(//mnt/c/Users/user/AppData/Roaming/Mozilla/Firefox/Profiles/**)"
     ],
     "deny": [],
     "ask": []
