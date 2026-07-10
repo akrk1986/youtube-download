@@ -5,6 +5,15 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-07-11-0026] - fix: output-log text is selectable for copy/paste
+
+### Fixed
+- **Output-log text could not be selected/copied** (`webapp/app.py`, `VERSION` → `2026-07-11-0026`):
+  Quasar's touch-pan scroll directive tags the scroll-area content with `.q-touch`, whose
+  `user-select: none` made every log line unselectable. A theme CSS rule
+  (`.driver-log .q-touch, .driver-log .q-scrollarea__content { user-select: text }`) re-enables
+  selection inside the log.
+
 ## [2026-07-07-1426] - Facebook + Gmail-wrapped clipboard URLs, clearable text fields
 
 ### Added

@@ -266,6 +266,10 @@ def _apply_theme(theme: ThemeConfig) -> None:
         # Each rendered log line wraps rather than overflowing the log's width.
         _css_rule(selector='.driver-log-line', declarations={
             'white-space': 'pre-wrap', 'word-break': 'break-word'}),
+        # Quasar's touch-pan scroll directive tags the scroll-area content with .q-touch, whose
+        # user-select:none makes the log text unselectable; re-enable selection for copy/paste.
+        _css_rule(selector='.driver-log .q-touch, .driver-log .q-scrollarea__content', declarations={
+            '-webkit-user-select': 'text', 'user-select': 'text'}),
         # Force the notification close button ('OK') text black — the Quasar default is a hard-to-read
         # blue on the green positive-notification background.
         _css_rule(selector='.q-notification__actions .q-btn', declarations={'color': '#000 !important'}),
