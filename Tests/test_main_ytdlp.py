@@ -858,6 +858,133 @@ class TestComposerEmbedding:
         assert captured['composer_pat'] is None
 
 
+class TestFacebookCookieFallback:
+    """Test the retry-without-cookies fallback for Facebook 'Cannot parse data' failures."""
+
+    _FB_URL = 'https://www.facebook.com/share/v/1bScHjUKva/'
+    _FB_STDERR = 'ERROR: [facebook] 1469679984928792: Cannot parse data; please report this issue'
+    _COOKIE_ARGS = ['--cookies-from-browser', 'firefox', '--no-cache-dir', '--sleep-requests', '1']
+
+    def test_is_facebook_parse_error_matches(self):
+        """A Facebook URL with a 'Cannot parse data' error is detected."""
+        from funcs_utils import is_facebook_parse_error
+
+        assert is_facebook_parse_error(url=self._FB_URL, error_text=self._FB_STDERR) is True
+
+    def test_is_facebook_parse_error_rejects_other_domains_and_errors(self):
+        """Non-Facebook URLs and other error texts are not matched."""
+        from funcs_utils import is_facebook_parse_error
+
+        youtube_url = 'https://www.youtube.com/watch?v=abc'
+        assert is_facebook_parse_error(url=youtube_url, error_text=self._FB_STDERR) is False
+        assert is_facebook_parse_error(url=self._FB_URL, error_text='HTTP Error 403') is False
+        assert is_facebook_parse_error(url=self._FB_URL, error_text=None) is False
+
+    def test_remove_cookie_args_strips_block(self):
+        """The contiguous cookie-args block is removed; other flags are untouched."""
+        from funcs_for_main_yt_dlp._download_common import _remove_cookie_args
+
+        cmd: list[str | Path] = ['yt-dlp', *self._COOKIE_ARGS, '--no-warnings', self._FB_URL]
+        assert _remove_cookie_args(cmd=cmd, cookie_args=self._COOKIE_ARGS) == \
+            ['yt-dlp', '--no-warnings', self._FB_URL]
+
+    def test_remove_cookie_args_no_block_returns_copy(self):
+        """A command without the cookie block is returned unchanged (as a copy)."""
+        from funcs_for_main_yt_dlp._download_common import _remove_cookie_args
+
+        cmd: list[str | Path] = ['yt-dlp', '--no-warnings', self._FB_URL]
+        result = _remove_cookie_args(cmd=cmd, cookie_args=self._COOKIE_ARGS)
+        assert result == cmd
+        assert result is not cmd
+
+    def test_get_video_info_retries_without_cookies(self, monkeypatch):
+        """The metadata probe retries without cookie args after a Facebook parse failure."""
+        import subprocess as sp
+
+        from funcs_video_info.metadata import get_video_info
+
+        monkeypatch.setenv('YTDLP_USE_COOKIES', 'firefox')
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            if len(calls) == 1:
+                raise sp.CalledProcessError(returncode=1, cmd=cmd, stderr=self._FB_STDERR)
+            return sp.CompletedProcess(args=cmd, returncode=0, stdout='{"title": "x"}', stderr='')
+
+        with patch('funcs_video_info.metadata.subprocess.run', side_effect=fake_run):
+            info = get_video_info(yt_dlp_path=Path('yt-dlp'), url=self._FB_URL)
+
+        assert info == {'title': 'x'}
+        assert len(calls) == 2
+        assert '--cookies-from-browser' in calls[0]
+        assert '--cookies-from-browser' not in calls[1]
+
+    def test_get_video_info_no_retry_without_cookies_configured(self, monkeypatch):
+        """Without cookies configured, a Facebook parse failure raises immediately (no retry)."""
+        import subprocess as sp
+
+        from funcs_video_info.metadata import get_video_info
+
+        monkeypatch.delenv('YTDLP_USE_COOKIES', raising=False)
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            raise sp.CalledProcessError(returncode=1, cmd=cmd, stderr=self._FB_STDERR)
+
+        with patch('funcs_video_info.metadata.subprocess.run', side_effect=fake_run), \
+             pytest.raises(RuntimeError, match='Cannot parse data'):
+            get_video_info(yt_dlp_path=Path('yt-dlp'), url=self._FB_URL)
+
+        assert len(calls) == 1
+
+    def test_run_yt_dlp_subprocess_retries_without_cookies(self, monkeypatch):
+        """The download subprocess retries without cookie args after a Facebook parse failure."""
+        import subprocess as sp
+
+        from funcs_for_main_yt_dlp._download_common import _run_yt_dlp_subprocess
+
+        monkeypatch.setenv('YTDLP_USE_COOKIES', 'firefox')
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            if len(calls) == 1:
+                raise sp.CalledProcessError(returncode=1, cmd=cmd, stderr=self._FB_STDERR)
+            return sp.CompletedProcess(args=cmd, returncode=0, stdout='', stderr='')
+
+        cmd: list[str | Path] = ['yt-dlp', *self._COOKIE_ARGS, '--no-warnings', self._FB_URL]
+        with patch('funcs_for_main_yt_dlp._download_common.subprocess.run', side_effect=fake_run):
+            _run_yt_dlp_subprocess(cmd=cmd, timeout=60, show_progress=False,
+                                   label='Video download', url=self._FB_URL)
+
+        assert len(calls) == 2
+        assert '--cookies-from-browser' in calls[0]
+        assert '--cookies-from-browser' not in calls[1]
+
+    def test_run_yt_dlp_subprocess_other_errors_propagate(self, monkeypatch):
+        """A non-Facebook-parse failure propagates unchanged with no retry."""
+        import subprocess as sp
+
+        from funcs_for_main_yt_dlp._download_common import _run_yt_dlp_subprocess
+
+        monkeypatch.setenv('YTDLP_USE_COOKIES', 'firefox')
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            raise sp.CalledProcessError(returncode=1, cmd=cmd, stderr='HTTP Error 403')
+
+        cmd: list[str | Path] = ['yt-dlp', *self._COOKIE_ARGS, '--no-warnings', self._FB_URL]
+        with patch('funcs_for_main_yt_dlp._download_common.subprocess.run', side_effect=fake_run), \
+             pytest.raises(sp.CalledProcessError):
+            _run_yt_dlp_subprocess(cmd=cmd, timeout=60, show_progress=False,
+                                   label='Video download', url=self._FB_URL)
+
+        assert len(calls) == 1
+
+
 if __name__ == '__main__':
     # Run tests with verbose output
     import subprocess as sp  # nosec B404

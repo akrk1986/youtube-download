@@ -1,6 +1,9 @@
 """yt-dlp specific utility functions."""
 import logging
 import os
+from urllib.parse import urlparse
+
+from project_defs import VALID_FACEBOOK_DOMAINS
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +75,19 @@ def is_auth_error(error_text: str | None) -> bool:
         'http error 403',
     ]
     return any(_pattern in error_text.lower() for _pattern in auth_error_patterns)
+
+
+def is_facebook_parse_error(url: str, error_text: str | None) -> bool:
+    """Check if a Facebook URL failed with yt-dlp's 'Cannot parse data' extractor error.
+
+    Facebook serves logged-in sessions a different page variant (e.g. the group-post view)
+    that some yt-dlp versions cannot parse, while the same URL works anonymously. Callers
+    use this to retry the command once without --cookies-from-browser.
+    """
+    if not error_text or 'cannot parse data' not in error_text.lower():
+        return False
+    parsed = urlparse(url)
+    return any(domain in parsed.netloc for domain in VALID_FACEBOOK_DOMAINS)
 
 
 def warn_if_auth_error(error_text: str | None) -> None:

@@ -27,6 +27,7 @@ from funcs_utils.string_sanitization import (
 )
 from funcs_utils.yt_dlp_utils import (
     get_cookie_args,
+    is_facebook_parse_error,
     is_format_error,
     warn_if_auth_error,
 )
@@ -41,6 +42,7 @@ __all__ = [
     'greek_search',
     # yt-dlp utils
     'is_format_error',
+    'is_facebook_parse_error',
     'get_cookie_args',
     'warn_if_auth_error',
     # Security

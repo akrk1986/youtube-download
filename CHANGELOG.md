@@ -2,6 +2,19 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-07-11-0025] - fix: retry Facebook downloads without browser cookies on 'Cannot parse data'
+
+### Fixed
+- **`funcs_utils/yt_dlp_utils.py` + `__init__.py`, `funcs_video_info/metadata.py`,
+  `funcs_for_main_yt_dlp/_download_common.py`, `main-yt-dlp.py`** (`VERSION` → `2026-07-11-0025`):
+  Facebook group-post share links failed with yt-dlp's `ERROR: [facebook] …: Cannot parse data` when
+  `YTDLP_USE_COOKIES` was set — logged-in Facebook serves the group-post page variant, which yt-dlp
+  versions newer than 2026.6.9 (incl. latest 2026.7.4) cannot parse, while the same URL works
+  anonymously. New `is_facebook_parse_error()` detects this failure; the metadata probe
+  (`get_video_info`) and the video/audio download runner (`_run_yt_dlp_subprocess`) now retry once
+  without `--cookies-from-browser` (with a warning) before giving up. Other errors propagate
+  unchanged. Covered by 8 new tests in `Tests/test_main_ytdlp.py` (`TestFacebookCookieFallback`).
+
 ## [2026-07-07-1427] - fix: --artist no longer overwritten by artist detection
 
 ### Fixed

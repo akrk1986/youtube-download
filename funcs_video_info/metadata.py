@@ -8,8 +8,8 @@ from typing import Any
 
 import yt_dlp
 
-from funcs_utils import (get_cookie_args, is_format_error,
-                         sanitize_url_for_subprocess)
+from funcs_utils import (get_cookie_args, is_facebook_parse_error,
+                         is_format_error, sanitize_url_for_subprocess)
 from funcs_video_info.url_validation import get_timeout_for_url
 
 logger = logging.getLogger(__name__)
@@ -42,6 +42,16 @@ class _SilentLogger:
             logger.debug(f'yt-dlp error: {msg}')
 
 
+def _run_info_probe(cmd: list[str], timeout: int, url: str) -> subprocess.CompletedProcess[str]:
+    """Run the yt-dlp metadata probe subprocess, mapping a timeout to RuntimeError."""
+    try:
+        return subprocess.run(  # nosec B603
+            cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', check=True, timeout=timeout
+        )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"yt-dlp timed out after {timeout} seconds for URL '{url}'") from None
+
+
 def get_video_info(yt_dlp_path: Path, url: str, video_download_timeout: int | None = None) -> dict[str, Any]:
     """Get video information using yt-dlp by requesting the meta-data as JSON, w/o download of the video."""
     # Security: Validate URL before passing to subprocess
@@ -50,7 +60,7 @@ def get_video_info(yt_dlp_path: Path, url: str, video_download_timeout: int | No
     # Get appropriate timeout based on URL domain
     timeout = get_timeout_for_url(url=url, video_download_timeout=video_download_timeout)
 
-    cmd = [
+    base_cmd = [
         str(yt_dlp_path),
         '--no-warnings',
         '--ignore-config',
@@ -61,41 +71,41 @@ def get_video_info(yt_dlp_path: Path, url: str, video_download_timeout: int | No
 
     # Add cookie arguments if configured via environment variable
     cookie_args = get_cookie_args()
-    if cookie_args:
-        cmd[1:1] = cookie_args
+    cmd = base_cmd[:1] + cookie_args + base_cmd[1:]
 
     logger.debug(f'Getting video info with timeout of {timeout} seconds')
     try:
-        result = subprocess.run(  # nosec B603
-            cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', check=True, timeout=timeout
-        )
-
-        # Try to parse as single JSON object first
-        try:
-            return json.loads(result.stdout)
-        except json.JSONDecodeError as e:
-            # If parsing fails due to multiple JSON objects (playlist), parse only the first one
-            if 'Extra data' in str(e):
-                logger.warning('Multiple JSON objects detected in yt-dlp output, parsing first object only')
-                lines = result.stdout.strip().split('\n')
-                for line in lines:
-                    if line.strip():
-                        try:
-                            return json.loads(line)
-                        except json.JSONDecodeError:
-                            continue
-            # Re-raise if it's not an "Extra data" error or no valid JSON found
-            raise
-
-    except subprocess.TimeoutExpired:
-        raise RuntimeError(f"yt-dlp timed out after {timeout} seconds for URL '{url}'") from None
+        result = _run_info_probe(cmd=cmd, timeout=timeout, url=url)
     except subprocess.CalledProcessError as e:
         # Check if this is a format error - return empty dict instead of raising
         if is_format_error(e.stderr):
             logger.debug(f'Format not available for URL, returning empty info: {url}')
             return {}
-        raise RuntimeError(f'yt-dlp failed: {e.stderr}') from e
+        if not (cookie_args and is_facebook_parse_error(url=url, error_text=e.stderr)):
+            raise RuntimeError(f'yt-dlp failed: {e.stderr}') from e
+        # Logged-in Facebook serves a page variant yt-dlp may fail to parse; the same URL
+        # usually works anonymously, so retry the probe once without the browser cookies.
+        logger.warning("Facebook metadata probe failed with browser cookies ('Cannot parse data'), "
+                       'retrying without cookies')
+        try:
+            result = _run_info_probe(cmd=base_cmd, timeout=timeout, url=url)
+        except subprocess.CalledProcessError as retry_error:
+            raise RuntimeError(f'yt-dlp failed: {retry_error.stderr}') from retry_error
+
+    # Try to parse as single JSON object first
+    try:
+        return json.loads(result.stdout)
     except json.JSONDecodeError as e:
+        # If parsing fails due to multiple JSON objects (playlist), parse only the first one
+        if 'Extra data' in str(e):
+            logger.warning('Multiple JSON objects detected in yt-dlp output, parsing first object only')
+            lines = result.stdout.strip().split('\n')
+            for line in lines:
+                if line.strip():
+                    try:
+                        return json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
         raise RuntimeError(f"Failed to parse yt-dlp output for '{url}': {e}") from e
 
 

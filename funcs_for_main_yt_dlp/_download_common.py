@@ -5,7 +5,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from funcs_utils import get_cookie_args, sanitize_string
+from funcs_utils import get_cookie_args, is_facebook_parse_error, sanitize_string
 from funcs_video_info import get_video_info
 from project_defs import YT_DLP_IS_PLAYLIST_FLAG
 
@@ -140,9 +140,41 @@ def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,
         cmd[1:1] = ['--postprocessor-args', 'ffmpeg:' + ' '.join(ffmpeg_metadata)]
 
 
+def _remove_cookie_args(cmd: list[str | Path], cookie_args: list[str]) -> list[str | Path]:
+    """Return a copy of cmd with the contiguous cookie-args block removed (unchanged copy if absent)."""
+    block_len = len(cookie_args)
+    for i in range(len(cmd) - block_len + 1):
+        if list(cmd[i:i + block_len]) == cookie_args:
+            return list(cmd[:i]) + list(cmd[i + block_len:])
+    return list(cmd)
+
+
 def _run_yt_dlp_subprocess(cmd: list[str | Path], timeout: int,
                            show_progress: bool, label: str, url: str) -> None:
-    """Run a yt-dlp subprocess with optional progress logging.
+    """Run a yt-dlp subprocess, retrying once without browser cookies on a Facebook parse failure.
+
+    Logged-in Facebook serves a page variant (e.g. the group-post view) that some yt-dlp versions
+    fail on with 'Cannot parse data', while the same URL works anonymously. Other errors propagate
+    to the caller unchanged (TimeoutExpired, CalledProcessError).
+    """
+    try:
+        _run_yt_dlp_once(cmd=cmd, timeout=timeout, show_progress=show_progress, label=label, url=url)
+    except subprocess.CalledProcessError as e:
+        cookie_args = get_cookie_args()
+        if not (cookie_args and is_facebook_parse_error(url=url, error_text=e.stderr)):
+            raise
+        cmd_no_cookies = _remove_cookie_args(cmd=cmd, cookie_args=cookie_args)
+        if cmd_no_cookies == list(cmd):
+            raise
+        logger.warning(f"{label} failed with browser cookies ('Cannot parse data'), "
+                       'retrying without cookies')
+        _run_yt_dlp_once(cmd=cmd_no_cookies, timeout=timeout, show_progress=show_progress,
+                         label=label, url=url)
+
+
+def _run_yt_dlp_once(cmd: list[str | Path], timeout: int,
+                     show_progress: bool, label: str, url: str) -> None:
+    """Run a single yt-dlp subprocess attempt with optional progress logging.
 
     On success, logs completion. On error, propagates TimeoutExpired
     and CalledProcessError to the caller unchanged.
