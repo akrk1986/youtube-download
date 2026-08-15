@@ -36,7 +36,8 @@
       "Read(//mnt/c/Users/user/AppData/Local/Programs/Python/**)",
       "WebFetch(domain:multicommander.com)",
       "WebFetch(domain:ghisler.ch)",
-      "Bash(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 yt-videos/Video.mp4)"
+      "Bash(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 yt-videos/Video.mp4)",
+      "Bash(git notes *)"
     ],
     "deny": [],
     "ask": []
