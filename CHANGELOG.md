@@ -2,6 +2,30 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-08-15-1100] - fix: unique output file names + correct artist tag
+
+### Fixed
+- **`funcs_for_main_yt_dlp/_download_common.py`, `main-yt-dlp.py`** (`VERSION` → `2026-08-15-1100`):
+  Facebook reports the title `Video` for many of its URL forms, so every Facebook download was named
+  `Video.<ext>` and landed on the same file. yt-dlp does not overwrite an existing target — it logs
+  `has already been downloaded`, keeps the old media, and still runs the Metadata + EmbedThumbnail
+  postprocessors — so each new download left a file whose audio/video came from the *previous* clip
+  while its tags and cover art came from the new one. `_build_output_template()` now replaces titles
+  that identify no particular video (`GENERIC_VIDEO_TITLES`) with `<uploader> <upload date>`, and
+  `_unique_output_stem()` appends the video id (or a `-2`/`-3` suffix, for sources reporting no id)
+  when the base name is already taken in the output folder. Playlists keep yt-dlp's own template.
+- **`funcs_for_main_yt_dlp/download_audio.py`**: the artist tag was embedded as the literal `NA` for
+  any video whose `artist` field is absent. The directive `'artist:%(uploader)s'` had its halves
+  reversed — `--parse-metadata FROM:TO` reads FROM and stores it into TO, so it meant "read artist,
+  write it into uploader"; with no artist field the FROM template renders as `NA`, which overwrote
+  `uploader` and was then picked up by yt-dlp's artist→uploader fallback chain. All three artist
+  directives now use the codebase's existing FROM-template/TO-regex idiom
+  (`'%(artist)s:(?P<meta_artist>.+)'`, `'%(uploader)s:(?P<meta_artist>.+)'`). Videos that credit
+  neither an artist nor an uploader now get `N/A` (`UNKNOWN_ARTIST`) instead of `NA`, marking the
+  file for manual tagging. Album Artist is still forced empty for the dupe-staging workflow.
+- Covered by 16 new tests in `Tests/test_main_ytdlp.py` (`TestOutputFileNaming`,
+  `TestUnknownArtistFallback`).
+
 ## [2026-07-11-0025] - fix: retry Facebook downloads without browser cookies on 'Cannot parse data'
 
 ### Fixed

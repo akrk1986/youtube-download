@@ -4,12 +4,19 @@ import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
+import arrow
 
 from funcs_utils import get_cookie_args, is_facebook_parse_error, sanitize_string
 from funcs_video_info import get_video_info
 from project_defs import YT_DLP_IS_PLAYLIST_FLAG
 
 logger = logging.getLogger(__name__)
+
+# Titles that identify no particular video. Facebook reports 'Video' for every clip, so naming
+# the file after the title makes every Facebook download land on the same name.
+GENERIC_VIDEO_TITLES = frozenset({'facebook', 'na', 'reel', 'untitled', 'video', 'videos', 'watch'})
 
 
 @dataclass
@@ -71,28 +78,109 @@ def _get_download_retries() -> str:
     return retries
 
 
+def _is_generic_title(title: str) -> bool:
+    """Check whether a source title identifies no particular video (e.g. Facebook's 'Video')."""
+    return title.strip().casefold() in GENERIC_VIDEO_TITLES
+
+
+def _format_upload_date(upload_date: str) -> str:
+    """Format a yt-dlp 'YYYYMMDD' upload date as 'YYYY-MM-DD' (empty when absent or unparsable)."""
+    if not upload_date:
+        return ''
+    try:
+        return arrow.get(upload_date, 'YYYYMMDD').format('YYYY-MM-DD')
+    except ValueError:  # arrow's ParserError subclasses ValueError
+        logger.debug(f"Could not parse upload date '{upload_date}'")
+        return ''
+
+
+def _name_for_generic_title(video_info: dict[str, Any], video_title: str) -> str:
+    """Build a file name for a video whose own title identifies nothing.
+
+    Uses '<uploader> <upload date>', falling back to the original title when the uploader is
+    missing, and dropping the date when it is absent or unparsable.
+    """
+    uploader = (video_info.get('uploader') or '').strip()
+    if uploader in ('', 'NA'):
+        uploader = video_title.strip()
+    upload_date = _format_upload_date(upload_date=(video_info.get('upload_date') or '').strip())
+    return ' '.join(part for part in (uploader, upload_date) if part)
+
+
+def _stem_exists(folder: Path, stem: str) -> bool:
+    """Check whether the folder already holds a file with this base name, in any extension.
+
+    The comparison is case-insensitive, so it also catches the Windows / mounted-drive case
+    where 'Video.m4a' and 'video.m4a' are one and the same file.
+    """
+    if not folder.is_dir():
+        return False
+    target = stem.casefold()
+    return any(entry.is_file() and entry.stem.casefold() == target for entry in folder.iterdir())
+
+
+def _unique_output_stem(folder: Path, stem: str, video_id: str | None) -> str:
+    """Return a base name that no file already in the folder uses.
+
+    yt-dlp does not overwrite an existing target: it keeps the old media and writes the new
+    video's tags and cover art onto it, yielding a file whose audio and artwork come from two
+    different videos. Disambiguating the name up front avoids that.
+
+    Appending the video id suffices on its own -- it is unique per video, so re-downloading the
+    same video reuses that name and yt-dlp's own skip keeps the run idempotent. The numeric
+    suffix is only for sources that report no id.
+    """
+    if not _stem_exists(folder=folder, stem=stem):
+        return stem
+    if video_id:
+        return f'{stem} {video_id}'
+    index = 2
+    while _stem_exists(folder=folder, stem=f'{stem}-{index}'):
+        index += 1
+    return f'{stem}-{index}'
+
+
 def _build_output_template(opts: DownloadOptions,
                            output_folder: Path | str) -> tuple[str, str | None]:
     """Build the yt-dlp output template and return (template, sanitized_title).
 
     For playlists, sanitized_title is None (yt-dlp handles naming).
-    For single videos, sanitized_title is the sanitized custom or fetched title.
+    For single videos, sanitized_title is the sanitized custom or fetched title. The file name in
+    the template can differ from it: a title that identifies no particular video is replaced, and
+    a name already taken in the output folder is disambiguated.
     """
     folder = Path(output_folder)
     if opts.is_it_playlist:
         return str(folder / '%(title)s.%(ext)s'), None
 
+    video_id: str | None = None
     if opts.custom_title:
         sanitized_title = sanitize_string(dirty_string=opts.custom_title)
         logger.debug(f"Using custom title: '{opts.custom_title}' -> '{sanitized_title}'")
+        file_stem = sanitized_title
     else:
         video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url,
                                     video_download_timeout=opts.video_download_timeout)
+        video_id = (video_info.get('id') or '').strip() or None
         video_title = video_info.get('title', 'untitled')
         sanitized_title = sanitize_string(dirty_string=video_title)
         logger.debug(f"Sanitized title: '{video_title}' -> '{sanitized_title}'")
+        file_stem = sanitized_title
+        if _is_generic_title(title=video_title):
+            fallback = sanitize_string(
+                dirty_string=_name_for_generic_title(video_info=video_info, video_title=video_title)
+            )
+            if fallback:
+                logger.info(f"Source title '{video_title}' identifies no particular video, "
+                            f"naming the file '{fallback}' instead")
+                file_stem = fallback
 
-    return str(folder / f'{sanitized_title}.%(ext)s'), sanitized_title
+    file_stem = file_stem or 'untitled'
+    unique_stem = _unique_output_stem(folder=folder, stem=file_stem, video_id=video_id)
+    if unique_stem != file_stem:
+        logger.info(f"'{file_stem}' is already taken in {folder}, "
+                    f"downloading as '{unique_stem}' instead")
+    return str(folder / f'{unique_stem}.%(ext)s'), sanitized_title
 
 
 def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,

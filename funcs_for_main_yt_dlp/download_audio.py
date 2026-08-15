@@ -18,6 +18,11 @@ from project_defs import DEFAULT_AUDIO_QUALITY
 
 logger = logging.getLogger(__name__)
 
+# Artist tag written when the source credits nobody. Facebook reports its empty fields as the
+# literal 'NA', which yt-dlp's --embed-metadata would otherwise carry into the file as-is; the
+# explicit 'N/A' marks the file as still needing the artist set by hand.
+UNKNOWN_ARTIST = 'N/A'
+
 
 def extract_single_format(opts: DownloadOptions, output_folder: Path | str, format_type: str,
                           artist_pat: str | None = None, composer_pat: str | None = None) -> None:
@@ -147,11 +152,21 @@ def extract_audio_with_ytdlp(opts: DownloadOptions, audio_formats: list[str]) ->
             have_artist = bool(artist and artist not in ('NA', ''))
             have_uploader = bool(uploader and uploader not in ('NA', ''))
 
+            # Every directive uses the same idiom as the composer one below: the FROM half is an
+            # output template that renders the wanted value, the TO half captures it into
+            # meta_artist. Note the halves are NOT interchangeable -- 'artist:%(uploader)s' means
+            # "read artist, store it in uploader", which is why it used to leave the artist tag as
+            # the literal 'NA' that '%(artist)s' renders to when the field is absent.
             if have_artist:
-                artist_pat = 'artist:%(artist)s'
+                artist_pat = '%(artist)s:(?P<meta_artist>.+)'
                 logger.info(f"Video has artist: '{artist}'")
             elif have_uploader:
-                artist_pat = 'artist:%(uploader)s'
+                artist_pat = '%(uploader)s:(?P<meta_artist>.+)'
+                logger.info(f"Video has no artist, using the uploader: '{uploader}'")
+            else:
+                artist_pat = f'{UNKNOWN_ARTIST}:(?P<meta_artist>.+)'
+                logger.info('Video credits no artist or uploader, setting the artist tag to '
+                            f"'{UNKNOWN_ARTIST}' so it can be set manually later")
 
         # Parse the song composer from the (Greek) description, if credited.
         composer = extract_composer_from_description(description=video_info.get('description') or '')

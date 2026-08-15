@@ -151,6 +151,9 @@ audio extraction mode (mutually exclusive):
   - Ignored for playlists
   - Takes precedence: the artist is not derived from the video's artist/uploader, and the
     post-download Greek-artist detection is skipped so the custom value is never overwritten
+  - Without `--artist`, the artist tag is taken from the video's own artist field, falling back to
+    the uploader; when the source credits neither, the tag is set to `N/A` so the file is easy to
+    spot and fill in later
 - `--album ALBUM` - Set custom album tag in audio files
   - Use `--album ask` or `--album prompt` to be prompted interactively
   - Ignored for playlists
@@ -653,6 +656,27 @@ The standalone audio-conversion, volume-boost, Dolby-Vision, Greek-singles dupli
   - `yt-audio-mp3/` - MP3 files
   - `yt-audio-flac/` - FLAC files
 - `yt-chapters/` - segments CSV (`segments-hms-full.txt`) created by `--list-chapters`
+
+### File Naming
+
+A single video is named after its title, sanitized and capped at 64 characters. Two rules keep one
+download from clobbering another:
+
+- **Titles that identify no particular video are replaced.** Facebook reports the title `Video` for
+  many of its URL forms, so naming files after it would send every Facebook download to the same
+  name. Such titles (`Video`, `untitled`, `NA`, `reel`, `watch`, …) are replaced with
+  `<uploader> <upload date>`, e.g. `World Greek Radio 2026-07-25.m4a`. A missing uploader falls back
+  to the title; a missing upload date is simply left out.
+- **A name already taken in the output folder is disambiguated** with the video id, e.g.
+  `World Greek Radio 2026-07-25 2526896364442531.m4a` (a `-2`, `-3` suffix is used for sources that
+  report no id). The check is case-insensitive and covers every extension.
+
+Without the second rule yt-dlp would not overwrite the existing file — it would *keep the old media*
+and write the new video's tags and cover art onto it, leaving a file whose audio and artwork come
+from two different videos. Since the video id is unique per video, re-downloading the same video
+reuses the same name and stays idempotent.
+
+Playlists are unaffected: yt-dlp names those files itself, from each entry's own title.
 
 ## Automatic Cleanup
 

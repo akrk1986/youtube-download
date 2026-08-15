@@ -344,6 +344,37 @@ The project uses a strategy pattern for handling different audio formats:
   - Auto-converts YYYYMMDD date format to YYYY
   - Copies PURL to COMMENT field for consistency with MP3/M4A
 
+### Output File Naming
+
+`_build_output_template()` (`funcs_for_main_yt_dlp/_download_common.py`) names single-video
+downloads. Two rules prevent one download from clobbering another:
+
+- Titles in `GENERIC_VIDEO_TITLES` (`video`, `untitled`, `na`, `reel`, `watch`, …) identify no
+  particular video — Facebook reports `Video` for every clip — and are replaced with
+  `<uploader> <upload date>` (uploader missing → title; date missing/unparsable → omitted).
+- `_unique_output_stem()` appends the video id when the base name is already taken in the output
+  folder (case-insensitive, any extension); a `-2`/`-3` suffix covers sources with no id.
+
+The second rule matters because yt-dlp does **not** overwrite an existing target: it logs
+`has already been downloaded`, keeps the old media, and runs the Metadata + EmbedThumbnail
+postprocessors on it — producing a file whose audio and cover art come from two different videos.
+The video id is unique per video, so re-downloading the same video reuses the name and stays
+idempotent. Playlists keep yt-dlp's own `%(title)s` template.
+
+### `--parse-metadata` Direction (gotcha)
+
+`--parse-metadata FROM:TO` reads **FROM** and stores the result into **TO** — the halves are not
+interchangeable. `'artist:%(uploader)s'` means "read artist, write it into uploader", which is the
+reverse of what it looks like: when the source has no artist field, the FROM template renders as the
+literal `NA`, overwrites `uploader`, and yt-dlp's artist→uploader fallback chain then embeds `NA` as
+the artist. Use the idiom the codebase already applies for composer and album artist instead — FROM
+is a template rendering the wanted value, TO is a regex capturing it into a `meta_` field:
+
+- `'%(artist)s:(?P<meta_artist>.+)'` / `'%(uploader)s:(?P<meta_artist>.+)'` — artist sources
+- `'N/A:(?P<meta_artist>.+)'` (`UNKNOWN_ARTIST` in `download_audio.py`) — nothing credited, marks
+  the file for manual tagging rather than leaking Facebook's `NA`
+- `':(?P<meta_album_artist>)'` — force Album Artist empty for the dupe-staging workflow
+
 ### Processing Pipeline
 1. Download audio with yt-dlp (basic metadata embedded)
 2. Organize files by format into subdirectories

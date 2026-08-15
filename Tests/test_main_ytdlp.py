@@ -785,9 +785,9 @@ class TestAlbumArtistBlanking:
 
     def test_album_artist_blanked_with_artist(self, tmp_path):
         """Blanking Album Artist does not drop the artist embedding."""
-        cmd = self._capture_cmd(artist_pat='artist:%(artist)s', tmp_path=tmp_path)
+        cmd = self._capture_cmd(artist_pat='%(artist)s:(?P<meta_artist>.+)', tmp_path=tmp_path)
         assert ':(?P<meta_album_artist>)' in cmd
-        assert 'artist:%(artist)s' in cmd
+        assert '%(artist)s:(?P<meta_artist>.+)' in cmd
 
 
 class TestComposerEmbedding:
@@ -856,6 +856,72 @@ class TestComposerEmbedding:
             extract_audio_with_ytdlp(opts=self._make_opts(), audio_formats=['m4a'])
 
         assert captured['composer_pat'] is None
+
+
+class TestUnknownArtistFallback:
+    """Verify the artist tag when the source credits neither an artist nor an uploader."""
+
+    @staticmethod
+    def _make_opts():
+        """Build a minimal single-video DownloadOptions for the audio path."""
+        from funcs_for_main_yt_dlp._download_common import DownloadOptions
+
+        return DownloadOptions(
+            ytdlp_exe='yt-dlp',
+            url='https://www.facebook.com/share/v/1bScHjUKva/',
+            is_it_playlist=False,
+        )
+
+    @staticmethod
+    def _artist_pat_for(info, tmp_path):
+        """Run extract_audio_with_ytdlp against the given video info and return the artist_pat."""
+        from funcs_for_main_yt_dlp.download_audio import extract_audio_with_ytdlp
+
+        captured = {}
+
+        def fake_extract(**kwargs):
+            captured['artist_pat'] = kwargs.get('artist_pat')
+
+        with patch('funcs_for_main_yt_dlp.download_audio.get_video_info', return_value=info), \
+             patch('funcs_for_main_yt_dlp.download_audio.get_timeout_for_url', return_value=60), \
+             patch('funcs_for_main_yt_dlp.download_audio.get_audio_dir_for_format', return_value=str(tmp_path)), \
+             patch('funcs_for_main_yt_dlp.download_audio.extract_single_format', side_effect=fake_extract):
+            extract_audio_with_ytdlp(opts=TestUnknownArtistFallback._make_opts(), audio_formats=['m4a'])
+
+        return captured['artist_pat']
+
+    def test_na_artist_and_uploader_yield_marker(self, tmp_path):
+        """Facebook's 'NA' placeholders produce an explicit 'N/A' artist tag, not the literal 'NA'."""
+        from funcs_for_main_yt_dlp.download_audio import UNKNOWN_ARTIST
+
+        artist_pat = self._artist_pat_for(info={'artist': 'NA', 'uploader': 'NA'}, tmp_path=tmp_path)
+        assert artist_pat == f'{UNKNOWN_ARTIST}:(?P<meta_artist>.+)'
+
+    def test_missing_fields_yield_marker(self, tmp_path):
+        """Absent artist and uploader fields also produce the marker."""
+        from funcs_for_main_yt_dlp.download_audio import UNKNOWN_ARTIST
+
+        artist_pat = self._artist_pat_for(info={}, tmp_path=tmp_path)
+        assert artist_pat == f'{UNKNOWN_ARTIST}:(?P<meta_artist>.+)'
+
+    def test_uploader_still_wins_over_marker(self, tmp_path):
+        """A usable uploader is still preferred over the marker when the artist is 'NA'."""
+        artist_pat = self._artist_pat_for(info={'artist': 'NA', 'uploader': 'World Greek Radio'},
+                                          tmp_path=tmp_path)
+        assert artist_pat == '%(uploader)s:(?P<meta_artist>.+)'
+
+    def test_artist_still_wins_over_marker(self, tmp_path):
+        """A credited artist is still preferred over the marker."""
+        artist_pat = self._artist_pat_for(info={'artist': 'Anastasia', 'uploader': 'NA'},
+                                          tmp_path=tmp_path)
+        assert artist_pat == '%(artist)s:(?P<meta_artist>.+)'
+
+    def test_directives_assign_into_meta_artist(self, tmp_path):
+        """Every directive writes into meta_artist -- never the reverse ('artist:%(uploader)s')."""
+        infos = ({'artist': 'Anastasia'}, {'uploader': 'World Greek Radio'}, {})
+        for info in infos:
+            artist_pat = self._artist_pat_for(info=info, tmp_path=tmp_path)
+            assert artist_pat.endswith(':(?P<meta_artist>.+)'), artist_pat
 
 
 class TestFacebookCookieFallback:
@@ -983,6 +1049,144 @@ class TestFacebookCookieFallback:
                                    label='Video download', url=self._FB_URL)
 
         assert len(calls) == 1
+
+
+class TestOutputFileNaming:
+    """Test output-file naming: generic source titles and name collisions."""
+
+    _FB_INFO = {
+        'id': '2526896364442531',
+        'title': 'Video',
+        'uploader': 'World Greek Radio',
+        'upload_date': '20260725',
+    }
+
+    @staticmethod
+    def _make_opts(**overrides):
+        """Build DownloadOptions for a single (non-playlist) Facebook video."""
+        from funcs_for_main_yt_dlp._download_common import DownloadOptions
+
+        params = {'ytdlp_exe': 'yt-dlp',
+                  'url': 'https://www.facebook.com/share/v/1bScHjUKva/',
+                  'is_it_playlist': False}
+        params.update(overrides)
+        return DownloadOptions(**params)
+
+    def test_is_generic_title(self):
+        """Titles that identify no particular video are detected, case- and space-insensitively."""
+        from funcs_for_main_yt_dlp._download_common import _is_generic_title
+
+        assert _is_generic_title(title='Video') is True
+        assert _is_generic_title(title='  video  ') is True
+        assert _is_generic_title(title='NA') is True
+        assert _is_generic_title(title='Το κόκκινο φουστάνι') is False
+        assert _is_generic_title(title='Video killed the radio star') is False
+
+    def test_format_upload_date(self):
+        """A yt-dlp YYYYMMDD date is reformatted; absent or unparsable dates yield ''."""
+        from funcs_for_main_yt_dlp._download_common import _format_upload_date
+
+        assert _format_upload_date(upload_date='20260725') == '2026-07-25'
+        assert _format_upload_date(upload_date='') == ''
+        assert _format_upload_date(upload_date='not-a-date') == ''
+
+    def test_name_for_generic_title_uses_uploader_and_date(self):
+        """The replacement name is '<uploader> <upload date>'."""
+        from funcs_for_main_yt_dlp._download_common import _name_for_generic_title
+
+        name = _name_for_generic_title(video_info=self._FB_INFO, video_title='Video')
+        assert name == 'World Greek Radio 2026-07-25'
+
+    def test_name_for_generic_title_falls_back(self):
+        """A missing uploader falls back to the title; a missing date is dropped."""
+        from funcs_for_main_yt_dlp._download_common import _name_for_generic_title
+
+        no_uploader = {'uploader': 'NA', 'upload_date': '20260725'}
+        assert _name_for_generic_title(video_info=no_uploader, video_title='Video') == 'Video 2026-07-25'
+
+        no_date = {'uploader': 'World Greek Radio'}
+        assert _name_for_generic_title(video_info=no_date, video_title='Video') == 'World Greek Radio'
+
+    def test_unique_output_stem_free_name_unchanged(self, tmp_path):
+        """A name nothing else uses is returned as-is."""
+        from funcs_for_main_yt_dlp._download_common import _unique_output_stem
+
+        assert _unique_output_stem(folder=tmp_path, stem='Some Song', video_id='abc123') == 'Some Song'
+
+    def test_unique_output_stem_appends_video_id(self, tmp_path):
+        """A taken name (any extension, any case) is disambiguated with the video id."""
+        from funcs_for_main_yt_dlp._download_common import _unique_output_stem
+
+        (tmp_path / 'some song.m4a').touch()
+        assert _unique_output_stem(folder=tmp_path, stem='Some Song',
+                                   video_id='abc123') == 'Some Song abc123'
+
+    def test_unique_output_stem_numeric_suffix_without_id(self, tmp_path):
+        """Without a video id, a numeric suffix is used and existing suffixes are skipped."""
+        from funcs_for_main_yt_dlp._download_common import _unique_output_stem
+
+        (tmp_path / 'Some Song.m4a').touch()
+        (tmp_path / 'Some Song-2.mp3').touch()
+        assert _unique_output_stem(folder=tmp_path, stem='Some Song', video_id=None) == 'Some Song-3'
+
+    def test_build_output_template_replaces_generic_title(self, tmp_path):
+        """A Facebook 'Video' title becomes '<uploader> <upload date>' in the template."""
+        from funcs_for_main_yt_dlp._download_common import _build_output_template
+
+        with patch('funcs_for_main_yt_dlp._download_common.get_video_info', return_value=self._FB_INFO):
+            template, sanitized_title = _build_output_template(opts=self._make_opts(),
+                                                               output_folder=tmp_path)
+
+        assert template == str(tmp_path / 'World Greek Radio 2026-07-25.%(ext)s')
+        assert sanitized_title == 'Video'
+
+    def test_build_output_template_disambiguates_existing_file(self, tmp_path):
+        """A second video from the same page on the same day does not reuse the taken name."""
+        from funcs_for_main_yt_dlp._download_common import _build_output_template
+
+        (tmp_path / 'World Greek Radio 2026-07-25.m4a').touch()
+        with patch('funcs_for_main_yt_dlp._download_common.get_video_info', return_value=self._FB_INFO):
+            template, _ = _build_output_template(opts=self._make_opts(), output_folder=tmp_path)
+
+        assert template == str(tmp_path / 'World Greek Radio 2026-07-25 2526896364442531.%(ext)s')
+
+    def test_build_output_template_keeps_real_title(self, tmp_path):
+        """A title that identifies the video is kept unchanged."""
+        from funcs_for_main_yt_dlp._download_common import _build_output_template
+
+        info = {'id': 'abc123', 'title': 'Anastasia - To kokkino foustani', 'uploader': 'SKAI'}
+        with patch('funcs_for_main_yt_dlp._download_common.get_video_info', return_value=info):
+            template, sanitized_title = _build_output_template(opts=self._make_opts(),
+                                                               output_folder=tmp_path)
+
+        assert template == str(tmp_path / 'Anastasia - To kokkino foustani.%(ext)s')
+        assert sanitized_title == 'Anastasia - To kokkino foustani'
+
+    def test_build_output_template_custom_title_no_probe(self, tmp_path):
+        """A custom title is used verbatim and no metadata probe is made."""
+        from funcs_for_main_yt_dlp._download_common import _build_output_template
+
+        with patch('funcs_for_main_yt_dlp._download_common.get_video_info') as mock_info:
+            template, sanitized_title = _build_output_template(
+                opts=self._make_opts(custom_title='My Song'), output_folder=tmp_path
+            )
+
+        mock_info.assert_not_called()
+        assert template == str(tmp_path / 'My Song.%(ext)s')
+        assert sanitized_title == 'My Song'
+
+    def test_build_output_template_playlist_unchanged(self, tmp_path):
+        """Playlists keep yt-dlp's own title template and make no probe."""
+        from funcs_for_main_yt_dlp._download_common import _build_output_template
+
+        with patch('funcs_for_main_yt_dlp._download_common.get_video_info') as mock_info:
+            template, sanitized_title = _build_output_template(
+                opts=self._make_opts(is_it_playlist=True), output_folder=tmp_path
+            )
+
+        mock_info.assert_not_called()
+        assert template == str(tmp_path / '%(title)s.%(ext)s')
+        assert sanitized_title is None
 
 
 if __name__ == '__main__':
