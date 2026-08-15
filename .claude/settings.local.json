@@ -31,7 +31,12 @@
       "Bash(git log *)",
       "Bash(git checkout *)",
       "Bash(git config *)",
-      "Read(//mnt/c/Users/user/AppData/Roaming/Mozilla/Firefox/Profiles/**)"
+      "Read(//mnt/c/Users/user/AppData/Roaming/Mozilla/Firefox/Profiles/**)",
+      "Bash(/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe *)",
+      "Read(//mnt/c/Users/user/AppData/Local/Programs/Python/**)",
+      "WebFetch(domain:multicommander.com)",
+      "WebFetch(domain:ghisler.ch)",
+      "Bash(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 yt-videos/Video.mp4)"
     ],
     "deny": [],
     "ask": []
