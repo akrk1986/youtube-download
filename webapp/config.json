@@ -9,8 +9,9 @@
     "dark": true,
     "fg_color": "#e8e8e8",
     "bg_color": "#1e1e1e",
-    "font_family": "Roboto, sans-serif",
+    "font_family": "",
     "font_size": "16px",
+    "output_font_family": "",
     "output_font_size": "13px"
   }
 }

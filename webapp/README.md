@@ -64,7 +64,11 @@ python webapp-yt-dlp.py --native          # Windows
    suffix) show a **clear (✕) icon** while they hold text. The read-only **command preview** shows
    the exact `env … python main-yt-dlp.py …` that will run.
 3. **Launch** — output streams into the log below. **Cancel** terminates the running process.
-4. **Exit web app** (orange, octagon-✕) replaces the page with a "Web application was stopped"
+   The URL field is **focused on load**, and pressing **Enter** in any of the URL / Title / Artist /
+   Album fields launches, so the paste-a-URL-and-go loop never needs the mouse. Enter during a run
+   is refused with a notice rather than starting a second one.
+4. **Exit web app** — in the **header, top right**, muted and flat (it is destructive but rarely
+   wanted, so it is kept away from Launch). Replaces the page with a "Web application was stopped"
    notice and stops the server.
 5. **Start/Stop watching** (clipboard) — these two buttons appear **only when a `YT-DLP-prompt`
    preset is selected**, i.e. the presets that expect you to supply a URL. They are hidden for the
@@ -85,7 +89,30 @@ python webapp-yt-dlp.py --native          # Windows
    run `Tests-Standalone/main-clipboard-probe.py` — it prints every new clipboard value with the
    watcher's verdict.
 
-Controls are capped to a readable width; only the output log spans the full browser width.
+Controls are capped to a readable width; only the output log spans the full browser width. The log
+also **grows to fill the remaining window height** (down to a floor of `12rem`, below which the page
+scrolls), so a tall window gives you a tall log. The run outcome (`Running…` / `Done — exit 0` /
+`Failed — exit N`) appears directly under the buttons, not below the log.
+
+Only **Launch** is a filled button; Cancel is an outline that stays disabled until there is something
+to cancel, and the rest are flat — rank is carried by weight rather than by colour.
+
+### The output log
+
+The subprocess's ANSI colours are rendered as HTML, so the linters' `rich` tables and New/Stable
+badges keep their colour. Two things are worth knowing:
+
+- **The palette follows the theme.** A terminal palette only means something relative to its
+  background — black and bright-white sit at opposite ends, and whichever matches the background
+  disappears. `webapp/ansi.py` therefore ships a dark-background and a light-background palette and
+  picks one from `theme.dark`. Every entry in each clears WCAG AA (4.5:1) against that background.
+- **Lines are batched.** Output is queued and flushed every 100 ms as a single element rather than
+  one element (and one scroll) per line, so a fast burst from yt-dlp or the linters can't outrun the
+  websocket. A line appears at most 100 ms after it is produced.
+
+The log font defaults to a stack of real terminal faces (Cascadia Mono / Consolas / SF Mono / DejaVu
+Sans Mono / …) rather than the generic `monospace`, which resolves to Courier New on Windows and
+renders the tables' box-drawing characters poorly.
 
 ### Presets
 
@@ -115,7 +142,33 @@ Override per run via the **Cookies** dropdown, or change the default for the who
 | `boost_default` | `2.0`       | Pre-filled boost factor. |
 | `native`        | `false`     | Run in a native desktop window. |
 | `reload`        | `false`     | NiceGUI file-watch hot reload. |
-| `theme`         | (object)    | Dark mode, colours, fonts (validated before use). |
+| `theme`         | (object)    | Dark mode, colours, fonts (validated before use) — see below. |
+
+### `theme`
+
+| Key                  | Default              | Meaning |
+|----------------------|----------------------|---------|
+| `dark`               | `true`               | **The single source of truth for the theme.** Drives the Quasar component theme, the derived colours below, and which ANSI log palette is used. |
+| `fg_color`           | derived from `dark`  | Foreground. Blank ⇒ `#e8e8e8` (dark) / `#1f1f1f` (light). |
+| `bg_color`           | derived from `dark`  | Background. Blank ⇒ `#1e1e1e` (dark) / `#fafafa` (light). |
+| `font_family`        | blank ⇒ native stack | UI font. Blank uses the platform's own UI face (Segoe UI / Cantarell / DejaVu Sans / `system-ui`) — no webfont, so the app has no network dependency. |
+| `font_size`          | `16px`               | UI font size. |
+| `output_font_family` | blank ⇒ mono stack   | Log font. Blank uses Cascadia Mono / Consolas / SF Mono / Menlo / DejaVu Sans Mono / …. |
+| `output_font_size`   | `13px`               | Log font size. |
+
+Leaving a colour or font blank is the recommended way to use a default — flipping `dark` then carries
+the matching colours with it, instead of leaving a light component theme on a dark body.
+
+Every theme value is regex-validated before it reaches the stylesheet, and **a rejected value is now
+logged** rather than silently ignored:
+
+```
+WARNING config.json theme.bg_color: 'rgba(0,0,0,.5)' is not a supported value — using '#1e1e1e' instead
+```
+
+Colours accept hex or `rgb(...)`; sizes accept a number (fractions allowed, e.g. `0.8rem`) with a
+`px` / `pt` / `rem` / `em` / `%` unit. The closed unit and colour sets are a CSS-injection guard, so
+`rgba()`, named colours and `oklch()` are deliberately not accepted.
 
 A NiceGUI `storage_secret` is read from the gitignored top-level `git_excluded.py`
 (`STORAGE_SECRET`), with a development fallback when absent.
@@ -126,13 +179,14 @@ UI-free, unit-tested core vs. the NiceGUI shell:
 
 | Module                | Imports nicegui? | Responsibility |
 |-----------------------|------------------|----------------|
-| `config.py`           | no               | `AppConfig` + `load_config` / `resolve_host_port`; host/port/cookie resolution |
+| `config.py`           | no               | `AppConfig` + `load_config` / `resolve_host_port`; host/port/cookie resolution; `default_theme_colors` and the default font stacks |
 | `presets.py`          | no               | the preset registry (each a `DriverParams`) |
 | `runner.py`           | no               | `DriverParams`, `build_command` (argv vs env routing), `DriverProcess` (async subprocess + stream + cancel) |
 | `validate.py`         | no               | URL / theme-string guards |
+| `ansi.py`             | no               | ANSI SGR → HTML (`ansi_to_html`, `lines_to_html`); the `DARK_PALETTE` / `LIGHT_PALETTE` pair and `palette_for` |
 | `services/clipboard_watcher.py` | no     | `ClipboardWatcher` (pyperclip poll off the event loop, start/stop, new-media-URL callback) + `_is_media_url` (YouTube + Facebook) and `_extract_media_url` (Gmail/Google-redirect unwrapping) |
-| `form.py`             | yes              | `FormView` widgets; `apply_preset` / `collect` / `set_url` |
-| `app.py`              | yes              | page assembly, theme, Launch/Cancel/Exit/Watch-clipboard, `ui.run` |
+| `form.py`             | yes              | `FormView` widgets; `apply_preset` / `collect` / `set_url`; Enter-to-submit binding |
+| `app.py`              | yes              | page assembly, theme CSS, Launch/Cancel/Exit, `_AnsiLog` (batched log), `_WatchControls` (clipboard buttons + poll timer), `ui.run` |
 | `webapp-yt-dlp.py`    | (entry)          | thin entry point → `webapp.app.run_app` |
 
 ## Tests
@@ -142,8 +196,12 @@ pytest Tests/test_webapp.py Tests/test_clipboard_watcher.py
 ```
 
 Covers the UI-free logic only (command mapping, preset registry, cookie-default resolution,
-validators, clipboard-watcher URL matching/unwrapping and delivery semantics) — it never boots the
-NiceGUI runtime.
+validators, theme-colour/font derivation, ANSI rendering and log batching, clipboard-watcher URL
+matching/unwrapping and delivery semantics) — it never boots the NiceGUI runtime.
+
+The ANSI tests compute WCAG relative luminance directly and assert that **every** dark-palette colour
+clears 4.5:1 against the dark background, and stays above 4.0:1 once dimmed — so a future palette
+tweak that reintroduces an unreadable colour fails the suite rather than the eye.
 
 ## Known issues
 

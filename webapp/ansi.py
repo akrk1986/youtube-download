@@ -6,10 +6,16 @@ This module turns the small SGR subset rich emits — bold / dim / italic / unde
 plus 8 bright foreground colours (and 24-bit truecolour, for completeness) — into safe
 ``<span style=…>`` HTML, HTML-escaping the text first so no output line can inject markup. Any other
 escape sequence (cursor moves, OSC titles, …) is stripped.
+
+A terminal palette is only meaningful relative to the background it is drawn on: SGR 30 (black) and
+SGR 97 (bright white) sit at opposite ends, and whichever end matches the background disappears.
+The palette is therefore chosen from the configured theme via :func:`palette_for` — see
+:data:`DARK_PALETTE` and :data:`LIGHT_PALETTE`.
 """
 
 import html
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from rich.cells import cell_len
@@ -39,14 +45,12 @@ _OTHER_ESC_RE = re.compile(
     '|\x1b[@-Z\\\\-_]'                       # two-byte escape (ESC + single Fe byte)
 )
 
-# 8 basic + 8 bright foreground colours (VS Code integrated-terminal palette — legible on both a
-# dark and a light log background).
-_FG_COLORS: dict[int, str] = {
-    30: '#000000', 31: '#cd3131', 32: '#0dbc79', 33: '#b58900',
-    34: '#2472c8', 35: '#bc3fbc', 36: '#0e7490', 37: '#3b3b3b',
-    90: '#767676', 91: '#f14c4c', 92: '#23d18b', 93: '#c19c00',
-    94: '#3b8eea', 95: '#d670d6', 96: '#11a8cd', 97: '#000000',
-}
+@dataclass(frozen=True)
+class AnsiPalette:
+    """The foreground colours and dim strength used to render SGR codes on one log background."""
+
+    fg: dict[int, str]
+    dim_opacity: float
 
 
 @dataclass
@@ -59,8 +63,11 @@ class _Style:
     underline: bool = False
     fg: str | None = None
 
-    def css(self) -> str:
+    def css(self, dim_opacity: float) -> str:
         """Render the active attributes as a CSS declaration string (empty when none active).
+
+        Args:
+            dim_opacity: Opacity applied for SGR 2 (dim), from the active palette.
 
         Returns:
             str: Semicolon-separated CSS declarations, or '' when the style is the default.
@@ -69,7 +76,7 @@ class _Style:
         if self.bold:
             parts.append('font-weight:bold')
         if self.dim:
-            parts.append('opacity:0.7')
+            parts.append(f'opacity:{dim_opacity}')
         if self.italic:
             parts.append('font-style:italic')
         if self.underline:
@@ -79,11 +86,54 @@ class _Style:
         return ';'.join(parts)
 
 
-def ansi_to_html(text: str) -> str:
+# 8 basic + 8 bright foreground colours for a DARK log background (the shipped default, bg #1e1e1e).
+# Every entry clears WCAG AA (4.5:1) against #1e1e1e — the un-brightened VS Code basics do not (red
+# 3.2:1, cyan 3.1:1), and black/white/bright-white would vanish outright, so the basic slots borrow
+# the bright hues and the bright slots are lifted further. Ordering is preserved: each bright colour
+# stays lighter than its basic counterpart.
+DARK_PALETTE: AnsiPalette = AnsiPalette(
+    fg={
+        30: '#949494', 31: '#ff7b72', 32: '#23d18b', 33: '#e5c07b',
+        34: '#79c0ff', 35: '#d670d6', 36: '#29b8db', 37: '#e5e5e5',
+        90: '#a8a8a8', 91: '#ffa198', 92: '#56d364', 93: '#f5f543',
+        94: '#a5d6ff', 95: '#f0a0f0', 96: '#6ee7f0', 97: '#f5f5f5',
+    },
+    # 0.7 dropped dim grey to ~2.5:1 on the dark background; 0.85 keeps every dimmed entry readable.
+    dim_opacity=0.85,
+)
+
+# The same palette for a LIGHT log background (the original VS Code-derived table, which was tuned
+# for light): here it is black that must stay black and white that must be darkened to be seen.
+LIGHT_PALETTE: AnsiPalette = AnsiPalette(
+    fg={
+        30: '#000000', 31: '#cd3131', 32: '#0dbc79', 33: '#b58900',
+        34: '#2472c8', 35: '#bc3fbc', 36: '#0e7490', 37: '#3b3b3b',
+        90: '#767676', 91: '#f14c4c', 92: '#23d18b', 93: '#c19c00',
+        94: '#3b8eea', 95: '#d670d6', 96: '#11a8cd', 97: '#000000',
+    },
+    dim_opacity=0.7,
+)
+
+
+def palette_for(dark: bool) -> AnsiPalette:
+    """Return the ANSI palette that stays legible on the configured log background.
+
+    Args:
+        dark: Whether the log is drawn on a dark background (``ThemeConfig.dark``).
+
+    Returns:
+        AnsiPalette: :data:`DARK_PALETTE` when dark, else :data:`LIGHT_PALETTE`.
+    """
+    return DARK_PALETTE if dark else LIGHT_PALETTE
+
+
+def ansi_to_html(text: str, palette: AnsiPalette = DARK_PALETTE) -> str:
     """Convert one line's ANSI SGR escapes into HTML spans, HTML-escaping the text.
 
     Args:
         text: A single output line that may contain ANSI SGR escape codes.
+        palette: The colours to render SGR foreground codes with; defaults to the dark-background
+            palette, matching the shipped default theme.
 
     Returns:
         str: HTML with the styled runs wrapped in ``<span style=…>`` and all text HTML-escaped.
@@ -95,28 +145,50 @@ def ansi_to_html(text: str) -> str:
     for match in _SGR_RE.finditer(text):
         chunk = text[pos:match.start()]
         if chunk:
-            out.append(_wrap(chunk=chunk, style=style))
+            out.append(_wrap(chunk=chunk, style=style, palette=palette))
         codes = [int(part) for part in match.group(1).split(';') if part != ''] or [0]
-        _apply_codes(style=style, codes=codes)
+        _apply_codes(style=style, codes=codes, palette=palette)
         pos = match.end()
     tail = text[pos:]
     if tail:
-        out.append(_wrap(chunk=tail, style=style))
+        out.append(_wrap(chunk=tail, style=style, palette=palette))
     return ''.join(out)
 
 
-def _wrap(chunk: str, style: _Style) -> str:
+def lines_to_html(lines: Sequence[str], css_class: str,
+                  palette: AnsiPalette = DARK_PALETTE) -> str:
+    """Render a batch of output lines as one HTML fragment, one wrapped ``div`` per line.
+
+    Lets the caller commit a whole burst of output to the page as a single element instead of one
+    element per line; each line keeps its own block so the per-line wrapping CSS still applies.
+
+    Args:
+        lines: The raw output lines (each may contain ANSI SGR escape codes).
+        css_class: Class applied to each line's wrapping ``div``.
+        palette: The colours to render SGR foreground codes with.
+
+    Returns:
+        str: The concatenated per-line ``div`` elements, with all text HTML-escaped.
+    """
+    return ''.join(
+        f'<div class="{css_class}">{ansi_to_html(text=line, palette=palette)}</div>'
+        for line in lines
+    )
+
+
+def _wrap(chunk: str, style: _Style, palette: AnsiPalette) -> str:
     """Render a text run to HTML (escaped, emoji fixed-width) and apply the active SGR style.
 
     Args:
         chunk: Raw (unescaped) text run.
         style: The active SGR state for this run.
+        palette: The active palette (supplies the dim opacity).
 
     Returns:
         str: The rendered run, wrapped in a colour/attribute ``<span>`` only when a style applies.
     """
     inner = _render_glyphs(chunk=chunk)
-    css = style.css()
+    css = style.css(dim_opacity=palette.dim_opacity)
     if css:
         return f'<span style="{css}">{inner}</span>'
     return inner
@@ -149,12 +221,13 @@ def _render_glyphs(chunk: str) -> str:
     return ''.join(out)
 
 
-def _apply_codes(style: _Style, codes: list[int]) -> None:
+def _apply_codes(style: _Style, codes: list[int], palette: AnsiPalette) -> None:
     """Mutate the running style in place for a sequence of SGR parameter codes.
 
     Args:
         style: The running SGR state to update.
         codes: The integer parameters from one SGR escape (already split on ';').
+        palette: The active palette supplying the foreground colours.
     """
     index = 0
     while index < len(codes):
@@ -162,7 +235,7 @@ def _apply_codes(style: _Style, codes: list[int]) -> None:
         if code in (38, 48):  # extended colour selector — consume its sub-parameters.
             index += _consume_extended_color(style=style, codes=codes, index=index)
             continue
-        _apply_code(style=style, code=code)
+        _apply_code(style=style, code=code, palette=palette)
         index += 1
 
 
@@ -191,12 +264,13 @@ def _consume_extended_color(style: _Style, codes: list[int], index: int) -> int:
     return 1
 
 
-def _apply_code(style: _Style, code: int) -> None:
+def _apply_code(style: _Style, code: int, palette: AnsiPalette) -> None:
     """Apply a single, non-extended SGR code to the running style.
 
     Args:
         style: The running SGR state to update.
         code: One SGR parameter code (0 reset, 1 bold, 3 italic, 31 red, …).
+        palette: The active palette supplying the foreground colours.
     """
     if code == 0:
         style.bold = style.dim = style.italic = style.underline = False
@@ -217,5 +291,5 @@ def _apply_code(style: _Style, code: int) -> None:
         style.underline = False
     elif code == 39:
         style.fg = None
-    elif code in _FG_COLORS:
-        style.fg = _FG_COLORS[code]
+    elif code in palette.fg:
+        style.fg = palette.fg[code]

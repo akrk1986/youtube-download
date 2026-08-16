@@ -5,6 +5,53 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-08-16-1457] - UI audit follow-up: readable log, batched output, button hierarchy
+
+### Fixed
+- **ANSI palette is now chosen from the theme** (`webapp/ansi.py`): the single colour table was tuned
+  for a light background but shipped on the dark one, so SGR 30 (black), 37 (white) and 97 (bright
+  white) rendered at 1.1-1.5:1 against `#1e1e1e` — invisible — and red/blue/magenta/cyan all fell
+  below the 4.5:1 AA threshold. `DARK_PALETTE` / `LIGHT_PALETTE` are selected via `palette_for()`;
+  every entry in each clears 4.5:1 on its own background, asserted by tests that compute WCAG
+  luminance directly. Dim (SGR 2) moved from a hard-coded `opacity:0.7`, which dropped dimmed grey to
+  ~2.5:1, to a palette-owned `0.85`.
+- **Log font** (`webapp/app.py`): the bare `monospace` family resolves to Courier New on Windows,
+  whose box-drawing coverage mangles the linters' `rich` tables; replaced with a stack of real
+  terminal faces (Cascadia Mono / Consolas / SF Mono / Menlo / DejaVu Sans Mono / …).
+- **Run outcome was below the fold** (`webapp/app.py`): the `Running…` / `Done — exit N` banner was
+  rendered underneath the log, so a tall log pushed it off-screen. It now sits under the buttons.
+- **Theme validation failed silently** (`webapp/app.py`): a rejected colour or font now logs which
+  key was rejected, the offending value, and the substitute. Fractional font sizes (`0.8rem`,
+  `12.5px`) were rejected by an integer-only pattern and are now accepted (`webapp/validate.py`).
+- **Second run could be started with the keyboard** (`webapp/app.py`): `_launch` only relied on the
+  Launch button's disabled state, which Enter bypasses; it now refuses re-entry explicitly.
+
+### Changed
+- **Output log is batched** (`webapp/app.py`): lines are queued and flushed every 100 ms as a single
+  element, instead of one element creation plus one `scroll_to` round-trip per line. Socket traffic
+  is now bounded by the flush rate rather than by yt-dlp's output rate, and a 5000-line log holds
+  ~100 elements instead of ~5000. `lines_to_html()` added to `webapp/ansi.py`.
+- **`dark` is the single source of truth for the theme** (`webapp/config.py`): blank `fg_color` /
+  `bg_color` / `font_family` / `output_font_family` are derived from it, so flipping `dark` alone can
+  no longer leave a light component theme on a dark body. `output_font_family` added as a config key.
+- **Log fills the viewport** (`webapp/app.py`): the fixed `h-96` height is gone; the log flexes to
+  the remaining window height with a `12rem` floor, below which the page scrolls.
+- **Button hierarchy by weight, not hue** (`webapp/app.py`): Launch is the only filled button;
+  Cancel is an outline; Clear log and the watch buttons are flat and inherit the theme foreground
+  (`color=None` — NiceGUI's `primary` default renders flat buttons blue at 3.6:1 on dark). `Exit web
+  app` moved from beside Launch, in orange, to the header corner, muted.
+- **UI font is no longer Roboto** (`webapp/config.py`): defaults to the platform's native UI face
+  (Segoe UI / Cantarell / DejaVu Sans / `system-ui`). A webfont was rejected deliberately — it would
+  add a network dependency to a localhost tool. Figures render with `tabular-nums`.
+- **Form is no longer wrapped in a `ui.card`** (`webapp/form.py`): the section headers and separators
+  already group the controls, so the card was a redundant second layer of chrome.
+- **Keyboard path through the core loop** (`webapp/form.py`, `webapp/app.py`): the URL field takes
+  focus on load, and Enter in the URL / Title / Artist / Album fields launches, via a new `on_submit`
+  callback on `FormView`.
+- **Clipboard concern extracted** (`webapp/app.py`): the watcher, its two buttons, their enabled and
+  visibility state and the poll timer moved from five closures in `_build_page` into a
+  `_WatchControls` class. Behaviour is unchanged.
+
 ## [2026-08-16-1237] - Reorder presets, add video-only prompt preset
 
 ### Added

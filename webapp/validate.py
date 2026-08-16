@@ -9,7 +9,10 @@ from urllib.parse import urlparse
 
 _COLOR_RE = re.compile(r'^#[0-9a-fA-F]{3,8}$|^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$')
 _FONT_FAMILY_RE = re.compile(r"^[\w ,'\"-]+$")
-_FONT_SIZE_RE = re.compile(r'^\d{1,3}(px|pt|rem|em|%)$')
+# A fractional size is a normal thing to write (0.8rem, 12.5px); the integer-only pattern used to
+# reject those and fall back without a word. Still a closed set of units, so nothing arbitrary can
+# reach the stylesheet.
+_FONT_SIZE_RE = re.compile(r'^\d{1,3}(\.\d{1,3})?(px|pt|rem|em|%)$')
 _SAFE_URL_SCHEMES = ('', 'http', 'https')
 
 

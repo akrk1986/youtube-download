@@ -16,6 +16,16 @@ from pathlib import Path
 
 CONFIG_FILENAME: str = 'config.json'
 DEFAULT_PORT: int = 8081
+# Chrome, the UI font. Deliberately not Roboto: the app is a local control surface, so a webfont
+# would add a network dependency for no gain — this stack asks each platform for its own native UI
+# face instead, and only reaches a generic as a last resort.
+DEFAULT_FONT_FAMILY: str = ("'Segoe UI Variable Text', 'Segoe UI', Cantarell, 'DejaVu Sans', "
+                            'system-ui, sans-serif')
+# The output log. A bare 'monospace' resolves to Courier New on Windows, whose thin strokes and
+# broken box-drawing coverage mangle the linters' rich tables; every face named here draws
+# U+2500-257F at a full cell.
+DEFAULT_MONO_FAMILY: str = ("'Cascadia Mono', Consolas, 'SF Mono', Menlo, 'DejaVu Sans Mono', "
+                            "'Liberation Mono', ui-monospace, monospace")
 # Binding to all interfaces is intentional: reachable across the local 192.168.1.x / 10.0.0.x
 # subnets (no external exposure).
 DEFAULT_HOST: str = '0.0.0.0'  # nosec B104
@@ -31,6 +41,7 @@ class ThemeConfig:
     bg_color: str
     font_family: str
     font_size: str
+    output_font_family: str
     output_font_size: str
 
 
@@ -47,6 +58,23 @@ class AppConfig:
     theme: ThemeConfig
 
 
+def default_theme_colors(dark: bool) -> tuple[str, str]:
+    """Return the (foreground, background) pair that matches a dark or light theme.
+
+    Keeping these derived from ``dark`` means a config.json that flips ``dark`` without also
+    restating the colours stays coherent, instead of drawing light Quasar controls on a dark body.
+    Public because the page reuses the same pair as its fallback when a configured colour is
+    rejected by validation, so a bad value lands on the theme's own default rather than a fixed one.
+
+    Args:
+        dark: The theme's ``dark`` flag.
+
+    Returns:
+        tuple[str, str]: The default foreground and background colours for that theme.
+    """
+    return ('#e8e8e8', '#1e1e1e') if dark else ('#1f1f1f', '#fafafa')
+
+
 def load_config(config_path: Path) -> AppConfig:
     """Load and normalise the web-app configuration from a JSON file.
 
@@ -59,12 +87,17 @@ def load_config(config_path: Path) -> AppConfig:
     raw = json.loads(config_path.read_text(encoding='utf-8'))
 
     theme_raw = raw.get('theme', {})
+    # `dark` is the single source of truth: an omitted (or blank) fg/bg colour follows it, so the
+    # body background and the Quasar component theme can never disagree by accident.
+    dark = bool(theme_raw.get('dark', True))
+    default_fg, default_bg = default_theme_colors(dark=dark)
     theme = ThemeConfig(
-        dark=bool(theme_raw.get('dark', True)),
-        fg_color=theme_raw.get('fg_color', '#e8e8e8'),
-        bg_color=theme_raw.get('bg_color', '#1e1e1e'),
-        font_family=theme_raw.get('font_family', 'Roboto, sans-serif'),
+        dark=dark,
+        fg_color=str(theme_raw.get('fg_color') or default_fg),
+        bg_color=str(theme_raw.get('bg_color') or default_bg),
+        font_family=str(theme_raw.get('font_family') or DEFAULT_FONT_FAMILY),
         font_size=theme_raw.get('font_size', '16px'),
+        output_font_family=str(theme_raw.get('output_font_family') or DEFAULT_MONO_FAMILY),
         output_font_size=theme_raw.get('output_font_size', '13px'),
     )
     configured_cookies = str(raw.get('cookies', '')).strip().lower()

@@ -9,6 +9,7 @@ created per page load.
 """
 
 from collections.abc import Callable
+from typing import Any
 
 from nicegui import ui
 
@@ -37,13 +38,16 @@ _NOTIF = {'NO': 'None', 'S': 'Slack', 'G': 'Gmail', 'ALL': 'Slack + Gmail'}
 class FormView:  # pylint: disable=too-many-instance-attributes
     """Builds the preset + parameter form and collects a :class:`DriverParams` from the widgets."""
 
-    def __init__(self, config: AppConfig, on_change: Callable[[], None] | None = None) -> None:
+    def __init__(self, config: AppConfig, on_change: Callable[[], None] | None = None,
+                 on_submit: Callable[[], Any] | None = None) -> None:
         """Build the preset selector and all download-parameter controls.
 
         Args:
             config: The app configuration (boost default).
             on_change: Optional callback invoked after the user switches presets (not on the initial
                 build), so the page can re-sync preset-dependent controls.
+            on_submit: Optional callback invoked when Enter is pressed in any of the text fields, so
+                the paste-a-URL-and-go loop never needs the mouse. May be a coroutine function.
         """
         self._config = config
         self._on_change = on_change
@@ -53,11 +57,15 @@ class FormView:  # pylint: disable=too-many-instance-attributes
         self._preset = ui.select(preset_options, value=first_key, label='Preset',
                                  on_change=self._on_preset_change).props('outlined').classes('w-full')
 
-        self._card = ui.card().classes('w-full gap-2')
-        with self._card:
+        # A plain column, not a ui.card: the section headers and separators below already group
+        # these controls, so the card's surface, padding and elevation added a second, redundant
+        # layer of chrome — and put the whole panel inside a box for no organising benefit.
+        self._fields = ui.column().classes('w-full gap-2 pt-1')
+        with self._fields:
             _section('URL')
+            # autofocus so a fresh page is ready for a paste without reaching for the mouse.
             self._url = ui.input('Playlist / video / token URL').props(
-                'outlined stack-label dense clearable').classes('w-full')
+                'outlined stack-label dense clearable autofocus').classes('w-full')
 
             ui.separator()
             _section('Mode')
@@ -111,6 +119,10 @@ class FormView:  # pylint: disable=too-many-instance-attributes
                 self._retries = ui.number('Retries (0=default)', value=0, min=0,
                                           format='%d').props('outlined dense').classes('w-56')
 
+        if on_submit is not None:
+            for field in (self._url, self._title, self._artist, self._album):
+                field.on('keydown.enter', on_submit)
+
         self.apply_preset(preset=PRESETS_BY_KEY[first_key])
 
     def apply_preset(self, preset: Preset) -> None:
@@ -121,7 +133,7 @@ class FormView:  # pylint: disable=too-many-instance-attributes
         """
         params = preset.params
         is_driver = params.script == DRIVER_SCRIPT
-        self._card.set_visibility(is_driver)
+        self._fields.set_visibility(is_driver)
         if not is_driver:
             return
         self._url.value = params.url

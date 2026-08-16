@@ -12,13 +12,64 @@ from types import SimpleNamespace
 import pytest
 
 from webapp import config
-from webapp.ansi import ansi_to_html
-from webapp.config import is_wsl, load_config
+from webapp.ansi import DARK_PALETTE, LIGHT_PALETTE, ansi_to_html, lines_to_html, palette_for
+from webapp.config import (DEFAULT_FONT_FAMILY, DEFAULT_MONO_FAMILY, default_theme_colors, is_wsl,
+                           load_config)
 from webapp.presets import COOKIES_FROM_CONFIG, PRESETS, PRESETS_BY_KEY, folders, is_prompt_preset
 from webapp.runner import DRIVER_SCRIPT, LINTER_SCRIPT, DriverParams, build_command
-from webapp.validate import is_safe_color, is_safe_url
+from webapp.validate import is_safe_color, is_safe_font_family, is_safe_font_size, is_safe_url
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _relative_luminance(color: str) -> float:
+    """Return the WCAG relative luminance of a ``#rrggbb`` colour.
+
+    Args:
+        color: A six-digit hex colour string.
+
+    Returns:
+        float: Relative luminance in the range 0.0-1.0, per WCAG 2.1.
+    """
+    channels = [int(color.lstrip('#')[index:index + 2], 16) / 255 for index in (0, 2, 4)]
+    linear = [value / 12.92 if value <= 0.03928 else ((value + 0.055) / 1.055) ** 2.4
+              for value in channels]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def _contrast_ratio(first: float, second: float) -> float:
+    """Return the WCAG contrast ratio between two relative luminances.
+
+    Args:
+        first: One relative luminance.
+        second: The other relative luminance.
+
+    Returns:
+        float: The contrast ratio (1.0-21.0), lighter over darker.
+    """
+    lighter, darker = max(first, second), min(first, second)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def _blend(fg: str, bg: str, alpha: float) -> str:
+    """Composite a foreground colour over a background at a given opacity.
+
+    Mirrors what the browser does for the ``opacity`` the dim (SGR 2) style applies.
+
+    Args:
+        fg: Foreground ``#rrggbb`` colour.
+        bg: Background ``#rrggbb`` colour.
+        alpha: Foreground opacity in the range 0.0-1.0.
+
+    Returns:
+        str: The resulting ``#rrggbb`` colour.
+    """
+    parts = []
+    for index in (0, 2, 4):
+        top = int(fg.lstrip('#')[index:index + 2], 16)
+        bottom = int(bg.lstrip('#')[index:index + 2], 16)
+        parts.append(round(alpha * top + (1 - alpha) * bottom))
+    return '#' + ''.join(f'{value:02x}' for value in parts)
 
 
 def _download(**overrides: object) -> DriverParams:
@@ -163,6 +214,61 @@ def test_default_cookies_resolution(tmp_path: Path) -> None:
     assert load_config(config_path=cfg).default_cookies == platform_default
 
 
+def test_font_size_accepts_fractional_values() -> None:
+    """Fractional sizes are valid CSS and must not be silently dropped; units stay a closed set."""
+    assert is_safe_font_size('13px')
+    assert is_safe_font_size('12.5px')
+    assert is_safe_font_size('0.8rem')
+    assert not is_safe_font_size('13')
+    assert not is_safe_font_size('13pxx')
+    assert not is_safe_font_size('12px; background: url(x)')
+
+
+def test_default_font_stacks_survive_validation() -> None:
+    """The shipped stacks must pass the CSS-injection guard, or they'd silently fall back to it."""
+    assert is_safe_font_family(DEFAULT_FONT_FAMILY)
+    assert is_safe_font_family(DEFAULT_MONO_FAMILY)
+    # Neither the UI face nor the log face may be the framework default or a bare generic.
+    assert 'Roboto' not in DEFAULT_FONT_FAMILY
+    assert DEFAULT_MONO_FAMILY != 'monospace'
+    # The guard still rejects anything that could close the declaration.
+    assert not is_safe_font_family('Consolas; } body { display: none')
+
+
+def test_blank_font_settings_fall_back_to_the_stacks(tmp_path: Path) -> None:
+    """An empty font entry in config.json means 'use the default', not an empty CSS value."""
+    cfg = tmp_path / 'config.json'
+    cfg.write_text('{"theme": {"font_family": "", "output_font_family": ""}}', encoding='utf-8')
+    theme = load_config(config_path=cfg).theme
+    assert theme.font_family == DEFAULT_FONT_FAMILY
+    assert theme.output_font_family == DEFAULT_MONO_FAMILY
+
+
+def test_default_theme_colors_pair_with_the_flag() -> None:
+    """The derived colour pair is exposed so the CSS fallbacks match the configured theme."""
+    assert default_theme_colors(dark=True) == ('#e8e8e8', '#1e1e1e')
+    assert default_theme_colors(dark=False) == ('#1f1f1f', '#fafafa')
+
+
+def test_theme_colors_follow_the_dark_flag(tmp_path: Path) -> None:
+    """Omitted fg/bg colours are derived from 'dark', so the two can't silently disagree."""
+    cfg = tmp_path / 'config.json'
+
+    cfg.write_text('{"theme": {"dark": true}}', encoding='utf-8')
+    dark_theme = load_config(config_path=cfg).theme
+    assert (dark_theme.fg_color, dark_theme.bg_color) == ('#e8e8e8', '#1e1e1e')
+
+    # Flipping only 'dark' must carry the background with it — the bug was a light component theme
+    # left sitting on the dark #1e1e1e body.
+    cfg.write_text('{"theme": {"dark": false}}', encoding='utf-8')
+    light_theme = load_config(config_path=cfg).theme
+    assert (light_theme.fg_color, light_theme.bg_color) == ('#1f1f1f', '#fafafa')
+
+    # An explicit colour still wins over the derived default.
+    cfg.write_text('{"theme": {"dark": true, "bg_color": "#101010"}}', encoding='utf-8')
+    assert load_config(config_path=cfg).theme.bg_color == '#101010'
+
+
 def test_is_wsl(monkeypatch: pytest.MonkeyPatch) -> None:
     """WSL is detected via the WSL env vars or the microsoft kernel marker; Windows/Linux are not."""
     monkeypatch.delenv('WSL_DISTRO_NAME', raising=False)
@@ -205,8 +311,44 @@ def test_ansi_plain_text_is_escaped_and_unwrapped() -> None:
 
 def test_ansi_basic_colours_become_spans() -> None:
     """The red/green badges rich emits map to coloured spans around the escaped run."""
-    assert ansi_to_html(text='\x1b[31mNew\x1b[0m') == '<span style="color:#cd3131">New</span>'
-    assert ansi_to_html(text='\x1b[32mStable\x1b[0m') == '<span style="color:#0dbc79">Stable</span>'
+    assert ansi_to_html(text='\x1b[31mNew\x1b[0m') == '<span style="color:#ff7b72">New</span>'
+    assert ansi_to_html(text='\x1b[32mStable\x1b[0m') == '<span style="color:#23d18b">Stable</span>'
+
+
+def test_palette_follows_the_theme() -> None:
+    """The dark/light flag selects the palette, and the two disagree where it matters."""
+    assert palette_for(dark=True) is DARK_PALETTE
+    assert palette_for(dark=False) is LIGHT_PALETTE
+    # Black and bright-white are the two entries that must invert with the background.
+    assert DARK_PALETTE.fg[30] != LIGHT_PALETTE.fg[30]
+    assert DARK_PALETTE.fg[97] != LIGHT_PALETTE.fg[97]
+    assert ansi_to_html(text='\x1b[31mNew\x1b[0m', palette=LIGHT_PALETTE) == (
+        '<span style="color:#cd3131">New</span>')
+
+
+def test_dark_palette_is_readable_on_the_dark_background() -> None:
+    """Every dark-palette colour clears WCAG AA (4.5:1) against the dark theme background.
+
+    This is the defect the palette split fixes: the light-tuned table rendered SGR 30/37/97 at
+    1.1-1.5:1 on #1e1e1e, i.e. invisible, and four more colours below the 4.5:1 AA threshold.
+    """
+    background = _relative_luminance(color='#1e1e1e')
+    for code, color in DARK_PALETTE.fg.items():
+        ratio = _contrast_ratio(_relative_luminance(color=color), background)
+        assert ratio >= 4.5, f'SGR {code} ({color}) is {ratio:.2f}:1 on #1e1e1e'
+
+
+def test_dimmed_dark_palette_stays_legible() -> None:
+    """Dim (SGR 2) composites toward the background; at 0.85 it must not wash colours out.
+
+    The previous 0.7 opacity dropped dimmed grey to ~2.5:1, which is why the value is palette-owned.
+    """
+    assert DARK_PALETTE.dim_opacity == 0.85
+    background = _relative_luminance(color='#1e1e1e')
+    for code, color in DARK_PALETTE.fg.items():
+        blended = _blend(fg=color, bg='#1e1e1e', alpha=DARK_PALETTE.dim_opacity)
+        ratio = _contrast_ratio(_relative_luminance(color=blended), background)
+        assert ratio >= 4.0, f'dimmed SGR {code} ({color}) is {ratio:.2f}:1 on #1e1e1e'
 
 
 def test_ansi_bold_italic_and_reset() -> None:
@@ -232,7 +374,19 @@ def test_ansi_emoji_pinned_to_rich_cell_width() -> None:
     assert ansi_to_html(text='│ x │') == '│ x │'
 
 
+def test_lines_to_html_batches_one_div_per_line() -> None:
+    """A burst renders as one fragment with a wrapped div per line, escaping preserved."""
+    markup = lines_to_html(lines=['plain', '\x1b[32mok\x1b[0m', '<b>x</b>'],
+                           css_class='driver-log-line')
+    assert markup == (
+        '<div class="driver-log-line">plain</div>'
+        '<div class="driver-log-line"><span style="color:#23d18b">ok</span></div>'
+        '<div class="driver-log-line">&lt;b&gt;x&lt;/b&gt;</div>')
+    # An empty batch must not emit a stray empty line.
+    assert lines_to_html(lines=[], css_class='driver-log-line') == ''
+
+
 def test_ansi_content_cannot_inject_markup() -> None:
     """A colour code around HTML-looking text still escapes the text (no tag injection)."""
     assert ansi_to_html(text='\x1b[31m<b>hi</b>\x1b[0m') == (
-        '<span style="color:#cd3131">&lt;b&gt;hi&lt;/b&gt;</span>')
+        '<span style="color:#ff7b72">&lt;b&gt;hi&lt;/b&gt;</span>')
