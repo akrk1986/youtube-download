@@ -31,6 +31,12 @@ source ../.venv-av-linux/bin/activate   # nicegui ships in requirements.txt
 ./webapp-yt-dlp.py --port 9000           # or WEBAPP_PORT=9000 (precedence: CLI > env > config.json > 8081)
 ```
 
+```powershell
+..\.venv-av-windows\Scripts\activate      # Windows
+python webapp-yt-dlp.py                   # then open http://localhost:8081
+python webapp-yt-dlp.py --port 9000       # or WEBAPP_PORT=9000 (precedence: CLI > env > config.json > 8081)
+```
+
 ## Usage
 
 > **Script invocation:** Entry-point scripts carry a `#!/usr/bin/env python3` shebang and are

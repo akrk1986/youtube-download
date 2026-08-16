@@ -23,6 +23,10 @@ From the repository root, with the shared venv active:
 ./webapp-yt-dlp.py            # then open http://localhost:8081
 ```
 
+```powershell
+python webapp-yt-dlp.py       # Windows; then open http://localhost:8081
+```
+
 ### Host / port
 
 Resolved in this precedence (highest first): CLI flag → environment variable → `webapp/config.json`
@@ -33,6 +37,11 @@ Resolved in this precedence (highest first): CLI flag → environment variable �
 WEBAPP_PORT=9000 ./webapp-yt-dlp.py
 ```
 
+```powershell
+python webapp-yt-dlp.py --port 9000       # Windows
+$env:WEBAPP_PORT=9000; python webapp-yt-dlp.py
+```
+
 ### Native desktop window
 
 `--native` launches a standalone desktop window instead of a browser tab (`config.json` `native:
@@ -41,6 +50,10 @@ display — not available on a headless WSL box, where the browser tab is the wa
 
 ```bash
 ./webapp-yt-dlp.py --native
+```
+
+```powershell
+python webapp-yt-dlp.py --native          # Windows
 ```
 
 ## Using the UI
