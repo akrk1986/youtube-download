@@ -5,6 +5,16 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-08-16-1237] - Reorder presets, add video-only prompt preset
+
+### Added
+- **`prompt/video-only` preset** (`webapp/presets.py`): video-only download without rerun, alongside
+  the existing `prompt/video-only-rerun`.
+
+### Changed
+- **Preset order** (`webapp/presets.py`): reordered entries within the `YT-DLP-presets`,
+  `YT-DLP-prompt`, and `Run Linters` folders to match the dropdown order the user prefers.
+
 ## [2026-07-11-0026] - fix: output-log text is selectable for copy/paste
 
 ### Fixed
