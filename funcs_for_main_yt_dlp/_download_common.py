@@ -8,7 +8,7 @@ from typing import Any
 
 import arrow
 
-from funcs_utils import get_cookie_args, is_facebook_parse_error, sanitize_string
+from funcs_utils import get_cookie_args, retry_on_facebook_parse_error, sanitize_string
 from funcs_video_info import get_video_info
 from project_defs import YT_DLP_IS_PLAYLIST_FLAG
 
@@ -239,25 +239,26 @@ def _remove_cookie_args(cmd: list[str | Path], cookie_args: list[str]) -> list[s
 
 def _run_yt_dlp_subprocess(cmd: list[str | Path], timeout: int,
                            show_progress: bool, label: str, url: str) -> None:
-    """Run a yt-dlp subprocess, retrying once without browser cookies on a Facebook parse failure.
+    """Run a yt-dlp subprocess, repeating it when Facebook's extractor cannot parse the page.
 
-    Logged-in Facebook serves a page variant (e.g. the group-post view) that some yt-dlp versions
-    fail on with 'Cannot parse data', while the same URL works anonymously. Other errors propagate
-    to the caller unchanged (TimeoutExpired, CalledProcessError).
+    Facebook serves an unparseable page variant at random -- with or without browser cookies --
+    so 'Cannot parse data' is retried instead of reported. Cookies, when configured, are left out
+    of the retries: they are not the cause, but the anonymous page is the simpler variant. Other
+    errors propagate to the caller unchanged (TimeoutExpired, CalledProcessError).
     """
-    try:
-        _run_yt_dlp_once(cmd=cmd, timeout=timeout, show_progress=show_progress, label=label, url=url)
-    except subprocess.CalledProcessError as e:
-        cookie_args = get_cookie_args()
-        if not (cookie_args and is_facebook_parse_error(url=url, error_text=e.stderr)):
-            raise
-        cmd_no_cookies = _remove_cookie_args(cmd=cmd, cookie_args=cookie_args)
-        if cmd_no_cookies == list(cmd):
-            raise
-        logger.warning(f"{label} failed with browser cookies ('Cannot parse data'), "
-                       'retrying without cookies')
-        _run_yt_dlp_once(cmd=cmd_no_cookies, timeout=timeout, show_progress=show_progress,
-                         label=label, url=url)
+    cookie_args = get_cookie_args()
+    retry_cmd = _remove_cookie_args(cmd=cmd, cookie_args=cookie_args) if cookie_args else cmd
+
+    def _attempt(attempt_number: int) -> None:
+        """Run one download, dropping the browser cookies from every attempt after the first.
+
+        Args:
+            attempt_number: The 1-based attempt number supplied by the retry helper.
+        """
+        _run_yt_dlp_once(cmd=cmd if attempt_number == 1 else retry_cmd, timeout=timeout,
+                         show_progress=show_progress, label=label, url=url)
+
+    retry_on_facebook_parse_error(attempt=_attempt, url=url, label=label)
 
 
 def _run_yt_dlp_once(cmd: list[str | Path], timeout: int,

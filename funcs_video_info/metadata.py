@@ -8,8 +8,8 @@ from typing import Any
 
 import yt_dlp
 
-from funcs_utils import (get_cookie_args, is_facebook_parse_error,
-                         is_format_error, sanitize_url_for_subprocess)
+from funcs_utils import (get_cookie_args, is_format_error,
+                         retry_on_facebook_parse_error, sanitize_url_for_subprocess)
 from funcs_video_info.url_validation import get_timeout_for_url
 
 logger = logging.getLogger(__name__)
@@ -73,24 +73,27 @@ def get_video_info(yt_dlp_path: Path, url: str, video_download_timeout: int | No
     cookie_args = get_cookie_args()
     cmd = base_cmd[:1] + cookie_args + base_cmd[1:]
 
+    def _attempt(attempt_number: int) -> subprocess.CompletedProcess[str]:
+        """Run one probe, dropping the browser cookies from every attempt after the first.
+
+        Args:
+            attempt_number: The 1-based attempt number supplied by the retry helper.
+
+        Returns:
+            subprocess.CompletedProcess[str]: The completed yt-dlp probe.
+        """
+        probe_cmd = cmd if attempt_number == 1 else base_cmd
+        return _run_info_probe(cmd=probe_cmd, timeout=timeout, url=url)
+
     logger.debug(f'Getting video info with timeout of {timeout} seconds')
     try:
-        result = _run_info_probe(cmd=cmd, timeout=timeout, url=url)
+        result = retry_on_facebook_parse_error(attempt=_attempt, url=url, label='Metadata probe')
     except subprocess.CalledProcessError as e:
         # Check if this is a format error - return empty dict instead of raising
         if is_format_error(e.stderr):
             logger.debug(f'Format not available for URL, returning empty info: {url}')
             return {}
-        if not (cookie_args and is_facebook_parse_error(url=url, error_text=e.stderr)):
-            raise RuntimeError(f'yt-dlp failed: {e.stderr}') from e
-        # Logged-in Facebook serves a page variant yt-dlp may fail to parse; the same URL
-        # usually works anonymously, so retry the probe once without the browser cookies.
-        logger.warning("Facebook metadata probe failed with browser cookies ('Cannot parse data'), "
-                       'retrying without cookies')
-        try:
-            result = _run_info_probe(cmd=base_cmd, timeout=timeout, url=url)
-        except subprocess.CalledProcessError as retry_error:
-            raise RuntimeError(f'yt-dlp failed: {retry_error.stderr}') from retry_error
+        raise RuntimeError(f'yt-dlp failed: {e.stderr}') from e
 
     # Try to parse as single JSON object first
     try:

@@ -925,11 +925,16 @@ class TestUnknownArtistFallback:
 
 
 class TestFacebookCookieFallback:
-    """Test the retry-without-cookies fallback for Facebook 'Cannot parse data' failures."""
+    """Test the retry behaviour for Facebook 'Cannot parse data' extractor failures."""
 
     _FB_URL = 'https://www.facebook.com/share/v/1bScHjUKva/'
     _FB_STDERR = 'ERROR: [facebook] 1469679984928792: Cannot parse data; please report this issue'
     _COOKIE_ARGS = ['--cookies-from-browser', 'firefox', '--no-cache-dir', '--sleep-requests', '1']
+
+    @pytest.fixture(autouse=True)
+    def _no_retry_delay(self, monkeypatch):
+        """Skip the between-attempt sleep so the retry tests run instantly."""
+        monkeypatch.setattr('funcs_utils.yt_dlp_utils.time.sleep', lambda _seconds: None)
 
     def test_is_facebook_parse_error_matches(self):
         """A Facebook URL with a 'Cannot parse data' error is detected."""
@@ -986,10 +991,11 @@ class TestFacebookCookieFallback:
         assert '--cookies-from-browser' in calls[0]
         assert '--cookies-from-browser' not in calls[1]
 
-    def test_get_video_info_no_retry_without_cookies_configured(self, monkeypatch):
-        """Without cookies configured, a Facebook parse failure raises immediately (no retry)."""
+    def test_get_video_info_retries_without_cookies_configured(self, monkeypatch):
+        """The parse failure is retried even with no cookies configured -- cookies are not the cause."""
         import subprocess as sp
 
+        from funcs_utils.yt_dlp_utils import FACEBOOK_PARSE_ATTEMPTS
         from funcs_video_info.metadata import get_video_info
 
         monkeypatch.delenv('YTDLP_USE_COOKIES', raising=False)
@@ -1003,7 +1009,28 @@ class TestFacebookCookieFallback:
              pytest.raises(RuntimeError, match='Cannot parse data'):
             get_video_info(yt_dlp_path=Path('yt-dlp'), url=self._FB_URL)
 
-        assert len(calls) == 1
+        assert len(calls) == FACEBOOK_PARSE_ATTEMPTS
+
+    def test_get_video_info_recovers_on_a_later_attempt(self, monkeypatch):
+        """A probe that fails twice and then parses returns the info instead of raising."""
+        import subprocess as sp
+
+        from funcs_video_info.metadata import get_video_info
+
+        monkeypatch.delenv('YTDLP_USE_COOKIES', raising=False)
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            if len(calls) < 3:
+                raise sp.CalledProcessError(returncode=1, cmd=cmd, stderr=self._FB_STDERR)
+            return sp.CompletedProcess(args=cmd, returncode=0, stdout='{"title": "x"}', stderr='')
+
+        with patch('funcs_video_info.metadata.subprocess.run', side_effect=fake_run):
+            info = get_video_info(yt_dlp_path=Path('yt-dlp'), url=self._FB_URL)
+
+        assert info == {'title': 'x'}
+        assert len(calls) == 3
 
     def test_run_yt_dlp_subprocess_retries_without_cookies(self, monkeypatch):
         """The download subprocess retries without cookie args after a Facebook parse failure."""

@@ -2,6 +2,30 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-08-23-1136] - fix: retry Facebook 'Cannot parse data' regardless of browser cookies
+
+### Fixed
+- **`funcs_utils/yt_dlp_utils.py` + `__init__.py`, `funcs_video_info/metadata.py`,
+  `funcs_for_main_yt_dlp/_download_common.py`, `main-yt-dlp.py`** (`VERSION` → `2026-08-23-1136`):
+  audio downloads of Facebook URLs failed with `ERROR: [facebook] …: Cannot parse data` even though
+  the video download of the same URL had just succeeded. The retry added in `2026-07-11-0025`
+  diagnosed this failure as cookie-induced and so ran it only when `YTDLP_USE_COOKIES` was set —
+  but measuring the same URL over 10 identical probes with **no cookies at all** failed 3 times out
+  of 10. Facebook serves the unparseable page variant at random, independently of the browser
+  cookies; the earlier "retry without cookies" worked because it was a *second attempt*, not
+  because it dropped the cookies. With no cookies configured there was no retry at all, so a
+  transient error became a hard failure — and an `--only-audio` run rolls the dice three times
+  (the probe in `extract_audio_with_ytdlp()`, the probe in `_build_output_template()`, and the
+  download itself) against roughly two for a video-only run, which is why audio failed far more
+  often. New `retry_on_facebook_parse_error()` retries any such failure up to
+  `FACEBOOK_PARSE_ATTEMPTS` (4) times, `FACEBOOK_PARSE_RETRY_DELAY` (2 s) apart, no longer gated on
+  cookies; both `get_video_info()` and `_run_yt_dlp_subprocess()` route through it, and each still
+  drops `--cookies-from-browser` after the first attempt (harmless, and the anonymous page is the
+  simpler variant). Every other error propagates immediately and unchanged.
+- `TestFacebookCookieFallback` in `Tests/test_main_ytdlp.py` asserted the now-disproven
+  "no cookies → no retry" rule; it now asserts the retry happens without cookies configured, plus a
+  new case covering recovery on a later attempt. An autouse fixture stubs the between-attempt sleep.
+
 ## [2026-08-15-1100] - fix: unique output file names + correct artist tag
 
 ### Fixed
