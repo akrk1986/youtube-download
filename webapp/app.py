@@ -130,13 +130,14 @@ class _WatchControls:
         self._form = form
         self._supported = supported
         self._watcher = ClipboardWatcher(on_media_url=self._on_media_url)
-        # Flat and uncoloured (see the button-row comment in _build_page for why color=None): these
-        # are secondary to Launch, and only one of the pair is ever enabled, so the enabled/disabled
-        # contrast already says which is the meaningful action.
+        # Outlined and uncoloured (see the button-row comment in _build_page for why color=None):
+        # the frame matches the other secondary buttons they sit beside, rather than appearing only
+        # under the cursor. Only one of the pair is ever enabled, so the enabled/disabled contrast
+        # already says which is the meaningful action — no colour needed on top of that.
         self._start_btn = ui.button('Start watching', icon='content_paste',
-                                    on_click=self._start, color=None).props('flat')
+                                    on_click=self._start, color=None).props('outline no-caps')
         self._stop_btn = ui.button('Stop watching', icon='content_paste_off',
-                                   on_click=self._stop, color=None).props('flat')
+                                   on_click=self._stop, color=None).props('outline no-caps')
         self._stop_btn.set_enabled(False)  # not watching yet
         self.sync_visibility()
         # poll() no-ops until 'Start watching', so the timer is cheap while idle.
@@ -192,6 +193,10 @@ def run_app() -> None:
     secret = _load_storage_secret(repo_root=repo_root)
     # --native forces the desktop window on; config.json `native` still works as a fallback.
     native = cli_native or config.native
+    # uvicorn and NiceGUI configure only their own (non-propagating) loggers and leave the root
+    # logger without a handler, so this module's INFO lines would go nowhere. One basicConfig at
+    # startup puts them on the console next to uvicorn's, in the same 'LEVEL: message' shape.
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
     # Register the single page; built fresh per user/page-load so all run state stays page-local.
     ui.page('/')(lambda: _build_page(config=config, repo_root=repo_root))
@@ -298,31 +303,34 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
         with ui.column().classes('w-full max-w-3xl shrink-0 gap-3'):
             # Title, version and the Exit control share one row: the version no longer needs the
             # -mt-3 negative-margin hack to sit under the title, and Exit — destructive but rarely
-            # wanted — is parked in the corner at the lowest weight on the page, well away from the
-            # Launch button it used to sit beside wearing a louder colour.
+            # wanted — is parked in the corner, well away from the Launch button it used to sit
+            # beside. 'deep-orange-10' is the warning colour that still carries Quasar's white
+            # button text at 5.6:1; the brighter oranges land at 3-4:1 and fail. no-caps drops
+            # Quasar's default all-caps label, dense keeps the button small beside the title.
             with ui.row().classes('w-full items-center gap-2'):
                 ui.label('yt-dlp — download driver').classes('text-2xl font-bold')
                 ui.label(f'webapp v{VERSION}').classes('text-xs text-grey')
                 ui.space()
                 ui.button('Exit web app', icon='dangerous', on_click=_stop_webapp,
-                          color=None).props('flat dense').classes('driver-exit')
+                          color='deep-orange-10').props('no-caps unelevated dense')
             form = FormView(config=config, on_change=_on_preset_changed, on_submit=_launch)
             # break-words, not break-all: the preview is a command line, so wrapping between its
             # tokens keeps flags and URLs readable instead of splitting them mid-word.
             preview = ui.label().classes('w-full font-mono text-sm break-words driver-preview')
-            # Rank by weight, not by hue. Launch is the only filled button on the page; Cancel is an
-            # outline (and stays disabled until there is something to cancel); everything else is
-            # flat. `unelevated` drops Material's drop shadow, which reads as decoration on a
+            # Rank by weight, not by hue. Launch is the only filled button on the page; Abort and
+            # Clear log are outlined, so both carry a resting frame instead of appearing only under
+            # the cursor. `unelevated` drops Material's drop shadow, which reads as decoration on a
             # control surface. color=None is deliberate: NiceGUI otherwise defaults every button to
-            # 'primary', and a flat primary button is blue text — only 3.6:1 on the dark background.
-            # Unset, a flat button inherits the theme foreground and follows whatever theme is set.
+            # 'primary', and an uncoloured button is blue text — only 3.6:1 on the dark background.
+            # Unset, the button inherits the theme foreground and follows whatever theme is set.
+            # no-caps everywhere: Quasar shouts each label in all-caps by default.
             with ui.row().classes('items-center gap-2'):
                 launch_btn = ui.button('Launch', icon='play_arrow',
-                                       on_click=_launch).props('unelevated')
-                cancel_btn = ui.button('Cancel', icon='stop',
-                                       on_click=_cancel).props('outline color=negative')
+                                       on_click=_launch).props('unelevated no-caps')
+                cancel_btn = ui.button('Abort current operation', icon='stop',
+                                       on_click=_cancel).props('outline no-caps color=negative')
                 ui.button('Clear log', icon='delete_sweep', on_click=_clear_log,
-                          color=None).props('flat')
+                          color=None).props('outline no-caps')
                 watch = _WatchControls(form=form, supported=watching_supported,
                                        poll_interval=_CLIPBOARD_POLL_INTERVAL)
             # The run outcome belongs next to the button that caused it. It used to sit below the
@@ -336,8 +344,22 @@ def _build_page(config: AppConfig, repo_root: Path) -> None:
 
 
 async def _delayed_shutdown() -> None:
-    """Stop the NiceGUI server after a short delay so the client renders the final page first."""
+    """Stop the app after a short delay so the client renders the final page first.
+
+    Native mode takes a different route than ``app.shutdown()``. That call destroys the webview
+    window *first* and only then asks uvicorn to stop, so the server drains a websocket whose peer
+    is already gone: uvicorn's wsproto protocol sends an unconditional 1012 close frame, wsproto
+    refuses to encode one in state CLOSED, and the resulting ``LocalProtocolError`` escapes
+    ``ui.run()`` — the Exit button ends the run with a traceback. Destroying the window on its own
+    is the same path as closing it with its X button: NiceGUI's own watcher thread notices the dead
+    window process and hard-exits (skipping the drain) with status 0.
+    """
     await asyncio.sleep(0.5)
+    logger.info('web app was terminated by user request')
+    window = app.native.main_window
+    if window is not None:
+        window.destroy()
+        return
     app.shutdown()
 
 
@@ -402,10 +424,6 @@ def _apply_theme(theme: ThemeConfig) -> None:
         # Each rendered log line wraps rather than overflowing the log's width.
         _css_rule(selector='.driver-log-line', declarations={
             'white-space': 'pre-wrap', 'word-break': 'break-word'}),
-        # Exit sits below every other control in the visual order without dropping out of reach:
-        # 0.7 of the theme foreground still measures above 4.5:1 on both the dark and light
-        # backgrounds, where Quasar's 'grey' would have failed on light (2.6:1).
-        _css_rule(selector='.driver-exit', declarations={'opacity': '0.7'}),
         # The post-shutdown page: theme foreground, boxed by a full border. A full border rather
         # than a colour fill keeps it legible whichever theme is configured.
         _css_rule(selector='.driver-stopped', declarations={

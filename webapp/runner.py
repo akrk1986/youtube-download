@@ -9,6 +9,8 @@ and ``run-linters.py`` (the linter presets).
 
 import asyncio
 import os
+import signal
+import subprocess
 import sys
 from asyncio.subprocess import Process
 from collections.abc import AsyncIterator
@@ -124,6 +126,20 @@ def _download_env(params: DriverParams) -> dict[str, str]:
     return env
 
 
+def _taskkill_tree(pid: int) -> None:
+    """Kill a Windows process and every process it started.
+
+    Windows has no signalable process group, so the tree is walked by parent PID instead.
+
+    Args:
+        pid: Process id of the tree's root (the driver script).
+    """
+    taskkill = Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32' / 'taskkill.exe'
+    _ = subprocess.run([str(taskkill), '/PID', str(pid), '/T', '/F'],
+                       check=False, capture_output=True, text=True,
+                       encoding='utf-8', errors='replace')  # nosec B603
+
+
 class DriverProcess:
     """A single running subprocess whose merged output can be streamed and cancelled."""
 
@@ -149,6 +165,10 @@ class DriverProcess:
         Yields:
             str: One output line (without the trailing newline).
         """
+        # POSIX: put the driver in its own process group, so cancel() can signal the group and
+        # reach the yt-dlp child too. The flag is a no-op on Windows, which has no such groups —
+        # cancel() kills the PID tree there instead.
+        new_session = sys.platform != 'win32'
         self._proc = await asyncio.create_subprocess_exec(
             *self._argv,
             cwd=str(self._cwd),
@@ -156,6 +176,7 @@ class DriverProcess:
             stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
+            start_new_session=new_session,
         )
         assert self._proc.stdout is not None
         while True:
@@ -175,6 +196,20 @@ class DriverProcess:
         return await self._proc.wait()
 
     def cancel(self) -> None:
-        """Terminate the running process if it has not already exited."""
-        if self._proc is not None and self._proc.returncode is None:
-            self._proc.terminate()
+        """Abort the run: the driver script and the yt-dlp/ffmpeg children it started.
+
+        ``Process.terminate()`` on its own signals the driver only, which leaves its yt-dlp child
+        (a plain ``subprocess.run``) orphaned and still downloading after the UI has reported the
+        run cancelled. On POSIX the driver owns its process group (see :meth:`stream`), so one
+        ``killpg`` reaches the whole tree; on Windows the PID tree is killed instead.
+        """
+        proc = self._proc
+        if proc is None or proc.returncode is not None:
+            return
+        if sys.platform == 'win32':
+            _taskkill_tree(pid=proc.pid)
+            return
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        except (ProcessLookupError, PermissionError):
+            proc.terminate()

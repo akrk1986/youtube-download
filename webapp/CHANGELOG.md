@@ -5,6 +5,40 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-08-26-1829] - Clean native-mode exit, tree-killing Abort, calmer buttons
+
+### Fixed
+- **'Exit web app' crashed the process in `--native` mode** (`webapp/app.py`): `app.shutdown()`
+  destroys the webview window *first* and only then asks uvicorn to stop, so the server drained a
+  websocket whose peer was already gone — uvicorn's wsproto protocol sends an unconditional 1012
+  close frame, wsproto refuses to encode one in state `CLOSED`, and the resulting
+  `LocalProtocolError` escaped `ui.run()` as a traceback. Native mode now destroys the window and
+  lets NiceGUI's own watcher hard-exit (the same path as closing the window with its X button);
+  browser mode still calls `app.shutdown()`.
+- **Cancel left the download running** (`webapp/runner.py`): `Process.terminate()` signalled only
+  the driver script, orphaning the `yt-dlp` child it had started with `subprocess.run` — the run
+  kept downloading after the UI reported it cancelled. The driver now gets its own process group on
+  POSIX (`start_new_session`) and is killed with `killpg`; on Windows, which has no signalable
+  groups, `taskkill /T /F` walks the PID tree instead.
+
+### Added
+- **Console line on exit** (`webapp/app.py`): 'web app was terminated by user request'. uvicorn and
+  NiceGUI configure only their own non-propagating loggers, leaving the root logger without a
+  handler, so the app's own INFO lines went nowhere; `run_app()` now calls `logging.basicConfig`
+  once, in uvicorn's `LEVEL: message` shape.
+
+### Changed
+- **Buttons no longer shout** (`webapp/app.py`): `no-caps` on every button — Quasar renders labels
+  in all-caps by default.
+- **'Cancel' is now 'Abort current operation'** (`webapp/app.py`), matching what the tree-kill above
+  actually does.
+- **'Exit web app' is white on `deep-orange-10`** (`webapp/app.py`), replacing the flat 0.7-opacity
+  text button. That shade is the warning colour that still carries Quasar's white button text at
+  5.6:1; `orange-9` (3.1:1) and `orange-10` (3.8:1) fail AA with white.
+- **Secondary buttons are outlined, not flat** (`webapp/app.py`): Clear log and the clipboard
+  Start/Stop-watching pair had no resting frame and grew one only under the cursor. Launch stays the
+  only filled button.
+
 ## [2026-08-16-1457] - UI audit follow-up: readable log, batched output, button hierarchy
 
 ### Fixed
