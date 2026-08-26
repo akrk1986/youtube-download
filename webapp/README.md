@@ -193,12 +193,12 @@ UI-free, unit-tested core vs. the NiceGUI shell:
 |-----------------------|------------------|----------------|
 | `config.py`           | no               | `AppConfig` + `load_config` / `resolve_host_port`; host/port/cookie resolution; `default_theme_colors` and the default font stacks |
 | `presets.py`          | no               | the preset registry (each a `DriverParams`) |
-| `runner.py`           | no               | `DriverParams`, `build_command` (argv vs env routing), `DriverProcess` (async subprocess + stream + cancel) |
+| `runner.py`           | no               | `DriverParams`, `build_command` (argv vs env routing), `DriverProcess` (async subprocess + stream + tree-killing abort) |
 | `validate.py`         | no               | URL / theme-string guards |
 | `ansi.py`             | no               | ANSI SGR → HTML (`ansi_to_html`, `lines_to_html`); the `DARK_PALETTE` / `LIGHT_PALETTE` pair and `palette_for` |
 | `services/clipboard_watcher.py` | no     | `ClipboardWatcher` (pyperclip poll off the event loop, start/stop, new-media-URL callback) + `_is_media_url` (YouTube + Facebook) and `_extract_media_url` (Gmail/Google-redirect unwrapping) |
 | `form.py`             | yes              | `FormView` widgets; `apply_preset` / `collect` / `set_url`; Enter-to-submit binding |
-| `app.py`              | yes              | page assembly, theme CSS, Launch/Cancel/Exit, `_AnsiLog` (batched log), `_WatchControls` (clipboard buttons + poll timer), `ui.run` |
+| `app.py`              | yes              | page assembly, theme CSS, Launch/Abort/Exit, `_AnsiLog` (batched log), `_WatchControls` (clipboard buttons + poll timer), `ui.run` |
 | `webapp-yt-dlp.py`    | (entry)          | thin entry point → `webapp.app.run_app` |
 
 ## Tests
