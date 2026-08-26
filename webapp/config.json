@@ -4,7 +4,7 @@
   "native": false,
   "reload": false,
   "boost_default": 2.0,
-  "cookies": "",
+  "cookies": "none",
   "theme": {
     "dark": true,
     "fg_color": "#e8e8e8",

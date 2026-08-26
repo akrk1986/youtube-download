@@ -5,6 +5,21 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-08-26-1943] - Default to no browser cookies
+
+### Changed
+- **`webapp/config.json` ships `"cookies": "none"`** instead of the blank value. Blank means
+  "decide by platform", which resolved to `firefox` on native Windows — so every run there probed
+  YouTube with the live Firefox profile's cookies, whose rotation YouTube answers with
+  `The page needs to be reloaded.` (see `CHANGELOG.md` `2026-08-26-1941`). Cookies are only needed
+  for age-restricted or private videos, so they are now opt-in per run via the **Cookies**
+  dropdown. `_platform_default_cookies()` is unchanged and still applies when the key is blank.
+
+### Documentation
+- `webapp/README.md` caught up with `2026-08-26-1829`: the relabelled **Abort current
+  operation** button and the process-tree kill behind it, the recoloured **Exit web app** button and
+  its console line, the outlined secondary buttons, and the no-longer-platform-aware cookie default.
+
 ## [2026-08-26-1829] - Clean native-mode exit, tree-killing Abort, calmer buttons
 
 ### Fixed

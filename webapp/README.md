@@ -63,13 +63,19 @@ python webapp-yt-dlp.py --native          # Windows
    album, boost, cookies, notifications, …). The text fields (URL, Title, Artist, Album, NOTIF_MSG
    suffix) show a **clear (✕) icon** while they hold text. The read-only **command preview** shows
    the exact `env … python main-yt-dlp.py …` that will run.
-3. **Launch** — output streams into the log below. **Cancel** terminates the running process.
+3. **Launch** — output streams into the log below. **Abort current operation** stops the run: the
+   driver script *and* the `yt-dlp` / `ffmpeg` children it started (its own process group on POSIX,
+   the PID tree via `taskkill /T` on Windows), so nothing keeps downloading after the log says the
+   run was cancelled.
    The URL field is **focused on load**, and pressing **Enter** in any of the URL / Title / Artist /
    Album fields launches, so the paste-a-URL-and-go loop never needs the mouse. Enter during a run
    is refused with a notice rather than starting a second one.
-4. **Exit web app** — in the **header, top right**, muted and flat (it is destructive but rarely
-   wanted, so it is kept away from Launch). Replaces the page with a "Web application was stopped"
-   notice and stops the server.
+4. **Exit web app** — in the **header, top right**, white on a burnt orange (`deep-orange-10`, the
+   warning shade that still clears 4.5:1 with white button text), kept away from Launch because it
+   is destructive but rarely wanted. Replaces the page with a "Web application was stopped" notice,
+   logs `web app was terminated by user request` to the console, and stops the server. In
+   `--native` mode it closes the desktop window instead of draining the server, which used to end
+   the run with a `wsproto` traceback.
 5. **Start/Stop watching** (clipboard) — these two buttons appear **only when a `YT-DLP-prompt`
    preset is selected**, i.e. the presets that expect you to supply a URL. They are hidden for the
    quick `YT-DLP-presets` (which pre-fill their URL, see below) and the linters (which take no URL);
@@ -94,8 +100,9 @@ also **grows to fill the remaining window height** (down to a floor of `12rem`, 
 scrolls), so a tall window gives you a tall log. The run outcome (`Running…` / `Done — exit 0` /
 `Failed — exit N`) appears directly under the buttons, not below the log.
 
-Only **Launch** is a filled button; Cancel is an outline that stays disabled until there is something
-to cancel, and the rest are flat — rank is carried by weight rather than by colour.
+Only **Launch** is a filled button; Abort stays disabled until there is something to abort, and every
+other control is outlined — rank is carried by weight rather than by colour, and no label is rendered
+in Quasar's default all-caps.
 
 ### The output log
 
@@ -125,12 +132,17 @@ renders the tables' box-drawing characters poorly.
 The interactive ERTFlix **series browser** (`main-ertflix-series.py`) is intentionally not exposed —
 its headed-Chromium / arrow-key flow can't run in a headless subprocess.
 
-### Cookies (platform-aware default)
+### Cookies (default: none)
 
-The cookie source defaults to **`firefox` on native Windows** and **`none` on WSL/Linux/macOS**
-(where the Windows Firefox profile is unreachable, so `--cookies-from-browser firefox` would fail).
-Override per run via the **Cookies** dropdown, or change the default for the whole app by setting
-`"cookies"` (`none` / `firefox` / `chrome`) in `webapp/config.json`.
+`webapp/config.json` ships `"cookies": "none"`, so runs carry no browser cookies at all. Cookies are
+only needed for age-restricted or private videos, and a cookie-bearing probe is what YouTube answers
+with `The page needs to be reloaded.` when a live browser rotates the profile out from under yt-dlp.
+Pick `firefox` / `chrome` from the **Cookies** dropdown for the runs that need them, or change the
+app-wide default in `webapp/config.json`.
+
+Leaving the key **blank** restores the platform-aware behaviour instead: `firefox` on native
+Windows, `none` on WSL/Linux/macOS (where the Windows Firefox profile is unreachable, so
+`--cookies-from-browser firefox` would fail).
 
 ## Configuration (`webapp/config.json`)
 
@@ -138,7 +150,7 @@ Override per run via the **Cookies** dropdown, or change the default for the who
 |-----------------|-------------|---------|
 | `host`          | `0.0.0.0`   | Listen host (LAN-reachable). |
 | `port`          | `8081`      | Listen port. |
-| `cookies`       | `""`        | Default cookie source; blank ⇒ platform-aware. |
+| `cookies`       | `"none"`    | Default cookie source (`none` / `firefox` / `chrome`); blank ⇒ platform-aware. |
 | `boost_default` | `2.0`       | Pre-filled boost factor. |
 | `native`        | `false`     | Run in a native desktop window. |
 | `reload`        | `false`     | NiceGUI file-watch hot reload. |
