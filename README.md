@@ -342,6 +342,8 @@ $env:YTDLP_USE_COOKIES="chrome"
 - This prevents 403 errors and makes downloads more reliable, especially for long videos
 - Downloads will be slower but much more stable for authenticated content
 
+**Automatic retry without cookies:** The metadata probes that ask whether a URL is a playlist (and that enumerate a playlist's entries) retry once *without* the browser cookies when the first, cookie-bearing attempt fails. YouTube rejects a session it considers stale with `The page needs to be reloaded.`, which a browser rotating the cookies out from under yt-dlp produces routinely; since cookies matter only for restricted videos, the cookie-less retry answers the question for everything else. The failed attempt is logged at DEBUG only.
+
 **Authentication hint on failure:** When a download fails with an error that looks like an authentication problem (sign-in required, private/members-only video, age restriction, HTTP 403), the tool logs a warning suggesting the cause may be browser cookies — either that none are configured (set `YTDLP_USE_COOKIES=firefox` or `chrome`) or that the configured cookies are missing/expired/for the wrong browser.
 
 ### Configure download retry behavior

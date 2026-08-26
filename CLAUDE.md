@@ -609,6 +609,7 @@ Enables downloading age-restricted or private videos using browser cookies.
 - **Valid values**: `chrome`, `firefox`
 - **Purpose**: Use logged-in browser session to access restricted content
 - **Auto-includes**: `--no-cache-dir` and `--sleep-requests 1` flags for reliability
+- **Cookie-less retry**: the flat probes (`is_playlist()`, `get_playlist_entries()`) run through `_extract_flat_with_cookie_retry()` (`funcs_video_info/metadata.py`), which retries once without the cookies when the cookie-bearing attempt fails — YouTube answers a session it considers stale with `The page needs to be reloaded.`. Mirrors `get_video_info()`, whose `_attempt()` drops the cookies after the first try. Format errors are re-raised without a retry; with no cookies configured only the single cookie-less attempt runs.
 - **Failure hint**: when a download fails with an auth-style error, `warn_if_auth_error()` (`funcs_utils/yt_dlp_utils.py`) logs a warning that the cause may be cookies — none configured, or the configured cookies are missing/expired/wrong-browser. Detected via `is_auth_error()` (sign-in / private / members-only / age-restricted / HTTP 403 patterns). The previous per-call `INFO` "Using cookies from … browser" line is now `DEBUG`.
 
 **Usage:**

@@ -2,6 +2,22 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-08-26-1941] - fix: retry the flat metadata probes without browser cookies
+
+### Fixed
+- **`funcs_video_info/metadata.py`** (`VERSION` → `2026-08-26-1941`): with `YTDLP_USE_COOKIES` set,
+  YouTube can reject the cookie-bearing probe with `The page needs to be reloaded.` — its response
+  to a session it considers stale, which a live browser rotating the cookies yt-dlp copied produces
+  routinely. `is_playlist()` logged that at ERROR (harmless, but alarming, since it returns False
+  and the run continues as a single video) and `get_playlist_entries()` raised `RuntimeError`,
+  killing a playlist run outright. Both now go through `_extract_flat_with_cookie_retry()`, which
+  retries once without the cookies — the retry `get_video_info()` has always done, where
+  `_attempt()` drops them after the first try. The failed cookie attempt drops to DEBUG; the ERROR
+  is logged only when the cookie-less attempt fails too. A format error is re-raised without a
+  retry (it is not a session problem), and no attempt is wasted when no cookies are configured.
+  Verified live against a real cookie failure: a 200-entry playlist enumerated through a rejection
+  that used to be fatal. Four tests in `Tests/test_playlist_entries.py`.
+
 ## [2026-08-23-1136] - fix: retry Facebook 'Cannot parse data' regardless of browser cookies
 
 ### Fixed

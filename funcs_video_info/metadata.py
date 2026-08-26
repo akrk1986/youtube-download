@@ -112,36 +112,97 @@ def get_video_info(yt_dlp_path: Path, url: str, video_download_timeout: int | No
         raise RuntimeError(f"Failed to parse yt-dlp output for '{url}': {e}") from e
 
 
-def _build_flat_ydl_opts() -> dict[str, Any]:
-    """yt-dlp options for flat metadata extraction (no download). Includes cookies if set."""
+def _cookie_browser() -> str:
+    """Return the browser whose cookies yt-dlp should use, or an empty string when none is set.
+
+    Returns:
+        str: 'chrome', 'firefox', or '' when YTDLP_USE_COOKIES is unset/empty.
+    """
+    cookie_env = os.getenv('YTDLP_USE_COOKIES', '').strip()
+    if not cookie_env:
+        return ''
+    return 'chrome' if cookie_env.lower() == 'chrome' else 'firefox'
+
+
+def _build_flat_ydl_opts(with_cookies: bool = True) -> dict[str, Any]:
+    """yt-dlp options for flat metadata extraction (no download). Includes cookies if set.
+
+    Args:
+        with_cookies: Whether to pass the browser cookies named by YTDLP_USE_COOKIES. False drives
+            the cookie-less retry in is_playlist().
+
+    Returns:
+        dict[str, Any]: The yt-dlp option dict.
+    """
     ydl_opts: dict[str, Any] = {
         'quiet': True,
         'no_warnings': True,
         'extract_flat': True,
         'logger': _SilentLogger(),
     }
-    cookie_env = os.getenv('YTDLP_USE_COOKIES', '').strip()
-    if cookie_env:
-        browser = 'chrome' if cookie_env.lower() == 'chrome' else 'firefox'
+    browser = _cookie_browser() if with_cookies else ''
+    if browser:
         ydl_opts['cookiesfrombrowser'] = (browser,)
     return ydl_opts
+
+
+def _extract_flat(url: str, with_cookies: bool) -> dict[str, Any] | None:
+    """Run one flat (no-download) extraction, letting yt-dlp's own errors propagate.
+
+    Args:
+        url: The URL to probe.
+        with_cookies: Whether to pass the configured browser cookies.
+
+    Returns:
+        dict[str, Any] | None: The extracted info, or None when yt-dlp returns nothing.
+    """
+    ydl_opts = _build_flat_ydl_opts(with_cookies=with_cookies)
+    with yt_dlp.YoutubeDL(params=ydl_opts) as ydl:  # type: ignore
+        return ydl.extract_info(url=url, download=False)  # type: ignore[return-value]
+
+
+def _extract_flat_with_cookie_retry(url: str) -> dict[str, Any] | None:
+    """Run the flat probe, retrying once without the browser cookies when the first attempt used them.
+
+    YouTube rejects a session it considers stale ('The page needs to be reloaded.'), which a live
+    browser rotating the cookies yt-dlp copied produces routinely. The cookies only matter for
+    restricted videos, so a second, cookie-less attempt answers the question for everything else.
+    This is the retry get_video_info() already does, where _attempt() drops the cookies after the
+    first try. A format error is not a session problem, so it is raised without a retry.
+
+    Args:
+        url: The URL to probe.
+
+    Returns:
+        dict[str, Any] | None: The extracted info, or None when yt-dlp returns nothing.
+
+    Raises:
+        Exception: Whatever yt-dlp raised on the final attempt.
+    """
+    for with_cookies in (True, False):
+        if with_cookies and not _cookie_browser():
+            continue  # no cookies to drop — go straight to the cookie-less attempt
+        try:
+            return _extract_flat(url=url, with_cookies=with_cookies)
+        except Exception as e:  # pylint: disable=broad-except
+            if not with_cookies or is_format_error(str(e)):
+                raise
+            logger.debug(f'Flat probe with browser cookies failed ({e}) — retrying without them')
+    return None  # unreachable: the cookie-less attempt either returns or raises
 
 
 def is_playlist(url: str) -> bool:
     """Check if url is a playlist, w/o downloading.
     Using the yt-dlp Python library."""
-    ydl_opts = _build_flat_ydl_opts()
-    with yt_dlp.YoutubeDL(params=ydl_opts) as ydl:  # type: ignore
-        try:
-            info = ydl.extract_info(url=url, download=False)
-            return info.get('webpage_url_basename') == 'playlist'  # type: ignore[typeddict-item]
-        except Exception as e:
-            error_str = str(e)
-            if is_format_error(error_str):
-                logger.debug(f'Format not available for URL, assuming not a playlist: {url}')
-            else:
-                logger.error(f"Failed to get video info for URL '{url}': {e}")
-            return False
+    try:
+        info = _extract_flat_with_cookie_retry(url=url)
+    except Exception as e:  # pylint: disable=broad-except
+        if is_format_error(str(e)):
+            logger.debug(f'Format not available for URL, assuming not a playlist: {url}')
+        else:
+            logger.error(f"Failed to get video info for URL '{url}': {e}")
+        return False
+    return info is not None and info.get('webpage_url_basename') == 'playlist'
 
 
 def get_playlist_entries(url: str) -> list[tuple[str, str]]:
@@ -150,14 +211,12 @@ def get_playlist_entries(url: str) -> list[tuple[str, str]]:
     Uses the yt-dlp Python library with extract_flat so it never downloads media.
     Builds the per-entry watch URL from the entry id when 'url' is absent.
     Raises EmptyPlaylistError if the playlist has no entries, or RuntimeError if extraction fails."""
-    ydl_opts = _build_flat_ydl_opts()
-    with yt_dlp.YoutubeDL(params=ydl_opts) as ydl:  # type: ignore
-        try:
-            info = ydl.extract_info(url=url, download=False)
-        except Exception as e:
-            raise RuntimeError(f"Failed to enumerate playlist '{url}': {e}") from e
+    try:
+        info = _extract_flat_with_cookie_retry(url=url)
+    except Exception as e:
+        raise RuntimeError(f"Failed to enumerate playlist '{url}': {e}") from e
 
-    entries = info.get('entries') or []  # type: ignore[union-attr]
+    entries = (info or {}).get('entries') or []
     if not entries:
         raise EmptyPlaylistError(f"No playlist entries found for URL '{url}'")
 
