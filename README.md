@@ -667,8 +667,17 @@ The standalone audio-conversion, volume-boost, Dolby-Vision, Greek-singles dupli
 
 ### File Naming
 
-A single video is named after its title, sanitized and capped at 64 characters. Two rules keep one
-download from clobbering another:
+A single video is named after its title, sanitized and capped at 64 characters.
+
+**Facebook's engagement prefix is removed first.** Facebook reports a music video's title as
+`17K views · 376 reactions | <real title> | <page>`, which used to land as
+`17K views 376 reactions Vasiliki Stefanou ….m4a` — and, since the name is capped at 64 characters,
+cost about 25 characters of the real title. The `<count> views … <count> reactions …` run is now
+stripped before the name is built, and the same rule is applied to the embedded title tag, so media
+players do not show it either. Both counters must be present, in that order, so a genuine title like
+`3 Views of Mount Fuji` is left untouched.
+
+Two further rules keep one download from clobbering another:
 
 - **Titles that identify no particular video are replaced.** Facebook reports the title `Video` for
   many of its URL forms, so naming files after it would send every Facebook download to the same

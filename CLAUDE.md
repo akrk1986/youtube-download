@@ -349,15 +349,23 @@ The project uses a strategy pattern for handling different audio formats:
 ### Output File Naming
 
 `_build_output_template()` (`funcs_for_main_yt_dlp/_download_common.py`) names single-video
-downloads. Two rules prevent one download from clobbering another:
+downloads. Three rules shape the name:
 
+- `_strip_engagement_prefix()` removes Facebook's `<count> views<sep><count> reactions<sep>` title
+  prefix (`ENGAGEMENT_PREFIX_PATTERN` in `project_defs.py`). It runs **before** `sanitize_string()`,
+  so the 64-char truncation applies to real title text, and **before** the generic-title check, so
+  `17K views · 3 reactions | Video` still counts as generic. Both counters are required in that
+  order, which leaves a genuine `3 Views of Mount Fuji` alone; a comment/share count would survive.
+  The same pattern goes to yt-dlp as `--replace-in-metadata title <pattern> ''` (skipped when
+  `--title` is given, whose `.+` rule already overwrites the field) so the embedded title tag is
+  cleaned too — and being a `pre_process` rule, it also cleans a playlist's `%(title)s` name.
 - Titles in `GENERIC_VIDEO_TITLES` (`video`, `untitled`, `na`, `reel`, `watch`, …) identify no
   particular video — Facebook reports `Video` for every clip — and are replaced with
   `<uploader> <upload date>` (uploader missing → title; date missing/unparsable → omitted).
 - `_unique_output_stem()` appends the video id when the base name is already taken in the output
   folder (case-insensitive, any extension); a `-2`/`-3` suffix covers sources with no id.
 
-The second rule matters because yt-dlp does **not** overwrite an existing target: it logs
+The third rule matters because yt-dlp does **not** overwrite an existing target: it logs
 `has already been downloaded`, keeps the old media, and runs the Metadata + EmbedThumbnail
 postprocessors on it — producing a file whose audio and cover art come from two different videos.
 The video id is unique per video, so re-downloading the same video reuses the name and stays
