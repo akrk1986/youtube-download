@@ -5,6 +5,20 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-09-08-1342] - Listen on loopback by default
+
+### Changed
+- **The default listen host is `127.0.0.1`** (`DEFAULT_HOST` in `webapp/config.py`, `host` in
+  `webapp/config.json`) instead of `0.0.0.0`. Binding every interface put the app — which runs
+  `main-yt-dlp.py` with argv built from the form — on the LAN by default, and made NiceGUI's startup
+  banner list a URL per network adapter (Hyper-V/WSL vEthernet, four APIPA link-local addresses),
+  almost none of them reachable. The `--native` window loads `localhost` either way. LAN access is
+  unchanged but now deliberate: `--host 0.0.0.0`, `WEBAPP_HOST`, or the config key.
+
+### Documentation
+- `webapp/README.md`: the Host/port section and the config-key table state the new default and how
+  to opt back into LAN exposure.
+
 ## [2026-08-26-1943] - Default to no browser cookies
 
 ### Changed

@@ -30,11 +30,18 @@ python webapp-yt-dlp.py       # Windows; then open http://localhost:8081
 ### Host / port
 
 Resolved in this precedence (highest first): CLI flag → environment variable → `webapp/config.json`
-→ built-in default (`0.0.0.0:8081`; 8080 is the sibling `losslesscut-csv` app).
+→ built-in default (`127.0.0.1:8081`; 8080 is the sibling `losslesscut-csv` app).
+
+The default is loopback-only: the app runs `main-yt-dlp.py` with argv built from the form, so it is
+not something to expose without meaning to, and the `--native` window loads `localhost` either way.
+Binding every interface also made NiceGUI's startup banner list a URL per network adapter
+(Hyper-V/WSL vEthernet, APIPA link-local, …), almost none of them reachable. Pass `0.0.0.0`
+explicitly to open the form to the LAN.
 
 ```bash
 ./webapp-yt-dlp.py --port 9000
 WEBAPP_PORT=9000 ./webapp-yt-dlp.py
+./webapp-yt-dlp.py --host 0.0.0.0         # reachable from other devices on the LAN
 ```
 
 ```powershell
@@ -148,7 +155,7 @@ Windows, `none` on WSL/Linux/macOS (where the Windows Firefox profile is unreach
 
 | Key             | Default     | Meaning |
 |-----------------|-------------|---------|
-| `host`          | `0.0.0.0`   | Listen host (LAN-reachable). |
+| `host`          | `127.0.0.1` | Listen host (loopback only; `0.0.0.0` to make it LAN-reachable). |
 | `port`          | `8081`      | Listen port. |
 | `cookies`       | `"none"`    | Default cookie source (`none` / `firefox` / `chrome`); blank ⇒ platform-aware. |
 | `boost_default` | `2.0`       | Pre-filled boost factor. |

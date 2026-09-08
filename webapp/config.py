@@ -26,9 +26,12 @@ DEFAULT_FONT_FAMILY: str = ("'Segoe UI Variable Text', 'Segoe UI', Cantarell, 'D
 # U+2500-257F at a full cell.
 DEFAULT_MONO_FAMILY: str = ("'Cascadia Mono', Consolas, 'SF Mono', Menlo, 'DejaVu Sans Mono', "
                             "'Liberation Mono', ui-monospace, monospace")
-# Binding to all interfaces is intentional: reachable across the local 192.168.1.x / 10.0.0.x
-# subnets (no external exposure).
-DEFAULT_HOST: str = '0.0.0.0'  # nosec B104
+# Loopback only: the app shells out to main-yt-dlp.py with argv built from the form, so it is not
+# something to expose by default. Binding every interface also made NiceGUI's startup banner list a
+# URL per adapter (Hyper-V/WSL vEthernet, APIPA link-local, ...), none of them reachable, and the
+# --native window loads localhost regardless. Set 'host' in config.json (or --host / WEBAPP_HOST) to
+# 0.0.0.0 to open the form to the LAN deliberately.
+DEFAULT_HOST: str = '127.0.0.1'
 _COOKIE_CHOICES = ('none', 'firefox', 'chrome')
 
 
