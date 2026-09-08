@@ -1202,6 +1202,36 @@ class TestOutputFileNaming:
         assert template == str(tmp_path / 'My Song.%(ext)s')
         assert sanitized_title == 'My Song'
 
+    def test_build_output_template_strips_engagement_prefix(self, tmp_path):
+        """A Facebook engagement prefix is stripped before the name is sanitized and truncated."""
+        from funcs_for_main_yt_dlp._download_common import _build_output_template
+
+        info = {'id': 'abc123',
+                'title': ('17K views \u00b7 376 reactions | Vasiliki Stefanou / '
+                          '\u0392\u03b1\u03c3\u03b9\u03bb\u03b9\u03ba\u03ae '
+                          '\u03a3\u03c4\u03b5\u03c6\u03ac\u03bd\u03bf\u03c5'),
+                'uploader': 'World Greek Radio'}
+        with patch('funcs_for_main_yt_dlp._download_common.get_video_info', return_value=info):
+            template, sanitized_title = _build_output_template(opts=self._make_opts(),
+                                                               output_folder=tmp_path)
+
+        # Assert on the leading text, not just the absence of '17K': truncation could hide it.
+        assert Path(template).name.startswith('Vasiliki Stefanou')
+        assert 'views' not in template and 'reactions' not in template
+        assert sanitized_title.startswith('Vasiliki Stefanou')
+
+    def test_build_output_template_generic_title_behind_engagement_prefix(self, tmp_path):
+        """The generic-title check sees the stripped title, so 'Video' still triggers the fallback."""
+        from funcs_for_main_yt_dlp._download_common import _build_output_template
+
+        info = dict(self._FB_INFO, title='17K views \u00b7 3 reactions | Video')
+        with patch('funcs_for_main_yt_dlp._download_common.get_video_info', return_value=info):
+            template, sanitized_title = _build_output_template(opts=self._make_opts(),
+                                                               output_folder=tmp_path)
+
+        assert template == str(tmp_path / 'World Greek Radio 2026-07-25.%(ext)s')
+        assert sanitized_title == 'Video'
+
     def test_build_output_template_playlist_unchanged(self, tmp_path):
         """Playlists keep yt-dlp's own title template and make no probe."""
         from funcs_for_main_yt_dlp._download_common import _build_output_template

@@ -61,6 +61,18 @@ FFMPEG_TIMEOUT_SECONDS = 600  # 10 minutes for audio/video conversion
 # Includes: Latin-1 Supplement (\u00c0-\u00ff) and Latin Extended-A (\u0100-\u017f) for French/Turkish
 LEADING_NONALNUM_PATTERN = r'^[^a-zA-Z0-9\u00c0-\u00ff\u0100-\u017f\u0370-\u03FF\u05d0-\u05ea]+'
 MULTIPLE_SPACES_PATTERN = r'\s+'
+# Facebook prefixes music-video titles with engagement counts:
+#   '17K views \u00b7 376 reactions | <real title> | <page>'
+# Matches '<count> views<separators><count> reactions<separators>' and consumes the trailing
+# separators too, leaving the real title. Counts are 376, 17K, 1.4K, 2.3M or 1,234. BOTH counters
+# are required, in this order, so a genuine title like '3 Views of Mount Fuji' is left alone.
+# Case-insensitivity is inline (?i) rather than re.IGNORECASE because this same string is handed
+# to yt-dlp's --replace-in-metadata as an argv element, where flags cannot be passed.
+ENGAGEMENT_SEPARATORS_PATTERN = r'[\s\u00b7\u2022,|:\-\u2013\u2014]'
+ENGAGEMENT_PREFIX_PATTERN = (r'(?i)^\s*\d[\d,.]*\s*[KMB]?\s+views?\b'
+                             + ENGAGEMENT_SEPARATORS_PATTERN + r'*'
+                             + r'\d[\d,.]*\s*[KMB]?\s+reactions?\b'
+                             + ENGAGEMENT_SEPARATORS_PATTERN + r'*')
 CHAPTER_TIMESTAMP_PATTERNS = (
     r'(\d{1,2}:\d{2}(?::\d{2})?)\s*[-–—]\s*(.+?)(?=\n|$)',  # 12:34 - Chapter Name
     r'(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+?)(?=\n|$)',  # 12:34 Chapter Name

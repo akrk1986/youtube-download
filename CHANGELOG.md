@@ -2,6 +2,28 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-09-08-1529] - fix: strip Facebook's "N views M reactions" title prefix
+
+### Fixed
+- **Facebook downloads no longer carry the engagement prefix in the file name or the title tag.**
+  Facebook reports a music video's title as `17K views · 376 reactions | <real title> | <page>`, so
+  files landed as `17K views 376 reactions Vasiliki Stefanou ….m4a` and `--embed-metadata` wrote the
+  same string into the TITLE tag. The counters identify nothing, and because `sanitize_string()`
+  truncates the whole file name to 64 characters they cost ~25 characters of real title — one
+  sample was cut to `… Μαριάννα Παπαμακαρίου Marianna Papa.m4a`, losing the rest of the artist name
+  and the song entirely. `ENGAGEMENT_PREFIX_PATTERN` (`project_defs.py`) now matches
+  `<count> views<separators><count> reactions<separators>` — counts as `376`, `17K`, `1.4K`, `2.3M`
+  or `1,234` — and `_strip_engagement_prefix()` (`funcs_for_main_yt_dlp/_download_common.py`)
+  removes it in `_build_output_template()` before the name is sanitized and before the generic-title
+  check, so `17K views · 3 reactions | Video` still falls back to `<uploader> <upload date>`. The
+  same pattern is handed to yt-dlp as `--replace-in-metadata title <pattern> ''` (skipped when
+  `--title` is given, whose `.+` rule already overwrites the field), which cleans the embedded tag
+  and — being a `pre_process` rule — also cleans a playlist's `%(title)s` name.
+
+  Both counters are required, in that order: a genuine title such as `3 Views of Mount Fuji`, a
+  views-only prefix, or counters that are not leading are all left untouched. A comment or share
+  count would survive, since the pattern stops after `reactions`.
+
 ## [2026-08-26-1941] - fix: retry the flat metadata probes without browser cookies
 
 ### Fixed

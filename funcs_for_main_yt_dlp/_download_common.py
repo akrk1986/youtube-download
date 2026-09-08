@@ -1,6 +1,7 @@
 """Shared state, dataclass, and helpers used by download_video and download_audio."""
 import logging
 import os
+import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,13 +11,15 @@ import arrow
 
 from funcs_utils import get_cookie_args, retry_on_facebook_parse_error, sanitize_string
 from funcs_video_info import get_video_info
-from project_defs import YT_DLP_IS_PLAYLIST_FLAG
+from project_defs import ENGAGEMENT_PREFIX_PATTERN, YT_DLP_IS_PLAYLIST_FLAG
 
 logger = logging.getLogger(__name__)
 
 # Titles that identify no particular video. Facebook reports 'Video' for every clip, so naming
 # the file after the title makes every Facebook download land on the same name.
 GENERIC_VIDEO_TITLES = frozenset({'facebook', 'na', 'reel', 'untitled', 'video', 'videos', 'watch'})
+# Facebook's '<count> views · <count> reactions |' title prefix (see project_defs).
+ENGAGEMENT_PREFIX_RE = re.compile(ENGAGEMENT_PREFIX_PATTERN)
 
 
 @dataclass
@@ -76,6 +79,27 @@ def _get_download_retries() -> str:
     if value <= 0:
         raise ValueError(f"YTDLP_RETRIES must be a positive integer, got '{retries}'")
     return retries
+
+
+def _strip_engagement_prefix(title: str) -> str:
+    """Strip Facebook's leading '<count> views · <count> reactions |' run from a title.
+
+    Both counters must be present, in that order; the trailing separators go with them. Returns the
+    title unchanged when stripping would leave nothing behind, so the caller always has a non-empty
+    name to work with.
+
+    Args:
+        title: The source title as reported by yt-dlp.
+
+    Returns:
+        str: The title without the engagement prefix, or the original title when nothing was
+            stripped or stripping would empty it.
+    """
+    stripped = ENGAGEMENT_PREFIX_RE.sub('', title).strip()
+    if not stripped or stripped == title:
+        return title
+    logger.debug(f"Stripped engagement prefix: '{title}' -> '{stripped}'")
+    return stripped
 
 
 def _is_generic_title(title: str) -> bool:
@@ -162,7 +186,7 @@ def _build_output_template(opts: DownloadOptions,
         video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url,
                                     video_download_timeout=opts.video_download_timeout)
         video_id = (video_info.get('id') or '').strip() or None
-        video_title = video_info.get('title', 'untitled')
+        video_title = _strip_engagement_prefix(title=video_info.get('title', 'untitled'))
         sanitized_title = sanitize_string(dirty_string=video_title)
         logger.debug(f"Sanitized title: '{video_title}' -> '{sanitized_title}'")
         file_stem = sanitized_title
@@ -188,8 +212,9 @@ def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,
                          extra_ffmpeg_args: list[str] | None = None) -> None:
     """Insert shared conditional flags into a yt-dlp command list (mutates cmd).
 
-    Handles: cookies, playlist flag, progress, custom_title metadata replacement,
-    custom_artist/album ffmpeg metadata.
+    Handles: cookies, playlist flag, progress, custom_title metadata replacement (or the
+    Facebook engagement-prefix strip when there is no custom title), custom_artist/album
+    ffmpeg metadata.
 
     Any ``extra_ffmpeg_args`` are merged into the SAME generic ``ffmpeg:`` ``--postprocessor-args``
     entry as the custom artist/album metadata. yt-dlp keeps only the last ``--postprocessor-args``
@@ -210,6 +235,10 @@ def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,
     if opts.custom_title and sanitized_title:
         # Set the title metadata tag to the custom title
         cmd[1:1] = ['--replace-in-metadata', 'title', '.+', sanitized_title]
+    else:
+        # No custom title: drop Facebook's engagement prefix from the title tag. Skipped above
+        # because the '.+' rule already overwrites the whole field, making this a no-op there.
+        cmd[1:1] = ['--replace-in-metadata', 'title', ENGAGEMENT_PREFIX_PATTERN, '']
 
     # Build a single generic 'ffmpeg:' postprocessor-args entry combining custom artist/album
     # metadata and any caller-supplied extras (e.g. M4A faststart), so they never overwrite.
