@@ -2,6 +2,15 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-09-12-1851] - fix: type the flat-probe result with a cast instead of a mypy-only ignore
+
+### Fixed
+- **`ty` no longer fails on `_extract_flat()`** (`funcs_video_info/metadata.py`). The yt-dlp stubs
+  type `extract_info()`'s result as the `_InfoDict` TypedDict, which is not assignable to the
+  function's `dict[str, Any] | None` return type. The line carried `# type: ignore[return-value]`,
+  a mypy error code that `ty` does not honour. It now returns `cast('dict[str, Any]', …)`, which
+  satisfies both checkers without a suppression. No behaviour change.
+
 ## [2026-09-08-1529] - fix: strip Facebook's "N views M reactions" title prefix
 
 ### Fixed

@@ -5,6 +5,16 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-09-12-1851] - Clear ty's false positive on the native-window Exit path
+
+### Fixed
+- **`ty` no longer fails on `window.destroy()` in `_delayed_shutdown()`** (`webapp/app.py`).
+  NiceGUI defines `WindowProxy` twice — the real `webview.Window` subclass and a method-less stub
+  used when pywebview is missing — and `ty` unions the two, so it reported `destroy` as unresolved.
+  `app.native.main_window` is only set in native mode, where the real class is used, so the call is
+  suppressed with a line-scoped `# ty: ignore[unresolved-attribute]` and a comment giving the
+  reason. No behaviour change.
+
 ## [2026-09-08-1342] - Listen on loopback by default
 
 ### Changed

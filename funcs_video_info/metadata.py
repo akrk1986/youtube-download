@@ -4,7 +4,7 @@ import logging
 import os
 import subprocess
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import yt_dlp
 
@@ -158,7 +158,8 @@ def _extract_flat(url: str, with_cookies: bool) -> dict[str, Any] | None:
     """
     ydl_opts = _build_flat_ydl_opts(with_cookies=with_cookies)
     with yt_dlp.YoutubeDL(params=ydl_opts) as ydl:  # type: ignore
-        return ydl.extract_info(url=url, download=False)  # type: ignore[return-value]
+        # The stubs type the result as the _InfoDict TypedDict, which is not assignable to dict[str, Any].
+        return cast('dict[str, Any]', ydl.extract_info(url=url, download=False))
 
 
 def _extract_flat_with_cookie_retry(url: str) -> dict[str, Any] | None:

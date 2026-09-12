@@ -358,7 +358,9 @@ async def _delayed_shutdown() -> None:
     logger.info('web app was terminated by user request')
     window = app.native.main_window
     if window is not None:
-        window.destroy()
+        # NiceGUI also defines a method-less WindowProxy stub for when pywebview is missing; ty unions
+        # both, but main_window is only ever set in native mode, where the real webview-backed class is used.
+        window.destroy()  # ty: ignore[unresolved-attribute]
         return
     app.shutdown()
 
