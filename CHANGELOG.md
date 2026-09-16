@@ -2,6 +2,17 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-09-16-1808] - fix: strip any run of Facebook views/reactions/shares counters
+
+### Fixed
+- **Facebook titles like `15K reactions · 3.2K shares | …` and `31 reactions | …` are now cleaned.**
+  The engagement-prefix rule required exactly `<count> views … <count> reactions …`, so these titles
+  kept their counters in the file name and title tag. `ENGAGEMENT_PREFIX_PATTERN` (`project_defs.py`)
+  now matches one or more `<count> <counter><separators>` groups in any order, where the counter is in
+  the new closed list `ENGAGEMENT_COUNTER_TYPES` (`view`, `reaction`, `share`, singular or plural). A
+  count followed by any other word is left alone. A genuine title starting with a listed counter
+  (`3 Views of Mount Fuji`) now loses it — an accepted trade-off.
+
 ## [2026-09-16-1742] - fix: keep subtitle extensions when sanitizing names; remove --json
 
 ### Fixed

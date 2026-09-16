@@ -1219,6 +1219,18 @@ class TestOutputFileNaming:
         assert 'views' not in template and 'reactions' not in template
         assert sanitized_title.startswith('Vasiliki Stefanou')
 
+    def test_build_output_template_strips_reactions_and_shares_prefix(self, tmp_path):
+        """A reactions + shares prefix (no views counter) is stripped from the file name too."""
+        from funcs_for_main_yt_dlp._download_common import _build_output_template
+
+        info = {'id': 'abc123', 'title': '15K reactions \u00b7 3.2K shares | Real Title', 'uploader': 'Page'}
+        with patch('funcs_for_main_yt_dlp._download_common.get_video_info', return_value=info):
+            template, sanitized_title = _build_output_template(opts=self._make_opts(),
+                                                               output_folder=tmp_path)
+
+        assert template == str(tmp_path / 'Real Title.%(ext)s')
+        assert sanitized_title == 'Real Title'
+
     def test_build_output_template_generic_title_behind_engagement_prefix(self, tmp_path):
         """The generic-title check sees the stripped title, so 'Video' still triggers the fallback."""
         from funcs_for_main_yt_dlp._download_common import _build_output_template

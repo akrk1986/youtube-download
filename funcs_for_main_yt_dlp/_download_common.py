@@ -82,9 +82,10 @@ def _get_download_retries() -> str:
 
 
 def _strip_engagement_prefix(title: str) -> str:
-    """Strip Facebook's leading '<count> views · <count> reactions |' run from a title.
+    """Strip Facebook's leading engagement counters ('17K views · 376 reactions |') from a title.
 
-    Both counters must be present, in that order; the trailing separators go with them. Returns the
+    One or more '<count> <counter>' groups are removed, in any order, when every counter is in
+    ENGAGEMENT_COUNTER_TYPES (views, reactions, shares); the trailing separators go with them. Returns the
     title unchanged when stripping would leave nothing behind, so the caller always has a non-empty
     name to work with.
 

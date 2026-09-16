@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for _strip_engagement_prefix (Facebook's '<n> views <m> reactions ' title prefix)."""
+"""Tests for _strip_engagement_prefix (Facebook's '<n> views <m> reactions <k> shares ' title prefix)."""
 import sys
 from pathlib import Path
 
@@ -17,7 +17,7 @@ FB_TITLE_MARIANNA = ('40K views · 1.4K reactions | Μαριάννα Παπαμ�
 
 
 class TestStripEngagementPrefix:
-    """Verify the '<count> views<sep><count> reactions<sep>' prefix is removed, and only that."""
+    """Verify leading '<count> <counter><sep>' groups (views/reactions/shares, any order) are removed."""
 
     def test_real_facebook_title(self):
         """The prefix goes and the real title survives from its first character."""
@@ -55,23 +55,58 @@ class TestStripEngagementPrefix:
         """An en-dash separator is consumed along with the prefix."""
         assert _strip_engagement_prefix(title='2.3M views · 4 reactions – Real Title') == 'Real Title'
 
-    def test_views_without_reactions_untouched(self):
-        """Both counters are required: a views-only prefix is left alone."""
-        title = '2.3M views | Only views here'
-        assert _strip_engagement_prefix(title=title) == title
+    def test_views_only(self):
+        """A single views counter is a prefix."""
+        assert _strip_engagement_prefix(title='2.3M views | Real Title') == 'Real Title'
 
-    def test_reactions_without_views_untouched(self):
-        """Both counters are required: a reactions-only prefix is left alone."""
-        title = '376 reactions | Only reactions'
-        assert _strip_engagement_prefix(title=title) == title
+    def test_reactions_only(self):
+        """A single reactions counter is a prefix."""
+        assert _strip_engagement_prefix(title='31 reactions | Real Title') == 'Real Title'
 
-    def test_genuine_title_starting_with_count_untouched(self):
-        """A real title that opens with a count and the word 'Views' is not a prefix."""
-        assert _strip_engagement_prefix(title='3 Views of Mount Fuji') == '3 Views of Mount Fuji'
+    def test_reactions_only_sanitized(self):
+        """A single counter with already-sanitized separators is stripped."""
+        assert _strip_engagement_prefix(title='31 reactions Real Title') == 'Real Title'
+
+    def test_reactions_and_shares(self):
+        """Reactions followed by shares, with no views counter, is a prefix."""
+        assert _strip_engagement_prefix(title='15K reactions · 3.2K shares | Real Title') == 'Real Title'
+
+    def test_reverse_order(self):
+        """Counters are recognised in any order."""
+        assert _strip_engagement_prefix(title='3.2K shares · 17K views | Real Title') == 'Real Title'
+
+    def test_three_counters(self):
+        """Three counters in a row are all removed."""
+        assert _strip_engagement_prefix(title='1K views · 20 reactions · 5 shares | Real Title') == 'Real Title'
+
+    def test_singular_share(self):
+        """Singular 'share' is recognised."""
+        assert _strip_engagement_prefix(title='1 share | Real Title') == 'Real Title'
+
+    def test_genuine_title_starting_with_listed_counter_is_stripped(self):
+        """Accepted trade-off: a real title opening with a listed counter loses it."""
+        assert _strip_engagement_prefix(title='3 Views of Mount Fuji') == 'of Mount Fuji'
+
+    def test_unlisted_counter_untouched(self):
+        """A count followed by a word outside the closed list is not a prefix."""
+        assert _strip_engagement_prefix(title='3 Likes and a Song') == '3 Likes and a Song'
+
+    def test_unlisted_counter_stops_the_run(self):
+        """Stripping stops at the first unlisted counter."""
+        assert _strip_engagement_prefix(title='15K reactions · 40 comments | Real Title') == \
+            '40 comments | Real Title'
+
+    def test_word_boundary_viewers_untouched(self):
+        """'viewers' is not 'views': the counter word must end at a word boundary."""
+        assert _strip_engagement_prefix(title='2 viewers and a Song') == '2 viewers and a Song'
+
+    def test_word_boundary_shared_untouched(self):
+        """'shared' is not 'share'."""
+        assert _strip_engagement_prefix(title='3 shared memories') == '3 shared memories'
 
     def test_counters_not_leading_untouched(self):
         """Counters that are not at the start of the title are left alone."""
-        title = 'My video: 100 views of the sunset'
+        title = 'My video: 100 reactions and 3 shares'
         assert _strip_engagement_prefix(title=title) == title
 
     def test_plain_title_unchanged(self):
