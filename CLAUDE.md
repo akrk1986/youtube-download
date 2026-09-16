@@ -351,11 +351,15 @@ The project uses a strategy pattern for handling different audio formats:
 `_build_output_template()` (`funcs_for_main_yt_dlp/_download_common.py`) names single-video
 downloads. Three rules shape the name:
 
-- `_strip_engagement_prefix()` removes Facebook's `<count> views<sep><count> reactions<sep>` title
-  prefix (`ENGAGEMENT_PREFIX_PATTERN` in `project_defs.py`). It runs **before** `sanitize_string()`,
-  so the 64-char truncation applies to real title text, and **before** the generic-title check, so
-  `17K views · 3 reactions | Video` still counts as generic. Both counters are required in that
-  order, which leaves a genuine `3 Views of Mount Fuji` alone; a comment/share count would survive.
+- `_strip_engagement_prefix()` removes Facebook's engagement-count title prefix
+  (`ENGAGEMENT_PREFIX_PATTERN` in `project_defs.py`): one or more `<count> <counter><sep>` groups at
+  the start, in any order (`17K views · 376 reactions |`, `15K reactions · 3.2K shares |`,
+  `31 reactions |`). The counter must be in the closed list `ENGAGEMENT_COUNTER_TYPES`
+  (`view`/`reaction`/`share`, optional plural `s`) — extend it there; any other word (`3 Likes …`,
+  `40 comments`) ends the prefix. Accepted trade-off: a genuine `3 Views of Mount Fuji` loses
+  `3 Views`. It runs **before** `sanitize_string()`, so the 64-char truncation applies to real title
+  text, and **before** the generic-title check, so `17K views · 3 reactions | Video` still counts as
+  generic.
   The same pattern goes to yt-dlp as `--replace-in-metadata title <pattern> ''` (skipped when
   `--title` is given, whose `.+` rule already overwrites the field) so the embedded title tag is
   cleaned too — and being a `pre_process` rule, it also cleans a playlist's `%(title)s` name.
