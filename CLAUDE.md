@@ -110,8 +110,8 @@ The project requires:
 # List chapters and create the segments CSV (downloads full video, then stops)
 ./main-yt-dlp.py --list-chapters manual "https://youtube.com/watch?v=..."
 
-# With subtitles and JSON metadata
-./main-yt-dlp.py --with-audio --subs --json "URL"
+# With subtitles
+./main-yt-dlp.py --with-audio --subs "URL"
 
 # With custom title, artist, and album (single videos only)
 ./main-yt-dlp.py --only-audio --title "Custom Title" --artist "Artist Name" --album "Album" "URL"

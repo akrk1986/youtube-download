@@ -47,8 +47,8 @@ python webapp-yt-dlp.py --port 9000       # or WEBAPP_PORT=9000 (precedence: CLI
 ```
 usage: main-yt-dlp.py [-h] [--audio-format AUDIO_FORMAT]
                       [--video-download-timeout VIDEO_DOWNLOAD_TIMEOUT]
-                      [--subs] [--json] [--no-log-file] [--progress]
-                      [--verbose] [--show-urls] [--rerun] [--title TITLE]
+                      [--subs] [--no-log-file] [--progress] [--verbose]
+                      [--show-urls] [--rerun] [--title TITLE]
                       [--artist ARTIST] [--album ALBUM]
                       [--list-chapters {json,manual}] [--version]
                       [--with-audio | --only-audio | --ertflix-program]
@@ -71,8 +71,6 @@ options:
                         If not specified, uses defaults: 300s for YouTube/Facebook, 3600s for other sites
 
   --subs                Download subtitles in Greek, English, and Hebrew (converted to SRT)
-
-  --json                Write video metadata to JSON file using yt-dlp's --write-info-json
 
   --no-log-file         Disable logging to file (logs only to console)
                         By default, logs are written to Logs/yt-dlp_YYYYMMDD_HHMMSS.log
@@ -129,8 +127,7 @@ audio extraction mode (mutually exclusive):
   - `json` - use yt-dlp's native chapters.
   - `manual` - parse a title-first numbered tracklist from the description (`NN. Title  START - END`). This recovers segments that YouTube's auto-chapters drop when start times overlap or are out of order, and uses the description's authored boundaries. Falls back to `json` (with a warning) if no tracklist is found.
   - CSV hygiene (both modes): song titles drop a leading `NN.` track number and trailing periods; identical names get a unique `name(01)` suffix and are marked `SKIP` in the comment column (so recurring interview breaks are skipped downstream); the year is filled only in the first row.
-- `--subs` - Downloads subtitles in Greek (el), English (en), and Hebrew (he), converted to SRT format
-- `--json` - Saves complete video metadata in JSON format alongside the downloaded file
+- `--subs` - Downloads subtitles in Greek (el), English (en), and Hebrew (he), converted to SRT format and named `<video name>.<lang>.srt` to pair with the video
 
 **Performance & Timeout:**
 - `--video-download-timeout` - Override default timeout for video downloads (in seconds)
@@ -275,9 +272,9 @@ You can choose one or more output audio formats using comma-separated values:
 # Creates: yt-chapters/segments-hms-full.txt + downloads the full video, then stops
 ```
 
-### Download with subtitles and JSON metadata
+### Download with subtitles
 ```bash
-./main-yt-dlp.py --with-audio --subs --json "https://youtube.com/watch?v=VIDEO_ID"
+./main-yt-dlp.py --with-audio --subs "https://youtube.com/watch?v=VIDEO_ID"
 ```
 
 ### Download playlist with multiple audio formats
