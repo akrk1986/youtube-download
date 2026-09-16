@@ -95,5 +95,4 @@ GLOB_FLAC_FILES_UPPER = '*.FLAC'
 GLOB_MP4_FILES = '*.mp4'
 
 # yt-dlp command-line flags
-YT_DLP_WRITE_JSON_FLAG = '--write-info-json'
 YT_DLP_IS_PLAYLIST_FLAG = '--yes-playlist'

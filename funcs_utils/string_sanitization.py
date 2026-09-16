@@ -9,6 +9,11 @@ from project_defs import LEADING_NONALNUM_PATTERN, MULTIPLE_SPACES_PATTERN
 # Regex: remove leading non-alphanumeric characters (English+Greek+Hebrew+French+Turkish), including spaces
 pattern = re.compile(LEADING_NONALNUM_PATTERN)
 
+# Subtitle files written by yt-dlp are named '<stem>.<lang>.<ext>' (e.g. 'Title.el.srt')
+SUBTITLE_EXTENSIONS = {'srt', 'vtt', 'ass'}
+# Language tag of a subtitle file: 'el', 'en-US', 'pt-BR', 'zh-Hans' (primary subtag lowercase)
+SUBTITLE_LANG_PATTERN = re.compile(r'^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$')
+
 
 def sanitize_string(dirty_string: str) -> str:
     """
@@ -18,19 +23,27 @@ def sanitize_string(dirty_string: str) -> str:
     3. Removing leading unwanted characters and spaces
     4. Compressing multiple spaces into one
     5. Removing trailing spaces before file extension
+
+    Subtitle files keep their language tag ('Title.el.srt'), and their stem is truncated to the same
+    length as a media file's, so the subtitle still pairs with its video after the rename.
     """
     if not dirty_string:
         return dirty_string
 
     # Supported file extensions (case-insensitive)
-    valid_extensions = {'mp4', 'wmv', 'mkv', 'mp3', 'm4a', 'flac', 'webm', 'avi', 'mov', 'txt'}
+    valid_extensions = {'mp4', 'wmv', 'mkv', 'mp3', 'm4a', 'flac', 'webm', 'avi', 'mov', 'txt'} | SUBTITLE_EXTENSIONS
 
     # Split filename and extension using the last '.'
     # Only treat as extension if it's a supported format
+    lang_tag = ''
     if '.' in dirty_string:
         name_part, extension = dirty_string.rsplit('.', 1)
         if extension.lower() in valid_extensions:
             has_extension = True
+            if extension.lower() in SUBTITLE_EXTENSIONS and '.' in name_part:
+                stem, candidate_tag = name_part.rsplit('.', 1)
+                if SUBTITLE_LANG_PATTERN.match(candidate_tag):
+                    name_part, lang_tag = stem, candidate_tag
         else:
             # Not a valid extension, treat as part of basename
             name_part = dirty_string
@@ -95,7 +108,9 @@ def sanitize_string(dirty_string: str) -> str:
         if len(name_part) > max_filename_length:
             name_part = name_part[:max_filename_length].rstrip()
 
-    # Reconstruct filename
+    # Reconstruct filename (the language tag sits outside the length budget, keeping the stem aligned with the video)
+    if lang_tag:
+        extension = f'{lang_tag}.{extension}'
     if has_extension and name_part:
         return f'{name_part}.{extension}'
     if has_extension:

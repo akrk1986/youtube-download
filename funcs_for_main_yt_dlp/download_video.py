@@ -12,7 +12,6 @@ from funcs_for_main_yt_dlp._download_common import (
 )
 from funcs_utils import is_format_error, sanitize_url_for_subprocess, warn_if_auth_error
 from funcs_video_info import get_timeout_for_url
-from project_defs import YT_DLP_WRITE_JSON_FLAG
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,7 @@ VIDEO_FORMAT_FALLBACKS = [
 ]
 
 
-def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, write_json: bool) -> None:
+def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool) -> None:
     """Extract videos from video URL with yt-dlp. Include subtitles if requested."""
     # Security: Validate URL before passing to subprocess
     sanitized_url = sanitize_url_for_subprocess(url=opts.url)
@@ -54,8 +53,6 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool, 
     _append_common_flags(cmd=base_cmd, opts=opts, sanitized_title=sanitized_title)
 
     # Add video-specific flags
-    if write_json:
-        base_cmd[1:1] = [YT_DLP_WRITE_JSON_FLAG]
     if get_subs:
         # Extract subtitles in Greek, English, Hebrew
         base_cmd[1:1] = [

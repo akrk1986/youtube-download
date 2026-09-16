@@ -51,7 +51,6 @@ def parse_arguments(argv: list[str] | None = None, version: str = '') -> argpars
                         help='Timeout in seconds for video downloads. If specified, applies to all sites. '
                              'If not specified, uses defaults: 300s for YouTube/Facebook, 3600s for other sites')
     parser.add_argument('--subs', action='store_true', help='Download subtitles')
-    parser.add_argument('--json', action='store_true', help='Write JSON file')
     parser.add_argument('--no-log-file', action='store_true', help='Disable logging to file')
     parser.add_argument('--progress', action='store_true',
                         help='Show yt-dlp progress bar and log output to Logs/yt-dlp.log')

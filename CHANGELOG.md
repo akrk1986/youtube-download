@@ -2,6 +2,21 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-09-16-1742] - fix: keep subtitle extensions when sanitizing names; remove --json
+
+### Fixed
+- **Subtitle files no longer lose their extension after download.** `sanitize_string()`
+  (`funcs_utils/string_sanitization.py`) only recognised media extensions, so `--subs` output such as
+  `<title>.el.srt` was treated as extensionless and truncated to 64 characters, leaving a bare
+  `…Rebetiko Vol.5` file in `yt-videos/`. `srt`, `vtt` and `ass` are now recognised, the language tag
+  (`el`, `en-US`, …) is kept, and the stem is truncated against the final extension only, so the
+  subtitle keeps the same stem as its `.mp4` and players still pair them.
+
+### Removed
+- **The `--json` option** (yt-dlp `--write-info-json`) and the `YT_DLP_WRITE_JSON_FLAG` constant. No
+  code read the written `.info.json`; chapter handling gets its metadata in memory via
+  `get_video_info()`. `run_yt_dlp()` drops its `write_json` parameter.
+
 ## [2026-09-12-1851] - fix: type the flat-probe result with a cast instead of a mypy-only ignore
 
 ### Fixed

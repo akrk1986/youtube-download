@@ -32,7 +32,6 @@ class TestParseArguments:
         assert args.video_url is None
         assert args.audio_format == DEFAULT_AUDIO_FORMAT
         assert args.subs is False
-        assert args.json is False
         assert args.no_log_file is False
         assert args.progress is False
         assert args.verbose is False

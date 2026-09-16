@@ -27,6 +27,15 @@ def test_sanitize_string():
         ('filename', 'filename', 'No extension'),
         ('', '', 'Empty string'),
         ('.txt', 'untitled.txt', 'Extension only'),
+        ('Song ｜ Artist.el.srt', 'Song Artist.el.srt', 'Subtitle keeps language tag and extension'),
+        ('Song.en-US.vtt', 'Song.en-US.vtt', 'Subtitle with region language tag'),
+        ('Rebetiko Vol.5.srt', 'Rebetiko Vol.5.srt', 'Subtitle without language tag'),
+        ('Πέντε χρόνια δικασμένος ｜ Αρετή Κετιμέ ｜ Greek Music ｜ Rebetiko Vol.5 Zourna.el.srt',
+         'Πέντε χρόνια δικασμένος Αρετή Κετιμέ Greek Music Rebetiko Vo.el.srt',
+         'Long subtitle name truncated to the same stem as its video'),
+        ('Πέντε χρόνια δικασμένος ｜ Αρετή Κετιμέ ｜ Greek Music ｜ Rebetiko Vol.5 Zourna.mp4',
+         'Πέντε χρόνια δικασμένος Αρετή Κετιμέ Greek Music Rebetiko Vo.mp4',
+         'Long video name (stem must match the subtitle above)'),
     ]
 
     print('Testing sanitize_string function:')

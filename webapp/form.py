@@ -86,7 +86,6 @@ class FormView:  # pylint: disable=too-many-instance-attributes
             _section('Options')
             with ui.row().classes('gap-4'):
                 self._subs = ui.checkbox('Subtitles')
-                self._json = ui.checkbox('Write JSON')
                 self._progress = ui.checkbox('Progress bar')
                 self._verbose = ui.checkbox('Verbose')
                 self._rerun = ui.checkbox('Re-run last URL')
@@ -143,7 +142,6 @@ class FormView:  # pylint: disable=too-many-instance-attributes
         self._artist.value = params.artist
         self._album.value = params.album
         self._subs.value = params.subs
-        self._json.value = params.write_json
         self._progress.value = params.progress
         self._verbose.value = params.verbose
         self._rerun.value = params.rerun
@@ -174,7 +172,6 @@ class FormView:  # pylint: disable=too-many-instance-attributes
             mode=str(self._mode.value),
             audio_format=str(self._fmt.value),
             subs=bool(self._subs.value),
-            write_json=bool(self._json.value),
             progress=bool(self._progress.value),
             verbose=bool(self._verbose.value),
             rerun=bool(self._rerun.value),

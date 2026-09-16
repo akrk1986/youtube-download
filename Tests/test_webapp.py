@@ -157,11 +157,10 @@ def test_video_only_rerun_uses_current_timeout_flag() -> None:
 def test_chapters_and_flags() -> None:
     """list_chapters and the boolean flags appear only when set."""
     argv, _ = build_command(
-        params=_download(mode='video-only', list_chapters='manual', progress=True,
-                         write_json=True, verbose=True),
+        params=_download(mode='video-only', list_chapters='manual', progress=True, verbose=True),
         repo_root=REPO_ROOT)
     assert argv[argv.index('--list-chapters') + 1] == 'manual'
-    assert {'--progress', '--json', '--verbose'} <= set(argv)
+    assert {'--progress', '--verbose'} <= set(argv)
 
 
 def test_linter_preset_targets_run_linters() -> None:

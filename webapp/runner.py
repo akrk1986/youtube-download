@@ -31,7 +31,6 @@ class DriverParams:  # pylint: disable=too-many-instance-attributes
     mode: str = 'video-only'  # 'with-audio' | 'only-audio' | 'ertflix-program' | 'video-only'
     audio_format: str = 'm4a'
     subs: bool = False
-    write_json: bool = False
     progress: bool = False
     verbose: bool = False
     rerun: bool = False
@@ -84,9 +83,8 @@ def _download_argv(params: DriverParams) -> list[str]:
         argv.append(mode_flag)
     if params.mode in ('with-audio', 'only-audio'):
         argv += ['--audio-format', params.audio_format]
-    for flag, enabled in (('--subs', params.subs), ('--json', params.write_json),
-                          ('--progress', params.progress), ('--verbose', params.verbose),
-                          ('--rerun', params.rerun)):
+    for flag, enabled in (('--subs', params.subs), ('--progress', params.progress),
+                          ('--verbose', params.verbose), ('--rerun', params.rerun)):
         if enabled:
             argv.append(flag)
     for flag, value in (('--title', params.title), ('--artist', params.artist),

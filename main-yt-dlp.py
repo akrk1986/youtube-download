@@ -45,7 +45,7 @@ except ImportError:
     pass
 
 # Version corresponds to the latest changelog entry timestamp
-VERSION = '2026-09-08-1529'
+VERSION = '2026-09-16-1742'
 
 logger = logging.getLogger(__name__)
 
@@ -324,7 +324,7 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
 
     # Download videos if requested
     if not args.only_audio:
-        run_yt_dlp(opts=download_opts, video_folder=video_folder, get_subs=args.subs, write_json=args.json)
+        run_yt_dlp(opts=download_opts, video_folder=video_folder, get_subs=args.subs)
         if args.list_chapters:
             logger.info('--list-chapters: chapters CSV created and video downloaded. Done.')
             return
@@ -383,7 +383,6 @@ def main() -> None:
         'list_chapters': args.list_chapters,
         'video_download_timeout': args.video_download_timeout,
         'subs': args.subs,
-        'json': args.json,
         'with_audio': args.with_audio,
         'only_audio': args.only_audio,
         'title': args.title,

@@ -5,6 +5,12 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-09-16-1742] - Remove the Write JSON option
+
+### Removed
+- **The "Write JSON" checkbox** (`webapp/form.py`) and the `write_json` field of `DriverParams`
+  (`webapp/runner.py`), following the removal of `main-yt-dlp.py`'s `--json` option.
+
 ## [2026-09-12-1851] - Clear ty's false positive on the native-window Exit path
 
 ### Fixed
