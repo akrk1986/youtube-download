@@ -90,6 +90,29 @@ Gmail labels track progress. A qualifying mail gets `yt-queue`, and after its do
 
 `main-yt-dlp.py` runs once per URL. Only the first run shows the linter-freshness prompt; the rest get `LINTER_GATE=off`.
 
+### Summary Block
+
+Every run ends with a summary, so the counts aren't buried in the `main-yt-dlp.py` output:
+
+```
+Summary:
+  Mails scanned:     14
+  Mails accepted:    6
+  URLs found:        6
+  Candidates file:   .../yt-queue/dl-candidates-2026-10-07-1822.txt
+  URLs downloaded:   5 of 6
+  Mails marked done: 5 of 6
+  Failed:            1
+    https://youtube.com/watch?v=...
+```
+
+- **`--from-mail --download`** shows all the lines above. `Failed:` lists each failed URL on its own line, or reads `(none)`. A failed mail keeps `yt-queue`, so the next run retries it.
+- **`--dry-run`, or `--from-mail` without `--download`**, ends at `Candidates file:` followed by `Downloads: skipped (--dry-run)` or `skipped (no --download)`. There's no Failed line.
+- **No qualifying mails** shows just the scanned, accepted and URLs-found counts.
+- **`--url-file`** shows the URL file, URLs found, URLs downloaded and the failures.
+
+The exit code is 1 when any download failed, and 0 otherwise.
+
 ## Loudness Boost Suggester (`Utils/main-suggest-boost.py`)
 
 Measures a URL's integrated loudness (EBU R128, via ffmpeg's `ebur128` filter) and suggests an `FFMPEG_OPTS` `volume=` factor that would bring it up to the loudness of a local baseline file. The suggestion pairs with the `FFMPEG_OPTS` environment variable supported by `main-yt-dlp.py`. For a single video (or any non-YouTube URL) it prints a baseline / measured / suggestion block; for a YouTube playlist it prints one row per entry as each measurement completes (the baseline is measured once). If the target is already at/above the baseline, the suggestion is the literal `no boost`.
