@@ -86,32 +86,54 @@ Gmail labels track progress. A qualifying mail gets `yt-queue`, and after its do
 | `--out-file PATH` | Where to write the found URLs (default: `yt-queue/dl-candidates-<timestamp>.txt`) |
 | `--sender ADDRESS` | Accept mails from this address (repeatable) |
 | `--queue-label` / `--done-label` | Label names (default `yt-queue` / `yt-done`; created on first use) |
-| `--verbose`, `-v` | DEBUG logging |
+| `--verbose`, `-v` | Show the full output of each `main-yt-dlp.py` run, and enable DEBUG logging |
 
-`main-yt-dlp.py` runs once per URL. Only the first run shows the linter-freshness prompt; the rest get `LINTER_GATE=off`.
+### Download Output
 
-### Summary Block
-
-Every run ends with a summary, so the counts aren't buried in the `main-yt-dlp.py` output:
+`main-yt-dlp.py` runs once per URL. Its output is hidden by default; each URL gets a start line and a result line:
 
 ```
-Summary:
-  Mails scanned:     14
-  Mails accepted:    6
-  URLs found:        6
-  Candidates file:   .../yt-queue/dl-candidates-2026-10-07-1822.txt
-  URLs downloaded:   5 of 6
-  Mails marked done: 5 of 6
-  Failed:            1
+[2/15] Downloading https://youtube.com/watch?v=...
+[2/15] Done in 1m 14s
+```
+
+When a download fails, the last 20 lines of its output are logged, so the cause (often a temporary YouTube `HTTP Error 403: Forbidden`) is visible. `--verbose` shows the full output of every run instead.
+
+The linter-freshness check (the `Exit now and run the linters? [Y/n]` prompt) runs once in the fetcher, before the first download. Every `main-yt-dlp.py` run then gets `LINTER_GATE=off`, so no prompt can wait on hidden output.
+
+### Summary Blocks
+
+Two summary blocks bracket the downloads. The first is logged **before** any download starts:
+
+```
+Scan summary:
+  Mails scanned:      23
+  Mails accepted:     15
+  Videos to download: 15
+  Candidates file:    .../yt-queue/dl-candidates-2026-10-07-2050.txt
+15 mails found, 15 videos will be downloaded
+```
+
+The second is logged **after** the downloads end:
+
+```
+Download summary:
+  Videos downloaded: 11 of 15
+  Mails marked done: 11 of 15
+  Failed:            4
     https://youtube.com/watch?v=...
 ```
 
-- **`--from-mail --download`** shows all the lines above. `Failed:` lists each failed URL on its own line, or reads `(none)`. A failed mail keeps `yt-queue`, so the next run retries it.
-- **`--dry-run`, or `--from-mail` without `--download`**, ends at `Candidates file:` followed by `Downloads: skipped (--dry-run)` or `skipped (no --download)`. There's no Failed line.
-- **No qualifying mails** shows just the scanned, accepted and URLs-found counts.
-- **`--url-file`** shows the URL file, URLs found, URLs downloaded and the failures.
+- **`--dry-run`, or `--from-mail` without `--download`**, logs only the first block. It still shows the real video count, adds `Downloads: skipped (dry run)` or `skipped (no --download)`, and ends with `… would be downloaded (dry run)`.
+- **No qualifying mails** logs only the scanned, accepted and videos-to-download counts.
+- **`--url-file`** logs a `URL file summary` block (the file and the video count), then the same `Download summary` without the mail line.
+- `Failed:` lists each failed URL on its own line, or reads `(none)`. A failed mail keeps `yt-queue`, so the next run retries it.
 
 The exit code is 1 when any download failed, and 0 otherwise.
+
+### Retrying Failed Downloads
+
+`main-yt-dlp.py` never overwrites an existing file; it saves under the same name plus the video ID. So when a `--with-audio` download got its MP4 but failed on the audio, retrying with `--with-audio` creates a second MP4. If every queued mail already has its MP4, retry with `--only-audio` instead: it fetches just the M4A and still labels the mails `yt-done`.
 
 ## Loudness Boost Suggester (`Utils/main-suggest-boost.py`)
 
