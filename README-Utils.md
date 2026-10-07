@@ -9,6 +9,7 @@ Change history for the remaining utilities lives in [CHANGELOG-Utils.md](CHANGEL
 ## Contents
 
 - [URL Extraction Utility](#url-extraction-utility) — `Tests/main-test-url-extraction.py`
+- [Mail Link Fetcher](#mail-link-fetcher-utilsmain-fetch-mail-urlspy) — `Utils/main-fetch-mail-urls.py`
 - [Loudness Boost Suggester](#loudness-boost-suggester-utilsmain-suggest-boostpy) — `Utils/main-suggest-boost.py`
 - [Trello → Artists JSON](#trello--artists-json-utilsmain-get-artists-from-trellopy) — `Utils/main-get-artists-from-trello.py`
 
@@ -50,6 +51,44 @@ Found 5 URL(s) in my-urls.txt:
 **Note**: URLs from other domains (GitHub, Google, etc.) are automatically filtered out.
 
 For more details, see [URL Validation Summary](Docs/URL-VALIDATION-SUMMARY.md).
+
+## Mail Link Fetcher (`Utils/main-fetch-mail-urls.py`)
+
+Downloads the Facebook/YouTube videos you mail to yourself, so you don't have to open each mail and paste its link into the web app. It reads the Gmail inbox of the `GMAIL_PARAMS` account (`git_excluded.py`) over IMAP with the same App Password used for notifications, so no new credentials are needed.
+
+A mail qualifies when both of these hold (the subject is not checked):
+1. It is from an allowed sender. By default these are `recipient_email` and `sender_email` of `GMAIL_PARAMS`; `--sender` (repeatable) overrides the list.
+2. Its body is exactly one non-blank line holding a FB/YT video URL. Signatures (any line starting with `-- ` and what follows it) don't count. Forwarded mails work too: the `---------- Forwarded message ---------` header block is dropped, and mails forwarded several at once (as attachments) are each checked.
+
+Gmail labels track progress. A qualifying mail gets `yt-queue`, and after its download succeeds it moves to `yt-done`. Mails that don't qualify are never labelled. Mails labelled `yt-done` are not scanned again, while `yt-queue` mails are, so a failed download is retried on the next run.
+
+### Usage
+
+```bash
+# List qualifying mails and write yt-queue/dl-candidates-<timestamp>.txt (no downloads, no label changes)
+./Utils/main-fetch-mail-urls.py --from-mail --dry-run
+
+# Label, download, and mark done; unknown flags go to main-yt-dlp.py
+./Utils/main-fetch-mail-urls.py --from-mail --download --only-audio
+
+# Download every URL in a .txt/.odt file (e.g. a dl-candidates file); no mail access
+./Utils/main-fetch-mail-urls.py --url-file yt-queue/dl-candidates-2026-10-07-1750.txt --only-audio
+```
+
+### Arguments
+
+| Argument | Description |
+|---|---|
+| `--from-mail` | Scan the Gmail inbox for qualifying mails (one of `--from-mail` / `--url-file` is required) |
+| `--url-file PATH` | Download every URL in this `.txt`/`.odt` file |
+| `--download` | With `--from-mail`: download the found URLs and label each mail `yt-done` on success |
+| `--dry-run` | With `--from-mail`: write the dl-candidates file, but download nothing and change no labels |
+| `--out-file PATH` | Where to write the found URLs (default: `yt-queue/dl-candidates-<timestamp>.txt`) |
+| `--sender ADDRESS` | Accept mails from this address (repeatable) |
+| `--queue-label` / `--done-label` | Label names (default `yt-queue` / `yt-done`; created on first use) |
+| `--verbose`, `-v` | DEBUG logging |
+
+`main-yt-dlp.py` runs once per URL. Only the first run shows the linter-freshness prompt; the rest get `LINTER_GATE=off`.
 
 ## Loudness Boost Suggester (`Utils/main-suggest-boost.py`)
 

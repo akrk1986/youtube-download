@@ -648,6 +648,7 @@ The `capture-working-play-click.js` script provides:
 The helper scripts that stay with the download pipeline are documented in **[README-Utils.md](README-Utils.md)**:
 
 - **URL Extraction Utility** (`Tests/main-test-url-extraction.py`) — extract valid video URLs from text/ODF documents
+- **Mail Link Fetcher** (`Utils/main-fetch-mail-urls.py`) — download the FB/YouTube links you mail to yourself (Gmail over IMAP, labels track what's done)
 - **Loudness Boost Suggester** (`Utils/main-suggest-boost.py`) — measure a URL's loudness and suggest an `FFMPEG_OPTS` boost
 - **Trello → Artists JSON** (`Utils/main-get-artists-from-trello.py`) — rebuild `Data/artists.json` from a Trello export
 
@@ -838,7 +839,7 @@ The tool includes specialized functionality for Greek music:
 - Shared audio/video helpers (tag handlers, notifications, ffmpeg/probe/tags, `remove_diacritics`, `setup_logging`) live in the sibling `common-av-codebase` package (`common_av`)
 - `Data/artists.json` - Greek artists database (exported from Trello)
 - `Tests/` - Pytest tests and E2E test framework
-- `Utils/` - Remaining utility scripts (`main-suggest-boost.py`, `main-get-artists-from-trello.py`) — documented in [README-Utils.md](README-Utils.md). The audio/dedupe/qBittorrent utilities moved to the sibling `av-utils` project.
+- `Utils/` - Remaining utility scripts (`main-fetch-mail-urls.py`, `main-suggest-boost.py`, `main-get-artists-from-trello.py`) — documented in [README-Utils.md](README-Utils.md). The audio/dedupe/qBittorrent utilities moved to the sibling `av-utils` project.
 - `Tests-Standalone/` - Standalone test scripts and utilities
 - `Docs/` - Documentation files
 - `Beta/` - Experimental features (excluded from global changes)
