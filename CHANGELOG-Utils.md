@@ -2,6 +2,11 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-10-07-1830] - fetch-mail-urls: closing summary block
+
+### Added
+- **`Utils/main-fetch-mail-urls.py` ends every run with a summary block**: mails scanned/accepted, URLs found, the candidates file, URLs downloaded (`X of N`), mails marked done, and the failed URLs one per line. Dry runs and runs without `--download` show `Downloads: skipped (...)` and no Failed line. `--url-file` runs show the file, URLs found/downloaded and the failures. Previously the counts were split between a line after the scan and a line after all the `main-yt-dlp.py` output, and failed URLs weren't repeated at the end.
+
 ## [2026-10-07-1808] - New fetch-mail-urls utility: download links mailed to yourself
 
 ### Added

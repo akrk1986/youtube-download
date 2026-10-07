@@ -42,7 +42,7 @@ try:
 except ImportError:
     pass
 
-VERSION = '2026-10-07-1808'
+VERSION = '2026-10-07-1830'
 DRIVER_SCRIPT = _PROJECT_ROOT / 'main-yt-dlp.py'
 CANDIDATES_DIR = _PROJECT_ROOT / 'yt-queue'
 
@@ -135,6 +135,28 @@ def _download(url: str, passthrough_args: list[str], gate: bool) -> bool:
     return completed.returncode == 0
 
 
+def _log_summary(rows: list[tuple[str, str]], failed_urls: list[str] | None) -> None:
+    """Log the closing summary block: one aligned line per row, then the failed URLs.
+
+    Args:
+        rows: (label, value) pairs, in display order.
+        failed_urls: The URLs whose download failed (listed one per line; '(none)' when empty), or
+            None when no downloads ran (the Failed line is then omitted).
+    """
+    width = max(len(label) for label, _ in rows + [('Failed', '')]) + 1
+    logger.info('Summary:')
+    for label, value in rows:
+        logger.info(f'  {label + ":":<{width}} {value}')
+    if failed_urls is None:
+        return
+    if not failed_urls:
+        logger.info(f'  {"Failed:":<{width}} (none)')
+        return
+    logger.info(f'  {"Failed:":<{width}} {len(failed_urls)}')
+    for url in failed_urls:
+        logger.info(f'    {url}')
+
+
 def _run_from_mail(args: argparse.Namespace, passthrough_args: list[str]) -> int:
     """Scan the inbox, write the candidates file, and optionally download + relabel.
 
@@ -167,24 +189,33 @@ def _run_from_mail(args: argparse.Namespace, passthrough_args: list[str]) -> int
     _log_scan_results(results=results)
     urls_by_uid = {r.uid: r.urls for r in results if r.urls}
     all_urls = list(dict.fromkeys(url for urls in urls_by_uid.values() for url in urls))
+    rows = [('Mails scanned', str(len(results))), ('Mails accepted', str(len(urls_by_uid))),
+            ('URLs found', str(len(all_urls)))]
     if not all_urls:
         logger.info('No qualifying mails found')
+        _log_summary(rows=rows, failed_urls=None)
         return 0
 
     timestamp = arrow.now().format('YYYY-MM-DD-HHmm')
     out_file = args.out_file or CANDIDATES_DIR / f'dl-candidates-{timestamp}.txt'
     _write_candidates(urls=all_urls, out_file=out_file)
+    rows.append(('Candidates file', str(out_file)))
 
-    if args.dry_run:
-        if args.download:
+    if args.dry_run or not args.download:
+        reason = '--dry-run' if args.dry_run else 'no --download'
+        if args.dry_run and args.download:
             logger.info('--dry-run: skipping the downloads')
-        return 0
-    if not args.download:
+        rows.append(('Downloads', f'skipped ({reason})'))
+        _log_summary(rows=rows, failed_urls=None)
         return 0
 
+    accepted = len(urls_by_uid)
     succeeded: set[str] = set()
+    failed_urls: list[str] = []
+    marked_done = 0
     for idx, url in enumerate(all_urls):
         if not _download(url=url, passthrough_args=passthrough_args, gate=idx == 0):
+            failed_urls.append(url)
             continue
         succeeded.add(url)
         # Relabel each mail as soon as all of its URLs are downloaded. A fresh connection per
@@ -198,10 +229,13 @@ def _run_from_mail(args: argparse.Namespace, passthrough_args: list[str]) -> int
             for uid in done_uids:
                 mark_done(imap=imap, uid=uid, **labels)
                 del urls_by_uid[uid]
+                marked_done += 1
         finally:
             imap.logout()
-    logger.info(f'Downloaded {len(succeeded)} of {count_noun(len(all_urls), "URL")}')
-    return 0 if len(succeeded) == len(all_urls) else 1
+    rows += [('URLs downloaded', f'{len(succeeded)} of {len(all_urls)}'),
+             ('Mails marked done', f'{marked_done} of {accepted}')]
+    _log_summary(rows=rows, failed_urls=failed_urls)
+    return 1 if failed_urls else 0
 
 
 def _run_from_file(url_file: Path, passthrough_args: list[str]) -> int:
@@ -223,10 +257,12 @@ def _run_from_file(url_file: Path, passthrough_args: list[str]) -> int:
         logger.info(f"No URLs found in '{url_file}'")
         return 0
     logger.info(f"Found {count_noun(len(urls), 'URL')} in '{url_file}'")
-    failed = sum(not _download(url=url, passthrough_args=passthrough_args, gate=idx == 0)
-                 for idx, url in enumerate(urls))
-    logger.info(f'Downloaded {len(urls) - failed} of {count_noun(len(urls), "URL")}')
-    return 1 if failed else 0
+    failed_urls = [url for idx, url in enumerate(urls)
+                   if not _download(url=url, passthrough_args=passthrough_args, gate=idx == 0)]
+    _log_summary(rows=[('URL file', str(url_file)), ('URLs found', str(len(urls))),
+                       ('URLs downloaded', f'{len(urls) - len(failed_urls)} of {len(urls)}')],
+                 failed_urls=failed_urls)
+    return 1 if failed_urls else 0
 
 
 def main() -> int:
