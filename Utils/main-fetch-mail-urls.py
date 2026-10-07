@@ -13,13 +13,17 @@ Two input modes:
 - ``--url-file``: downloads every URL found in a .txt/.odt file (e.g. a dl-candidates file).
 
 Unknown flags (``--only-audio``, ``--audio-format mp3``, ...) are forwarded to ``main-yt-dlp.py``,
-which is run once per URL.
+which is run once per URL. Its output is hidden (only a one-line result per URL, plus the tail of the
+output when a download fails) unless ``--verbose`` is given. A first summary block (what was found,
+how many videos will be downloaded) is logged before the downloads start, a second one (the download
+results) after they end.
 """
 import argparse
 import logging
 import os
 import subprocess  # nosec B404
 import sys
+import time
 from pathlib import Path
 
 import arrow
@@ -31,6 +35,8 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 # pylint: disable=wrong-import-position
 from common_av.text import count_noun  # noqa: E402
+from common_linters.watch_state import gate_on_linter_freshness  # noqa: E402
+from funcs_for_main_yt_dlp import format_elapsed_time  # noqa: E402
 from funcs_utils import sanitize_url_for_subprocess, setup_logging  # noqa: E402
 from funcs_utils.mail_urls import (MAILBOX, MailCandidate, connect, ensure_labels,  # noqa: E402
                                    mark_done, scan_mailbox)
@@ -42,9 +48,11 @@ try:
 except ImportError:
     pass
 
-VERSION = '2026-10-07-1830'
+VERSION = '2026-10-07-2156'
 DRIVER_SCRIPT = _PROJECT_ROOT / 'main-yt-dlp.py'
 CANDIDATES_DIR = _PROJECT_ROOT / 'yt-queue'
+# Lines of main-yt-dlp.py output shown when a download fails and --verbose is off.
+FAILURE_TAIL_LINES = 20
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +84,8 @@ def parse_arguments(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
                         help='Gmail label for qualifying mails not yet downloaded (default: %(default)s)')
     parser.add_argument('--done-label', default='yt-done',
                         help='Gmail label for mails whose download succeeded (default: %(default)s)')
-    parser.add_argument('--verbose', '-v', action='store_true', help='Enable DEBUG logging')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='Show the full output of each main-yt-dlp.py run, and enable DEBUG logging')
     # --version is listed last, just before the mutually-exclusive groups.
     parser.add_argument('--version', action='version', version=f'%(prog)s {VERSION}')
 
@@ -114,37 +123,59 @@ def _write_candidates(urls: list[str], out_file: Path) -> None:
     logger.info(f"Wrote {count_noun(len(urls), 'URL')} to '{out_file}'")
 
 
-def _download(url: str, passthrough_args: list[str], gate: bool) -> bool:
+def _download(url: str, passthrough_args: list[str], position: str, verbose: bool) -> bool:
     """Run main-yt-dlp.py for one URL.
+
+    The linter-freshness gate already ran in this process, so every run gets LINTER_GATE=off. Without
+    ``verbose`` the run's output is captured (stdin closed, so no prompt can hang unseen) and only its
+    last lines are logged when it fails.
 
     Args:
         url: The video URL.
         passthrough_args: Extra flags forwarded to main-yt-dlp.py.
-        gate: False sets LINTER_GATE=off, so the linter-freshness prompt shows only once per batch.
+        position: '[i/N]' prefix for the log lines.
+        verbose: True to let the run's output through to the console.
 
     Returns:
         bool: True when the download exited with code 0.
     """
     argv = [sys.executable, str(DRIVER_SCRIPT), *passthrough_args, sanitize_url_for_subprocess(url=url)]
-    env = None if gate else {**os.environ, 'LINTER_GATE': 'off'}
-    logger.info(f'Downloading {url}')
+    env = {**os.environ, 'LINTER_GATE': 'off'}
+    logger.info(f'{position} Downloading {url}')
     logger.debug(f'Subprocess argv: {argv}')
-    completed = subprocess.run(argv, check=False, cwd=_PROJECT_ROOT, env=env)  # nosec B603
-    if completed.returncode != 0:
-        logger.error(f'Download failed (exit code {completed.returncode}): {url}')
-    return completed.returncode == 0
+    started = time.monotonic()
+    if verbose:
+        returncode = subprocess.run(argv, check=False, cwd=_PROJECT_ROOT, env=env).returncode  # nosec B603
+        output = ''
+    else:
+        captured = subprocess.run(  # nosec B603
+            argv, check=False, cwd=_PROJECT_ROOT, env=env, stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace')
+        returncode, output = captured.returncode, captured.stdout or ''
+    elapsed = format_elapsed_time(seconds=time.monotonic() - started)
+    if returncode == 0:
+        logger.info(f'{position} Done in {elapsed}')
+        return True
+    logger.error(f'{position} Download failed (exit code {returncode}) after {elapsed}: {url}')
+    tail = output.rstrip().splitlines()[-FAILURE_TAIL_LINES:]
+    if tail:
+        logger.error(f'Last {count_noun(len(tail), "line")} of main-yt-dlp.py output:')
+        for line in tail:
+            logger.error(f'    {line}')
+    return False
 
 
-def _log_summary(rows: list[tuple[str, str]], failed_urls: list[str] | None) -> None:
-    """Log the closing summary block: one aligned line per row, then the failed URLs.
+def _log_summary(title: str, rows: list[tuple[str, str]], failed_urls: list[str] | None) -> None:
+    """Log a summary block: a title, one aligned line per row, then the failed URLs.
 
     Args:
+        title: The block heading.
         rows: (label, value) pairs, in display order.
         failed_urls: The URLs whose download failed (listed one per line; '(none)' when empty), or
             None when no downloads ran (the Failed line is then omitted).
     """
     width = max(len(label) for label, _ in rows + [('Failed', '')]) + 1
-    logger.info('Summary:')
+    logger.info(f'{title}:')
     for label, value in rows:
         logger.info(f'  {label + ":":<{width}} {value}')
     if failed_urls is None:
@@ -189,32 +220,36 @@ def _run_from_mail(args: argparse.Namespace, passthrough_args: list[str]) -> int
     _log_scan_results(results=results)
     urls_by_uid = {r.uid: r.urls for r in results if r.urls}
     all_urls = list(dict.fromkeys(url for urls in urls_by_uid.values() for url in urls))
-    rows = [('Mails scanned', str(len(results))), ('Mails accepted', str(len(urls_by_uid))),
-            ('URLs found', str(len(all_urls)))]
+    will_download = args.download and not args.dry_run
+    scan_rows = [('Mails scanned', str(len(results))), ('Mails accepted', str(len(urls_by_uid))),
+                 ('Videos to download', str(len(all_urls)))]
     if not all_urls:
         logger.info('No qualifying mails found')
-        _log_summary(rows=rows, failed_urls=None)
+        _log_summary(title='Scan summary', rows=scan_rows, failed_urls=None)
         return 0
 
     timestamp = arrow.now().format('YYYY-MM-DD-HHmm')
     out_file = args.out_file or CANDIDATES_DIR / f'dl-candidates-{timestamp}.txt'
     _write_candidates(urls=all_urls, out_file=out_file)
-    rows.append(('Candidates file', str(out_file)))
-
-    if args.dry_run or not args.download:
-        reason = '--dry-run' if args.dry_run else 'no --download'
-        if args.dry_run and args.download:
-            logger.info('--dry-run: skipping the downloads')
-        rows.append(('Downloads', f'skipped ({reason})'))
-        _log_summary(rows=rows, failed_urls=None)
+    scan_rows.append(('Candidates file', str(out_file)))
+    skip_reason = 'dry run' if args.dry_run else 'no --download'
+    if not will_download:
+        scan_rows.append(('Downloads', f'skipped ({skip_reason})'))
+    _log_summary(title='Scan summary', rows=scan_rows, failed_urls=None)
+    found = f'{count_noun(len(urls_by_uid), "mail")} found, {count_noun(len(all_urls), "video")}'
+    if not will_download:
+        logger.info(f'{found} would be downloaded ({skip_reason})')
         return 0
+    logger.info(f'{found} will be downloaded')
 
+    gate_on_linter_freshness()
     accepted = len(urls_by_uid)
     succeeded: set[str] = set()
     failed_urls: list[str] = []
     marked_done = 0
-    for idx, url in enumerate(all_urls):
-        if not _download(url=url, passthrough_args=passthrough_args, gate=idx == 0):
+    for idx, url in enumerate(all_urls, start=1):
+        if not _download(url=url, passthrough_args=passthrough_args, position=f'[{idx}/{len(all_urls)}]',
+                         verbose=args.verbose):
             failed_urls.append(url)
             continue
         succeeded.add(url)
@@ -232,18 +267,20 @@ def _run_from_mail(args: argparse.Namespace, passthrough_args: list[str]) -> int
                 marked_done += 1
         finally:
             imap.logout()
-    rows += [('URLs downloaded', f'{len(succeeded)} of {len(all_urls)}'),
-             ('Mails marked done', f'{marked_done} of {accepted}')]
-    _log_summary(rows=rows, failed_urls=failed_urls)
+    _log_summary(title='Download summary',
+                 rows=[('Videos downloaded', f'{len(succeeded)} of {len(all_urls)}'),
+                       ('Mails marked done', f'{marked_done} of {accepted}')],
+                 failed_urls=failed_urls)
     return 1 if failed_urls else 0
 
 
-def _run_from_file(url_file: Path, passthrough_args: list[str]) -> int:
+def _run_from_file(url_file: Path, passthrough_args: list[str], verbose: bool) -> int:
     """Download every URL found in a .txt/.odt file.
 
     Args:
         url_file: The file holding the URLs.
         passthrough_args: Extra flags forwarded to main-yt-dlp.py.
+        verbose: True to show each main-yt-dlp.py run's full output.
 
     Returns:
         int: The process exit code (1 when any download failed or the file can't be read).
@@ -256,11 +293,14 @@ def _run_from_file(url_file: Path, passthrough_args: list[str]) -> int:
     if not urls:
         logger.info(f"No URLs found in '{url_file}'")
         return 0
-    logger.info(f"Found {count_noun(len(urls), 'URL')} in '{url_file}'")
-    failed_urls = [url for idx, url in enumerate(urls)
-                   if not _download(url=url, passthrough_args=passthrough_args, gate=idx == 0)]
-    _log_summary(rows=[('URL file', str(url_file)), ('URLs found', str(len(urls))),
-                       ('URLs downloaded', f'{len(urls) - len(failed_urls)} of {len(urls)}')],
+    _log_summary(title='URL file summary',
+                 rows=[('URL file', str(url_file)), ('Videos to download', str(len(urls)))], failed_urls=None)
+    gate_on_linter_freshness()
+    failed_urls = [url for idx, url in enumerate(urls, start=1)
+                   if not _download(url=url, passthrough_args=passthrough_args,
+                                    position=f'[{idx}/{len(urls)}]', verbose=verbose)]
+    _log_summary(title='Download summary',
+                 rows=[('Videos downloaded', f'{len(urls) - len(failed_urls)} of {len(urls)}')],
                  failed_urls=failed_urls)
     return 1 if failed_urls else 0
 
@@ -276,7 +316,7 @@ def main() -> int:
     if passthrough_args:
         logger.info(f'Forwarding to main-yt-dlp.py: {" ".join(passthrough_args)}')
     if args.url_file is not None:
-        return _run_from_file(url_file=args.url_file, passthrough_args=passthrough_args)
+        return _run_from_file(url_file=args.url_file, passthrough_args=passthrough_args, verbose=args.verbose)
     return _run_from_mail(args=args, passthrough_args=passthrough_args)
 
 

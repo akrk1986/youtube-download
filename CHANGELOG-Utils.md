@@ -2,6 +2,13 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-10-07-2156] - fetch-mail-urls: pre/post summaries, quiet downloads, --verbose
+
+### Changed
+- **`Utils/main-fetch-mail-urls.py` now logs two summary blocks instead of one.** A `Scan summary` before the downloads gives mails scanned/accepted, videos to download and the candidates file, and ends with `N mails found, N videos will be downloaded`. A `Download summary` after them gives videos downloaded, mails marked done and the failed URLs. A dry run shows the real video count (`… would be downloaded (dry run)`) instead of 0.
+- **The `main-yt-dlp.py` output is hidden by default.** Each URL logs `[i/N] Downloading …` and `[i/N] Done in …`, and a failure logs the last 20 lines of that run's output. `--verbose` shows the full output of every run (and still enables DEBUG logging).
+- **The linter-freshness gate runs once in the fetcher**, before the first download, and every `main-yt-dlp.py` run gets `LINTER_GATE=off`. With hidden output, a child's `[Y/n]` prompt would otherwise be invisible and could block. Hidden runs also get a closed stdin.
+
 ## [2026-10-07-1830] - fetch-mail-urls: closing summary block
 
 ### Added
