@@ -5,6 +5,13 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-10-07-1808] - Clipboard URL matchers moved to funcs_utils
+
+### Changed
+- **The YouTube/Facebook URL matchers** (`webapp/services/clipboard_watcher.py`) moved to the shared
+  `funcs_utils/media_url.py`, so the new mail-fetch utility uses the same rules. The watcher
+  imports them from there. No behaviour change.
+
 ## [2026-09-16-1742] - Remove the Write JSON option
 
 ### Removed

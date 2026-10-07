@@ -2,6 +2,14 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-10-07-1808] - New fetch-mail-urls utility: download links mailed to yourself
+
+### Added
+- **`Utils/main-fetch-mail-urls.py`** + **`funcs_utils/mail_urls.py`**: downloads the FB/YouTube videos you mail to yourself, without opening each mail. `--from-mail` scans the Gmail inbox over IMAP (logging in with the App Password already in `GMAIL_PARAMS`) for mails from the allowed senders (default: `recipient_email` + `sender_email` of `GMAIL_PARAMS`; override with `--sender`) whose body, signature excluded, is a single FB/YT video link. Forwarded mails work too: the inline-forward header block and every `-- ` signature section are dropped, and mails forwarded as attachments are each classified. Qualifying mails get the `yt-queue` label and their URLs go to `yt-queue/dl-candidates-<timestamp>.txt`. With `--download` each URL is run through `main-yt-dlp.py` (unknown flags are forwarded), and a successful download moves its mail to `yt-done`. Mails that don't qualify are never labelled, and `yt-done` mails are not scanned again. `--dry-run` writes the candidates file but downloads nothing and changes no labels. `--url-file` downloads every URL in a .txt/.odt file. Tests: `Tests/test_mail_urls.py`.
+
+### Changed
+- **`funcs_utils/media_url.py`** (new): the YouTube/Facebook URL matchers and the Gmail-redirect unwrapper moved here from the webapp clipboard watcher and became public (`is_media_url`, `extract_media_url`, `unwrap_google_redirect`), so the mail scanner and the webapp share them.
+
 ## [2026-06-05-1404] - Extract the standalone utilities into the new av-utils sibling project
 
 ### Changed

@@ -5,6 +5,8 @@ This package is organized into:
 - string_sanitization: String and filename sanitization
 - yt_dlp_utils: yt-dlp specific utilities
 - security: Security helper functions
+- media_url: YouTube/Facebook video-URL matching
+- mail_urls: self-sent Gmail link scanning (imported directly, not re-exported)
 
 Logging configuration (``setup_logging``) and diacritic removal
 (``remove_diacritics``) are re-exported from the shared ``common_av`` package.
@@ -15,6 +17,11 @@ from common_av.log_config import setup_logging
 from funcs_utils.file_operations import (
     organize_media_files_silent,
     sanitize_filenames_in_folder,
+)
+from funcs_utils.media_url import (
+    extract_media_url,
+    is_media_url,
+    unwrap_google_redirect,
 )
 from funcs_utils.security import (
     sanitize_url_for_subprocess,
@@ -47,6 +54,10 @@ __all__ = [
     'retry_on_facebook_parse_error',
     'get_cookie_args',
     'warn_if_auth_error',
+    # Media URLs
+    'extract_media_url',
+    'is_media_url',
+    'unwrap_google_redirect',
     # Security
     'sanitize_url_for_subprocess',
     'validate_file_path_security',
