@@ -666,8 +666,11 @@ The standalone audio-conversion, volume-boost, Dolby-Vision, Greek-singles dupli
 ### File Naming
 
 A single video is named after its title, sanitized and capped at 59 characters (so that the name
-plus its longest extension, `.flac`, stays within 64). The embedded title tag is cut to 64 characters,
-so a long Facebook description no longer fills the title field in media players.
+plus its longest extension, `.flac`, stays within 64). The embedded title tag is cut to 64 characters
+after the download, so a long Facebook description no longer fills the title field in media players.
+The cut happens only after the Greek-artist search has read the full title, so an artist credited at
+the end of a long title is still found, and the video and its audio get the same title. This applies
+to every file in `yt-videos/` and the audio folders, not only the new download.
 
 **Facebook's engagement prefix is removed first.** Facebook reports a music video's title as
 `17K views · 376 reactions | <real title> | <page>`, which used to land as
@@ -698,8 +701,8 @@ from two different videos. The check cannot tell the same video from a different
 name, so the first re-download of a video is saved with the id appended; since the id is unique per
 video, later re-downloads reuse that name and are skipped.
 
-Playlists keep yt-dlp's own naming, from each entry's own title; those titles are cut to 64
-characters too, and the final file name is capped at 64 characters, extension included.
+Playlists keep yt-dlp's own naming, from each entry's own title; the final file name is capped at 64
+characters, extension included.
 
 ## Automatic Cleanup
 

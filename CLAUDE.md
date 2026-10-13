@@ -366,9 +366,13 @@ downloads. Three rules shape the name, and one length budget bounds it:
   generic.
   The same pattern goes to yt-dlp as `--replace-in-metadata title <pattern> ''` (skipped when
   `--title` is given, whose `.+` rule already overwrites the field) so the embedded title tag is
-  cleaned too — and being a `pre_process` rule, it also cleans a playlist's `%(title)s` name. A
-  second rule, `--replace-in-metadata title TITLE_TRUNCATE_PATTERN '\1'`, follows it (yt-dlp applies
-  them in order) and cuts the title tag to `MAX_FILENAME_LENGTH` (64).
+  cleaned too — and being a `pre_process` rule, it also cleans a playlist's `%(title)s` name.
+  yt-dlp does **not** shorten the title: Greek-artist detection (`set_artists_in_audio_files()`,
+  `funcs_audio_processing/unified.py`) reads the Title tag after the download and must see it whole.
+  `_cut_long_title()` cuts it to `MAX_TITLE_TAG_LENGTH` (64) right after detection, and
+  `cut_title_tags_in_videos()` (called from `main()` after the rename pass) applies the same cut to
+  the `.mp4` files, so a video and its audio carry the same title. Both scan the whole folder, so
+  older files there are cut too.
 - Titles in `GENERIC_VIDEO_TITLES` (`video`, `untitled`, `na`, `reel`, `watch`, …) identify no
   particular video — Facebook reports `Video` for every clip — and are replaced with
   `<uploader> <upload date>` (uploader missing → title; date missing/unparsable → omitted).
