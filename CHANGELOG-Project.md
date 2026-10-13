@@ -2,6 +2,14 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-10-13-1841] - anchor freshness upgrade-script ignore patterns
+
+### Changed
+- **`.gitignore`**: the generated freshness upgrade-script patterns are anchored to the repo root
+  (`/pip-upgrade-stable-*.sh`, `/pip-upgrade-stable-*.ps1`, plus the legacy unsuffixed
+  `/pip-upgrade-stable.sh` / `.ps1`), replacing the unanchored `pip-upgrade-stable*.sh` / `*.ps1`
+  globs that also silently ignored same-named files in any subdirectory.
+
 ## [2026-10-13-1821] - multidict CVE pin
 
 ### Fixed
