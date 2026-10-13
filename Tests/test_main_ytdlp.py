@@ -1155,6 +1155,61 @@ class TestOutputFileNaming:
         (tmp_path / 'Some Song-2.mp3').touch()
         assert _unique_output_stem(folder=tmp_path, stem='Some Song', video_id=None) == 'Some Song-3'
 
+    def test_fit_stem_cuts_and_keeps_suffix_whole(self):
+        """A long base name is cut to MAX_OUTPUT_STEM_LENGTH; a suffix survives intact."""
+        from funcs_for_main_yt_dlp._download_common import _fit_stem
+        from project_defs import MAX_OUTPUT_STEM_LENGTH
+
+        long_stem = 'Έτσι είν η ζωή Χριστίνα Σάλτη ' * 5
+        assert len(_fit_stem(stem=long_stem)) <= MAX_OUTPUT_STEM_LENGTH
+        assert _fit_stem(stem='Short Song') == 'Short Song'
+        with_id = _fit_stem(stem=long_stem, suffix=' 1846438009381775')
+        assert with_id.endswith(' 1846438009381775')
+        assert len(with_id) <= MAX_OUTPUT_STEM_LENGTH
+
+    def test_unique_output_stem_long_name_keeps_video_id(self, tmp_path):
+        """On a collision with a full-length name, the id suffix fits and survives the post-download pass."""
+        from funcs_for_main_yt_dlp._download_common import _unique_output_stem
+        from funcs_utils import sanitize_string
+        from project_defs import MAX_OUTPUT_STEM_LENGTH
+
+        stem = ('Έτσι είν η ζωή Χριστίνα Σάλτη, Μαρίνα Μανωλάκου Χρήστος Παπαδόπουλος')[:MAX_OUTPUT_STEM_LENGTH]
+        (tmp_path / f'{stem}.m4a').touch()
+        result = _unique_output_stem(folder=tmp_path, stem=stem, video_id='1846438009381775')
+        assert result.endswith(' 1846438009381775')
+        assert len(result) <= MAX_OUTPUT_STEM_LENGTH
+        for ext in ('m4a', 'mp3', 'mp4', 'flac'):
+            assert sanitize_string(dirty_string=f'{result}.{ext}') == f'{result}.{ext}'
+
+    def test_unique_output_stem_long_name_numeric_suffix(self, tmp_path):
+        """Without an id, the '-N' candidates are checked at their cut length, so taken ones are skipped."""
+        from funcs_for_main_yt_dlp._download_common import _fit_stem, _unique_output_stem
+        from project_defs import MAX_OUTPUT_STEM_LENGTH
+
+        stem = 'A' * MAX_OUTPUT_STEM_LENGTH
+        (tmp_path / f'{stem}.m4a').touch()
+        (tmp_path / f"{_fit_stem(stem=stem, suffix='-2')}.m4a").touch()
+        result = _unique_output_stem(folder=tmp_path, stem=stem, video_id=None)
+        assert result == _fit_stem(stem=stem, suffix='-3')
+        assert len(result) == MAX_OUTPUT_STEM_LENGTH
+
+    def test_build_output_template_long_title_fits_post_pass(self, tmp_path):
+        """A long title yields a base name the post-download sanitize pass leaves unchanged."""
+        from funcs_for_main_yt_dlp._download_common import _build_output_template
+        from funcs_utils import sanitize_string
+        from project_defs import MAX_OUTPUT_STEM_LENGTH
+
+        info = {'id': '1846438009381775',
+                'title': "32K views · 1.2K reactions | Έτσι είν' η ζωή Χριστίνα Σάλτη, Μαρίνα Μανωλάκου "
+                         'Χρήστος Παπαδόπουλος Μπουζούκι: Κωσταντίνος Σταμελάκος | christos papadopoulos'}
+        with patch('funcs_for_main_yt_dlp._download_common.get_video_info', return_value=info):
+            template, _ = _build_output_template(opts=self._make_opts(), output_folder=tmp_path)
+
+        stem = Path(template).name.removesuffix('.%(ext)s')
+        assert stem.startswith('Έτσι είν η ζωή')
+        assert len(stem) <= MAX_OUTPUT_STEM_LENGTH
+        assert sanitize_string(dirty_string=f'{stem}.m4a') == f'{stem}.m4a'
+
     def test_build_output_template_replaces_generic_title(self, tmp_path):
         """A Facebook 'Video' title becomes '<uploader> <upload date>' in the template."""
         from funcs_for_main_yt_dlp._download_common import _build_output_template
@@ -1217,6 +1272,7 @@ class TestOutputFileNaming:
         # Assert on the leading text, not just the absence of '17K': truncation could hide it.
         assert Path(template).name.startswith('Vasiliki Stefanou')
         assert 'views' not in template and 'reactions' not in template
+        assert sanitized_title is not None
         assert sanitized_title.startswith('Vasiliki Stefanou')
 
     def test_build_output_template_strips_reactions_and_shares_prefix(self, tmp_path):

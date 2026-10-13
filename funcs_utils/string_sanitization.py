@@ -4,7 +4,7 @@ import re
 import emoji
 from common_av.text import remove_diacritics
 
-from project_defs import LEADING_NONALNUM_PATTERN, MULTIPLE_SPACES_PATTERN
+from project_defs import LEADING_NONALNUM_PATTERN, MAX_FILENAME_LENGTH, MULTIPLE_SPACES_PATTERN
 
 # Regex: remove leading non-alphanumeric characters (English+Greek+Hebrew+French+Turkish), including spaces
 pattern = re.compile(LEADING_NONALNUM_PATTERN)
@@ -97,16 +97,15 @@ def sanitize_string(dirty_string: str) -> str:
     # 5. Remove leading and trailing spaces
     name_part = name_part.strip()
 
-    # 6. Truncate to ensure total filename length <= 64 characters
-    max_filename_length = 64
+    # 6. Truncate to ensure total filename length <= MAX_FILENAME_LENGTH characters
     if has_extension:
         # Account for dot and extension length
-        max_name_length = max_filename_length - 1 - len(extension)
+        max_name_length = MAX_FILENAME_LENGTH - 1 - len(extension)
         if len(name_part) > max_name_length:
             name_part = name_part[:max_name_length].rstrip()
     else:
-        if len(name_part) > max_filename_length:
-            name_part = name_part[:max_filename_length].rstrip()
+        if len(name_part) > MAX_FILENAME_LENGTH:
+            name_part = name_part[:MAX_FILENAME_LENGTH].rstrip()
 
     # Reconstruct filename (the language tag sits outside the length budget, keeping the stem aligned with the video)
     if lang_tag:

@@ -11,7 +11,8 @@ import arrow
 
 from funcs_utils import get_cookie_args, retry_on_facebook_parse_error, sanitize_string
 from funcs_video_info import get_video_info
-from project_defs import ENGAGEMENT_PREFIX_PATTERN, YT_DLP_IS_PLAYLIST_FLAG
+from project_defs import (ENGAGEMENT_PREFIX_PATTERN, MAX_OUTPUT_STEM_LENGTH, TITLE_TRUNCATE_PATTERN,
+                          YT_DLP_IS_PLAYLIST_FLAG)
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +145,16 @@ def _stem_exists(folder: Path, stem: str) -> bool:
     return any(entry.is_file() and entry.stem.casefold() == target for entry in folder.iterdir())
 
 
+def _fit_stem(stem: str, suffix: str = '') -> str:
+    """Cut a base name so that it, plus the suffix kept whole, fits MAX_OUTPUT_STEM_LENGTH.
+
+    Keeping every download's base name within that budget means the post-download sanitize pass
+    (which counts the extension) never shortens it, so the name the collision check looked for is
+    the name that ends up on disk, and a video-id suffix is never cut off.
+    """
+    return stem[:MAX_OUTPUT_STEM_LENGTH - len(suffix)].rstrip() + suffix
+
+
 def _unique_output_stem(folder: Path, stem: str, video_id: str | None) -> str:
     """Return a base name that no file already in the folder uses.
 
@@ -153,16 +164,17 @@ def _unique_output_stem(folder: Path, stem: str, video_id: str | None) -> str:
 
     Appending the video id suffices on its own -- it is unique per video, so re-downloading the
     same video reuses that name and yt-dlp's own skip keeps the run idempotent. The numeric
-    suffix is only for sources that report no id.
+    suffix is only for sources that report no id. The base name is shortened to make room for
+    either suffix, so the result still fits MAX_OUTPUT_STEM_LENGTH.
     """
     if not _stem_exists(folder=folder, stem=stem):
         return stem
     if video_id:
-        return f'{stem} {video_id}'
+        return _fit_stem(stem=stem, suffix=f' {video_id}')
     index = 2
-    while _stem_exists(folder=folder, stem=f'{stem}-{index}'):
+    while _stem_exists(folder=folder, stem=_fit_stem(stem=stem, suffix=f'-{index}')):
         index += 1
-    return f'{stem}-{index}'
+    return _fit_stem(stem=stem, suffix=f'-{index}')
 
 
 def _build_output_template(opts: DownloadOptions,
@@ -200,7 +212,7 @@ def _build_output_template(opts: DownloadOptions,
                             f"naming the file '{fallback}' instead")
                 file_stem = fallback
 
-    file_stem = file_stem or 'untitled'
+    file_stem = _fit_stem(stem=file_stem or 'untitled')
     unique_stem = _unique_output_stem(folder=folder, stem=file_stem, video_id=video_id)
     if unique_stem != file_stem:
         logger.info(f"'{file_stem}' is already taken in {folder}, "
@@ -237,9 +249,11 @@ def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,
         # Set the title metadata tag to the custom title
         cmd[1:1] = ['--replace-in-metadata', 'title', '.+', sanitized_title]
     else:
-        # No custom title: drop Facebook's engagement prefix from the title tag. Skipped above
-        # because the '.+' rule already overwrites the whole field, making this a no-op there.
-        cmd[1:1] = ['--replace-in-metadata', 'title', ENGAGEMENT_PREFIX_PATTERN, '']
+        # No custom title: drop Facebook's engagement prefix from the title tag, then cut what is
+        # left to MAX_FILENAME_LENGTH (yt-dlp applies the rules in this order). Skipped above
+        # because the '.+' rule already overwrites the whole field with a sanitized, short title.
+        cmd[1:1] = ['--replace-in-metadata', 'title', ENGAGEMENT_PREFIX_PATTERN, '',
+                    '--replace-in-metadata', 'title', TITLE_TRUNCATE_PATTERN, r'\1']
 
     # Build a single generic 'ffmpeg:' postprocessor-args entry combining custom artist/album
     # metadata and any caller-supplied extras (e.g. M4A faststart), so they never overwrite.

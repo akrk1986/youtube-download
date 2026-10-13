@@ -78,6 +78,14 @@ ENGAGEMENT_SEPARATORS_PATTERN = r'[\s\u00b7\u2022,|:\-\u2013\u2014]'
 ENGAGEMENT_COUNTER_PATTERN = (r'\d[\d,.]*\s*[KMB]?\s+(?:' + '|'.join(ENGAGEMENT_COUNTER_TYPES) + r')s?\b'
                               + ENGAGEMENT_SEPARATORS_PATTERN + r'*')
 ENGAGEMENT_PREFIX_PATTERN = r'(?i)^\s*(?:' + ENGAGEMENT_COUNTER_PATTERN + r')+'
+# File names (extension included) and Title tags are cut to MAX_FILENAME_LENGTH characters. A
+# download's base name gets MAX_OUTPUT_STEM_LENGTH, leaving room for the longest final extension
+# ('.flac'), so the post-download sanitize pass never cuts it again -- a second cut would drop a
+# disambiguating video-id suffix and desync the name from the collision check.
+MAX_FILENAME_LENGTH = 64
+MAX_OUTPUT_STEM_LENGTH = MAX_FILENAME_LENGTH - len('.flac')
+# Cuts yt-dlp's title field to MAX_FILENAME_LENGTH characters via --replace-in-metadata (replacement r'\1').
+TITLE_TRUNCATE_PATTERN = r'(?s)^(.{' + str(MAX_FILENAME_LENGTH) + r'}).+'
 CHAPTER_TIMESTAMP_PATTERNS = (
     r'(\d{1,2}:\d{2}(?::\d{2})?)\s*[-–—]\s*(.+?)(?=\n|$)',  # 12:34 - Chapter Name
     r'(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+?)(?=\n|$)',  # 12:34 Chapter Name

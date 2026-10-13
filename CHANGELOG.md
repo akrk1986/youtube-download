@@ -2,6 +2,20 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-10-13-1327] - fix: cut long titles to one length budget; keep the collision suffix
+
+### Fixed
+- **Long titles (common on Facebook) no longer reach the Title tag in full.** After the
+  engagement-prefix strip, a second `--replace-in-metadata` rule (`TITLE_TRUNCATE_PATTERN`) cuts the
+  title to 64 characters (`MAX_FILENAME_LENGTH`).
+- **The "name already taken" check now matches what lands on disk.** The download cut the base name
+  to 64, then the post-download sanitize pass cut the whole name (extension included) to 64, so the
+  base name shrank to 60. The check looked for the 64-character name and missed existing files, and a
+  disambiguating ` <video id>` / `-N` suffix was cut straight back off. Download base names are now
+  capped at `MAX_OUTPUT_STEM_LENGTH` (64 minus `.flac`), with the title part shortened so the suffix
+  stays whole, so the post-download pass leaves them untouched. Files downloaded earlier with a
+  60-character base name are not recognised by the check.
+
 ## [2026-09-16-1808] - fix: strip any run of Facebook views/reactions/shares counters
 
 ### Fixed
