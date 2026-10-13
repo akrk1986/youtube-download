@@ -2,6 +2,15 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-10-13-1821] - multidict CVE pin
+
+### Fixed
+- **`requirements.in` / `requirements.txt`**: `multidict` bumped 6.7.1 → 6.9.1 for CVE-2026-104874.
+  It is a transitive dependency (via `aiohttp`, which caps it `<7.0`), so the fix is a CVE pin
+  `multidict>=6.9.1` in `requirements.in`; the lock was regenerated with
+  `pip-compile pyproject.toml requirements.in -o requirements.txt --upgrade-package multidict`, so
+  no other package moved.
+
 ## [2026-07-06-1017] - inflect dependency for English pluralization
 
 ### Added

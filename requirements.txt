@@ -209,8 +209,9 @@ more-itertools==11.1.0
     #   jaraco-functools
 msgpack==1.1.2
     # via cachecontrol
-multidict==6.7.1
+multidict==6.9.1
     # via
+    #   -r requirements.in
     #   aiohttp
     #   yarl
 mutagen==1.47.0
