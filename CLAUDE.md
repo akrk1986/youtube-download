@@ -353,7 +353,7 @@ The project uses a strategy pattern for handling different audio formats:
 ### Output File Naming
 
 `_build_output_template()` (`funcs_for_main_yt_dlp/_download_common.py`) names single-video
-downloads. Three rules shape the name:
+downloads. Three rules shape the name, and one length budget bounds it:
 
 - `_strip_engagement_prefix()` removes Facebook's engagement-count title prefix
   (`ENGAGEMENT_PREFIX_PATTERN` in `project_defs.py`): one or more `<count> <counter><sep>` groups at
@@ -361,12 +361,14 @@ downloads. Three rules shape the name:
   `31 reactions |`). The counter must be in the closed list `ENGAGEMENT_COUNTER_TYPES`
   (`view`/`reaction`/`share`, optional plural `s`) — extend it there; any other word (`3 Likes …`,
   `40 comments`) ends the prefix. Accepted trade-off: a genuine `3 Views of Mount Fuji` loses
-  `3 Views`. It runs **before** `sanitize_string()`, so the 64-char truncation applies to real title
+  `3 Views`. It runs **before** `sanitize_string()`, so the length cut applies to real title
   text, and **before** the generic-title check, so `17K views · 3 reactions | Video` still counts as
   generic.
   The same pattern goes to yt-dlp as `--replace-in-metadata title <pattern> ''` (skipped when
   `--title` is given, whose `.+` rule already overwrites the field) so the embedded title tag is
-  cleaned too — and being a `pre_process` rule, it also cleans a playlist's `%(title)s` name.
+  cleaned too — and being a `pre_process` rule, it also cleans a playlist's `%(title)s` name. A
+  second rule, `--replace-in-metadata title TITLE_TRUNCATE_PATTERN '\1'`, follows it (yt-dlp applies
+  them in order) and cuts the title tag to `MAX_FILENAME_LENGTH` (64).
 - Titles in `GENERIC_VIDEO_TITLES` (`video`, `untitled`, `na`, `reel`, `watch`, …) identify no
   particular video — Facebook reports `Video` for every clip — and are replaced with
   `<uploader> <upload date>` (uploader missing → title; date missing/unparsable → omitted).
@@ -376,8 +378,17 @@ downloads. Three rules shape the name:
 The third rule matters because yt-dlp does **not** overwrite an existing target: it logs
 `has already been downloaded`, keeps the old media, and runs the Metadata + EmbedThumbnail
 postprocessors on it — producing a file whose audio and cover art come from two different videos.
-The video id is unique per video, so re-downloading the same video reuses the name and stays
-idempotent. Playlists keep yt-dlp's own `%(title)s` template.
+The check cannot tell "same video" from "different video, same name", so the first re-download of a
+video is saved as `<name> <id>`; later re-downloads reuse that name and are skipped. Playlists keep
+yt-dlp's own `%(title)s` template.
+
+**Length budget.** `sanitize_string()` caps a full file name, extension included, at
+`MAX_FILENAME_LENGTH` (64, `project_defs.py`), and the post-download pass
+(`sanitize_filenames_in_folder()`) runs it on every file. A download's base name is therefore capped
+by `_fit_stem()` at `MAX_OUTPUT_STEM_LENGTH` (64 − `len('.flac')` = 59) *before* the collision check,
+and an id / `-N` suffix is added by shortening the title part so the suffix stays whole. The
+post-download pass then never shortens a download's name. Without this, the pass cut a 64-char stem
+to 60: the collision check looked for a name that wasn't on disk, and the suffix was cut back off.
 
 ### `--parse-metadata` Direction (gotcha)
 

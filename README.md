@@ -665,7 +665,9 @@ The standalone audio-conversion, volume-boost, Dolby-Vision, Greek-singles dupli
 
 ### File Naming
 
-A single video is named after its title, sanitized and capped at 64 characters.
+A single video is named after its title, sanitized and capped at 59 characters (so that the name
+plus its longest extension, `.flac`, stays within 64). The embedded title tag is cut to 64 characters,
+so a long Facebook description no longer fills the title field in media players.
 
 **Facebook's engagement prefix is removed first.** Facebook reports a music video's title as
 `17K views · 376 reactions | <real title> | <page>`, which used to land as
@@ -687,14 +689,17 @@ Two further rules keep one download from clobbering another:
   to the title; a missing upload date is simply left out.
 - **A name already taken in the output folder is disambiguated** with the video id, e.g.
   `World Greek Radio 2026-07-25 2526896364442531.m4a` (a `-2`, `-3` suffix is used for sources that
-  report no id). The check is case-insensitive and covers every extension.
+  report no id). The check is case-insensitive and covers every extension. When the title already
+  fills the 59-character limit, its end is shortened to make room, so the id is never cut off.
 
 Without the second rule yt-dlp would not overwrite the existing file — it would *keep the old media*
 and write the new video's tags and cover art onto it, leaving a file whose audio and artwork come
-from two different videos. Since the video id is unique per video, re-downloading the same video
-reuses the same name and stays idempotent.
+from two different videos. The check cannot tell the same video from a different one with the same
+name, so the first re-download of a video is saved with the id appended; since the id is unique per
+video, later re-downloads reuse that name and are skipped.
 
-Playlists are unaffected: yt-dlp names those files itself, from each entry's own title.
+Playlists keep yt-dlp's own naming, from each entry's own title; those titles are cut to 64
+characters too, and the final file name is capped at 64 characters, extension included.
 
 ## Automatic Cleanup
 
