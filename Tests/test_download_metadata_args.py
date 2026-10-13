@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 
 from funcs_for_main_yt_dlp._download_common import DownloadOptions, _append_common_flags
-from project_defs import ENGAGEMENT_PREFIX_PATTERN, MAX_FILENAME_LENGTH, TITLE_TRUNCATE_PATTERN
+from project_defs import ENGAGEMENT_PREFIX_PATTERN
 
 
 def test_m4a_faststart_merges_with_custom_metadata() -> None:
@@ -60,23 +60,12 @@ def test_engagement_prefix_rule_present_without_custom_title() -> None:
     assert cmd[index:index + 4] == ['--replace-in-metadata', 'title', ENGAGEMENT_PREFIX_PATTERN, '']
 
 
-def test_title_truncate_rule_follows_engagement_rule() -> None:
-    """The title tag is cut to MAX_FILENAME_LENGTH after the prefix strip (yt-dlp applies rules in order)."""
+def test_title_not_truncated_at_download() -> None:
+    """The title tag is not cut by yt-dlp: artist detection must read the full title after the download."""
     opts = DownloadOptions(ytdlp_exe='yt-dlp', url='U', is_it_playlist=False)
     cmd: list[str | Path] = [Path('yt-dlp'), 'U']
     _append_common_flags(cmd=cmd, opts=opts)
-    index = cmd.index('--replace-in-metadata')
-    assert cmd[index:index + 8] == ['--replace-in-metadata', 'title', ENGAGEMENT_PREFIX_PATTERN, '',
-                                    '--replace-in-metadata', 'title', TITLE_TRUNCATE_PATTERN, r'\1']
-
-
-def test_title_truncate_pattern() -> None:
-    """The pattern cuts a long title (any script, newlines included) and leaves a short one alone."""
-    long_title = 'Έτσι είν η ζωή ' * 20 + '\nmore'
-    assert re.sub(TITLE_TRUNCATE_PATTERN, r'\1', long_title) == long_title[:MAX_FILENAME_LENGTH]
-    exact = 'x' * MAX_FILENAME_LENGTH
-    assert re.sub(TITLE_TRUNCATE_PATTERN, r'\1', exact) == exact
-    assert re.sub(TITLE_TRUNCATE_PATTERN, r'\1', 'Short Song') == 'Short Song'
+    assert cmd.count('--replace-in-metadata') == 1
 
 
 def test_engagement_prefix_rule_present_for_audio_path() -> None:

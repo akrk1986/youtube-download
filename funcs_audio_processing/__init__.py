@@ -5,7 +5,7 @@ from common_av.tag_handlers import (
     AudioTagHandler,
     FLACTagHandler, M4ATagHandler, MP3TagHandler,
 )
-from funcs_audio_processing.unified import set_artists_in_audio_files
+from funcs_audio_processing.unified import cut_title_tags_in_videos, set_artists_in_audio_files
 
 # Dispatch map: audio format string -> handler class
 _HANDLER_MAP: dict[str, type[AudioTagHandler]] = {
@@ -87,6 +87,7 @@ def set_artists_in_flac_files(
 
 
 __all__ = [
+    'cut_title_tags_in_videos',
     'set_artists_for_format',
     # Backward-compatible aliases
     'set_artists_in_mp3_files',

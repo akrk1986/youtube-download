@@ -1167,6 +1167,29 @@ class TestOutputFileNaming:
         assert with_id.endswith(' 1846438009381775')
         assert len(with_id) <= MAX_OUTPUT_STEM_LENGTH
 
+    def test_fit_stem_suffix_longer_than_budget(self):
+        """A suffix that alone exceeds the budget is cut to it instead of overflowing via a negative slice."""
+        from funcs_for_main_yt_dlp._download_common import _fit_stem
+        from project_defs import MAX_OUTPUT_STEM_LENGTH
+
+        result = _fit_stem(stem='Some Song', suffix=' ' + 'x' * (MAX_OUTPUT_STEM_LENGTH + 10))
+        assert len(result) <= MAX_OUTPUT_STEM_LENGTH
+
+    def test_build_output_template_sanitizes_video_id(self, tmp_path):
+        """A video id with characters the post-download pass would replace is sanitized before use."""
+        from funcs_for_main_yt_dlp._download_common import _build_output_template
+        from funcs_utils import sanitize_string
+
+        (tmp_path / 'Some Song.m4a').touch()
+        info = {'id': 'abc:123/x', 'title': 'Some Song'}
+        with patch('funcs_for_main_yt_dlp._download_common.get_video_info', return_value=info):
+            template, _ = _build_output_template(opts=self._make_opts(), output_folder=tmp_path)
+
+        stem = Path(template).name.removesuffix('.%(ext)s')
+        assert stem.startswith('Some Song ')
+        assert ':' not in stem and '/' not in stem
+        assert sanitize_string(dirty_string=f'{stem}.m4a') == f'{stem}.m4a'
+
     def test_unique_output_stem_long_name_keeps_video_id(self, tmp_path):
         """On a collision with a full-length name, the id suffix fits and survives the post-download pass."""
         from funcs_for_main_yt_dlp._download_common import _unique_output_stem

@@ -2,6 +2,20 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-10-13-1355] - fix: cut the title tag after artist detection, for audio and video alike
+
+### Fixed
+- **Greek-artist detection again sees the whole title.** The previous release cut the Title tag to 64
+  characters inside yt-dlp, before `set_artists_in_audio_files()` searched it for known artists, so an
+  artist credited late in a long title was missed. The yt-dlp cut rule (`TITLE_TRUNCATE_PATTERN`) is
+  gone; the tag is now cut to `MAX_TITLE_TAG_LENGTH` (64) right after detection.
+- **A video and its audio carry the same title.** The new `cut_title_tags_in_videos()` applies the same
+  cut (`_cut_long_title()`) to the MP4 files in `yt-videos/`, so the `.mp4` and `.m4a`/`.mp3` Title tags
+  match. Like the audio step, it covers every file in the folder, not only the new download.
+- **The collision suffix always survives.** A suffix longer than the 59-character budget no longer
+  overflows it, and the video id is sanitized before it is appended, so the post-download rename pass
+  cannot rewrite it.
+
 ## [2026-10-13-1327] - fix: cut long titles to one length budget; keep the collision suffix
 
 ### Fixed

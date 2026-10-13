@@ -14,6 +14,7 @@ from common_av.notifications import (GmailNotifier, NotificationData,
                                      send_all_notifications)
 from common_av.text import count_noun
 from common_linters.watch_state import gate_on_linter_freshness
+from funcs_audio_processing import cut_title_tags_in_videos
 from funcs_for_main_yt_dlp import (DownloadOptions,
                                    cleanup_leftover_files, count_initial_files,
                                    count_new_files, determine_audio_mode,
@@ -44,7 +45,7 @@ try:
 except ImportError:
     pass
 
-# Version corresponds to the latest changelog entry timestamp
+VERSION = '2026-10-13-1355'
 VERSION = '2026-10-13-1327'
 
 logger = logging.getLogger(__name__)
@@ -340,6 +341,10 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         only_audio=args.only_audio,
         need_audio=need_audio,
     )
+
+    # Cut long video titles the same way the audio step below cuts the audio titles
+    if not args.only_audio:
+        cut_title_tags_in_videos(video_folder=video_folder)
 
     # Process audio tags
     if need_audio:

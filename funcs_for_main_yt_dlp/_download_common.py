@@ -11,8 +11,7 @@ import arrow
 
 from funcs_utils import get_cookie_args, retry_on_facebook_parse_error, sanitize_string
 from funcs_video_info import get_video_info
-from project_defs import (ENGAGEMENT_PREFIX_PATTERN, MAX_OUTPUT_STEM_LENGTH, TITLE_TRUNCATE_PATTERN,
-                          YT_DLP_IS_PLAYLIST_FLAG)
+from project_defs import ENGAGEMENT_PREFIX_PATTERN, MAX_OUTPUT_STEM_LENGTH, YT_DLP_IS_PLAYLIST_FLAG
 
 logger = logging.getLogger(__name__)
 
@@ -150,8 +149,11 @@ def _fit_stem(stem: str, suffix: str = '') -> str:
 
     Keeping every download's base name within that budget means the post-download sanitize pass
     (which counts the extension) never shortens it, so the name the collision check looked for is
-    the name that ends up on disk, and a video-id suffix is never cut off.
+    the name that ends up on disk, and a video-id suffix is never cut off. A suffix that alone
+    exceeds the budget is cut too, rather than letting a negative slice keep part of the stem.
     """
+    if len(suffix) >= MAX_OUTPUT_STEM_LENGTH:
+        return suffix[:MAX_OUTPUT_STEM_LENGTH].rstrip()
     return stem[:MAX_OUTPUT_STEM_LENGTH - len(suffix)].rstrip() + suffix
 
 
@@ -198,7 +200,8 @@ def _build_output_template(opts: DownloadOptions,
     else:
         video_info = get_video_info(yt_dlp_path=Path(opts.ytdlp_exe), url=opts.url,
                                     video_download_timeout=opts.video_download_timeout)
-        video_id = (video_info.get('id') or '').strip() or None
+        # Sanitized like the rest of the name, so the post-download pass cannot rewrite the suffix.
+        video_id = sanitize_string(dirty_string=(video_info.get('id') or '').strip()) or None
         video_title = _strip_engagement_prefix(title=video_info.get('title', 'untitled'))
         sanitized_title = sanitize_string(dirty_string=video_title)
         logger.debug(f"Sanitized title: '{video_title}' -> '{sanitized_title}'")
@@ -249,11 +252,11 @@ def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,
         # Set the title metadata tag to the custom title
         cmd[1:1] = ['--replace-in-metadata', 'title', '.+', sanitized_title]
     else:
-        # No custom title: drop Facebook's engagement prefix from the title tag, then cut what is
-        # left to MAX_FILENAME_LENGTH (yt-dlp applies the rules in this order). Skipped above
-        # because the '.+' rule already overwrites the whole field with a sanitized, short title.
-        cmd[1:1] = ['--replace-in-metadata', 'title', ENGAGEMENT_PREFIX_PATTERN, '',
-                    '--replace-in-metadata', 'title', TITLE_TRUNCATE_PATTERN, r'\1']
+        # No custom title: drop Facebook's engagement prefix from the title tag. Skipped above
+        # because the '.+' rule already overwrites the whole field, making this a no-op there.
+        # The tag is not cut here: artist detection reads the full title after the download,
+        # and set_artists_in_audio_files() cuts it to MAX_TITLE_TAG_LENGTH afterwards.
+        cmd[1:1] = ['--replace-in-metadata', 'title', ENGAGEMENT_PREFIX_PATTERN, '']
 
     # Build a single generic 'ffmpeg:' postprocessor-args entry combining custom artist/album
     # metadata and any caller-supplied extras (e.g. M4A faststart), so they never overwrite.

@@ -4,12 +4,48 @@ Eliminates code duplication between MP3 and M4A processing.
 """
 import logging
 from pathlib import Path
+from typing import Any
 from mutagen import MutagenError
 
-from common_av.tag_handlers import AudioTagHandler
+from common_av.tag_handlers import AudioTagHandler, M4ATagHandler
 from funcs_utils.artist_search import load_artists, find_artists_in_string
+from project_defs import MAX_TITLE_TAG_LENGTH
 
 logger = logging.getLogger(__name__)
+
+
+def _cut_long_title(handler: AudioTagHandler, audio: Any, title: str) -> bool:
+    """Cut a Title tag longer than MAX_TITLE_TAG_LENGTH; return whether the tag was changed.
+
+    Audio and video files share this one rule, so a video and its audio carry the same title.
+    """
+    if len(title) <= MAX_TITLE_TAG_LENGTH:
+        return False
+    handler.set_tag(audio=audio, tag_name=handler.TAG_TITLE, value=title[:MAX_TITLE_TAG_LENGTH].rstrip())
+    return True
+
+
+def cut_title_tags_in_videos(video_folder: Path) -> None:
+    """Cut long Title tags in the folder's MP4 videos, matching the cut applied to their audio.
+
+    Args:
+        video_folder: Path to the video output folder.
+    """
+    if not video_folder.is_dir():
+        return
+    handler = M4ATagHandler()  # MP4 video uses the same iTunes atoms as M4A
+    for video_file in video_folder.iterdir():
+        if not video_file.is_file() or video_file.suffix.lower() != '.mp4':
+            continue
+        try:
+            video = handler.open_audio_file(file_path=video_file)
+        except MutagenError as e:
+            logger.warning(f"Cannot read video file '{video_file.name}' in folder '{video_folder}': {e}")
+            continue
+        title = handler.get_tag(audio=video, tag_name=handler.TAG_TITLE)
+        if _cut_long_title(handler=handler, audio=video, title=title):
+            handler.save_audio_file(audio=video, file_path=video_file)
+            logger.info(f'Updated {video_file.name}: title cut to {MAX_TITLE_TAG_LENGTH} characters')
 
 
 def set_artists_in_audio_files(audio_folder: Path,
@@ -22,6 +58,8 @@ def set_artists_in_audio_files(audio_folder: Path,
     Based on artists list loaded from an external file, scan the audio file title,
     and check if it contains any artist names from the artists list.
     If found, set the tags 'artist' and 'album artist' to the artist name(s).
+    A Title tag longer than MAX_TITLE_TAG_LENGTH is then cut to it -- only after detection, so
+    artists credited late in a long title are still found.
 
     Args:
         audio_folder: Path to folder containing audio files
@@ -73,13 +111,16 @@ def set_artists_in_audio_files(audio_folder: Path,
                 alb_art = handler.get_tag(audio=audio, tag_name=handler.TAG_ALBUMARTIST)
                 logger.debug(f"No known artist in title, a/aa tags='{art}'/'{alb_art}'")
 
+        # Cut a long title (often a whole Facebook description) once detection has read it all
+        upd_title = _cut_long_title(handler=handler, audio=audio, title=title)
+
         # Clear track number for non-chapter files (single videos and playlists)
         upd_track = False
         if handler.has_track_number(audio=audio):
             handler.clear_track_number(audio=audio)
             upd_track = True
 
-        if count > 0 or upd_format_specific or upd_track:
+        if count > 0 or upd_format_specific or upd_track or upd_title:
             # Save original filename from yt-dlp (before sanitization/moving)
             original_filename = original_names.get(str(audio_file), audio_file.name)
             handler.set_original_filename(audio=audio, file_path=audio_file, original_filename=original_filename)
