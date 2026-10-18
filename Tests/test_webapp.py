@@ -85,11 +85,11 @@ def _download(**overrides: object) -> DriverParams:
 
 
 def test_minimal_command_has_url_and_no_env() -> None:
-    """A bare video-only run passes just the URL, with no env overrides beyond the gate flag."""
+    """A bare video-only run passes just the URL; env holds only the gate flag and the cookie choice."""
     argv, env = build_command(params=_download(url='https://x'), repo_root=REPO_ROOT)
     assert argv[-1] == 'https://x'
     assert str(REPO_ROOT / DRIVER_SCRIPT) in argv
-    assert env == {'LINTER_GATE': 'off'}
+    assert env == {'LINTER_GATE': 'off', 'YTDLP_USE_COOKIES': 'none'}
 
 
 def test_mode_flags_are_mutually_exclusive() -> None:
@@ -125,12 +125,12 @@ def test_env_backed_options_go_to_env_not_argv() -> None:
     assert not any(token.startswith('--boost') or token.startswith('--cookies') for token in argv)
 
 
-def test_notifications_no_and_cookies_none_omit_env() -> None:
-    """NOTIFICATIONS=NO and cookies=none add nothing to the environment."""
+def test_notifications_no_omits_env_and_cookies_none_is_explicit() -> None:
+    """NOTIFICATIONS=NO adds nothing; cookies=none is passed so the driver's Facebook default is off."""
     _, env = build_command(
         params=_download(mode='with-audio', notifications='NO', cookies='none'), repo_root=REPO_ROOT)
     assert 'NOTIFICATIONS' not in env
-    assert 'YTDLP_USE_COOKIES' not in env
+    assert env['YTDLP_USE_COOKIES'] == 'none'
 
 
 def test_empty_metadata_fields_are_omitted() -> None:

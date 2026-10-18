@@ -141,7 +141,9 @@ its headed-Chromium / arrow-key flow can't run in a headless subprocess.
 
 ### Cookies (default: none)
 
-`webapp/config.json` ships `"cookies": "none"`, so runs carry no browser cookies at all. Cookies are
+`webapp/config.json` ships `"cookies": "none"`, so runs carry no browser cookies at all. `none` reaches
+the driver as `YTDLP_USE_COOKIES=none`, which also turns off its Facebook default (Firefox cookies for
+Facebook URLs on native Windows when the variable is unset). Cookies are
 only needed for age-restricted or private videos, and a cookie-bearing probe is what YouTube answers
 with `The page needs to be reloaded.` when a live browser rotates the profile out from under yt-dlp.
 Pick `firefox` / `chrome` from the **Cookies** dropdown for the runs that need them, or change the

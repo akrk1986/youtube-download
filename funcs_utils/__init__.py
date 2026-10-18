@@ -33,6 +33,8 @@ from funcs_utils.string_sanitization import (
     sanitize_string,
 )
 from funcs_utils.yt_dlp_utils import (
+    FacebookLoginRequiredError,
+    cookie_browser,
     get_cookie_args,
     is_facebook_parse_error,
     retry_on_facebook_parse_error,
@@ -49,9 +51,11 @@ __all__ = [
     'remove_diacritics',
     'greek_search',
     # yt-dlp utils
+    'FacebookLoginRequiredError',
     'is_format_error',
     'is_facebook_parse_error',
     'retry_on_facebook_parse_error',
+    'cookie_browser',
     'get_cookie_args',
     'warn_if_auth_error',
     # Media URLs

@@ -935,6 +935,16 @@ class TestFacebookCookieFallback:
         """Skip the between-attempt sleep so the retry tests run instantly."""
         monkeypatch.setattr('funcs_utils.yt_dlp_utils.time.sleep', lambda _seconds: None)
 
+    @pytest.fixture(autouse=True)
+    def _not_windows(self, monkeypatch):
+        """Run as on Linux, so an unset YTDLP_USE_COOKIES means no cookies even for Facebook."""
+        monkeypatch.setattr('funcs_utils.yt_dlp_utils.platform.system', lambda: 'Linux')
+
+    @staticmethod
+    def _login_hints(caplog) -> list[str]:
+        """Return the login-cookies hint messages captured during a test."""
+        return [r.getMessage() for r in caplog.records if 'Facebook returned no video data' in r.getMessage()]
+
     def test_is_facebook_parse_error_matches(self):
         """A Facebook URL with a 'Cannot parse data' error is detected."""
         from funcs_utils import is_facebook_parse_error
@@ -994,7 +1004,7 @@ class TestFacebookCookieFallback:
         """The parse failure is retried even with no cookies configured -- cookies are not the cause."""
         import subprocess as sp
 
-        from funcs_utils.yt_dlp_utils import FACEBOOK_PARSE_ATTEMPTS
+        from funcs_utils.yt_dlp_utils import FACEBOOK_PARSE_ATTEMPTS, FacebookLoginRequiredError
         from funcs_video_info.metadata import get_video_info
 
         monkeypatch.delenv('YTDLP_USE_COOKIES', raising=False)
@@ -1005,7 +1015,7 @@ class TestFacebookCookieFallback:
             raise sp.CalledProcessError(returncode=1, cmd=cmd, stderr=self._FB_STDERR)
 
         with patch('funcs_video_info.metadata.subprocess.run', side_effect=fake_run), \
-             pytest.raises(RuntimeError, match='Cannot parse data'):
+             pytest.raises(FacebookLoginRequiredError, match='no video data'):
             get_video_info(yt_dlp_path=Path('yt-dlp'), url=self._FB_URL)
 
         assert len(calls) == FACEBOOK_PARSE_ATTEMPTS
@@ -1075,6 +1085,128 @@ class TestFacebookCookieFallback:
                                    label='Video download', url=self._FB_URL)
 
         assert len(calls) == 1
+
+    def test_login_hint_after_every_attempt_fails(self, monkeypatch, caplog):
+        """A download failing every attempt suggests login cookies and raises FacebookLoginRequiredError."""
+        import subprocess as sp
+
+        from funcs_for_main_yt_dlp._download_common import _run_yt_dlp_subprocess
+        from funcs_utils import FacebookLoginRequiredError
+
+        monkeypatch.delenv('YTDLP_USE_COOKIES', raising=False)
+
+        def fake_run(cmd, **kwargs):
+            raise sp.CalledProcessError(returncode=1, cmd=cmd, stderr=self._FB_STDERR)
+
+        cmd: list[str | Path] = ['yt-dlp', '--no-warnings', self._FB_URL]
+        with patch('funcs_for_main_yt_dlp._download_common.subprocess.run', side_effect=fake_run), \
+             pytest.raises(FacebookLoginRequiredError):
+            _run_yt_dlp_subprocess(cmd=cmd, timeout=60, show_progress=False,
+                                   label='Video download', url=self._FB_URL)
+
+        hints = self._login_hints(caplog=caplog)
+        assert len(hints) == 1
+        assert 'set YTDLP_USE_COOKIES=firefox' in hints[0]
+
+    def test_login_hint_names_configured_cookies(self, monkeypatch, caplog):
+        """With cookies configured, the hint says they were tried and names the browser."""
+        import subprocess as sp
+
+        from funcs_video_info.metadata import get_video_info
+
+        monkeypatch.setenv('YTDLP_USE_COOKIES', 'firefox')
+
+        def fake_run(cmd, **kwargs):
+            raise sp.CalledProcessError(returncode=1, cmd=cmd, stderr=self._FB_STDERR)
+
+        with patch('funcs_video_info.metadata.subprocess.run', side_effect=fake_run), \
+             pytest.raises(RuntimeError):  # FacebookLoginRequiredError is a RuntimeError
+            get_video_info(yt_dlp_path=Path('yt-dlp'), url=self._FB_URL)
+
+        hints = self._login_hints(caplog=caplog)
+        assert len(hints) == 1
+        assert 'including the first one with the firefox browser cookies' in hints[0]
+
+    def test_no_login_hint_when_a_retry_recovers(self, monkeypatch, caplog):
+        """A probe that recovers on a later attempt gives no login-cookies hint."""
+        import subprocess as sp
+
+        from funcs_video_info.metadata import get_video_info
+
+        monkeypatch.delenv('YTDLP_USE_COOKIES', raising=False)
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            if len(calls) < 2:
+                raise sp.CalledProcessError(returncode=1, cmd=cmd, stderr=self._FB_STDERR)
+            return sp.CompletedProcess(args=cmd, returncode=0, stdout='{"title": "x"}', stderr='')
+
+        with patch('funcs_video_info.metadata.subprocess.run', side_effect=fake_run):
+            get_video_info(yt_dlp_path=Path('yt-dlp'), url=self._FB_URL)
+
+        assert self._login_hints(caplog=caplog) == []
+
+
+class TestCookieBrowser:
+    """Test which browser's cookies cookie_browser() picks for a URL."""
+
+    _FB_URL = 'https://www.facebook.com/reel/2825151097848525'
+    _YT_URL = 'https://www.youtube.com/watch?v=abc'
+
+    @staticmethod
+    def _on(monkeypatch, system: str) -> None:
+        """Pretend to run on the given platform.system() value."""
+        monkeypatch.setattr('funcs_utils.yt_dlp_utils.platform.system', lambda: system)
+
+    def test_facebook_defaults_to_firefox_on_windows(self, monkeypatch):
+        """With YTDLP_USE_COOKIES unset, a Facebook URL on native Windows gets Firefox cookies."""
+        from funcs_utils import cookie_browser, get_cookie_args
+
+        monkeypatch.delenv('YTDLP_USE_COOKIES', raising=False)
+        self._on(monkeypatch=monkeypatch, system='Windows')
+
+        assert cookie_browser(url=self._FB_URL) == 'firefox'
+        assert get_cookie_args(url=self._FB_URL)[:2] == ['--cookies-from-browser', 'firefox']
+
+    def test_no_default_for_other_sites_or_unknown_url(self, monkeypatch):
+        """YouTube URLs, and calls without a URL, stay anonymous on Windows."""
+        from funcs_utils import cookie_browser, get_cookie_args
+
+        monkeypatch.delenv('YTDLP_USE_COOKIES', raising=False)
+        self._on(monkeypatch=monkeypatch, system='Windows')
+
+        assert cookie_browser(url=self._YT_URL) == ''
+        assert cookie_browser() == ''
+        assert get_cookie_args(url=self._YT_URL) == []
+
+    def test_no_default_off_windows(self, monkeypatch):
+        """WSL/Linux cannot read the Windows browser profile, so Facebook gets no default there."""
+        from funcs_utils import cookie_browser
+
+        monkeypatch.delenv('YTDLP_USE_COOKIES', raising=False)
+        self._on(monkeypatch=monkeypatch, system='Linux')
+
+        assert cookie_browser(url=self._FB_URL) == ''
+
+    def test_none_disables_the_default(self, monkeypatch):
+        """YTDLP_USE_COOKIES=none turns cookies off, Facebook default included."""
+        from funcs_utils import cookie_browser
+
+        monkeypatch.setenv('YTDLP_USE_COOKIES', 'None')
+        self._on(monkeypatch=monkeypatch, system='Windows')
+
+        assert cookie_browser(url=self._FB_URL) == ''
+
+    def test_env_value_wins(self, monkeypatch):
+        """An explicit browser applies to every site and platform."""
+        from funcs_utils import cookie_browser
+
+        monkeypatch.setenv('YTDLP_USE_COOKIES', 'chrome')
+        self._on(monkeypatch=monkeypatch, system='Linux')
+
+        assert cookie_browser(url=self._YT_URL) == 'chrome'
+        assert cookie_browser(url=self._FB_URL) == 'chrome'
 
 
 class TestOutputFileNaming:

@@ -120,7 +120,7 @@ def extract_single_format(opts: DownloadOptions, output_folder: Path | str, form
         logger.error(f"{format_type.upper()} audio download failed for URL '{opts.url}' (exit code {e.returncode})")
         if e.stderr:
             logger.error(f'Error details: {e.stderr}')
-        warn_if_auth_error(error_text=error_output)
+        warn_if_auth_error(error_text=error_output, url=opts.url)
         if opts.is_it_playlist:
             logger.warning(f"Some videos in playlist '{opts.url}' may have failed, continuing...")
         else:

@@ -113,8 +113,9 @@ def _download_env(params: DriverParams) -> dict[str, str]:
     env: dict[str, str] = {'LINTER_GATE': 'off'}
     if params.boost:
         env['FFMPEG_OPTS'] = f'volume={params.boost_volume}'
-    if params.cookies != 'none':
-        env['YTDLP_USE_COOKIES'] = params.cookies
+    # 'none' is passed too: left unset, the driver would still use Firefox cookies for Facebook URLs
+    # on native Windows (cookie_browser in funcs_utils/yt_dlp_utils.py).
+    env['YTDLP_USE_COOKIES'] = params.cookies
     if params.notifications != 'NO':
         env['NOTIFICATIONS'] = params.notifications
     if params.notif_msg:

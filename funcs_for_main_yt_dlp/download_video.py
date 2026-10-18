@@ -98,7 +98,7 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool) 
             logger.error(f"Video download failed for URL '{opts.url}' (exit code {e.returncode})")
             if e.stderr:
                 logger.error(f'Error details: {e.stderr}')
-            warn_if_auth_error(error_text=error_output)
+            warn_if_auth_error(error_text=error_output, url=opts.url)
             if opts.is_it_playlist:
                 logger.warning(f"Some videos in playlist '{opts.url}' may have failed, continuing...")
                 return
@@ -110,5 +110,5 @@ def run_yt_dlp(opts: DownloadOptions, video_folder: Path | str, get_subs: bool) 
         logger.warning(f"Some videos in playlist '{opts.url}' may have failed, continuing...")
     else:
         stderr = last_error.stderr if last_error else 'Unknown error'
-        warn_if_auth_error(error_text=stderr)
+        warn_if_auth_error(error_text=stderr, url=opts.url)
         raise RuntimeError(f"No compatible format found for '{opts.url}': {stderr}")

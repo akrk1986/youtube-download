@@ -1,14 +1,13 @@
 """Video metadata retrieval using yt-dlp."""
 import json
 import logging
-import os
 import subprocess
 from pathlib import Path
 from typing import Any, cast
 
 import yt_dlp
 
-from funcs_utils import (get_cookie_args, is_format_error,
+from funcs_utils import (cookie_browser, get_cookie_args, is_format_error,
                          retry_on_facebook_parse_error, sanitize_url_for_subprocess)
 from funcs_video_info.url_validation import get_timeout_for_url
 
@@ -69,8 +68,8 @@ def get_video_info(yt_dlp_path: Path, url: str, video_download_timeout: int | No
         sanitized_url
     ]
 
-    # Add cookie arguments if configured via environment variable
-    cookie_args = get_cookie_args()
+    # Add cookie arguments if configured (see cookie_browser for the Facebook default)
+    cookie_args = get_cookie_args(url=url)
     cmd = base_cmd[:1] + cookie_args + base_cmd[1:]
 
     def _attempt(attempt_number: int) -> subprocess.CompletedProcess[str]:
@@ -113,15 +112,15 @@ def get_video_info(yt_dlp_path: Path, url: str, video_download_timeout: int | No
 
 
 def _cookie_browser() -> str:
-    """Return the browser whose cookies yt-dlp should use, or an empty string when none is set.
+    """Return the browser whose cookies the flat probe should use, or an empty string for none.
+
+    The flat probe runs only for playlist-capable sites (YouTube), so no URL is passed and the
+    Facebook default of cookie_browser() never applies.
 
     Returns:
-        str: 'chrome', 'firefox', or '' when YTDLP_USE_COOKIES is unset/empty.
+        str: 'chrome', 'firefox', or '' when YTDLP_USE_COOKIES is unset/empty/'none'.
     """
-    cookie_env = os.getenv('YTDLP_USE_COOKIES', '').strip()
-    if not cookie_env:
-        return ''
-    return 'chrome' if cookie_env.lower() == 'chrome' else 'firefox'
+    return cookie_browser()
 
 
 def _build_flat_ydl_opts(with_cookies: bool = True) -> dict[str, Any]:

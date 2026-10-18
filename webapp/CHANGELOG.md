@@ -5,6 +5,13 @@ documented in this file. The web app carries its own `VERSION` (in `webapp/__ini
 of `main-yt-dlp.py` — the app only drives that script as a subprocess. Main-script history is in
 [../CHANGELOG.md](../CHANGELOG.md).
 
+## [2026-10-18-1557] - Cookies 'none' is passed to the driver
+
+### Changed
+- **Cookies `none` now reaches the driver as `YTDLP_USE_COOKIES=none`** (`webapp/runner.py`)
+  instead of leaving the variable unset. Unset now means Firefox cookies for Facebook URLs on native
+  Windows, so `none` has to be explicit to mean no cookies.
+
 ## [2026-10-07-1808] - Clipboard URL matchers moved to funcs_utils
 
 ### Changed

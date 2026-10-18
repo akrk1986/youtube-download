@@ -31,7 +31,7 @@ from funcs_for_main_yt_dlp import (DownloadOptions,
 from funcs_video_info import (EmptyPlaylistError, are_chapters_supported,
                               are_playlists_supported, create_chapters_csv,
                               detect_chapters, get_playlist_entries, is_playlist)
-from funcs_utils import setup_logging
+from funcs_utils import FacebookLoginRequiredError, setup_logging
 from project_defs import VIDEO_OUTPUT_DIR
 
 SLACK_WEBHOOK: str | None = None
@@ -45,8 +45,7 @@ try:
 except ImportError:
     pass
 
-VERSION = '2026-10-13-1355'
-VERSION = '2026-10-13-1327'
+VERSION = '2026-10-18-1557'
 
 logger = logging.getLogger(__name__)
 
@@ -431,6 +430,12 @@ def main() -> None:
             _send_completion_notification(status='cancelled', **notif_kwargs)
         logger.info('Exiting...')
         sys.exit(130)  # Standard exit code for CTRL-C
+    except FacebookLoginRequiredError as e:
+        # Expected outcome, explained by the login-cookies hint already logged: no traceback.
+        logger.error(f'Download failed: {e}')
+        if notifiers:
+            _send_completion_notification(status='failure', failure_reason=str(e), **notif_kwargs)
+        sys.exit(1)
     except Exception as e:
         logger.exception(f'Download failed: {e}')
         if notifiers:

@@ -157,8 +157,8 @@ def get_chapter_count(ytdlp_exe: Path, playlist_url: str, video_download_timeout
 
         cmd: list[str | Path] = [ytdlp_exe, '--dump-json', '--no-download', sanitized_url]
 
-        # Add cookie arguments if configured via environment variable
-        cookie_args = get_cookie_args()
+        # Add cookie arguments if configured (see cookie_browser for the Facebook default)
+        cookie_args = get_cookie_args(url=playlist_url)
         if cookie_args:
             cmd[1:1] = cookie_args
 

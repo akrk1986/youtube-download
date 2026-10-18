@@ -2,6 +2,28 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-10-18-1557] - Facebook: login-cookies hint, clean exit, Firefox cookies by default on Windows
+
+### Added
+- **Login-cookies hint for Facebook.** When every 'Cannot parse data' attempt on a Facebook URL
+  fails, the video is most likely shown only to logged-in users (logged-out Facebook returns a
+  generic page with no video data). A warning now says so and names the cookies that were used, or
+  how to turn them on.
+- **Firefox cookies by default for Facebook on native Windows.** With `YTDLP_USE_COOKIES` unset, the
+  new `cookie_browser(url)` gives Facebook URLs Firefox cookies on native Windows. Other sites stay
+  anonymous, and so do WSL/Linux/macOS, where the Windows Firefox profile can't be read.
+- **`YTDLP_USE_COOKIES=none`** turns cookies off explicitly, Facebook default included.
+
+### Changed
+- `get_cookie_args()` and `warn_if_auth_error()` take the URL, and the auth hint names the cookies
+  actually used. The playlist probe now honours `none` (it used to treat it as Firefox).
+
+### Fixed
+- **No traceback when a Facebook video can't be read.** The new `FacebookLoginRequiredError` is
+  reported as one `Download failed:` line, exit code 1.
+- **`--version` reported an older stamp.** `main-yt-dlp.py` had two `VERSION` lines, and the stale
+  second one won.
+
 ## [2026-10-13-1355] - fix: cut the title tag after artist detection, for audio and video alike
 
 ### Fixed

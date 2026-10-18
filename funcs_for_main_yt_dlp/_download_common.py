@@ -238,7 +238,7 @@ def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,
     drop the metadata — which is exactly why custom artist/album vanished from the M4A (it adds
     ``-movflags +faststart``) while the MP4 kept them. Callers pass such extras here instead.
     """
-    cookie_args = get_cookie_args()
+    cookie_args = get_cookie_args(url=opts.url)
     if cookie_args:
         cmd[1:1] = cookie_args
 
@@ -290,10 +290,11 @@ def _run_yt_dlp_subprocess(cmd: list[str | Path], timeout: int,
 
     Facebook serves an unparseable page variant at random -- with or without browser cookies --
     so 'Cannot parse data' is retried instead of reported. Cookies, when configured, are left out
-    of the retries: they are not the cause, but the anonymous page is the simpler variant. Other
-    errors propagate to the caller unchanged (TimeoutExpired, CalledProcessError).
+    of the retries: they are not the cause, but the anonymous page is the simpler variant. A final
+    parse failure raises FacebookLoginRequiredError; other errors propagate to the caller unchanged
+    (TimeoutExpired, CalledProcessError).
     """
-    cookie_args = get_cookie_args()
+    cookie_args = get_cookie_args(url=url)
     retry_cmd = _remove_cookie_args(cmd=cmd, cookie_args=cookie_args) if cookie_args else cmd
 
     def _attempt(attempt_number: int) -> None:

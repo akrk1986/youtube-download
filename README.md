@@ -333,6 +333,17 @@ $env:YTDLP_USE_COOKIES="chrome"
 
 **Note:** Browser cookies allow downloading videos that require authentication or age verification. The tool will use your logged-in browser session to access the video. Supported browsers: Chrome and Firefox.
 
+**Which cookies are used:**
+
+| `YTDLP_USE_COOKIES` | Cookies |
+|---|---|
+| unset | Firefox for Facebook URLs on native Windows; none for other sites, and none on WSL/Linux/macOS |
+| `firefox` / `chrome` | that browser, for every site |
+| `none` | none, not even for Facebook |
+| any other value | Firefox, with a warning |
+
+Facebook shows some videos only to a logged-in session, so on native Windows Facebook URLs use Firefox cookies unless you say otherwise. Other sites stay anonymous by default: cookies slow every request (see below) and downloading with a logged-in YouTube account risks it being rate-limited or flagged. On WSL/Linux/macOS there is no default, because the Windows Firefox profile can't be read there and yt-dlp fails with `could not find firefox cookies database`.
+
 **Important:** When using cookies, the tool automatically:
 - Disables yt-dlp's cache (`--no-cache-dir`) to ensure fresh authentication for each operation
 - Adds 1-second delay between requests (`--sleep-requests 1`) to avoid YouTube rate limiting
@@ -342,6 +353,8 @@ $env:YTDLP_USE_COOKIES="chrome"
 **Automatic retry without cookies:** The metadata probes that ask whether a URL is a playlist (and that enumerate a playlist's entries) retry once *without* the browser cookies when the first, cookie-bearing attempt fails. YouTube rejects a session it considers stale with `The page needs to be reloaded.`, which a browser rotating the cookies out from under yt-dlp produces routinely; since cookies matter only for restricted videos, the cookie-less retry answers the question for everything else. The failed attempt is logged at DEBUG only.
 
 **Authentication hint on failure:** When a download fails with an error that looks like an authentication problem (sign-in required, private/members-only video, age restriction, HTTP 403), the tool logs a warning suggesting the cause may be browser cookies — either that none are configured (set `YTDLP_USE_COOKIES=firefox` or `chrome`) or that the configured cookies are missing/expired/for the wrong browser.
+
+**Facebook 'Cannot parse data':** yt-dlp's Facebook extractor fails with `Cannot parse data` on a page variant Facebook serves at random, so each Facebook probe and download gets 4 attempts, 2 seconds apart (cookies only on the first). A video shown only to logged-in users fails every attempt, because logged-out Facebook returns a generic page with no video data. The tool then logs a hint naming the cookies it used (or how to turn them on) and exits with code 1 and a one-line `Download failed:` error, without a traceback.
 
 ### Configure download retry behavior
 
