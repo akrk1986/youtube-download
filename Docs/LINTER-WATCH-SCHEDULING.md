@@ -5,8 +5,8 @@ change** — new CVEs land against already-installed packages, and new stable re
 Two mechanisms cover this:
 
 - **Production gate** (always on): `main-yt-dlp.py` and the LosslessCut driver call
-  `gate_on_linter_freshness()` at startup and refuse to run if the two linters haven't run in the
-  last 24h. Skip with `LINTER_GATE=off`. This is the real safety net — missing a scheduled watcher
+  `gate_on_linter_freshness()` at startup; when either linter hasn't run in the last 24h it offers
+  to run the stale one(s) before continuing. Skip with `LINTER_GATE=off`. This is the real safety net — missing a scheduled watcher
   run is harmless.
 - **Background watcher** (this doc): `av-utils/Utils/main-linter-watch.py` runs both linters on a
   soft interval, refreshes the shared state, and sends a Slack/Gmail notification **only when new

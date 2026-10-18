@@ -99,7 +99,7 @@ Gmail labels track progress. A qualifying mail gets `yt-queue`, and after its do
 
 When a download fails, the last 20 lines of its output are logged, so the cause (often a temporary YouTube `HTTP Error 403: Forbidden`) is visible. `--verbose` shows the full output of every run instead.
 
-The linter-freshness check (the `Exit now and run the linters? [Y/n]` prompt) runs once in the fetcher, before the first download. Every `main-yt-dlp.py` run then gets `LINTER_GATE=off`, so no prompt can wait on hidden output.
+The linter-freshness check (the `Run <stale tools> now?` prompt) runs once in the fetcher, before the first download. Every `main-yt-dlp.py` run then gets `LINTER_GATE=off`, so no prompt can wait on hidden output.
 
 ### Summary Blocks
 
