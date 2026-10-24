@@ -762,7 +762,7 @@ source ../.venv-av-linux/bin/activate
 ..\.venv-av-windows\Scripts\activate
 ```
 
-> **Note**: The shared venv uses Python 3.14 on Windows and system Python on Linux/WSL. No `pip install` step is required — packages are pre-installed.
+> **Note**: The shared venv uses Python 3.15 on Windows and system Python on Linux/WSL. No `pip install` step is required — packages are pre-installed.
 
 ### Install Python Dependencies (first-time setup only)
 ```bash

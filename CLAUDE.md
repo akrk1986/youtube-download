@@ -778,13 +778,14 @@ When asked to "run linters" or "lint the code", Claude should:
 - `freshness` always exits 0 (opt-in via `--tool freshness`; needs network). Venv-scoped, so output is identical from any sibling; pre-releases and intentional caps (e.g. `skylos <4.12`) are excluded, mirroring what `pip-compile --upgrade` can move. Renders a `rich` table (Package / Current / Latest / Age (days) / Action) where **Age** is days since the latest release was published on PyPI with a red **`New`** (`< 8` days) / green **`Stable`** (`≥ 8` days) badge, and **Action** flags sdist-only releases as `⚠ build from source`. It then writes `pip-upgrade-stable.sh` **or** `pip-upgrade-stable.ps1` (gitignored) containing only the Stable packages — only the script for the OS it is running on, since the per-OS venvs differ and a cross-OS script installs packages against constraints that never applied there; the generated header records platform and Python version. It then interactively offers to display/run it (non-interactive callers skip the prompts). Implemented by `run_freshness()` in the shared `common_linters/freshness.py`
 - `pyupgrade` detects modifications via file hashes (not `git diff`); exit code 1 means files were changed (review + commit required)
 - `eslint` and `jshint` are skipped automatically when no JS files are found
+- A tool that did not run is shown `SKIPPED` in the summary (not `PASS`) and does not fail the run. `skylos` (opt-in here) is skipped on Python 3.15+, where it is not installed — its `tree-sitter` dependency has no cp315 wheel, so `pyproject.toml` requires skylos only below 3.15. The Windows venv is 3.15, so `--tool skylos` works only on Linux/WSL (3.12)
 - `EXCLUDED_DIRS` is defined in `project_defs.py` — edit there to change which directories are excluded from linting (most tools)
 - `bandit` exclusions and skips are configured in `[tool.bandit]` in `pyproject.toml`
 - `deptry` exclusions are configured in `[tool.deptry]` in `pyproject.toml`
 - `ty` exclude list is hardcoded in `_build_cmd()` in `run-linters.py` (mirrors bandit exclude pattern)
 - Running with no arguments runs all tools sequentially (radon excluded)
 - `flake8` and `isort` were removed — replaced by `ruff`
-- The tool list comes from the shared `common_av.linters_defs.LINTER_TOOLS` (single source of truth across the sibling projects). `run-linters.py` filters it locally via `_FULLY_EXCLUDED={'deadcode'}` / `_DEFAULT_SKIP={'skylos'}`; the canonical (blocking) subset for the hook is `common_av.linters_defs.CANONICAL_LINTER_TOOLS`
+- The tool list comes from the shared `common_linters.linters_defs.LINTER_TOOLS` (single source of truth across the sibling projects). `run-linters.py` filters it locally via `_FULLY_EXCLUDED={'deadcode'}` / `_DEFAULT_SKIP={'skylos'}`; the canonical (blocking) subset for the hook is `common_linters.linters_defs.CANONICAL_LINTER_TOOLS`
 
 ### Git Pre-Commit Hook
 
