@@ -32,7 +32,8 @@ dependencies = [
     "rich>=14.3.3",
     "pygments>=2.20.0",
     # capped <4.12: skylos 4.23.x pulls tree-sitter-dart-orchard (sdist-only, no Windows/py3.14 wheel)
-    "skylos>=4.11.1,<4.12",
+    # skipped on 3.15+: its tree-sitter dependency has no cp315 wheel and needs a C compiler to build
+    "skylos>=4.11.1,<4.12; python_version < '3.15'",
 ]
 
 [tool.bandit]

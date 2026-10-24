@@ -397,7 +397,7 @@ six==1.17.0
     # via
     #   mando
     #   python-dateutil
-skylos==4.11.1
+skylos==4.11.1 ; python_version < "3.15"
     # via
     #   common-av
     #   youtube-download (pyproject.toml)

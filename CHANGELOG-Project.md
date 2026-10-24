@@ -2,6 +2,15 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-10-24-1852] - skip skylos on Python 3.15+
+
+### Changed
+- **`skylos` is required only below Python 3.15** (`; python_version < '3.15'` in `pyproject.toml`,
+  carried into `requirements.txt`). Its `tree-sitter` dependency has no Python 3.15 wheel and needs a
+  C compiler to build, so installing into a 3.15 venv failed. On 3.14 and earlier skylos is
+  installed as before; on 3.15 the shared `common_linters` runner reports skylos as skipped.
+- The shared Windows venv (`..\.venv-av-windows`) was rebuilt on Python 3.15.1.
+
 ## [2026-10-13-1841] - anchor freshness upgrade-script ignore patterns
 
 ### Changed
