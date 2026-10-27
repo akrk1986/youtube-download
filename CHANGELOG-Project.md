@@ -2,6 +2,15 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-10-27-1839] - PyCharm run configs use the shared Windows venv again
+
+### Fixed
+- **PyCharm run configs could not find an interpreter.** All of them use the module
+  `youtube-download`, whose `.iml` had been deleted (PyCharm had recreated the module as
+  `youtube-download@1`). The module file is back as `.idea/youtube-download.iml`, `.idea/modules.xml`
+  lists only it, and `.idea/misc.xml` sets the project and Black interpreter to the shared
+  `..\.venv-av-windows` (Python 3.15.1) instead of interpreters that no longer exist.
+
 ## [2026-10-24-1852] - skip skylos on Python 3.15+
 
 ### Changed
