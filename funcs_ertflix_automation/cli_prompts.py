@@ -1,4 +1,7 @@
 """Light TUI: rich tables for display + questionary selects for input."""
+# PEP 810: lazy on Python 3.15+, ignored (eager) on older versions; loaded when a picker is shown.
+__lazy_modules__ = ['questionary', 'rich.console', 'rich.table']
+
 import logging
 from typing import TypeVar
 from collections.abc import Sequence

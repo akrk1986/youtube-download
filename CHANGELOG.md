@@ -2,6 +2,18 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-10-27-1838] - faster startup on Python 3.15 (lazy imports)
+
+### Changed
+- **Heavy imports load on first use on Python 3.15+** (PEP 810, through a module-level
+  `__lazy_modules__` list; Python 3.12 ignores it and imports them eagerly as before). `yt_dlp` in
+  `funcs_video_info/metadata.py`, and `playwright.sync_api` / `questionary` / `rich` in
+  `main-ertflix-series.py` and `funcs_ertflix_automation/`. On Windows 3.15, `main-yt-dlp.py` loads in
+  0.21 s instead of 2.24 s (with the matching `common_av` 1.3.1 change), and `main-ertflix-series.py`
+  in 0.17 s instead of about 0.5 s; `--help`, argument errors and a run stopped at the linter gate
+  benefit most. Downloads load each module when they first need it.
+- CLAUDE.md documents the pattern ("Lazy Imports (PEP 810)").
+
 ## [2026-10-18-1557] - Facebook: login-cookies hint, clean exit, Firefox cookies by default on Windows
 
 ### Added

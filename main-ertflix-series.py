@@ -17,6 +17,9 @@ Example:
     python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \\
         --only-audio --audio-format mp3
 """
+# PEP 810: lazy on Python 3.15+, ignored (eager) on older versions; Page is used in annotations only.
+__lazy_modules__ = ['playwright.sync_api']
+
 import argparse
 import logging
 import shlex
@@ -42,7 +45,7 @@ from funcs_ertflix_automation.handoff import build_ytdlp_argv
 from funcs_utils import setup_logging
 from project_defs import VALID_OTHER_DOMAINS
 
-VERSION = '2026-04-20-2205'
+VERSION = '2026-10-27-1838'
 DEBUG_DOM_DIR = Path('Logs')
 
 logger = logging.getLogger(__name__)

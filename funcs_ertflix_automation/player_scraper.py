@@ -1,4 +1,7 @@
 """Play-button click and episode info extraction for ERTFlix."""
+# PEP 810: lazy on Python 3.15+, ignored (eager) on older versions; used in annotations only.
+__lazy_modules__ = ['playwright.sync_api']
+
 import logging
 import time
 from pathlib import Path

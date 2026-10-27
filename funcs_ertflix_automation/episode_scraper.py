@@ -1,4 +1,7 @@
 """Episode DOM scraping and debug DOM dump for ERTFlix series pages."""
+# PEP 810: lazy on Python 3.15+, ignored (eager) on older versions; Page is used in annotations only.
+__lazy_modules__ = ['playwright.sync_api']
+
 import logging
 import time
 from dataclasses import dataclass

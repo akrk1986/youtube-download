@@ -1,4 +1,8 @@
 """Video metadata retrieval using yt-dlp."""
+# PEP 810: lazy on Python 3.15+, ignored (eager) on older versions. The yt_dlp module is the
+# heaviest import on the startup path and is needed only by the in-process probes below.
+__lazy_modules__ = ['yt_dlp']
+
 import json
 import logging
 import subprocess

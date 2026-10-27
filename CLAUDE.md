@@ -530,6 +530,32 @@ The project uses multiple linting and type checking tools to maintain code quali
 - Functions accept `Path | str` for flexibility
 - Convert to Path early, work with Path throughout
 
+### Lazy Imports (PEP 810)
+Slow third-party imports are deferred with a module-level `__lazy_modules__` list, placed after the
+module docstring and before the imports:
+
+```python
+# PEP 810: lazy on Python 3.15+, ignored (eager) on older versions; <why it can wait>.
+__lazy_modules__ = ['yt_dlp']
+
+import yt_dlp
+```
+
+- **Why the list, not `lazy import`**: the `lazy` keyword is a `SyntaxError` on 3.12 (the Linux venv);
+  3.15 (the Windows venv) honours the list, 3.12 ignores it and imports eagerly. Switch to `lazy import`
+  only once every venv is 3.15+ and `requires-python` is raised.
+- **List the full dotted name being imported**: `from rich.console import Console` needs `'rich.console'`,
+  not `'rich'`.
+- **A module-level use cancels it**: any use of the name at import time (a call, a base class, a
+  decorator, a class-body expression) loads the module immediately. Move such uses into a function, e.g.
+  `common_av.text` creates the inflect engine in a `functools.cache` getter instead of at module level.
+  Names used only in annotations are fine (3.14+ does not evaluate annotations at import).
+- **Errors move**: a missing package fails at first use, not at import. Keep optional-dependency
+  `try: import x except ImportError` blocks eager, or the fallback never triggers.
+- Applied in `funcs_video_info/metadata.py` (`yt_dlp`), `funcs_ertflix_automation/*` and
+  `main-ertflix-series.py` (`playwright.sync_api`, `questionary`, `rich`), and in `common_av`
+  (`inflect`, `requests`, `smtplib`). Check with `python -X importtime ./main-yt-dlp.py --help` on 3.15.
+
 ### Subprocess Output Encoding
 - Any `subprocess.run` / `subprocess.Popen` / `subprocess.check_output` call that **captures output in text mode** (`capture_output=True`, `stdout=PIPE`, or `stderr=PIPE`, together with `text=True`) MUST pass `encoding='utf-8', errors='replace'`.
 - **Why**: on Windows, text mode defaults to the cp1252 codec. External tools (yt-dlp, ffmpeg/ffprobe, git) emit UTF-8 — file paths, tags, commit messages — often with non-Latin-1 characters (Greek, Hebrew, CJK). cp1252 can't decode them, so the stdout/stderr reader thread crashes silently and `result.stdout` / `result.stderr` come back `None`, causing a confusing downstream error (e.g. `expected string or bytes-like object, got 'NoneType'`).
