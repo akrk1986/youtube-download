@@ -12,6 +12,8 @@
 # Security overrides for transitive dependencies (not imported directly):
 starlette>=1.3.1  # PYSEC-2026-161, CVE-2026-54282/54283; pulled in via skylos -> mcp
 pyjwt>=2.13.0  # PYSEC-2026-175/177/178/179; pulled in via skylos -> mcp
+filelock>=4.2.1  # CVE-2026-112907/112913/112940; pulled in via pip-audit -> cachecontrol
+certifi>=2026.10.18  # PYSEC-2026-4320; pulled in via requests / httpx
 multidict>=6.9.1  # CVE-2026-104874; pulled in via aiohttp (which caps it <7.0)
 
 # Platform marker for a Unix-only transitive dep: uvloop (via nicegui -> uvicorn[standard]) has no

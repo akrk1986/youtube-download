@@ -58,8 +58,9 @@ cachecontrol[filecache]==0.14.4
     # via
     #   cachecontrol
     #   pip-audit
-certifi==2026.5.20
+certifi==2026.10.18
     # via
+    #   -r requirements.in
     #   httpcore
     #   httpx
     #   nicegui
@@ -104,8 +105,10 @@ emoji==2.15.0
     # via youtube-download (pyproject.toml)
 fastapi==0.138.2
     # via nicegui
-filelock==3.29.1
-    # via cachecontrol
+filelock==4.2.1
+    # via
+    #   -r requirements.in
+    #   cachecontrol
 frozenlist==1.8.0
     # via
     #   aiohttp

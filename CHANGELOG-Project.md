@@ -2,6 +2,15 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-10-27-1859] - filelock and certifi CVE pins
+
+### Changed
+- **CVE fixes for transitive dependencies** (`requirements.in` pins, lock regenerated):
+  `filelock` 3.29.1 → 4.2.1 (CVE-2026-112907/112913/112940; via pip-audit → cachecontrol) and
+  `certifi` 2026.5.20 → 2026.10.18 (PYSEC-2026-4320; via requests / httpx). Both shared venvs were
+  upgraded too, along with `pillow` 13.0.0 (av-utils dependency). pip-audit now passes with a warning:
+  the remaining certifi and setuptools fixes are under 8 days old.
+
 ## [2026-10-27-1839] - PyCharm run configs use the shared Windows venv again
 
 ### Fixed
