@@ -37,7 +37,11 @@
       "WebFetch(domain:multicommander.com)",
       "WebFetch(domain:ghisler.ch)",
       "Bash(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 yt-videos/Video.mp4)",
-      "Bash(git notes *)"
+      "Bash(git notes *)",
+      "WebFetch(domain:peps.python.org)",
+      "Bash(cd *)",
+      "Bash(git check-ignore *)",
+      "Bash(echo \"rc=$?\")"
     ],
     "deny": [],
     "ask": []
