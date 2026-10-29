@@ -2,6 +2,14 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-10-29-1118] - certifi 2026.10.19, setuptools 84.1.0
+
+### Changed
+- **`certifi` 2026.10.18 → 2026.10.19** (`requirements.in` floor, lock regenerated): PYSEC-2026-4320 /
+  GHSA-6q48-6c7w-9gw2 now lists 2026.10.19 as its fix version. Both shared venvs also got
+  `setuptools` 84.1.0 (GHSA-xmj3-9gf7-h52w); it is not in the lock, which leaves setuptools out.
+  pip-audit is clean on both venvs.
+
 ## [2026-10-29-1102] - PyCharm interpreter renamed to Python 3.15
 
 ### Changed
