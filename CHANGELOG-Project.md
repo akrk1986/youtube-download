@@ -2,6 +2,14 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-10-29-1102] - PyCharm interpreter renamed to Python 3.15
+
+### Changed
+- **`.idea/misc.xml` and `.idea/youtube-download.iml` use `Python 3.15 (.venv-av-windows)`.** PyCharm's
+  interpreter list had four entries for the shared Windows venv, all named "Python 3.14 …" although the
+  venv runs 3.15.1, one per project. They were merged into one entry shared by all projects, under the
+  new name.
+
 ## [2026-10-27-1859] - filelock and certifi CVE pins
 
 ### Changed
