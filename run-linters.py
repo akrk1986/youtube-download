@@ -29,7 +29,7 @@ TOOLS = [t for t in LINTER_TOOLS if t not in _FULLY_EXCLUDED and t not in _DEFAU
 
 # skylos (slow) and radon/freshness (informational) are excluded from default runs; all stay
 # opt-in via --tool <name>. freshness: outdated packages with release age + upgrade scripts
-# (needs network, never blocks; post-processed by common_linters.run_freshness).
+# (needs network; fails only on a CVE with a Stable, installable fix; post-processed by common_linters.run_freshness).
 ALL_TOOLS = TOOLS + ['skylos', 'radon', 'freshness']
 
 # Hyphenated entry-point scripts. `pylint .` discovers files by directory traversal and skips

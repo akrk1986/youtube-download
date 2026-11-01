@@ -2,6 +2,14 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-11-01-1044] - freshness includes pip-audit
+
+### Changed
+- **Linter gate**: `freshness` now runs pip-audit too (shared `common_linters`, common-av 1.3.4), so
+  the gate tracks one timestamp and shows one prompt. It adds a CVE column, pins a Stable CVE fix when
+  the latest release is not safe, and fails on an actionable CVE. `run-linters.py` comment updated;
+  `CLAUDE.md` and `Docs/LINTER-WATCH-SCHEDULING.md` updated.
+
 ## [2026-10-29-1118] - certifi 2026.10.19, setuptools 84.1.0
 
 ### Changed
