@@ -2,6 +2,14 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-11-02-1134] - sanitize_string: split into helpers
+
+### Changed
+- **`sanitize_string` (`funcs_utils/string_sanitization.py`) is split into helpers** (radon complexity
+  D 22 → B 9): `_split_extension` (supported extension + subtitle language tag) and `_is_allowed_char`
+  (the kept alphabets); the extension list and allowed-character sets are module constants. File names
+  are unchanged — checked against the previous version on about 590,000 inputs.
+
 ## [2026-11-02-1101] - main-yt-dlp: split _execute_main into helpers
 
 ### Changed
