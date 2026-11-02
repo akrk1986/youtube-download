@@ -45,7 +45,7 @@ try:
 except ImportError:
     pass
 
-VERSION = '2026-11-02-1134'
+VERSION = '2026-11-02-1537'
 
 logger = logging.getLogger(__name__)
 

@@ -2,6 +2,18 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-11-02-1537] - sanitize_string: no punctuation left at the cut
+
+### Fixed
+- **A file name cut to fit the 64-character limit no longer ends in punctuation**: `sanitize_string`
+  (`funcs_utils/string_sanitization.py`) now strips `.`, `,`, `;`, `-`, `_` and opening brackets at the
+  cut, not just spaces. A cut ending on `.` gave `Title..mp4`, and without an extension a trailing dot
+  that Windows drops silently, so the name on disk differed from the recorded rename.
+
+### Changed
+- **The allowed-character filter is one precompiled regex** (`_DISALLOWED_CHARS`) instead of a call per
+  character, with the Greek/Hebrew/Latin-1 ranges written as `\u` escapes. Kept characters are unchanged.
+
 ## [2026-11-02-1134] - sanitize_string: split into helpers
 
 ### Changed

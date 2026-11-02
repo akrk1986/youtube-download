@@ -22,6 +22,14 @@ _ALLOWED_ASCII_PUNCTUATION = ' .,;!()-_[]{}'
 # noinspection SpellCheckingInspection
 _ALLOWED_LATIN_EXTENDED_A = ('ĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁł'
                              'ŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž')
+# Any character not kept in a file name (replaced with a space). Kept: ASCII letters, digits and
+# _ALLOWED_ASCII_PUNCTUATION; Greek (U+0370-U+03FF); Hebrew letters (U+05D0-U+05EA); Latin-1 Supplement
+# U+00C0-U+00FF (French accents, Turkish Ö, Ü, Ç - and also the symbols × and ÷); and _ALLOWED_LATIN_EXTENDED_A
+_DISALLOWED_CHARS = re.compile(f'[^A-Za-z0-9{re.escape(_ALLOWED_ASCII_PUNCTUATION)}'
+                               f'\u0370-\u03ff\u05d0-\u05ea\u00c0-\u00ff{_ALLOWED_LATIN_EXTENDED_A}]')
+# Characters removed from the end of a name cut to fit the length limit, so it does not end in a
+# separator or an opening bracket ('Title..mp4', 'Title (.mp4'); a trailing '.' is also dropped by Windows
+_CUT_TRAILING_CHARS = ' .,;-_([{'
 
 
 def _split_extension(file_name: str) -> tuple[str, str, str]:
@@ -48,25 +56,6 @@ def _split_extension(file_name: str) -> tuple[str, str, str]:
     return name_part, extension, ''
 
 
-def _is_allowed_char(char: str) -> bool:
-    """Return True when a character may stay in a file name.
-
-    Kept: ASCII letters, digits and ``_ALLOWED_ASCII_PUNCTUATION``; Greek (U+0370–U+03FF); Hebrew letters
-    (U+05D0–U+05EA); Latin-1 Supplement letters (U+00C0–U+00FF: French accents, Turkish Ö, Ü, Ç); and
-    ``_ALLOWED_LATIN_EXTENDED_A``.
-
-    Args:
-        char: A single character.
-
-    Returns:
-        bool: True when the character is kept, False when it is replaced with a space.
-    """
-    if char.isascii():
-        return char.isalnum() or char in _ALLOWED_ASCII_PUNCTUATION
-    return ('Ͱ' <= char <= 'Ͽ' or 'א' <= char <= 'ת' or 'À' <= char <= 'ÿ'
-            or char in _ALLOWED_LATIN_EXTENDED_A)
-
-
 def sanitize_string(dirty_string: str) -> str:
     """
     Sanitize filename by:
@@ -75,6 +64,7 @@ def sanitize_string(dirty_string: str) -> str:
     3. Removing leading unwanted characters and spaces
     4. Compressing multiple spaces into one
     5. Removing trailing spaces before file extension
+    6. Cutting the name to MAX_FILENAME_LENGTH, without leaving a separator or an opening bracket at the cut
 
     Subtitle files keep their language tag ('Title.el.srt'), and their stem is truncated to the same
     length as a media file's, so the subtitle still pairs with its video after the rename.
@@ -89,7 +79,7 @@ def sanitize_string(dirty_string: str) -> str:
     name_part = emoji.replace_emoji(name_part, replace=' ')
 
     # 2. Replace foreign characters (not English/French/Greek/Hebrew/Turkish) with spaces
-    name_part = ''.join(char if _is_allowed_char(char=char) else ' ' for char in name_part)
+    name_part = _DISALLOWED_CHARS.sub(' ', name_part)
 
     # 3. Remove leading unwanted characters (using existing pattern)
     name_part = pattern.sub('', name_part)
@@ -103,14 +93,14 @@ def sanitize_string(dirty_string: str) -> str:
     # 6. Truncate to ensure total filename length <= MAX_FILENAME_LENGTH characters (the dot and extension count)
     max_name_length = MAX_FILENAME_LENGTH - 1 - len(extension) if extension else MAX_FILENAME_LENGTH
     if len(name_part) > max_name_length:
-        name_part = name_part[:max_name_length].rstrip()
+        name_part = name_part[:max_name_length].rstrip(_CUT_TRAILING_CHARS)
 
     if not extension:
         return name_part
     # Reconstruct filename (the language tag sits outside the length budget, keeping the stem aligned with the video)
     if lang_tag:
         extension = f'{lang_tag}.{extension}'
-    return f'{name_part or "untitled"}.{extension}'
+    return f'{name_part or 'untitled'}.{extension}'
 
 
 def greek_search(big_string: str, sub_string: str) -> bool:
