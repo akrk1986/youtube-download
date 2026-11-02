@@ -2,6 +2,14 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-11-02-1101] - main-yt-dlp: split _execute_main into helpers
+
+### Changed
+- **`_execute_main` is split into smaller helpers** (radon complexity D 25 → C 14): `_check_playlist`
+  (playlist detection and video count), `_prepare_output_dirs` (output folders and leftover cleanup)
+  and `_detect_chapters_or_exit` (chapter detection; `--list-chapters` aborts when there are none).
+  Behaviour is unchanged.
+
 ## [2026-10-27-1838] - faster startup on Python 3.15 (lazy imports)
 
 ### Changed

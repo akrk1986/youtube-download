@@ -45,7 +45,7 @@ try:
 except ImportError:
     pass
 
-VERSION = '2026-10-27-1838'
+VERSION = '2026-11-02-1101'
 
 logger = logging.getLogger(__name__)
 
@@ -210,6 +210,79 @@ def _send_completion_notification(
     )
 
 
+def _check_playlist(url: str) -> tuple[bool, int | None]:
+    """Detect a playlist URL and count its entries; exit when the playlist is empty.
+
+    Playlist detection only runs for domains that support playlists (YouTube today).
+
+    Args:
+        url: The resolved video/playlist URL.
+
+    Returns:
+        tuple[bool, int | None]: Whether the URL is a playlist, and its entry count (None when not a
+            playlist or the count could not be determined).
+    """
+    if not are_playlists_supported(url=url) or not is_playlist(url=url):
+        return False, None
+    try:
+        playlist_count = len(get_playlist_entries(url=url))
+    except EmptyPlaylistError:
+        logger.warning('Playlist is empty — nothing to download.')
+        sys.exit(0)
+    except RuntimeError as exc:
+        logger.debug(f'Could not enumerate playlist size: {exc}')
+        return True, None
+    logger.info(f'Playlist contains {count_noun(playlist_count, "video")}')
+    return True, playlist_count
+
+
+def _prepare_output_dirs(video_folder: Path, only_audio: bool, need_audio: bool, audio_formats: list[str]) -> None:
+    """Create the video and per-format audio output folders, and clean leftovers from the video folder.
+
+    Args:
+        video_folder: The video output folder.
+        only_audio: True when no video is downloaded.
+        need_audio: True when audio is extracted.
+        audio_formats: The audio formats to extract.
+    """
+    if not only_audio:
+        video_folder.mkdir(parents=True, exist_ok=True)
+        cleanup_leftover_files(video_folder=video_folder)
+    if need_audio:
+        for audio_format in audio_formats:
+            Path(get_audio_dir_for_format(audio_format=audio_format)).mkdir(parents=True, exist_ok=True)
+
+
+def _detect_chapters_or_exit(args: argparse.Namespace, yt_dlp_exe: str,
+                             url_is_playlist: bool) -> tuple[bool, dict[str, Any] | None, str | None]:
+    """Detect chapters (chapter-capable domains only); exit when --list-chapters finds none.
+
+    Args:
+        args: The parsed arguments.
+        yt_dlp_exe: Path to the yt-dlp executable.
+        url_is_playlist: Whether the URL is a playlist.
+
+    Returns:
+        tuple[bool, dict[str, Any] | None, str | None]: Whether chapters exist, the video info, and the
+            video title.
+    """
+    if are_chapters_supported(url=args.video_url):
+        chapters = detect_chapters(
+            yt_dlp_exe=yt_dlp_exe,
+            video_url=args.video_url,
+            video_download_timeout=args.video_download_timeout,
+            url_is_playlist=url_is_playlist,
+            show_chapters=bool(args.list_chapters),
+            chapter_source='manual' if args.list_chapters == 'manual' else 'json',
+        )
+    else:
+        chapters = False, None, None
+    if args.list_chapters and not chapters[0]:
+        logger.error('--list-chapters: video has no chapters. Aborting.')
+        sys.exit(1)
+    return chapters
+
+
 def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_id: str,
                   notifiers: list[NotificationHandler] | None = None, notif_msg_suffix: str = '') -> None:
     """Execute the main download logic."""
@@ -234,20 +307,8 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
     args.video_url = _resolve_url(args=args, yt_dlp_exe=yt_dlp_exe)
     logger.info(f'Processing URL: {args.video_url}')
 
-    # Playlist / chapter detection only run for domains that support them (YouTube today).
     # Done before the start notification so the playlist size can be reported up front.
-    url_is_playlist = is_playlist(url=args.video_url) if are_playlists_supported(url=args.video_url) else False
-
-    playlist_count: int | None = None
-    if url_is_playlist:
-        try:
-            playlist_count = len(get_playlist_entries(url=args.video_url))
-            logger.info(f'Playlist contains {count_noun(playlist_count, "video")}')
-        except EmptyPlaylistError:
-            logger.warning('Playlist is empty — nothing to download.')
-            sys.exit(0)
-        except RuntimeError as exc:
-            logger.debug(f'Could not enumerate playlist size: {exc}')
+    url_is_playlist, playlist_count = _check_playlist(url=args.video_url)
 
     # Send start notification
     if notifiers:
@@ -266,14 +327,8 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         )
 
     video_folder = Path(VIDEO_OUTPUT_DIR).resolve()
-
-    if not args.only_audio:
-        video_folder.mkdir(parents=True, exist_ok=True)
-        cleanup_leftover_files(video_folder=video_folder)
-    if need_audio:
-        for audio_format in audio_formats:
-            audio_dir = Path(get_audio_dir_for_format(audio_format=audio_format))
-            audio_dir.mkdir(parents=True, exist_ok=True)
+    _prepare_output_dirs(video_folder=video_folder, only_audio=args.only_audio, need_audio=need_audio,
+                         audio_formats=audio_formats)
 
     if args.list_chapters and url_is_playlist:
         logger.error('--list-chapters does not support playlist URLs. Provide a single video URL.')
@@ -284,24 +339,10 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         args=args, url_is_playlist=url_is_playlist,
     )
 
-    # Detect chapters and fetch video info (only for chapter-capable domains)
-    chapter_source = 'manual' if args.list_chapters == 'manual' else 'json'
-    if are_chapters_supported(url=args.video_url):
-        has_chapters, video_info, video_title = detect_chapters(
-            yt_dlp_exe=yt_dlp_exe,
-            video_url=args.video_url,
-            video_download_timeout=args.video_download_timeout,
-            url_is_playlist=url_is_playlist,
-            show_chapters=bool(args.list_chapters),
-            chapter_source=chapter_source,
-        )
-    else:
-        has_chapters, video_info, video_title = False, None, None
-
-    # --list-chapters requires the video to have chapters
-    if args.list_chapters and not has_chapters:
-        logger.error('--list-chapters: video has no chapters. Aborting.')
-        sys.exit(1)
+    # Detect chapters and fetch video info (--list-chapters exits here when there are none)
+    has_chapters, video_info, video_title = _detect_chapters_or_exit(
+        args=args, yt_dlp_exe=yt_dlp_exe, url_is_playlist=url_is_playlist,
+    )
 
     # Create download options dataclass for common parameters
     download_opts = DownloadOptions(

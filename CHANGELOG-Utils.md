@@ -2,6 +2,11 @@
 
 All notable changes to the standalone utility scripts (`Utils/` and the URL-extraction helper in `Tests/`) are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md).
 
+## [2026-11-02-1101] - fetch-mail-urls: split _run_from_mail into helpers
+
+### Changed
+- **`_run_from_mail` in `Utils/main-fetch-mail-urls.py` is split into helpers** (radon complexity D 24 → C 12): `_scan_inbox` (senders, labels, inbox scan) and `_download_and_relabel` (the download loop, relabelling each mail once all of its links are downloaded, and the Download summary). Behaviour is unchanged.
+
 ## [2026-10-07-2156] - fetch-mail-urls: pre/post summaries, quiet downloads, --verbose
 
 ### Changed

@@ -48,7 +48,7 @@ try:
 except ImportError:
     pass
 
-VERSION = '2026-10-07-2156'
+VERSION = '2026-11-02-1101'
 DRIVER_SCRIPT = _PROJECT_ROOT / 'main-yt-dlp.py'
 CANDIDATES_DIR = _PROJECT_ROOT / 'yt-queue'
 # Lines of main-yt-dlp.py output shown when a download fails and --verbose is off.
@@ -188,6 +188,79 @@ def _log_summary(title: str, rows: list[tuple[str, str]], failed_urls: list[str]
         logger.info(f'    {url}')
 
 
+def _scan_inbox(args: argparse.Namespace, address: str, password: str,
+                recipient: str) -> list[MailCandidate]:
+    """Scan the inbox for mails from the allowed senders, labelling accepted mails unless dry-running.
+
+    Args:
+        args: The parsed arguments.
+        address: The inbox address (also a default allowed sender).
+        password: The inbox App Password.
+        recipient: The configured recipient address (the other default allowed sender).
+
+    Returns:
+        list[MailCandidate]: One result per scanned mail.
+    """
+    sender_list = args.sender or [recipient, address]
+    senders = {s.strip().lower() for s in sender_list if s and s.strip()}
+    logger.info(f"Scanning {address}'s inbox for mails from: {', '.join(sorted(senders))}")
+    imap = connect(address=address, app_password=password)
+    try:
+        if not args.dry_run:
+            ensure_labels(imap=imap, labels=[args.queue_label, args.done_label])
+        imap.select(MAILBOX, readonly=args.dry_run)
+        return scan_mailbox(imap=imap, senders=senders, apply_labels=not args.dry_run,
+                            queue_label=args.queue_label, done_label=args.done_label)
+    finally:
+        imap.logout()
+
+
+def _download_and_relabel(args: argparse.Namespace, passthrough_args: list[str], address: str, password: str,
+                          urls_by_uid: dict[str, list[str]]) -> int:
+    """Download every URL and relabel each mail as done once all of its URLs are downloaded.
+
+    Args:
+        args: The parsed arguments.
+        passthrough_args: Extra flags forwarded to main-yt-dlp.py.
+        address: The inbox address.
+        password: The inbox App Password.
+        urls_by_uid: The accepted mails' URLs, keyed by mail UID (consumed as mails are relabelled).
+
+    Returns:
+        int: The process exit code (1 when any download failed).
+    """
+    all_urls = list(dict.fromkeys(url for urls in urls_by_uid.values() for url in urls))
+    accepted = len(urls_by_uid)
+    succeeded: set[str] = set()
+    failed_urls: list[str] = []
+    marked_done = 0
+    for idx, url in enumerate(all_urls, start=1):
+        if not _download(url=url, passthrough_args=passthrough_args, position=f'[{idx}/{len(all_urls)}]',
+                         verbose=args.verbose):
+            failed_urls.append(url)
+            continue
+        succeeded.add(url)
+        # Relabel each mail as soon as all of its URLs are downloaded. A fresh connection per
+        # relabel: a long download can outlive an idle IMAP session.
+        done_uids = [uid for uid, urls in urls_by_uid.items() if set(urls) <= succeeded]
+        if not done_uids:
+            continue
+        imap = connect(address=address, app_password=password)
+        try:
+            imap.select(MAILBOX)
+            for uid in done_uids:
+                mark_done(imap=imap, uid=uid, queue_label=args.queue_label, done_label=args.done_label)
+                del urls_by_uid[uid]
+                marked_done += 1
+        finally:
+            imap.logout()
+    _log_summary(title='Download summary',
+                 rows=[('Videos downloaded', f'{len(succeeded)} of {len(all_urls)}'),
+                       ('Mails marked done', f'{marked_done} of {accepted}')],
+                 failed_urls=failed_urls)
+    return 1 if failed_urls else 0
+
+
 def _run_from_mail(args: argparse.Namespace, passthrough_args: list[str]) -> int:
     """Scan the inbox, write the candidates file, and optionally download + relabel.
 
@@ -203,19 +276,8 @@ def _run_from_mail(args: argparse.Namespace, passthrough_args: list[str]) -> int
         return 1
     address = GMAIL_PARAMS['sender_email']
     password = GMAIL_PARAMS['sender_app_password']
-    sender_list = args.sender or [GMAIL_PARAMS.get('recipient_email', ''), address]
-    senders = {s.strip().lower() for s in sender_list if s and s.strip()}
-    logger.info(f"Scanning {address}'s inbox for mails from: {', '.join(sorted(senders))}")
-    labels = {'queue_label': args.queue_label, 'done_label': args.done_label}
-
-    imap = connect(address=address, app_password=password)
-    try:
-        if not args.dry_run:
-            ensure_labels(imap=imap, labels=[args.queue_label, args.done_label])
-        imap.select(MAILBOX, readonly=args.dry_run)
-        results = scan_mailbox(imap=imap, senders=senders, apply_labels=not args.dry_run, **labels)
-    finally:
-        imap.logout()
+    results = _scan_inbox(args=args, address=address, password=password,
+                          recipient=GMAIL_PARAMS.get('recipient_email', ''))
 
     _log_scan_results(results=results)
     urls_by_uid = {r.uid: r.urls for r in results if r.urls}
@@ -243,35 +305,8 @@ def _run_from_mail(args: argparse.Namespace, passthrough_args: list[str]) -> int
     logger.info(f'{found} will be downloaded')
 
     gate_on_linter_freshness()
-    accepted = len(urls_by_uid)
-    succeeded: set[str] = set()
-    failed_urls: list[str] = []
-    marked_done = 0
-    for idx, url in enumerate(all_urls, start=1):
-        if not _download(url=url, passthrough_args=passthrough_args, position=f'[{idx}/{len(all_urls)}]',
-                         verbose=args.verbose):
-            failed_urls.append(url)
-            continue
-        succeeded.add(url)
-        # Relabel each mail as soon as all of its URLs are downloaded. A fresh connection per
-        # relabel: a long download can outlive an idle IMAP session.
-        done_uids = [uid for uid, urls in urls_by_uid.items() if set(urls) <= succeeded]
-        if not done_uids:
-            continue
-        imap = connect(address=address, app_password=password)
-        try:
-            imap.select(MAILBOX)
-            for uid in done_uids:
-                mark_done(imap=imap, uid=uid, **labels)
-                del urls_by_uid[uid]
-                marked_done += 1
-        finally:
-            imap.logout()
-    _log_summary(title='Download summary',
-                 rows=[('Videos downloaded', f'{len(succeeded)} of {len(all_urls)}'),
-                       ('Mails marked done', f'{marked_done} of {accepted}')],
-                 failed_urls=failed_urls)
-    return 1 if failed_urls else 0
+    return _download_and_relabel(args=args, passthrough_args=passthrough_args, address=address,
+                                 password=password, urls_by_uid=urls_by_uid)
 
 
 def _run_from_file(url_file: Path, passthrough_args: list[str], verbose: bool) -> int:
