@@ -53,7 +53,7 @@ from funcs_ertflix_automation.handoff import build_ytdlp_argv
 from funcs_utils import setup_logging
 from project_defs import VALID_OTHER_DOMAINS
 
-VERSION = '2026-11-24-1626'
+VERSION = '2026-11-24-1627'
 DEBUG_DOM_DIR = Path('Logs')
 URL_PREFIX_RE = re.compile(r'https?://', re.IGNORECASE)
 

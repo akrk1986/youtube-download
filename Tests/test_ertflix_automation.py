@@ -1,11 +1,13 @@
 """Unit tests for ERTFlix browser-automation helpers (no Playwright runtime)."""
 import importlib.util
 import sys
+import threading
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from funcs_ertflix_automation.cli_prompts import _label_keys
 from funcs_ertflix_automation import (KNOWN_PROGRAMS, TOKEN_URL_FRAGMENT,
                                       Episode, Program, Season,
                                       build_ytdlp_argv, discover_episodes,
@@ -297,3 +299,31 @@ class TestDiscoverEpisodesNumbering:
         """Falling 'Επεισόδιο N' titles mean newest first."""
         episodes = self._discover(titles=['Επεισόδιο 3', 'Επεισόδιο 2', 'Επεισόδιο 1'])
         assert [e.index for e in episodes] == [3, 2, 1]
+
+
+class TestPromptRunsOffMainThread:
+    """The arrow-key menu must not run on the main thread (Playwright keeps a loop running there)."""
+
+    def test_ask_runs_in_worker_thread(self):
+        """ask() is called from a non-main thread and its answer is returned."""
+        seen: dict[str, bool] = {}
+
+        def _ask():
+            seen['main'] = threading.current_thread() is threading.main_thread()
+            return KNOWN_PROGRAMS[0]
+
+        fake_question = MagicMock()
+        fake_question.ask.side_effect = _ask
+        with patch('funcs_ertflix_automation.cli_prompts.questionary.select',
+                   return_value=fake_question):
+            assert pick_program(programs=KNOWN_PROGRAMS) is KNOWN_PROGRAMS[0]
+        assert seen == {'main': False}
+
+
+class TestLabelKeys:
+    """Tests for the number/letter keys read from menu labels."""
+
+    def test_keys_from_labels(self):
+        """'12. x' -> '12'; 'q/0. Quit' -> 'q' and '0'; 's. Back' -> 's'."""
+        labels = ['12. Twelve', '2. Two', 's. Back to season selection', 'q/0. Quit']
+        assert _label_keys(labels=labels) == {'12': 0, '2': 1, 's': 2, 'q': 3, '0': 3}

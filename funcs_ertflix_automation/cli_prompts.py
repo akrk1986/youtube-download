@@ -1,12 +1,18 @@
 """Light TUI: rich tables for display + questionary selects for input."""
 # PEP 810: lazy on Python 3.15+, ignored (eager) on older versions; loaded when a picker is shown.
-__lazy_modules__ = ['questionary', 'rich.console', 'rich.table']
+__lazy_modules__ = ['prompt_toolkit.key_binding', 'questionary', 'questionary.prompts.common',
+                    'rich.console', 'rich.table']
 
 import logging
+import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import TypeVar
 from collections.abc import Sequence
 
 import questionary
+from prompt_toolkit.key_binding import (KeyBindings, KeyPressEvent,
+                                        merge_key_bindings)
+from questionary.prompts.common import InquirerControl
 from rich.console import Console
 from rich.table import Table
 
@@ -22,6 +28,11 @@ T = TypeVar('T')
 
 _QUIT = '__quit__'
 _BACK = '__back__'
+
+# Arrow-key menu hint (replaces questionary's '(Use arrow keys)').
+_MENU_INSTRUCTION = '(arrows or number, Enter to select)'
+# Digits typed within this many seconds of each other form one number ('1' then '2' = 12).
+_NUMBER_KEY_TIMEOUT_S = 1.0
 
 
 def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
@@ -81,19 +92,77 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
         print(f'Number out of range — enter a number between {lo} and {hi}.')
 
 
-def _select_or_fallback(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-        prompt: str, labels: Sequence[str],
+def _label_keys(labels: Sequence[str]) -> dict[str, int]:
+    """Map each label's key ('12' in '12. Title', 'q' and '0' in 'q/0. Quit') to its position.
+
+    Args:
+        labels: Menu labels, each starting with ``'<key>. '``.
+
+    Returns:
+        dict[str, int]: Key text -> position in ``labels``.
+    """
+    keys: dict[str, int] = {}
+    for position, label in enumerate(labels):
+        prefix = label.split('.', 1)[0]
+        for key in prefix.split('/'):
+            if key.strip():
+                keys[key.strip().lower()] = position
+    return keys
+
+
+def _add_number_keys(question: questionary.Question, labels: Sequence[str]) -> None:
+    """Let typed keys move the highlight in an arrow-key menu.
+
+    Digits typed within ``_NUMBER_KEY_TIMEOUT_S`` of each other form one number and move
+    the highlight to the item with that number; ``q``/``s`` jump to Quit / Back. Enter
+    then selects as usual. Does nothing if the menu's internals are not found.
+
+    Args:
+        question: The questionary select question (not yet asked).
+        labels: Its labels, in menu order.
+    """
+    app = question.application
+    control = next((c for c in app.layout.find_all_controls()
+                    if isinstance(c, InquirerControl)), None)
+    if control is None:
+        logger.debug('Menu control not found; number keys not added.')
+        return
+    keys = _label_keys(labels=labels)
+    typed_text = ''
+    typed_at = 0.0
+
+    def _jump(event: KeyPressEvent) -> None:
+        """Move the highlight to the item whose key matches what was typed."""
+        nonlocal typed_text, typed_at
+        char = event.data.lower()
+        now = time.monotonic()
+        recent = char.isdigit() and now - typed_at <= _NUMBER_KEY_TIMEOUT_S
+        text = (typed_text if recent else '') + char
+        if text not in keys:
+            text = char
+        typed_text, typed_at = text, now
+        if text in keys:
+            control.pointed_at = keys[text]
+
+    bindings = KeyBindings()
+    for char in [*'0123456789', 'q', 's']:
+        if char in '0123456789' or char in keys:
+            bindings.add(char, eager=True)(_jump)
+    app.key_bindings = merge_key_bindings([app.key_bindings, bindings]) if app.key_bindings else bindings
+
+
+def _select_or_fallback(prompt: str, labels: Sequence[str],
                         values: Sequence[T],
-                        use_search_filter: bool = False,
                         back_key: str | None = None,
                         fallback_header: str = '') -> T:
     """Use questionary if available, otherwise fall back to numbered input.
+
+    The arrow-key menu also takes typed numbers (see ``_add_number_keys``).
 
     Args:
         prompt: Prompt text.
         labels: Display labels parallel to ``values``.
         values: Values to choose from.
-        use_search_filter: Pass through to questionary.select.
         back_key: Character that triggers back-to-seasons in the fallback prompt.
         fallback_header: Header line printed above the item list in fallback mode.
 
@@ -107,11 +176,15 @@ def _select_or_fallback(  # pylint: disable=too-many-arguments,too-many-position
     choices = [questionary.Choice(title=label, value=value)
                for label, value in zip(labels, values)]
     try:
-        result = questionary.select(
-            prompt, choices=choices, use_search_filter=use_search_filter,
-        ).ask()
-    except Exception:  # noqa: BLE001
-        logger.debug('Interactive TUI unavailable; falling back to numbered prompt.')
+        question = questionary.select(prompt, choices=choices, instruction=_MENU_INSTRUCTION)
+        _add_number_keys(question=question, labels=labels)
+        # Playwright's sync API keeps an asyncio loop running in the main thread, and
+        # prompt_toolkit cannot start its own loop there ('asyncio.run() cannot be called
+        # from a running event loop'). A worker thread has no running loop.
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            result = pool.submit(question.ask).result()
+    except Exception as exc:  # noqa: BLE001
+        logger.debug(f'Interactive TUI unavailable ({exc}); falling back to numbered prompt.')
         return _fallback_numbered_prompt(
             prompt=prompt, labels=labels, values=values, back_key=back_key,
             header=fallback_header,
@@ -217,7 +290,7 @@ def pick_season(seasons: Sequence[Season]) -> Season:
 
 
 def pick_episode(episodes: Sequence[Episode], has_seasons: bool = True) -> Episode:
-    """Prompt the user to choose an episode via arrow-key select + type-to-filter.
+    """Prompt the user to choose an episode via arrow keys or by typing its number.
 
     ``q`` or ``0`` quit the script. ``s`` returns to the season selector
     (only when ``has_seasons`` is True).
@@ -243,10 +316,9 @@ def pick_episode(episodes: Sequence[Episode], has_seasons: bool = True) -> Episo
     values.append(_QUIT)
     hint = 'q/0 quit, s seasons' if has_seasons else 'q/0 quit'
     return _select_or_fallback(  # type: ignore
-        prompt=f'Choose episode — type to filter ({hint}):',
+        prompt=f'Choose episode ({hint}):',
         labels=labels,
         values=values,
-        use_search_filter=True,
         back_key='s' if has_seasons else None,
         fallback_header='Episodes to select from:',
     )

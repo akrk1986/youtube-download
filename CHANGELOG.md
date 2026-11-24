@@ -2,6 +2,20 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-11-24-1627] - ERTFlix series browser: arrow keys and numbers in every menu
+
+### Fixed
+- **Season and episode menus take arrow keys again**: inside the Playwright session an asyncio loop
+  runs in the main thread, so questionary failed (`asyncio.run() cannot be called from a running
+  event loop`) and fell back to the numbered prompt. The menu now runs in a worker thread.
+- **The episode menu works at all as an arrow-key menu**: its type-to-filter clashed with
+  questionary's j/k keys, so it always fell back. Type-to-filter is removed.
+
+### Added
+- **Typed numbers in the arrow-key menus**: typing `12` highlights item 12, `q`/`0` Quit and `s`
+  Back to seasons; Enter selects. The numbered prompt stays as the fallback for consoles that can't
+  show the menu (PyCharm Run window).
+
 ## [2026-11-24-1626] - ERTFlix series browser: program menu, season/episode numbering
 
 ### Added
