@@ -23,7 +23,7 @@
 (function() {
 
 // Version corresponds to the latest script update timestamp
-const VERSION = '2026-03-13-1803';
+const VERSION = '2026-11-24-1851';
 
 // Generate unique instance ID to detect multiple script runs
 const instanceId = Math.random().toString(36).substring(2, 9);
@@ -99,6 +99,19 @@ const tokenApiUrls = [];
 // =============================================================================
 
 const orderedCapturedUrls = [];  // { type, url, timestamp }
+
+// ERTFlix's season/episode metadata API has '/vod/' in its paths; it is not a video URL
+const METADATA_API_FRAGMENT = 'api.ertflix.opentv.com/metadata/';
+
+// Whether a request URL looks like a video manifest/stream (not a metadata API call)
+function isVideoRelated(url) {
+    if (url.includes(METADATA_API_FRAGMENT)) {
+        return false;
+    }
+    return url.includes('.m3u8') || url.includes('.mpd') ||
+        url.includes('manifest') || url.includes('stream') ||
+        url.includes('video') || url.includes('/vod/');
+}
 let videoTitle = null;
 let videoDuration = null;
 let captureActive = true;  // Flag to control whether to capture URLs
@@ -157,9 +170,7 @@ window.fetch = function(...args) {
             }
         }
         // Log video-related requests
-        else if (url.includes('.m3u8') || url.includes('.mpd') ||
-            url.includes('manifest') || url.includes('stream') ||
-            url.includes('video') || url.includes('/vod/')) {
+        else if (isVideoRelated(url)) {
 
             if (captureActive) {
                 console.log('\n' + '='.repeat(80));
@@ -228,9 +239,7 @@ window.XMLHttpRequest.prototype.open = function(method, url, ...rest) {
             }
         }
         // Log video-related requests
-        else if (url.includes('.m3u8') || url.includes('.mpd') ||
-            url.includes('manifest') || url.includes('stream') ||
-            url.includes('video') || url.includes('/vod/')) {
+        else if (isVideoRelated(url)) {
 
             if (captureActive) {
                 console.log('\n' + '='.repeat(80));
@@ -408,48 +417,11 @@ function printSummary(force = false) {
     console.log('\n' + '='.repeat(80));
     console.log('📋 CAPTURED URLs SUMMARY');
     console.log('='.repeat(80));
-    console.log(`Script Version: ${VERSION}`);
-
-    // Print metadata
-    if (videoTitle) {
-        console.log(`\nTitle: ${videoTitle}`);
-    }
-    if (videoDuration) {
-        console.log(`Duration: ${videoDuration}`);
-    }
-    if (videoTitle || videoDuration) {
-        console.log('');  // Blank line after metadata
-    }
+    buildSummaryLines().forEach(line => console.log(line));
 
     if (orderedCapturedUrls.length === 0) {
-        console.log('No URLs captured yet.');
         console.log('='.repeat(80));
         return;
-    }
-
-    // Print first URL
-    if (orderedCapturedUrls[0]) {
-        const first = orderedCapturedUrls[0];
-        console.log(`1. ${first.type}:`);
-        console.log(`   ${first.url}`);
-    }
-
-    // Print second URL
-    if (orderedCapturedUrls[1]) {
-        const second = orderedCapturedUrls[1];
-        console.log(`\n2. ${second.type}:`);
-        console.log(`   ${second.url}`);
-    }
-
-    // Count and deduplicate ALL VIDEO_RELATED URLs
-    const allVideoRelated = orderedCapturedUrls.filter(item => item.type === 'VIDEO_RELATED');
-    if (allVideoRelated.length > 0) {
-        const uniqueUrls = new Set(allVideoRelated.map(item => item.url));
-
-        console.log(`\n3+ VIDEO_RELATED (${allVideoRelated.length} total, ${uniqueUrls.size} unique):`);
-        uniqueUrls.forEach((url) => {
-            console.log(`   - ${url}`);
-        });
     }
 
     console.log('\n' + '='.repeat(80));
@@ -462,62 +434,67 @@ function printSummary(force = false) {
     saveSummaryToFile();
 }
 
-// Helper function to generate summary as plain text
-function generateSummaryText() {
-    const lines = [];
-    lines.push('=' .repeat(80));
-    lines.push('CAPTURED URLs SUMMARY');
-    lines.push('=' .repeat(80));
-    lines.push(`Script Version: ${VERSION}`);
-    lines.push('');
+// Unique URLs of one capture type, in the order they were first seen
+function uniqueUrlsOfType(type) {
+    return [...new Set(orderedCapturedUrls.filter(item => item.type === type).map(item => item.url))];
+}
 
-    // Add metadata
+// Summary body shared by the console and the saved file. Grouped by type, not by capture
+// order: token URLs come first, so '#1' is always a token URL when one was captured, and
+// none is left out because other requests happened to come first.
+function buildSummaryLines() {
+    const lines = [`Script Version: ${VERSION}`];
+
+    if (videoTitle || videoDuration) {
+        lines.push('');
+    }
     if (videoTitle) {
         lines.push(`Title: ${videoTitle}`);
     }
     if (videoDuration) {
         lines.push(`Duration: ${videoDuration}`);
     }
-    if (videoTitle || videoDuration) {
-        lines.push('');
-    }
+    lines.push('');
 
     if (orderedCapturedUrls.length === 0) {
         lines.push('No URLs captured.');
-        return lines.join('\n');
+        return lines;
     }
 
-    // First URL
-    if (orderedCapturedUrls[0]) {
-        const first = orderedCapturedUrls[0];
-        lines.push(`1. ${first.type}:`);
-        lines.push(`   ${first.url}`);
-    }
-
-    // Second URL
-    if (orderedCapturedUrls[1]) {
-        const second = orderedCapturedUrls[1];
+    const tokenUrls = uniqueUrlsOfType('TOKEN_API');
+    if (tokenUrls.length === 0) {
+        lines.push('⚠️  No TOKEN_API URL captured - click Play again, or reload the page and retry.');
         lines.push('');
-        lines.push(`2. ${second.type}:`);
-        lines.push(`   ${second.url}`);
     }
 
-    // VIDEO_RELATED URLs
+    let number = 1;
+    [['TOKEN_API', tokenUrls], ['SHAKA_PLAYER', uniqueUrlsOfType('SHAKA_PLAYER')]].forEach(([type, urls]) => {
+        urls.forEach(url => {
+            lines.push(`${number}. ${type}:`);
+            lines.push(`   ${url}`);
+            lines.push('');
+            number += 1;
+        });
+    });
+
     const allVideoRelated = orderedCapturedUrls.filter(item => item.type === 'VIDEO_RELATED');
     if (allVideoRelated.length > 0) {
-        const uniqueUrls = new Set(allVideoRelated.map(item => item.url));
-        lines.push('');
-        lines.push(`3+ VIDEO_RELATED (${allVideoRelated.length} total, ${uniqueUrls.size} unique):`);
-        uniqueUrls.forEach((url) => {
-            lines.push(`   - ${url}`);
-        });
+        const uniqueVideoUrls = uniqueUrlsOfType('VIDEO_RELATED');
+        lines.push(`VIDEO_RELATED (${allVideoRelated.length} total, ${uniqueVideoUrls.length} unique):`);
+        uniqueVideoUrls.forEach(url => lines.push(`   - ${url}`));
     }
 
-    lines.push('');
-    lines.push('=' .repeat(80));
-    lines.push('TIP: Use the TOKEN_API URL (#1) for downloads');
-    lines.push('=' .repeat(80));
+    return lines;
+}
 
+// Helper function to generate summary as plain text
+function generateSummaryText() {
+    const lines = ['='.repeat(80), 'CAPTURED URLs SUMMARY', '='.repeat(80)];
+    lines.push(...buildSummaryLines());
+    lines.push('');
+    lines.push('='.repeat(80));
+    lines.push('TIP: Use the TOKEN_API URL (#1) for downloads');
+    lines.push('='.repeat(80));
     return lines.join('\n');
 }
 

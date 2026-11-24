@@ -2,6 +2,18 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-11-24-1851] - ERTFlix capture script: token URL always first in the summary
+
+### Fixed
+- **`JS-files/capture-working-play-click.js`: the summary lists the token URL first.** It printed the
+  first two captured URLs by position, then only video-related ones, so a request seen before the
+  token request (e.g. the metadata calls made when switching season) became `#1` and the token URL
+  could be missing from the summary and the saved `concise-summary-*.txt` altogether. The summary is
+  now grouped by type — token URLs, then Shaka manifests, then other video URLs — and says so when
+  no token URL was captured. ERTFlix's metadata API (`api.ertflix.opentv.com/metadata/`, whose
+  paths contain `/vod/`) no longer counts as video-related. The console and file summaries share
+  one builder. VERSION bumped to `2026-11-24-1851`.
+
 ## [2026-11-24-1837] - ERTFlix series browser: code-review fixes
 
 ### Fixed
