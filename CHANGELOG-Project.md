@@ -2,6 +2,14 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-11-24-1924] - python-multipart pin to 0.0.34
+
+### Changed
+- **Dependency upgrade (freshness)**: both shared venvs upgraded `httpx2`/`httpcore2` 2.16.0 → 2.16.2 and
+  `python-multipart` 0.0.33 → 0.0.34 (the only Stable updates; no known CVEs on Linux or Windows).
+  `requirements.txt` pin `python-multipart` 0.0.32 → 0.0.34 via `pip-compile --upgrade-package`;
+  `httpx2`/`httpcore2` are not in this project's lock.
+
 ## [2026-11-24-1915] - declare prompt-toolkit as a direct dependency
 
 ### Fixed
