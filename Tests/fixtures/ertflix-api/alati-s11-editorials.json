@@ -1,0 +1,79 @@
+{
+ "url": "https://api.ertflix.opentv.com/metadata/delivery/v2/ERT/vod/editorials?filter=%7B%22editorial.seasonRef%22%3A%22ERT_DS017468%22%2C%22locale%22%3A%22en_GB%22%7D&sort=%5B%5B%22editorial.episodeNumber%22%2C1%5D%5D&offset=0&limit=300",
+ "body": {
+  "editorials": [
+   {
+    "id": "ERT_DS004848",
+    "Title": "In Crete with Antonis Martsakis",
+    "SeasonNumber": 11,
+    "EpisodeNumber": "1",
+    "seasonRef": "ERT_DS017468",
+    "period": {
+     "start": 1702123200.0,
+     "end": 1924991999.0,
+     "duration": 222868799
+    }
+   },
+   {
+    "id": "ERT_DS004849",
+    "Title": "Musical Journey to Kastoria",
+    "SeasonNumber": 11,
+    "EpisodeNumber": "2",
+    "seasonRef": "ERT_DS017468",
+    "period": {
+     "start": 1702728000.0,
+     "end": 1924991999.0,
+     "duration": 222263999
+    }
+   },
+   {
+    "id": "ERT_DS004850",
+    "Title": "“Tis the Season of the Twelve days of Christmas!” Carols and Holiday Songs from all Αround Greece",
+    "SeasonNumber": 11,
+    "EpisodeNumber": "3",
+    "seasonRef": "ERT_DS017468",
+    "period": {
+     "start": 1703332800.0,
+     "end": 1924991999.0,
+     "duration": 221659199
+    }
+   },
+   {
+    "id": "ERT_DS004851",
+    "Title": "“Violione String Orchestra” of the University of Macedonia in a Festive \"Salt of the Earth\"",
+    "SeasonNumber": 11,
+    "EpisodeNumber": "4",
+    "seasonRef": "ERT_DS017468",
+    "period": {
+     "start": 1704047400.0,
+     "end": 1924991999.0,
+     "duration": 220944599
+    }
+   },
+   {
+    "id": "ERT_DS004852",
+    "Title": "Rebetiko in \"The Hellenic Project\"",
+    "SeasonNumber": 11,
+    "EpisodeNumber": "5",
+    "seasonRef": "ERT_DS017468",
+    "period": {
+     "start": 1705147200.0,
+     "end": 1924991999.0,
+     "duration": 219844799
+    }
+   },
+   {
+    "id": "ERT_DS004855",
+    "Title": "The Tradition of Refugees in Platy and Trikala Imathias. Cappadocians and Northern Thracians",
+    "SeasonNumber": 11,
+    "EpisodeNumber": "8",
+    "seasonRef": "ERT_DS017468",
+    "period": {
+     "start": 1709380800.0,
+     "end": 1925071140.0,
+     "duration": 215690340
+    }
+   }
+  ]
+ }
+}

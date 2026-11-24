@@ -1,0 +1,151 @@
+{
+ "url": "https://api.ertflix.opentv.com/metadata/delivery/v2/ERT/vod/editorials?filter=%7B%22editorial.seasonRef%22%3A%22ERT_DS017258%22%2C%22locale%22%3A%22en_GB%22%7D&sort=%5B%5B%22editorial.episodeNumber%22%2C1%5D%5D&offset=0&limit=300",
+ "body": {
+  "editorials": [
+   {
+    "id": "ERT_DS004208",
+    "Title": "Musical travelogue in Serres - Part 1 : Visaltia and Darnakes villages",
+    "SeasonNumber": 10,
+    "EpisodeNumber": "1",
+    "seasonRef": "ERT_DS017258",
+    "period": {
+     "start": 1668330000.0,
+     "end": 1925071140.0,
+     "duration": 256741140
+    }
+   },
+   {
+    "id": "ERT_DS004209",
+    "Title": "Tribute to Dimitris Gogos - Bagiaderas",
+    "SeasonNumber": 10,
+    "EpisodeNumber": "2",
+    "seasonRef": "ERT_DS017258",
+    "period": {
+     "start": 1668934800.0,
+     "end": 1925071140.0,
+     "duration": 256136340
+    }
+   },
+   {
+    "id": "ERT_DS004210",
+    "Title": "Musical travelogue in Serres - Part 2 : The Sarakatsani and Aromanians",
+    "SeasonNumber": 10,
+    "EpisodeNumber": "3",
+    "seasonRef": "ERT_DS017258",
+    "period": {
+     "start": 1669539600.0,
+     "end": 1925071140.0,
+     "duration": 255531540
+    }
+   },
+   {
+    "id": "ERT_DS004211",
+    "Title": "Episode 4",
+    "SeasonNumber": 10,
+    "EpisodeNumber": "4",
+    "seasonRef": "ERT_DS017258",
+    "period": {
+     "start": 1670144400.0,
+     "end": 1924977600.0,
+     "duration": 254833200
+    }
+   },
+   {
+    "id": "ERT_DS004212",
+    "Title": "Episode 5",
+    "SeasonNumber": 10,
+    "EpisodeNumber": "5",
+    "seasonRef": "ERT_DS017258",
+    "period": {
+     "start": 1670749200.0,
+     "end": 1924977600.0,
+     "duration": 254228400
+    }
+   },
+   {
+    "id": "ERT_DS004213",
+    "Title": "Episode 6",
+    "SeasonNumber": 10,
+    "EpisodeNumber": "6",
+    "seasonRef": "ERT_DS017258",
+    "period": {
+     "start": 1671354000.0,
+     "end": 1924977600.0,
+     "duration": 253623600
+    }
+   },
+   {
+    "id": "ERT_DS004214",
+    "Title": "Episode 7",
+    "SeasonNumber": 10,
+    "EpisodeNumber": "7",
+    "seasonRef": "ERT_DS017258",
+    "period": {
+     "start": 1673168400.0,
+     "end": 1924977600.0,
+     "duration": 251809200
+    }
+   },
+   {
+    "id": "ERT_DS004215",
+    "Title": "Episode 8",
+    "SeasonNumber": 10,
+    "EpisodeNumber": "8",
+    "seasonRef": "ERT_DS017258",
+    "period": {
+     "start": 1673773200.0,
+     "end": 1924977600.0,
+     "duration": 251204400
+    }
+   },
+   {
+    "id": "ERT_DS004216",
+    "Title": "Episode 9",
+    "SeasonNumber": 10,
+    "EpisodeNumber": "9",
+    "seasonRef": "ERT_DS017258",
+    "period": {
+     "start": 1674982800.0,
+     "end": 1924977600.0,
+     "duration": 249994800
+    }
+   },
+   {
+    "id": "ERT_DS004217",
+    "Title": "Episode 10",
+    "SeasonNumber": 10,
+    "EpisodeNumber": "10",
+    "seasonRef": "ERT_DS017258",
+    "period": {
+     "start": 1675587600.0,
+     "end": 1924977600.0,
+     "duration": 249390000
+    }
+   },
+   {
+    "id": "ERT_DS004218",
+    "Title": "Episode 11",
+    "SeasonNumber": 10,
+    "EpisodeNumber": "11",
+    "seasonRef": "ERT_DS017258",
+    "period": {
+     "start": 1676192400.0,
+     "end": 1924977600.0,
+     "duration": 248785200
+    }
+   },
+   {
+    "id": "ERT_DS004219",
+    "Title": "Episode 12",
+    "SeasonNumber": 10,
+    "EpisodeNumber": "12",
+    "seasonRef": "ERT_DS017258",
+    "period": {
+     "start": 1676797200.0,
+     "end": 1924977600.0,
+     "duration": 248180400
+    }
+   }
+  ]
+ }
+}

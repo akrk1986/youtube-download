@@ -5,13 +5,15 @@ __lazy_modules__ = ['playwright.sync_api']
 import logging
 import re
 import time
-from dataclasses import dataclass
+from collections import Counter
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import arrow
 from playwright.sync_api import Page
 
 from common_av.text import plural_noun, plural_verb
+from funcs_ertflix_automation.api_metadata import ApiMetadataStore
 from funcs_ertflix_automation.errors import NoSeasonsOrEpisodesFound
 from funcs_ertflix_automation.season_scraper import (ASSET_CARD_SELECTOR,
                                                      PLAY_BUTTON_IN_CARD_SELECTOR,
@@ -20,6 +22,11 @@ from funcs_ertflix_automation.season_scraper import (ASSET_CARD_SELECTOR,
 
 # A generic episode title carrying its number, e.g. 'Episode 4' or 'Επεισόδιο 4'.
 NUMBERED_EPISODE_TITLE_RE = re.compile(r'^(?:episode|επεισόδιο|επεισοδιο)\s+(\d+)\b', re.IGNORECASE)
+
+# Episode-table order labels (see describe_episode_order).
+ORDER_NEWEST_FIRST = 'Newest first'
+ORDER_OLDEST_FIRST = 'Oldest first'
+ORDER_UNKNOWN = 'Episode dates unknown, order same as on the site'
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +45,7 @@ class Episode:
     episode_id: str = ''
     duration: str = ''
     description: str = ''
+    broadcast: str = ''
 
 
 _BROWSER_SCRAPE_SCRIPT = r'''
@@ -48,12 +56,14 @@ _BROWSER_SCRAPE_SCRIPT = r'''
         const btn = card.querySelector('button[aria-label]');
         if (!btn) return;
         const title = (btn.getAttribute('aria-label') || '').trim();
-        if (!title || seen.has(title)) return;
-        seen.add(title);
+        if (!title) return;
         const img = card.querySelector('img[data-src]');
         const imgSrc = img ? img.getAttribute('data-src') || '' : '';
         const idMatch = imgSrc.match(/tvshow\/(ERT_[A-Z0-9_-]+)\//);
         const episodeId = idMatch ? idMatch[1] : '';
+        const key = episodeId || title;
+        if (seen.has(key)) return;
+        seen.add(key);
         const row = card.closest('.row');
         let duration = '';
         let description = '';
@@ -109,7 +119,10 @@ def _poll_episodes_until_stable(page: Page, stable_rounds_needed: int = 6,
     return raw
 
 
-def discover_episodes(page: Page, debug_dump_dir: Path | None = None) -> list[Episode]:
+def discover_episodes(page: Page, debug_dump_dir: Path | None = None,
+                      metadata: ApiMetadataStore | None = None,
+                      season_number: int | None = None,
+                      oldest_first: bool | None = None) -> list[Episode]:
     """Poll the DOM until the set of visible episode titles stabilizes.
 
     Each episode is identified by its play-button ``aria-label`` (the title
@@ -121,10 +134,17 @@ def discover_episodes(page: Page, debug_dump_dir: Path | None = None) -> list[Ep
         page: Active Playwright page.
         debug_dump_dir: If provided and placeholder cards remain after settling,
             write a DOM dump here for diagnosis.
+        metadata: ERTFlix API data; matched episodes take its official number and
+            broadcast date (see ``_apply_metadata``).
+        season_number: The selected season's official number, to narrow matching.
+        oldest_first: Whether the page lists episodes oldest first (from the program
+            list); None = guess from 'Episode N' titles.
 
-    Episodes are numbered newest-to-oldest by DOM position (the Parea page order),
-    unless the generic ``Episode N`` titles show the page lists them oldest first
-    (see ``_listed_oldest_first``); then the first card is episode 1.
+    Episodes found in ``metadata`` get their official number and broadcast date.
+    The rest are numbered newest-to-oldest by DOM position (the Parea page order),
+    unless ``oldest_first`` says the page lists them oldest first (then the first card
+    is episode 1). When ``oldest_first`` is None, the generic ``Episode N`` titles decide
+    (see ``_listed_oldest_first``).
 
     Returns:
         list[Episode]: Episodes in DOM order.
@@ -148,9 +168,10 @@ def discover_episodes(page: Page, debug_dump_dir: Path | None = None) -> list[Ep
             logger.debug(f'Post-season-click dump failed: {exc}')
 
     total = len(raw)
-    oldest_first = _listed_oldest_first(titles=[item['title'] for item in raw])
-    if oldest_first:
-        logger.info('Episodes are listed oldest first on this page; numbering from the top.')
+    if oldest_first is None:
+        oldest_first = _listed_oldest_first(titles=[item['title'] for item in raw])
+        if oldest_first:
+            logger.info('Episodes are listed oldest first on this page; numbering from the top.')
     episodes: list[Episode] = [
         Episode(
             index=offset + 1 if oldest_first else total - offset,
@@ -166,7 +187,33 @@ def discover_episodes(page: Page, debug_dump_dir: Path | None = None) -> list[Ep
             'No episode cards with aria-label titles were found. '
             'Re-run with --debug-dom to inspect the page structure.'
         )
+    if metadata is not None:
+        episodes = _apply_metadata(episodes=episodes, metadata=metadata, season_number=season_number)
     return episodes
+
+
+def describe_episode_order(episodes: list[Episode]) -> str:
+    """Say which order the episodes are listed in, judged by their broadcast dates.
+
+    The list is the site's order; this only describes it. Episodes without a date are
+    skipped. With fewer than two dates, or dates that go both up and down, the order
+    is reported as unknown.
+
+    Args:
+        episodes: Episodes in the order shown.
+
+    Returns:
+        str: ``ORDER_NEWEST_FIRST``, ``ORDER_OLDEST_FIRST`` or ``ORDER_UNKNOWN``.
+    """
+    dates = [episode.broadcast for episode in episodes if episode.broadcast]
+    if len(dates) < 2 or dates[0] == dates[-1]:
+        return ORDER_UNKNOWN
+    pairs = list(zip(dates, dates[1:]))
+    if all(earlier >= later for earlier, later in pairs):
+        return ORDER_NEWEST_FIRST
+    if all(earlier <= later for earlier, later in pairs):
+        return ORDER_OLDEST_FIRST
+    return ORDER_UNKNOWN
 
 
 def dump_debug_dom(page: Page, out_dir: Path) -> Path:
@@ -207,6 +254,43 @@ def dump_debug_dom(page: Page, out_dir: Path) -> Path:
     out_path.write_text('\n'.join(lines), encoding='utf-8')
     logger.info(f'Wrote debug DOM dump to {out_path}')
     return out_path
+
+
+def _apply_metadata(episodes: list[Episode], metadata: ApiMetadataStore,
+                    season_number: int | None) -> list[Episode]:
+    """Give each episode found in the ERTFlix data its official number and broadcast date.
+
+    Episodes not found keep their position-based number. Duplicate numbers are reported,
+    not renumbered.
+
+    Args:
+        episodes: Episodes as scraped, with position-based numbers.
+        metadata: ERTFlix API data collected so far.
+        season_number: The selected season's official number (None = any season).
+
+    Returns:
+        list[Episode]: The episodes, in the same order.
+    """
+    if not metadata.has_episodes:
+        logger.info('No ERTFlix episode data captured; numbering episodes from the page order.')
+        return episodes
+    updated: list[Episode] = []
+    for episode in episodes:
+        found = metadata.match(season_number=season_number, title=episode.title,
+                               episode_id=episode.episode_id)
+        if found is None:
+            logger.debug(f'Episode {episode.title!r} not found in ERTFlix data')
+            updated.append(episode)
+            continue
+        updated.append(replace(episode, index=found.episode_number, broadcast=found.broadcast_date))
+    matched = sum(1 for old, new in zip(episodes, updated) if new is not old)
+    logger.info(f'Matched {matched} of {len(episodes)} episodes to ERTFlix data '
+                '(official numbers and broadcast dates)')
+    duplicates = sorted(n for n, count in Counter(e.index for e in updated).items() if count > 1)
+    if duplicates:
+        logger.warning(f'Episode numbers used more than once: {duplicates}; check the titles '
+                       'before picking.')
+    return updated
 
 
 def _listed_oldest_first(titles: list[str]) -> bool:

@@ -44,6 +44,7 @@ from funcs_ertflix_automation import (DEFAULT_PROFILE_DIR, KNOWN_PROGRAMS,
                                       pick_episode, pick_program, pick_season,
                                       render_episodes_table,
                                       render_seasons_table, resolve_program)
+from funcs_ertflix_automation.api_metadata import ApiMetadataStore
 from funcs_ertflix_automation.errors import BackToSeasons
 from funcs_ertflix_automation.episode_scraper import discover_episodes
 from funcs_ertflix_automation.player_scraper import (click_episode_play,
@@ -53,7 +54,7 @@ from funcs_ertflix_automation.handoff import build_ytdlp_argv
 from funcs_utils import setup_logging
 from project_defs import VALID_OTHER_DOMAINS
 
-VERSION = '2026-11-24-1627'
+VERSION = '2026-11-24-1713'
 DEBUG_DOM_DIR = Path('Logs')
 URL_PREFIX_RE = re.compile(r'https?://', re.IGNORECASE)
 
@@ -122,13 +123,16 @@ def parse_arguments(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
 
 
 def _pick_season_and_episode(
-        page: Page, seasons: list[Season],
+        page: Page, seasons: list[Season], metadata: ApiMetadataStore,
+        oldest_first: bool | None,
 ) -> tuple[Season | None, Episode]:
     """Loop season + episode selection, allowing back-navigation to seasons.
 
     Args:
         page: Active Playwright page.
         seasons: Discovered seasons (may be empty when page has no selector).
+        metadata: ERTFlix API data collected so far (official numbers, broadcast dates).
+        oldest_first: Whether the program's page lists episodes oldest first (None = guess).
 
     Returns:
         tuple[Season | None, Episode]: Chosen season (None if no seasons) and episode.
@@ -141,7 +145,11 @@ def _pick_season_and_episode(
             select_season(page=page, season=chosen_season)
         else:
             logger.info('No season selector detected; reading episodes directly.')
-        episodes = discover_episodes(page=page, debug_dump_dir=DEBUG_DOM_DIR)
+        episodes = discover_episodes(
+            page=page, debug_dump_dir=DEBUG_DOM_DIR, metadata=metadata,
+            season_number=chosen_season.index if chosen_season is not None else None,
+            oldest_first=oldest_first,
+        )
         render_episodes_table(episodes=episodes)
         try:
             chosen_episode = pick_episode(episodes=episodes, has_seasons=bool(seasons))
@@ -219,6 +227,10 @@ def _execute_handoff(  # pylint: disable=too-many-arguments
         logger.info(shlex.join(argv))
         if env_overrides:
             logger.info(f'With env overrides: {env_overrides}')
+        try:
+            input('Dry-run mode, press Enter to exit ')
+        except (EOFError, KeyboardInterrupt):
+            pass
         return 0
 
     return hand_off_to_ytdlp(
@@ -238,7 +250,7 @@ def main() -> int:
     setup_logging(verbose=args.verbose)
 
     try:
-        series_url, program_label = resolve_program(
+        series_url, program_label, oldest_first = resolve_program(
             series_url=args.series_url, program_label=args.program,
             picker=lambda programs: pick_program(programs=programs),
             programs=KNOWN_PROGRAMS,
@@ -255,7 +267,7 @@ def main() -> int:
             if args.log_api:
                 stamp = arrow.now().format('YYYY-MM-DD-HHmmss')
                 api_log = DEBUG_DOM_DIR / f'ertflix-api-{stamp}.jsonl'
-                session.install_api_response_logger(out_path=api_log)
+            session.install_response_hook(api_log=api_log)
             session.open_series(series_url=series_url)
             token_urls = session.install_token_interceptor()
             session.ensure_authenticated()
@@ -269,10 +281,14 @@ def main() -> int:
                 logger.info(f'Debug dump written to {dump_path}. Exiting.')
                 return 0
 
-            seasons = discover_seasons(page=session.page)
+            seasons = discover_seasons(page=session.page, metadata=session.metadata)
             chosen_season, chosen_episode = _pick_season_and_episode(
-                page=session.page, seasons=seasons,
+                page=session.page, seasons=seasons, metadata=session.metadata,
+                oldest_first=oldest_first,
             )
+            season_num = chosen_season.index if chosen_season is not None else 1
+            logger.info(f'Selected S{season_num:02d}E{chosen_episode.index:02d}: '
+                        f'{chosen_episode.title}')
 
             token_url = click_episode_play(
                 page=session.page,

@@ -2,6 +2,29 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-11-24-1713] - ERTFlix series browser: official episode numbers and broadcast dates
+
+### Added
+- **Official season/episode numbers and broadcast dates** from the JSON the ERTFlix page loads
+  (`funcs_ertflix_automation/api_metadata.py`): the season list, each season's newest episodes, and
+  the full episode list of a clicked season. Episodes are matched by id, then by title, and take
+  the official number and the broadcast date (Greek time); unmatched ones keep the page-based
+  number. This fixes To Alati tis Gis season 11 (`In Crete…` is S11E01, not S11E06) and keeps the
+  gaps ERTFlix has (season 11: episodes 1–5 and 8).
+- **Date column** in the episode table, and the table title says the list's order: `Newest first`,
+  `Oldest first`, or `Episode dates unknown, order same as on the site`.
+- **Episode order per program** in the program list (Parea newest first, To Alati tis Gis oldest
+  first), used for episodes missing from the ERTFlix data.
+- **`Selected SxxEyy: <title>`** is logged after an episode is picked.
+- **Dry-run waits for Enter** (`Dry-run mode, press Enter to exit`) so the terminal window does
+  not close.
+
+### Fixed
+- **Episodes with the same title both appear** (Parea's two `Holiday Special` episodes): the page
+  scrape tells cards apart by their id.
+- **Long episode menus fit the terminal**: the list scrolls inside a menu capped at the terminal
+  height, Up/Down stop at the ends instead of wrapping, and PgUp/PgDn/Home/End move further.
+
 ## [2026-11-24-1627] - ERTFlix series browser: arrow keys and numbers in every menu
 
 ### Fixed

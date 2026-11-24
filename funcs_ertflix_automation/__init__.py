@@ -2,6 +2,7 @@
 
 Modules:
     errors: Exception hierarchy.
+    api_metadata: Official season/episode numbers + broadcast dates from the ERTFlix API.
     browser_session: Playwright lifecycle and token interception.
     season_scraper: Season discovery and selection.
     episode_scraper: Episode DOM scraping and debug DOM dump.
@@ -10,6 +11,7 @@ Modules:
     cli_prompts: Rich tables + questionary select menus.
     handoff: Subprocess hand-off to main-yt-dlp.py.
 """
+from funcs_ertflix_automation.api_metadata import ApiEpisode, ApiMetadataStore
 from funcs_ertflix_automation.browser_session import (DEFAULT_PROFILE_DIR,
                                                       TOKEN_URL_FRAGMENT,
                                                       BrowserSession)
@@ -17,7 +19,9 @@ from funcs_ertflix_automation.cli_prompts import (pick_episode, pick_program,
                                                   pick_season,
                                                   render_episodes_table,
                                                   render_seasons_table)
-from funcs_ertflix_automation.episode_scraper import (Episode, discover_episodes,
+from funcs_ertflix_automation.episode_scraper import (Episode,
+                                                      describe_episode_order,
+                                                      discover_episodes,
                                                       dump_debug_dom)
 from funcs_ertflix_automation.player_scraper import click_episode_play
 from funcs_ertflix_automation.season_scraper import (ASSET_CARD_SELECTOR,
@@ -41,6 +45,8 @@ __all__ = [
     'PLAY_BUTTON_IN_CARD_SELECTOR',
     'SEASON_BUTTON_SELECTORS',
     'BrowserSession',
+    'ApiEpisode',
+    'ApiMetadataStore',
     'KNOWN_PROGRAMS',
     'Program',
     'find_program',
@@ -56,6 +62,7 @@ __all__ = [
     'discover_seasons',
     'select_season',
     'discover_episodes',
+    'describe_episode_order',
     'click_episode_play',
     'dump_debug_dom',
     'render_seasons_table',

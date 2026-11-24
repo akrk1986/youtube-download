@@ -1,0 +1,25 @@
+{
+ "url": "https://api.ertflix.opentv.com/metadata/delivery/ERT/vod/series?filter=%7B%22seriesRef%22%3A%22ERT_PS054741%22%2C%22locale%22%3A%22en_GB%22%7D&sort=%5B%5B%22SeasonNumberNumeric%22%2C1%5D%5D&offset=0&limit=300",
+ "body": {
+  "series": [
+   {
+    "id": "ERT_PS052544",
+    "SeasonNumber": "1",
+    "Title": "2024 - 2025",
+    "ReverseSortOrder": "false"
+   },
+   {
+    "id": "ERT_PS052344",
+    "SeasonNumber": "2",
+    "Title": "2025 - 2026",
+    "ReverseSortOrder": "false"
+   },
+   {
+    "id": "ERT_PS058530",
+    "SeasonNumber": "3",
+    "Title": "2026 - 2027",
+    "ReverseSortOrder": "true"
+   }
+  ]
+ }
+}

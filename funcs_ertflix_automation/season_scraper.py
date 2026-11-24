@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from playwright.sync_api import ElementHandle, Page
 
 from common_av.text import count_noun
+from funcs_ertflix_automation.api_metadata import ApiMetadataStore
 from funcs_ertflix_automation.errors import NoSeasonsOrEpisodesFound
 
 
@@ -41,13 +42,15 @@ class Season:
     selector: str
 
 
-def discover_seasons(page: Page, debug_dom: bool = False) -> list[Season]:
+def discover_seasons(page: Page, debug_dom: bool = False,
+                     metadata: ApiMetadataStore | None = None) -> list[Season]:
     """Probe candidate selectors and return any visible season tabs/buttons.
 
     The same season often matches twice (e.g. ``Season 10`` and ``Season Season 10``),
     so labels are normalized with ``_normalize_label`` before de-duplication.
 
-    When every label carries a number, the list is sorted by it, newest first. A small
+    When ``metadata`` knows every season's official number, those numbers are used.
+    Otherwise, when every label carries a number, the list is sorted by it, newest first. A small
     number ('Season 10') is the season index; a year ('Season 2026 - 2027') is not, so
     year-labelled seasons are numbered by rank, oldest = 1. Labels without numbers
     are numbered by DOM position (newest first).
@@ -55,6 +58,7 @@ def discover_seasons(page: Page, debug_dom: bool = False) -> list[Season]:
     Args:
         page: Active Playwright page already navigated to the series URL.
         debug_dom: If True, log every candidate selector's match count.
+        metadata: ERTFlix API data (official season numbers), if collected.
 
     Returns:
         list[Season]: Seasons, newest first. Empty when the page has no seasons.
@@ -78,6 +82,16 @@ def discover_seasons(page: Page, debug_dom: bool = False) -> list[Season]:
                 continue
             seen_labels.add(label)
             raw.append((label, selector))
+
+    if raw and metadata is not None:
+        official = [metadata.season_number_for(label=label) for label, _ in raw]
+        if all(number is not None for number in official) and len(set(official)) == len(official):
+            return sorted(
+                (Season(index=number, label=label, selector=selector)
+                 for (label, selector), number in zip(raw, official) if number is not None),
+                key=lambda season: season.index, reverse=True,
+            )
+        logger.debug('Season labels not all found in ERTFlix data; numbering from labels.')
 
     matches = [SEASON_NUMBER_RE.search(label) for label, _ in raw]
     if raw and all(matches):

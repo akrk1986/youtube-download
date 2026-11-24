@@ -1,0 +1,487 @@
+{
+ "url": "https://api.ertflix.opentv.com/metadata/delivery/v2/ERT/vod/editorials?filter=%7B%22editorial.seasonRef%22%3A%22ERT_PS052344%22%2C%22locale%22%3A%22en_GB%22%7D&sort=%5B%5B%22editorial.episodeNumber%22%2C1%5D%5D&offset=0&limit=300",
+ "body": {
+  "editorials": [
+   {
+    "id": "ERT_PS046263",
+    "Title": "Tribute to Apostolos Kaldaras",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "1",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1760814000.0,
+     "end": 1924991999.0,
+     "duration": 164177999
+    }
+   },
+   {
+    "id": "ERT_PS046264",
+    "Title": "Tribute to Nikos Gatsos",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "2",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1761420300.0,
+     "end": 1924991999.0,
+     "duration": 163571699
+    }
+   },
+   {
+    "id": "ERT_PS046265",
+    "Title": "Tribute to Giorgos Zampetas",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "3",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1762027200.0,
+     "end": 1924991999.0,
+     "duration": 162964799
+    }
+   },
+   {
+    "id": "ERT_PS046266",
+    "Title": "Musical Theater",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "4",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1762632000.0,
+     "end": 1924991999.0,
+     "duration": 162359999
+    }
+   },
+   {
+    "id": "ERT_PS046267",
+    "Title": "Guest: Giorgos Papastefanou",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "5",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1763236800.0,
+     "end": 1924991999.0,
+     "duration": 161755199
+    }
+   },
+   {
+    "id": "ERT_PS046268",
+    "Title": "Women in Rebetiko",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "6",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1763841600.0,
+     "end": 1924991999.0,
+     "duration": 161150399
+    }
+   },
+   {
+    "id": "ERT_PS046269",
+    "Title": "Tribute to Marios Tokas",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "7",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1764446400.0,
+     "end": 1924991999.0,
+     "duration": 160545599
+    }
+   },
+   {
+    "id": "ERT_PS046270",
+    "Title": "A Cretan-Scented Theatrical Ensemble",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "8",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1765051200.0,
+     "end": 1924991999.0,
+     "duration": 159940799
+    }
+   },
+   {
+    "id": "ERT_PS046271",
+    "Title": "The Distinguished Friends of Dimitris Yarmenitis Part I",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "9",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1765656000.0,
+     "end": 1924991999.0,
+     "duration": 159335999
+    }
+   },
+   {
+    "id": "ERT_PS046272",
+    "Title": "The Distinguished Friends of Dimitris Yarmenitis Part IΙ",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "10",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1766260800.0,
+     "end": 1924991999.0,
+     "duration": 158731199
+    }
+   },
+   {
+    "id": "ERT_PS046273",
+    "Title": "Holiday Special",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "11",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1766606400.0,
+     "end": 1924991999.0,
+     "duration": 158385599
+    }
+   },
+   {
+    "id": "ERT_PS046274",
+    "Title": "Holiday Special",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "12",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1767211200.0,
+     "end": 1924991999.0,
+     "duration": 157780799
+    }
+   },
+   {
+    "id": "ERT_PS046275",
+    "Title": "Rebetiko and Folk Ensembles",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "13",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1767470400.0,
+     "end": 1924991999.0,
+     "duration": 157521599
+    }
+   },
+   {
+    "id": "ERT_PS046276",
+    "Title": "A tribute to Stelios Kazantzidis",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "14",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1768075200.0,
+     "end": 1924991999.0,
+     "duration": 156916799
+    }
+   },
+   {
+    "id": "ERT_PS046277",
+    "Title": "Top Singers and Master Composers: Grigoris Bithikotsis, Panos Gavalas, and Tolis Voskopoulos",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "15",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1768680000.0,
+     "end": 1924991999.0,
+     "duration": 156311999
+    }
+   },
+   {
+    "id": "ERT_PS046278",
+    "Title": "Eleni Dimou",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "16",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1769284800.0,
+     "end": 1924991999.0,
+     "duration": 155707199
+    }
+   },
+   {
+    "id": "ERT_PS046279",
+    "Title": "A Stroll Through the Nightlife of the '80s",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "17",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1769889600.0,
+     "end": 1924991999.0,
+     "duration": 155102399
+    }
+   },
+   {
+    "id": "ERT_PS046280",
+    "Title": "Tribute to Giannis Papaioannou and Dimitris Gogas \"Bayaderas\"",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "18",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1770494400.0,
+     "end": 1924991999.0,
+     "duration": 154497599
+    }
+   },
+   {
+    "id": "ERT_PS046281",
+    "Title": "The Love Songs",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "19",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1771099200.0,
+     "end": 1924991999.0,
+     "duration": 153892799
+    }
+   },
+   {
+    "id": "ERT_PS046282",
+    "Title": "Carnival Party",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "20",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1771704000.0,
+     "end": 1924991999.0,
+     "duration": 153287999
+    }
+   },
+   {
+    "id": "ERT_PS046283",
+    "Title": "60 Years of ERT",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "21",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1771876800.0,
+     "end": 1924991999.0,
+     "duration": 153115199
+    }
+   },
+   {
+    "id": "ERT_PS046284",
+    "Title": "Tribute to Manolis Lidakis",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "22",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1772308800.0,
+     "end": 1924991999.0,
+     "duration": 152683199
+    }
+   },
+   {
+    "id": "ERT_PS046285",
+    "Title": "Tribute to Lefteris Papadopoulos",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "23",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1772913600.0,
+     "end": 1924991999.0,
+     "duration": 152078399
+    }
+   },
+   {
+    "id": "ERT_PS046286",
+    "Title": "Tribute to Giorgos Mitsakis",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "24",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1773518400.0,
+     "end": 2398451460.0,
+     "duration": 624933060
+    }
+   },
+   {
+    "id": "ERT_PS052344-0025",
+    "Title": "Tribute to Greek Folk Song",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "25",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1774123200.0,
+     "end": 1924991999.0,
+     "duration": 150868799
+    }
+   },
+   {
+    "id": "ERT_PS052344-0026",
+    "Title": "Tribute to Mikis Theodorakis Part 1",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "26",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1774728000.0,
+     "end": 1924991999.0,
+     "duration": 150263999
+    }
+   },
+   {
+    "id": "ERT_PS052344-0027",
+    "Title": "Tribute to Mikis Theodorakis Part II",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "27",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1775329200.0,
+     "end": 1924991999.0,
+     "duration": 149662799
+    }
+   },
+   {
+    "id": "ERT_PS052344-0028",
+    "Title": "Festive Episode",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "28",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1775934000.0,
+     "end": 1924991999.0,
+     "duration": 149057999
+    }
+   },
+   {
+    "id": "ERT_PS052344-0029",
+    "Title": "Tribute to Mihalis Souyoul",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "29",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1776538800.0,
+     "end": 1924991999.0,
+     "duration": 148453199
+    }
+   },
+   {
+    "id": "ERT_PS052344-0030",
+    "Title": "Thessaloniki Song Festival",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "30",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1777143600.0,
+     "end": 1924991999.0,
+     "duration": 147848399
+    }
+   },
+   {
+    "id": "ERT_PS052344-0031",
+    "Title": "Stories of Cooking and Music",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "31",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1777748400.0,
+     "end": 1924991999.0,
+     "duration": 147243599
+    }
+   },
+   {
+    "id": "ERT_PS052344-0032",
+    "Title": "Trbute to Eftychia Papagianopoulou",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "32",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1778353200.0,
+     "end": 1924991999.0,
+     "duration": 146638799
+    }
+   },
+   {
+    "id": "ERT_PS052344-0033",
+    "Title": "A Tribute to Piraeus",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "33",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1779562800.0,
+     "end": 1924991999.0,
+     "duration": 145429199
+    }
+   },
+   {
+    "id": "ERT_PS052344-0034",
+    "Title": "Tribute to Alkis Alkaios",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "34",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1780167600.0,
+     "end": 1924991999.0,
+     "duration": 144824399
+    }
+   },
+   {
+    "id": "ERT_PS052344-0035-02",
+    "Title": "World Cup Tribute – Kick-Off",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "35",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1780797600.0,
+     "end": 1924991999.0,
+     "duration": 144194399
+    }
+   },
+   {
+    "id": "ERT_PS052344-0036",
+    "Title": "Tribute to the “Golden Duos”",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "36",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1781377200.0,
+     "end": 1924991999.0,
+     "duration": 143614799
+    }
+   },
+   {
+    "id": "ERT_PS052344-0038",
+    "Title": "Tribute to Elafro and Rebetiko Song",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "37",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1781982000.0,
+     "end": 1924991999.0,
+     "duration": 143009999
+    }
+   },
+   {
+    "id": "ERT_PS052344-0037",
+    "Title": "Ladies, our Respects",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "38",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1782585000.0,
+     "end": 1924991999.0,
+     "duration": 142406999
+    }
+   },
+   {
+    "id": "ERT_PS052344-0039",
+    "Title": "Songs of the Small Screen",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "39",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1783186200.0,
+     "end": 1924991999.0,
+     "duration": 141805799
+    }
+   },
+   {
+    "id": "ERT_PS052344-0040",
+    "Title": "Summer Vacation",
+    "SeasonNumber": 2,
+    "EpisodeNumber": "40",
+    "seasonRef": "ERT_PS052344",
+    "period": {
+     "start": 1784401200.0,
+     "end": 1924991999.0,
+     "duration": 140590799
+    }
+   }
+  ]
+ }
+}

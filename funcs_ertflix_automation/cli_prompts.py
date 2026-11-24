@@ -1,9 +1,10 @@
 """Light TUI: rich tables for display + questionary selects for input."""
 # PEP 810: lazy on Python 3.15+, ignored (eager) on older versions; loaded when a picker is shown.
-__lazy_modules__ = ['prompt_toolkit.key_binding', 'questionary', 'questionary.prompts.common',
-                    'rich.console', 'rich.table']
+__lazy_modules__ = ['prompt_toolkit.key_binding', 'prompt_toolkit.layout', 'questionary',
+                    'questionary.prompts.common', 'rich.console', 'rich.table']
 
 import logging
+import shutil
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import TypeVar
@@ -12,11 +13,12 @@ from collections.abc import Sequence
 import questionary
 from prompt_toolkit.key_binding import (KeyBindings, KeyPressEvent,
                                         merge_key_bindings)
+from prompt_toolkit.layout import Dimension, Window
 from questionary.prompts.common import InquirerControl
 from rich.console import Console
 from rich.table import Table
 
-from funcs_ertflix_automation.episode_scraper import Episode
+from funcs_ertflix_automation.episode_scraper import Episode, describe_episode_order
 from funcs_ertflix_automation.season_scraper import Season
 from funcs_ertflix_automation.errors import BackToSeasons
 from funcs_ertflix_automation.programs import Program
@@ -33,6 +35,9 @@ _BACK = '__back__'
 _MENU_INSTRUCTION = '(arrows or number, Enter to select)'
 # Digits typed within this many seconds of each other form one number ('1' then '2' = 12).
 _NUMBER_KEY_TIMEOUT_S = 1.0
+# Lines kept free below the menu's height cap (the prompt line plus a spare line).
+_MENU_RESERVED_LINES = 3
+_MENU_MIN_HEIGHT = 5
 
 
 def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
@@ -110,12 +115,22 @@ def _label_keys(labels: Sequence[str]) -> dict[str, int]:
     return keys
 
 
-def _add_number_keys(question: questionary.Question, labels: Sequence[str]) -> None:
-    """Let typed keys move the highlight in an arrow-key menu.
+def _menu_height() -> int:
+    """Return the most lines the menu list may take: the terminal height minus the prompt."""
+    return max(_MENU_MIN_HEIGHT, shutil.get_terminal_size().lines - _MENU_RESERVED_LINES)
 
-    Digits typed within ``_NUMBER_KEY_TIMEOUT_S`` of each other form one number and move
-    the highlight to the item with that number; ``q``/``s`` jump to Quit / Back. Enter
-    then selects as usual. Does nothing if the menu's internals are not found.
+
+def _customize_menu(question: questionary.Question, labels: Sequence[str]) -> None:
+    """Fit an arrow-key menu to the terminal and add number and navigation keys.
+
+    - The list is capped at the terminal height (``_menu_height``) and scrolls to keep
+      the highlighted item visible; a longer list would push it off screen.
+    - Up/Down stop at the first/last item instead of wrapping around; PgUp/PgDn move a
+      screenful, Home/End go to the first/last item.
+    - Digits typed within ``_NUMBER_KEY_TIMEOUT_S`` of each other form one number and
+      move the highlight to the item with that number; ``q``/``s`` jump to Quit / Back.
+
+    Enter then selects as usual. Does nothing if the menu's internals are not found.
 
     Args:
         question: The questionary select question (not yet asked).
@@ -125,8 +140,13 @@ def _add_number_keys(question: questionary.Question, labels: Sequence[str]) -> N
     control = next((c for c in app.layout.find_all_controls()
                     if isinstance(c, InquirerControl)), None)
     if control is None:
-        logger.debug('Menu control not found; number keys not added.')
+        logger.debug('Menu control not found; menu keys not added.')
         return
+    height = _menu_height()
+    for window in app.layout.find_all_windows():
+        if isinstance(window, Window) and window.content is control:
+            window.height = Dimension(max=height)
+    last = len(labels) - 1
     keys = _label_keys(labels=labels)
     typed_text = ''
     typed_at = 0.0
@@ -144,10 +164,18 @@ def _add_number_keys(question: questionary.Question, labels: Sequence[str]) -> N
         if text in keys:
             control.pointed_at = keys[text]
 
+    def _move(step: int) -> None:
+        """Move the highlight by ``step`` items, stopping at the first/last item."""
+        control.pointed_at = min(max(control.pointed_at + step, 0), last)
+
     bindings = KeyBindings()
     for char in [*'0123456789', 'q', 's']:
         if char in '0123456789' or char in keys:
             bindings.add(char, eager=True)(_jump)
+    moves = {'up': -1, 'down': 1, 'pageup': -(height - 1), 'pagedown': height - 1,
+             'home': -len(labels), 'end': len(labels)}
+    for key, step in moves.items():
+        bindings.add(key, eager=True)(lambda _event, step=step: _move(step=step))
     app.key_bindings = merge_key_bindings([app.key_bindings, bindings]) if app.key_bindings else bindings
 
 
@@ -157,7 +185,7 @@ def _select_or_fallback(prompt: str, labels: Sequence[str],
                         fallback_header: str = '') -> T:
     """Use questionary if available, otherwise fall back to numbered input.
 
-    The arrow-key menu also takes typed numbers (see ``_add_number_keys``).
+    The arrow-key menu also takes typed numbers and scrolls (see ``_customize_menu``).
 
     Args:
         prompt: Prompt text.
@@ -177,7 +205,7 @@ def _select_or_fallback(prompt: str, labels: Sequence[str],
                for label, value in zip(labels, values)]
     try:
         question = questionary.select(prompt, choices=choices, instruction=_MENU_INSTRUCTION)
-        _add_number_keys(question=question, labels=labels)
+        _customize_menu(question=question, labels=labels)
         # Playwright's sync API keeps an asyncio loop running in the main thread, and
         # prompt_toolkit cannot start its own loop there ('asyncio.run() cannot be called
         # from a running event loop'). A worker thread has no running loop.
@@ -214,20 +242,23 @@ def render_seasons_table(seasons: Sequence[Season]) -> None:
 
 
 def render_episodes_table(episodes: Sequence[Episode]) -> None:
-    """Print a rich table of episodes.
+    """Print a rich table of episodes, titled with the order they are listed in.
 
     Args:
         episodes: Episodes to display.
     """
     console = Console()
-    table = Table(title='Available episodes', expand=True)
+    order = describe_episode_order(episodes=list(episodes))
+    table = Table(title=f'Available episodes — {order}', expand=True)
     table.add_column('#', justify='right', style='cyan', no_wrap=True, min_width=3)
+    table.add_column('Date', style='green', no_wrap=True)
     table.add_column('Duration', style='yellow', no_wrap=True)
     table.add_column('Title', style='white', ratio=2)
     table.add_column('Description', style='dim white', ratio=3)
     for episode in episodes:
         table.add_row(
             str(episode.index),
+            episode.broadcast,
             episode.duration,
             episode.title,
             episode.description,

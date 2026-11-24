@@ -1,0 +1,19 @@
+{
+ "url": "https://api.ertflix.opentv.com/metadata/delivery/ERT/vod/series?filter=%7B%22seriesRef%22%3A%22ERT_DS018967%22%2C%22locale%22%3A%22en_GB%22%7D&sort=%5B%5B%22SeasonNumberNumeric%22%2C1%5D%5D&offset=0&limit=300",
+ "body": {
+  "series": [
+   {
+    "id": "ERT_DS017258",
+    "SeasonNumber": "10",
+    "Title": "Season 10",
+    "ReverseSortOrder": "false"
+   },
+   {
+    "id": "ERT_DS017468",
+    "SeasonNumber": "11",
+    "Title": "Season 11",
+    "ReverseSortOrder": "false"
+   }
+  ]
+ }
+}

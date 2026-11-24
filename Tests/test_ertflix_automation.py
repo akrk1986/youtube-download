@@ -1,5 +1,6 @@
 """Unit tests for ERTFlix browser-automation helpers (no Playwright runtime)."""
 import importlib.util
+import json
 import sys
 import threading
 from pathlib import Path
@@ -9,8 +10,9 @@ import pytest
 
 from funcs_ertflix_automation.cli_prompts import _label_keys
 from funcs_ertflix_automation import (KNOWN_PROGRAMS, TOKEN_URL_FRAGMENT,
-                                      Episode, Program, Season,
-                                      build_ytdlp_argv, discover_episodes,
+                                      ApiMetadataStore, Episode, Program, Season,
+                                      build_ytdlp_argv, describe_episode_order,
+                                      discover_episodes,
                                       discover_seasons, find_program,
                                       pick_episode, pick_program, pick_season,
                                       resolve_program)
@@ -139,32 +141,38 @@ class TestPrograms:
     def test_resolve_url_given(self):
         """An explicit URL is used as-is with the --program label; no menu."""
         picker = MagicMock()
-        url, label = resolve_program(series_url='https://www.ertflix.gr/x',
-                                     program_label='Custom', picker=picker)
-        assert (url, label) == ('https://www.ertflix.gr/x', 'Custom')
+        url, label, order = resolve_program(series_url='https://www.ertflix.gr/x',
+                                            program_label='Custom', picker=picker)
+        assert (url, label, order) == ('https://www.ertflix.gr/x', 'Custom', None)
         picker.assert_not_called()
 
     def test_resolve_known_program_without_url(self):
         """A known --program without a URL opens that program; no menu."""
         picker = MagicMock()
-        url, label = resolve_program(series_url=None, program_label='parea', picker=picker)
+        url, label, order = resolve_program(series_url=None, program_label='parea', picker=picker)
         assert url.endswith('ERT_PS054741_E0')
-        assert label == 'Parea'
+        assert (label, order) == ('Parea', False)
         picker.assert_not_called()
+
+    def test_resolve_url_with_known_program_keeps_order(self):
+        """A URL plus a known --program takes that program's episode order."""
+        _, _, order = resolve_program(series_url='https://www.ertflix.gr/x',
+                                      program_label='to alati tis gis', picker=MagicMock())
+        assert order is True
 
     def test_resolve_menu_uses_program_label(self):
         """With no URL and no --program, the menu choice supplies URL and label."""
         chosen = KNOWN_PROGRAMS[1]
-        url, label = resolve_program(series_url=None, program_label=None,
-                                     picker=lambda programs: chosen)
-        assert (url, label) == (chosen.url, 'To Alati tis Gis')
+        url, label, order = resolve_program(series_url=None, program_label=None,
+                                            picker=lambda programs: chosen)
+        assert (url, label, order) == (chosen.url, 'To Alati tis Gis', True)
 
     def test_resolve_menu_keeps_unknown_program_label(self):
         """An unknown --program still opens the menu, but its label is kept."""
         chosen = KNOWN_PROGRAMS[0]
-        url, label = resolve_program(series_url=None, program_label='My Label',
-                                     picker=lambda programs: chosen)
-        assert (url, label) == (chosen.url, 'My Label')
+        url, label, order = resolve_program(series_url=None, program_label='My Label',
+                                            picker=lambda programs: chosen)
+        assert (url, label, order) == (chosen.url, 'My Label', False)
 
 
 class TestPickProgram:
@@ -295,6 +303,26 @@ class TestDiscoverEpisodesNumbering:
         episodes = self._discover(titles=['Newest', 'Middle', 'Oldest'])
         assert [e.index for e in episodes] == [3, 2, 1]
 
+    def test_program_order_oldest_first(self):
+        """oldest_first=True numbers from the top even without 'Episode N' titles."""
+        raw = [{'title': t} for t in ('First', 'Second', 'Third')]
+        with patch('funcs_ertflix_automation.episode_scraper._poll_episodes_until_stable',
+                   return_value=raw), \
+                patch('funcs_ertflix_automation.episode_scraper._placeholder_card_count',
+                      return_value=0):
+            episodes = discover_episodes(page=MagicMock(), oldest_first=True)
+        assert [e.index for e in episodes] == [1, 2, 3]
+
+    def test_program_order_overrides_title_guess(self):
+        """oldest_first=False wins over rising 'Episode N' titles."""
+        raw = [{'title': f'Episode {n}'} for n in (1, 2, 3)]
+        with patch('funcs_ertflix_automation.episode_scraper._poll_episodes_until_stable',
+                   return_value=raw), \
+                patch('funcs_ertflix_automation.episode_scraper._placeholder_card_count',
+                      return_value=0):
+            episodes = discover_episodes(page=MagicMock(), oldest_first=False)
+        assert [e.index for e in episodes] == [3, 2, 1]
+
     def test_falling_numbered_titles_keep_newest_first(self):
         """Falling 'Επεισόδιο N' titles mean newest first."""
         episodes = self._discover(titles=['Επεισόδιο 3', 'Επεισόδιο 2', 'Επεισόδιο 1'])
@@ -327,3 +355,164 @@ class TestLabelKeys:
         """'12. x' -> '12'; 'q/0. Quit' -> 'q' and '0'; 's. Back' -> 's'."""
         labels = ['12. Twelve', '2. Two', 's. Back to season selection', 'q/0. Quit']
         assert _label_keys(labels=labels) == {'12': 0, '2': 1, 's': 2, 'q': 3, '0': 3}
+
+
+FIXTURES = Path(__file__).resolve().parent / 'fixtures' / 'ertflix-api'
+
+
+def _store(*names: str) -> ApiMetadataStore:
+    """Build a metadata store fed with the named fixture responses, in order."""
+    store = ApiMetadataStore()
+    for name in names:
+        data = json.loads((FIXTURES / name).read_text(encoding='utf-8'))
+        store.add_response(url=data['url'], body=data['body'])
+    return store
+
+
+class TestApiMetadataStore:
+    """Tests for ApiMetadataStore against responses recorded from ERTFlix."""
+
+    def test_season_numbers_by_label(self):
+        """Both label styles map to the official number."""
+        store = _store('alati-series.json', 'parea-series.json')
+        assert store.season_number_for(label='Season 11') == 11
+        assert store.season_number_for(label='Season 2026 - 2027') == 3
+        assert store.season_number_for(label='Season 2024 - 2025') == 1
+        assert store.season_number_for(label='Season 99') is None
+
+    def test_match_by_title_with_date(self):
+        """'In Crete…' is S11E01, broadcast 2023-12-09 (Athens time)."""
+        store = _store('alati-series.json', 'alati-s11-editorials.json')
+        found = store.match(season_number=11, title='In Crete with Antonis Martsakis')
+        assert found is not None
+        assert (found.episode_number, found.broadcast_date) == (1, '2023-12-09')
+
+    def test_match_by_id(self):
+        """An episode id matches even when the title differs."""
+        store = _store('alati-s10-editorials.json')
+        found = store.match(season_number=10, title='something else', episode_id='ERT_DS004209')
+        assert found is not None and found.episode_number == 2
+
+    def test_mediacard_prefixed_title(self):
+        """The mediacard's 'E5 ‧ ' prefix is ignored when matching."""
+        store = _store('parea-mediacard.json')
+        found = store.match(season_number=3, title='A Tribute to the “Lord of the Minor Key”, '
+                                                  'Stavros Kougioumtzis')
+        assert found is not None and found.episode_number == 5
+
+    def test_editorials_win_over_mediacard(self):
+        """Episode data from editorials replaces the mediacard's, in either arrival order."""
+        api = 'https://api.ertflix.opentv.com'
+        mediacard = (f'{api}/metadata/v1/series/ERT_X/mediacard', {'series': {'seasons': [
+            {'id': 'ERT_S1', 'SeasonNumber': 1, 'Title': 'Season 1', 'episodes': [
+                {'id': 'ERT_E1', 'Title': 'E1 ‧ Short', 'episodeNumber': 1,
+                 'broadcast': {'start': 1700000000}}]}]}})
+        editorials = (f'{api}/metadata/delivery/v2/ERT/vod/editorials', {'editorials': [
+            {'id': 'ERT_E1', 'Title': 'Full Title', 'SeasonNumber': 1, 'EpisodeNumber': '1',
+             'seasonRef': 'ERT_S1', 'period': {'start': 1700000000.0}}]})
+        for order in ((mediacard, editorials), (editorials, mediacard)):
+            store = ApiMetadataStore()
+            for url, body in order:
+                store.add_response(url=url, body=body)
+            found = store.match(season_number=1, title='', episode_id='ERT_E1')
+            assert found is not None and found.title == 'Full Title'
+
+    def test_broadcast_in_athens_time(self):
+        """S2E1 aired 2025-10-18 22:00 Athens time (19:00 UTC)."""
+        store = _store('parea-s2-editorials.json')
+        found = store.match(season_number=2, title='Tribute to Apostolos Kaldaras')
+        assert found is not None and found.broadcast is not None
+        assert found.broadcast_date == '2025-10-18'
+        assert (found.broadcast.hour, found.broadcast.utcoffset().total_seconds()) == (22, 3 * 3600)
+
+    def test_shared_title_not_matched(self):
+        """Two 'Holiday Special' episodes: title alone gives no match."""
+        store = _store('parea-s2-editorials.json')
+        assert store.match(season_number=2, title='Holiday Special') is None
+
+    def test_other_hosts_ignored(self):
+        """A response from another host is ignored."""
+        store = ApiMetadataStore()
+        store.add_response(url='https://www.ertflix.gr/assets/i18n/en.json', body={'series': []})
+        assert not store.has_episodes
+
+
+class TestEpisodesWithMetadata:
+    """discover_episodes with ERTFlix data: official numbers, gaps, fallback."""
+
+    @staticmethod
+    def _discover(titles: list[str], store: ApiMetadataStore, season: int) -> list[Episode]:
+        """Run discover_episodes with the DOM poll stubbed to return ``titles``."""
+        raw = [{'title': title} for title in titles]
+        with patch('funcs_ertflix_automation.episode_scraper._poll_episodes_until_stable',
+                   return_value=raw), \
+                patch('funcs_ertflix_automation.episode_scraper._placeholder_card_count',
+                      return_value=0):
+            return discover_episodes(page=MagicMock(), metadata=store, season_number=season)
+
+    def test_season_11_official_numbers_and_gap(self):
+        """Newest-first S11 page: 'In Crete…' is 1, the last card keeps its gap number 8."""
+        store = _store('alati-series.json', 'alati-s11-editorials.json')
+        titles = ['The Tradition of Refugees in Platy and Trikala Imathias. Cappadocians and '
+                  'Northern Thracians',
+                  'Rebetiko in "The Hellenic Project"', 'Musical Journey to Kastoria',
+                  'In Crete with Antonis Martsakis']
+        episodes = self._discover(titles=titles, store=store, season=11)
+        assert [e.index for e in episodes] == [8, 5, 2, 1]
+        assert episodes[0].broadcast == '2024-03-02'
+
+    def test_unmatched_episode_keeps_position_number(self):
+        """A card not in the data keeps its position-based number and has no date."""
+        store = _store('alati-s11-editorials.json')
+        episodes = self._discover(titles=['Unknown Title', 'In Crete with Antonis Martsakis'],
+                                  store=store, season=11)
+        assert (episodes[0].index, episodes[0].broadcast) == (2, '')
+        assert episodes[1].index == 1
+
+
+class TestSeasonsWithMetadata:
+    """discover_seasons with ERTFlix data."""
+
+    def test_official_numbers_win(self):
+        """Year labels take the official numbers from the data."""
+        page = _fake_page({'[role="tablist"] button': [
+            'Season 2026 - 2027', 'Season 2025 - 2026', 'Season 2024 - 2025']})
+        seasons = discover_seasons(page=page, metadata=_store('parea-series.json'))
+        assert [s.index for s in seasons] == [3, 2, 1]
+
+    def test_unknown_label_falls_back(self):
+        """A label missing from the data falls back to the label rules."""
+        page = _fake_page({'[role="tablist"] button': ['Season 12', 'Season 11']})
+        seasons = discover_seasons(page=page, metadata=_store('alati-series.json'))
+        assert [s.index for s in seasons] == [12, 11]
+
+
+class TestDescribeEpisodeOrder:
+    """Tests for the order label shown on each season's episode table."""
+
+    @staticmethod
+    def _episodes(*dates: str) -> list[Episode]:
+        """Build episodes with the given broadcast dates ('' = no date)."""
+        return [Episode(index=n, title=f'T{n}', broadcast=d) for n, d in enumerate(dates, start=1)]
+
+    def test_newest_first(self):
+        """Falling dates (undated cards skipped) -> newest first."""
+        assert describe_episode_order(
+            self._episodes('2024-03-02', '', '2023-12-16', '2023-12-09')) == 'Newest first'
+
+    def test_oldest_first(self):
+        """Rising dates -> oldest first."""
+        assert describe_episode_order(
+            self._episodes('2022-11-13', '2022-11-20', '2023-02-19')) == 'Oldest first'
+
+    def test_unknown_without_dates(self):
+        """No dates (or one) -> unknown, site order."""
+        expected = 'Episode dates unknown, order same as on the site'
+        assert describe_episode_order(self._episodes('', '')) == expected
+        assert describe_episode_order(self._episodes('2022-11-13', '')) == expected
+
+    def test_unknown_when_mixed(self):
+        """Dates going both ways -> unknown, site order."""
+        assert describe_episode_order(
+            self._episodes('2023-01-01', '2023-03-01', '2023-02-01')) == (
+            'Episode dates unknown, order same as on the site')

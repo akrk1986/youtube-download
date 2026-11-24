@@ -5,11 +5,13 @@ __lazy_modules__ = ['playwright.sync_api']
 import json
 import logging
 from pathlib import Path
+from urllib.parse import urlparse
 from types import TracebackType
 
 from playwright.sync_api import (BrowserContext, Page, Playwright, Request,
                                  Response, sync_playwright)
 
+from funcs_ertflix_automation.api_metadata import API_HOST, ApiMetadataStore
 from funcs_ertflix_automation.errors import BrowserLaunchFailed
 
 
@@ -38,6 +40,7 @@ class BrowserSession:
         self._page: Page | None = None
         self._original_url: str | None = None
         self.api_responses_logged = 0
+        self.metadata = ApiMetadataStore()
 
     def __enter__(self) -> 'BrowserSession':
         """Start Playwright and launch the persistent Chromium context."""
@@ -162,22 +165,26 @@ class BrowserSession:
         self.page.on('request', _on_request)
         return token_urls
 
-    def install_api_response_logger(self, out_path: Path) -> None:
-        """Append every JSON response the page receives to a JSON Lines file.
+    def install_response_hook(self, api_log: Path | None = None) -> None:
+        """Feed the page's ERTFlix API responses to ``self.metadata`` (and optionally a log).
 
-        Observational only (``page.on('response')``): requests are not blocked or
-        changed. Install it before ``open_series`` so the first page load is included.
-        Each line holds the URL, HTTP status and the parsed body (or the raw text when
-        it is not valid JSON). ``api_responses_logged`` counts the lines written.
+        Observational only (``page.on('response')``): requests are not blocked or changed.
+        Install it before ``open_series`` so the first page load is included. With
+        ``api_log``, every JSON response (any host) is also appended to that JSON Lines
+        file as URL, HTTP status and parsed body (or raw text when it is not valid JSON);
+        ``api_responses_logged`` counts the lines written.
 
         Args:
-            out_path: JSON Lines file to append to (its folder is created).
+            api_log: JSON Lines file to append to (its folder is created), or None.
         """
-        out_path.parent.mkdir(parents=True, exist_ok=True)
+        if api_log is not None:
+            api_log.parent.mkdir(parents=True, exist_ok=True)
 
         def _on_response(response: Response) -> None:
-            content_type = response.headers.get('content-type', '')
-            if 'json' not in content_type.lower():
+            if 'json' not in response.headers.get('content-type', '').lower():
+                return
+            from_api = (urlparse(response.url).hostname or '').lower() == API_HOST
+            if api_log is None and not from_api:
                 return
             try:
                 text = response.text()
@@ -188,13 +195,17 @@ class BrowserSession:
                 body: object = json.loads(text)
             except ValueError:
                 body = text
-            entry = {'url': response.url, 'status': response.status, 'body': body}
-            with out_path.open('a', encoding='utf-8') as handle:
-                handle.write(json.dumps(entry, ensure_ascii=False) + '\n')
-            self.api_responses_logged += 1
+            if from_api:
+                self.metadata.add_response(url=response.url, body=body)
+            if api_log is not None:
+                entry = {'url': response.url, 'status': response.status, 'body': body}
+                with api_log.open('a', encoding='utf-8') as handle:
+                    handle.write(json.dumps(entry, ensure_ascii=False) + '\n')
+                self.api_responses_logged += 1
 
         self.page.on('response', _on_response)
-        logger.info(f'Logging JSON responses to {out_path}')
+        if api_log is not None:
+            logger.info(f'Logging JSON responses to {api_log}')
 
     def _cleanup_after_failure(self) -> None:
         """Best-effort teardown after a failed launch."""

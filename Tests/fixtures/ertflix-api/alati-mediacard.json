@@ -1,0 +1,183 @@
+{
+ "url": "https://api.ertflix.opentv.com/metadata/v1/series/ERT_DS018967/mediacard?deviceType=Browser",
+ "body": {
+  "series": {
+   "seasons": [
+    {
+     "id": "ERT_DS017468",
+     "SeasonNumber": 11,
+     "Title": "Season 11",
+     "episodes": [
+      {
+       "id": "ERT_DS004855",
+       "Title": "The Tradition of Refugees in Platy and Trikala Imathias. Cappadocians and Northern Thracians",
+       "episodeNumber": 8,
+       "broadcast": {
+        "start": 1709380800,
+        "end": 1925071140,
+        "duration": 215690340
+       }
+      },
+      {
+       "id": "ERT_DS004852",
+       "Title": "Rebetiko in \"The Hellenic Project\"",
+       "episodeNumber": 5,
+       "broadcast": {
+        "start": 1705147200,
+        "end": 1924991999,
+        "duration": 219844799
+       }
+      },
+      {
+       "id": "ERT_DS004851",
+       "Title": "“Violione String Orchestra” of the University of Macedonia in a Festive \"Salt of the Earth\"",
+       "episodeNumber": 4,
+       "broadcast": {
+        "start": 1704047400,
+        "end": 1924991999,
+        "duration": 220944599
+       }
+      },
+      {
+       "id": "ERT_DS004850",
+       "Title": "“Tis the Season of the Twelve days of Christmas!” Carols and Holiday Songs from all Αround Greece",
+       "episodeNumber": 3,
+       "broadcast": {
+        "start": 1703332800,
+        "end": 1924991999,
+        "duration": 221659199
+       }
+      },
+      {
+       "id": "ERT_DS004849",
+       "Title": "Musical Journey to Kastoria",
+       "episodeNumber": 2,
+       "broadcast": {
+        "start": 1702728000,
+        "end": 1924991999,
+        "duration": 222263999
+       }
+      },
+      {
+       "id": "ERT_DS004848",
+       "Title": "In Crete with Antonis Martsakis",
+       "episodeNumber": 1,
+       "broadcast": {
+        "start": 1702123200,
+        "end": 1924991999,
+        "duration": 222868799
+       }
+      }
+     ]
+    },
+    {
+     "id": "ERT_DS017258",
+     "SeasonNumber": 10,
+     "Title": "Season 10",
+     "episodes": [
+      {
+       "id": "ERT_DS004219",
+       "Title": "Episode 12",
+       "episodeNumber": 12,
+       "broadcast": {
+        "start": 1676797200,
+        "end": 1924977600,
+        "duration": 248180400
+       }
+      },
+      {
+       "id": "ERT_DS004218",
+       "Title": "Episode 11",
+       "episodeNumber": 11,
+       "broadcast": {
+        "start": 1676192400,
+        "end": 1924977600,
+        "duration": 248785200
+       }
+      },
+      {
+       "id": "ERT_DS004217",
+       "Title": "Episode 10",
+       "episodeNumber": 10,
+       "broadcast": {
+        "start": 1675587600,
+        "end": 1924977600,
+        "duration": 249390000
+       }
+      },
+      {
+       "id": "ERT_DS004216",
+       "Title": "Episode 9",
+       "episodeNumber": 9,
+       "broadcast": {
+        "start": 1674982800,
+        "end": 1924977600,
+        "duration": 249994800
+       }
+      },
+      {
+       "id": "ERT_DS004215",
+       "Title": "Episode 8",
+       "episodeNumber": 8,
+       "broadcast": {
+        "start": 1673773200,
+        "end": 1924977600,
+        "duration": 251204400
+       }
+      },
+      {
+       "id": "ERT_DS004214",
+       "Title": "Episode 7",
+       "episodeNumber": 7,
+       "broadcast": {
+        "start": 1673168400,
+        "end": 1924977600,
+        "duration": 251809200
+       }
+      },
+      {
+       "id": "ERT_DS004213",
+       "Title": "Episode 6",
+       "episodeNumber": 6,
+       "broadcast": {
+        "start": 1671354000,
+        "end": 1924977600,
+        "duration": 253623600
+       }
+      },
+      {
+       "id": "ERT_DS004212",
+       "Title": "Episode 5",
+       "episodeNumber": 5,
+       "broadcast": {
+        "start": 1670749200,
+        "end": 1924977600,
+        "duration": 254228400
+       }
+      },
+      {
+       "id": "ERT_DS004211",
+       "Title": "Episode 4",
+       "episodeNumber": 4,
+       "broadcast": {
+        "start": 1670144400,
+        "end": 1924977600,
+        "duration": 254833200
+       }
+      },
+      {
+       "id": "ERT_DS004210",
+       "Title": "Musical travelogue in Serres - Part 2 : The Sarakatsani and Aromanians",
+       "episodeNumber": 3,
+       "broadcast": {
+        "start": 1669539600,
+        "end": 1925071140,
+        "duration": 255531540
+       }
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

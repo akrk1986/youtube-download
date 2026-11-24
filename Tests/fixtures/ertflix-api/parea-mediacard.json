@@ -1,0 +1,173 @@
+{
+ "url": "https://api.ertflix.opentv.com/metadata/v1/series/ERT_PS054741/mediacard?deviceType=Browser",
+ "body": {
+  "series": {
+   "seasons": [
+    {
+     "id": "ERT_PS058530",
+     "SeasonNumber": 3,
+     "Title": "2026 - 2027",
+     "episodes": [
+      {
+       "id": "ERT_PS058530-0007",
+       "Title": "E5 ‧ A Tribute to the “Lord of the Minor Key”, Stavros Kougioumtzis",
+       "episodeNumber": 5,
+       "broadcast": {
+        "start": 1795287600,
+        "end": 1924991999,
+        "duration": 129704399
+       }
+      },
+      {
+       "id": "ERT_PS058530-0004",
+       "Title": "E4 ‧ A Tribute to Dimitris Starovas",
+       "episodeNumber": 4,
+       "broadcast": {
+        "start": 1794682800,
+        "end": 1924991999,
+        "duration": 130309199
+       }
+      },
+      {
+       "id": "ERT_PS058530-0003",
+       "Title": "E3 ‧ A Gathering for #Together: Revelations, Laughter, and Songs",
+       "episodeNumber": 3,
+       "broadcast": {
+        "start": 1794078000,
+        "end": 1924991999,
+        "duration": 130913999
+       }
+      },
+      {
+       "id": "ERT_PS058530-0002",
+       "Title": "E2 ‧ A Tribute to Mikis Theodorakis",
+       "episodeNumber": 2,
+       "broadcast": {
+        "start": 1793473200,
+        "end": 1924991999,
+        "duration": 131518799
+       }
+      },
+      {
+       "id": "ERT_PS058530-0001",
+       "Title": "E1 ‧ A Tribute to Mimis Plessas - Part 1",
+       "episodeNumber": 1,
+       "broadcast": {
+        "start": 1792864800,
+        "end": 1924991999,
+        "duration": 132127199
+       }
+      }
+     ]
+    },
+    {
+     "id": "ERT_PS052344",
+     "SeasonNumber": 2,
+     "Title": "2025 - 2026",
+     "episodes": [
+      {
+       "id": "ERT_PS052344-0040",
+       "Title": "Summer Vacation",
+       "episodeNumber": 40,
+       "broadcast": {
+        "start": 1784401200,
+        "end": 1924991999,
+        "duration": 140590799
+       }
+      },
+      {
+       "id": "ERT_PS052344-0039",
+       "Title": "Songs of the Small Screen",
+       "episodeNumber": 39,
+       "broadcast": {
+        "start": 1783186200,
+        "end": 1924991999,
+        "duration": 141805799
+       }
+      },
+      {
+       "id": "ERT_PS052344-0037",
+       "Title": "Ladies, our Respects",
+       "episodeNumber": 38,
+       "broadcast": {
+        "start": 1782585000,
+        "end": 1924991999,
+        "duration": 142406999
+       }
+      },
+      {
+       "id": "ERT_PS052344-0038",
+       "Title": "Tribute to Elafro and Rebetiko Song",
+       "episodeNumber": 37,
+       "broadcast": {
+        "start": 1781982000,
+        "end": 1924991999,
+        "duration": 143009999
+       }
+      },
+      {
+       "id": "ERT_PS052344-0036",
+       "Title": "Tribute to the “Golden Duos”",
+       "episodeNumber": 36,
+       "broadcast": {
+        "start": 1781377200,
+        "end": 1924991999,
+        "duration": 143614799
+       }
+      },
+      {
+       "id": "ERT_PS052344-0035-02",
+       "Title": "World Cup Tribute – Kick-Off",
+       "episodeNumber": 35,
+       "broadcast": {
+        "start": 1780797600,
+        "end": 1924991999,
+        "duration": 144194399
+       }
+      },
+      {
+       "id": "ERT_PS052344-0034",
+       "Title": "Tribute to Alkis Alkaios",
+       "episodeNumber": 34,
+       "broadcast": {
+        "start": 1780167600,
+        "end": 1924991999,
+        "duration": 144824399
+       }
+      },
+      {
+       "id": "ERT_PS052344-0033",
+       "Title": "A Tribute to Piraeus",
+       "episodeNumber": 33,
+       "broadcast": {
+        "start": 1779562800,
+        "end": 1924991999,
+        "duration": 145429199
+       }
+      },
+      {
+       "id": "ERT_PS052344-0032",
+       "Title": "Trbute to Eftychia Papagianopoulou",
+       "episodeNumber": 32,
+       "broadcast": {
+        "start": 1778353200,
+        "end": 1924991999,
+        "duration": 146638799
+       }
+      },
+      {
+       "id": "ERT_PS052344-0031",
+       "Title": "Stories of Cooking and Music",
+       "episodeNumber": 31,
+       "broadcast": {
+        "start": 1777748400,
+        "end": 1924991999,
+        "duration": 147243599
+       }
+      }
+     ]
+    }
+   ]
+  }
+ }
+}
