@@ -895,6 +895,41 @@ The tool automatically handles videos where preferred formats are unavailable:
 
 This eliminates confusing "Requested format is not available" error messages while still downloading successfully using alternative formats.
 
+## Open Issues
+
+### ERTFlix capture script (`JS-files/capture-working-play-click.js`)
+
+Found in a code review; not fixed yet. The script is the manual fallback: `main-ertflix-series.py`
+captures the token URL itself and does not use it. Line numbers are as of script VERSION
+`2026-11-24-1851`.
+
+- **High — `fetch`/XHR calls made with a `Request` or `URL` object are not seen** (the `fetch` wrapper,
+  lines 134–136; the `XMLHttpRequest.prototype.open` wrapper, lines 204–205). Both check the URL only
+  when it is a string. ERTFlix passes strings today; if that changes, nothing is captured (no
+  clipboard copy, no summary). Fix: turn the argument into a string first (`.url` for a `Request`,
+  `.href` for a `URL`).
+- **High — pasting the script twice stacks two active copies** (re-run check, lines 32–38). A
+  second run only warns: it wraps the already-wrapped `fetch`/`open` and adds a second click listener,
+  so every request is logged twice and two summaries/files are produced. Reloading the page clears
+  it. Fix: on a re-run, stop with a "reload the page" message, or reuse the first copy's wrappers.
+- **Medium — `window.__enableCapture()` does not cancel a pending summary timer** (`enableCapture`,
+  line 545). It clears `summaryTimeoutId` without `clearTimeout`, so the old timer still fires and a
+  new click schedules another: two summaries and two files.
+- **Medium — click handler throws on an image with an empty `src`** (lines 360–361). `img[src]`
+  matches `src=""`; with no `data-src`, `imgSrc` is `null` and `.match()` throws, so the title is not
+  recorded and no summary is scheduled.
+- **Medium — the token/video handling is duplicated** in the `fetch` and XHR wrappers (about 60
+  identical lines each); move it into one helper.
+- **Low — a live/unknown duration prints `Infinityh NaNm`** (line 310): `isNaN(Infinity)` is false;
+  use `Number.isFinite`.
+- **Low — stale text**: the header (line 7) still says "the MAIN page with all 32 episodes", and the
+  printed download command (lines 167–168, 236–237) uses Bash `export` and `python main-yt-dlp.py
+  --only-audio`, not the current `./main-yt-dlp.py` / `--ertflix-program` or PowerShell syntax.
+- **Low — the episode-ID pattern `/ERT_[A-Z0-9_]+/` has no `-`** (lines 69, 361), so IDs such as
+  `ERT_PS052344-0040` are cut short; the Python scraper uses `[A-Z0-9_-]`.
+- **Low — the URL-change monitor polls every 100 ms for the life of the page** (line 55), until
+  `window.__stopUrlObserver()` is called.
+
 ## License
 
 This project is for personal use.
