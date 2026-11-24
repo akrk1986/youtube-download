@@ -2,12 +2,13 @@
 # PEP 810: lazy on Python 3.15+, ignored (eager) on older versions; loaded when the browser starts.
 __lazy_modules__ = ['playwright.sync_api']
 
+import json
 import logging
 from pathlib import Path
 from types import TracebackType
 
 from playwright.sync_api import (BrowserContext, Page, Playwright, Request,
-                                 sync_playwright)
+                                 Response, sync_playwright)
 
 from funcs_ertflix_automation.errors import BrowserLaunchFailed
 
@@ -36,6 +37,7 @@ class BrowserSession:
         self._context: BrowserContext | None = None
         self._page: Page | None = None
         self._original_url: str | None = None
+        self.api_responses_logged = 0
 
     def __enter__(self) -> 'BrowserSession':
         """Start Playwright and launch the persistent Chromium context."""
@@ -159,6 +161,40 @@ class BrowserSession:
 
         self.page.on('request', _on_request)
         return token_urls
+
+    def install_api_response_logger(self, out_path: Path) -> None:
+        """Append every JSON response the page receives to a JSON Lines file.
+
+        Observational only (``page.on('response')``): requests are not blocked or
+        changed. Install it before ``open_series`` so the first page load is included.
+        Each line holds the URL, HTTP status and the parsed body (or the raw text when
+        it is not valid JSON). ``api_responses_logged`` counts the lines written.
+
+        Args:
+            out_path: JSON Lines file to append to (its folder is created).
+        """
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+
+        def _on_response(response: Response) -> None:
+            content_type = response.headers.get('content-type', '')
+            if 'json' not in content_type.lower():
+                return
+            try:
+                text = response.text()
+            except Exception as exc:  # noqa: BLE001
+                logger.debug(f'Could not read response body of {response.url[:120]}: {exc}')
+                return
+            try:
+                body: object = json.loads(text)
+            except ValueError:
+                body = text
+            entry = {'url': response.url, 'status': response.status, 'body': body}
+            with out_path.open('a', encoding='utf-8') as handle:
+                handle.write(json.dumps(entry, ensure_ascii=False) + '\n')
+            self.api_responses_logged += 1
+
+        self.page.on('response', _on_response)
+        logger.info(f'Logging JSON responses to {out_path}')
 
     def _cleanup_after_failure(self) -> None:
         """Best-effort teardown after a failed launch."""

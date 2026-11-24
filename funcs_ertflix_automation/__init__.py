@@ -6,13 +6,15 @@ Modules:
     season_scraper: Season discovery and selection.
     episode_scraper: Episode DOM scraping and debug DOM dump.
     player_scraper: Play-button click and episode info extraction.
+    programs: Known programs for the program menu.
     cli_prompts: Rich tables + questionary select menus.
     handoff: Subprocess hand-off to main-yt-dlp.py.
 """
 from funcs_ertflix_automation.browser_session import (DEFAULT_PROFILE_DIR,
                                                       TOKEN_URL_FRAGMENT,
                                                       BrowserSession)
-from funcs_ertflix_automation.cli_prompts import (pick_episode, pick_season,
+from funcs_ertflix_automation.cli_prompts import (pick_episode, pick_program,
+                                                  pick_season,
                                                   render_episodes_table,
                                                   render_seasons_table)
 from funcs_ertflix_automation.episode_scraper import (Episode, discover_episodes,
@@ -28,6 +30,8 @@ from funcs_ertflix_automation.errors import (BackToSeasons,
                                              ErtflixAutomationError,
                                              NoSeasonsOrEpisodesFound,
                                              TokenCaptureTimeout)
+from funcs_ertflix_automation.programs import (KNOWN_PROGRAMS, Program,
+                                               find_program, resolve_program)
 from funcs_ertflix_automation.handoff import build_ytdlp_argv, hand_off_to_ytdlp
 
 __all__ = [
@@ -37,6 +41,11 @@ __all__ = [
     'PLAY_BUTTON_IN_CARD_SELECTOR',
     'SEASON_BUTTON_SELECTORS',
     'BrowserSession',
+    'KNOWN_PROGRAMS',
+    'Program',
+    'find_program',
+    'resolve_program',
+    'pick_program',
     'Season',
     'Episode',
     'ErtflixAutomationError',

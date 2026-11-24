@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Interactive ERTFlix series browser: pick season + episode, then download.
 
-This script drives Chromium (via Playwright) to the series URL, scrapes
-available seasons and episodes, lets you pick one via an arrow-key TUI,
-captures the token API URL that ERTFlix generates when you click Play, and
-hands it off to ``main-yt-dlp.py --ertflix-program`` for the actual download.
+Without a URL, the script first asks which known program to open (Parea,
+To Alati tis Gis, Nykhta Stasou). It then drives Chromium (via Playwright) to
+the series page, scrapes available seasons and episodes, lets you pick one
+via an arrow-key TUI, captures the token API URL that ERTFlix generates when
+you click Play, and hands it off to ``main-yt-dlp.py --ertflix-program`` for the actual download.
 
 Unknown flags are forwarded verbatim to ``main-yt-dlp.py``, so you can still
 use ``--only-audio``, ``--audio-format mp3``, etc.
@@ -13,29 +14,36 @@ Setup (one time):
     pip install -r requirements.txt   # installs playwright, questionary, rich
     python -m playwright install chromium
 
-Example:
-    python main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \\
-        --only-audio --audio-format mp3
+Examples:
+    ./main-ertflix-series.py --only-audio --audio-format mp3
+    ./main-ertflix-series.py --program Parea --only-audio
+    ./main-ertflix-series.py https://www.ertflix.gr/#/details/ERT_PS054741_E0 \\
+        --program Parea --only-audio --audio-format mp3
 """
 # PEP 810: lazy on Python 3.15+, ignored (eager) on older versions; Page is used in annotations only.
 __lazy_modules__ = ['playwright.sync_api']
 
 import argparse
 import logging
+import re
 import shlex
 import sys
 import textwrap
 from pathlib import Path
 from urllib.parse import urlparse
 
+import arrow
 from playwright.sync_api import Page
 
-from funcs_ertflix_automation import (DEFAULT_PROFILE_DIR, BrowserSession,
-                                      Episode, ErtflixAutomationError, Season,
+from common_av.text import count_noun
+
+from funcs_ertflix_automation import (DEFAULT_PROFILE_DIR, KNOWN_PROGRAMS,
+                                      BrowserSession, Episode,
+                                      ErtflixAutomationError, Season,
                                       dump_debug_dom, hand_off_to_ytdlp,
-                                      pick_episode, pick_season,
+                                      pick_episode, pick_program, pick_season,
                                       render_episodes_table,
-                                      render_seasons_table)
+                                      render_seasons_table, resolve_program)
 from funcs_ertflix_automation.errors import BackToSeasons
 from funcs_ertflix_automation.episode_scraper import discover_episodes
 from funcs_ertflix_automation.player_scraper import (click_episode_play,
@@ -45,8 +53,9 @@ from funcs_ertflix_automation.handoff import build_ytdlp_argv
 from funcs_utils import setup_logging
 from project_defs import VALID_OTHER_DOMAINS
 
-VERSION = '2026-10-27-1838'
+VERSION = '2026-11-24-1626'
 DEBUG_DOM_DIR = Path('Logs')
+URL_PREFIX_RE = re.compile(r'https?://', re.IGNORECASE)
 
 logger = logging.getLogger(__name__)
 
@@ -57,17 +66,27 @@ def parse_arguments(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
     Args:
         argv: Arguments to parse (defaults to sys.argv[1:]).
 
+    The optional series URL is taken out of ``argv`` (first ``http(s)://`` token)
+    before argparse runs. An optional positional would otherwise swallow the value
+    of a forwarded flag, e.g. ``mp3`` in ``--audio-format mp3``.
+
     Returns:
-        tuple[argparse.Namespace, list[str]]: Parsed args and unknown args
-        to forward to main-yt-dlp.py.
+        tuple[argparse.Namespace, list[str]]: Parsed args (``series_url`` is None
+        when no URL was given) and unknown args to forward to main-yt-dlp.py.
     """
+    raw = list(sys.argv[1:] if argv is None else argv)
+    series_url = next((a for a in raw if URL_PREFIX_RE.match(a)), None)
+    if series_url is not None:
+        raw.remove(series_url)
+
     parser = argparse.ArgumentParser(
-        description='Interactive ERTFlix series browser. Unknown flags are '
+        usage='%(prog)s [series_url] [options] [main-yt-dlp.py options]',
+        description='Interactive ERTFlix series browser. series_url is the ERTFlix series '
+                    'page URL; omit it to choose from the program menu. Unknown flags are '
                     'forwarded to main-yt-dlp.py.',
         epilog='One-time setup: pip install -r requirements.txt && '
                'python -m playwright install chromium',
     )
-    parser.add_argument('series_url', help='ERTFlix series/Parea page URL')
     parser.add_argument('--profile-dir', type=Path, default=DEFAULT_PROFILE_DIR,
                         help='Chromium persistent user-data directory (default: %(default)s)')
     parser.add_argument('--headless', action='store_true',
@@ -81,18 +100,25 @@ def parse_arguments(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
                         help='Seconds to wait for the token URL after clicking Play '
                              '(default: %(default)s)')
     parser.add_argument('--program',
-                        help='Program name (e.g. "Parea"). When provided, the hand-off '
+                        help='Program name (e.g. "Parea"). Without a URL, a known name '
+                             'opens that program and skips the program menu. The hand-off '
                              'sets --title "<program> S<NN>E<NN>" and NOTIF_MSG to the '
-                             'same string.')
+                             'same string; a program picked from the menu supplies its own name.')
     parser.add_argument('--get-info', action='store_true',
                         help='Click Play, mute video, extract episode info popup to '
                              'Logs/episode-info.txt and print it to the console')
     parser.add_argument('--dry-run', action='store_true',
                         help='Print the hand-off command instead of invoking main-yt-dlp.py')
+    parser.add_argument('--log-api', action='store_true',
+                        help='Save every JSON response the ERTFlix page receives to '
+                             'Logs/ertflix-api-<timestamp>.jsonl (to look for metadata such '
+                             'as dates)')
     parser.add_argument('--verbose', '-v', action='store_true',
                         help='Enable DEBUG logging')
     parser.add_argument('--version', action='version', version=f'%(prog)s {VERSION}')
-    return parser.parse_known_args(argv)
+    args, unknown = parser.parse_known_args(raw)
+    args.series_url = series_url
+    return args, unknown
 
 
 def _pick_season_and_episode(
@@ -162,13 +188,15 @@ def _validate_series_url(url: str) -> None:
         sys.exit(1)
 
 
-def _execute_handoff(args: argparse.Namespace, token_url: str,
-                     chosen_season: Season | None, chosen_episode: Episode,
-                     passthrough: list[str]) -> int:
+def _execute_handoff(  # pylint: disable=too-many-arguments
+        args: argparse.Namespace, program_label: str | None, token_url: str,
+        chosen_season: Season | None, chosen_episode: Episode,
+        passthrough: list[str]) -> int:
     """Build env overrides + title, then hand off to main-yt-dlp.py.
 
     Args:
         args: Parsed CLI arguments.
+        program_label: Program name for the title / NOTIF_MSG (None = no title).
         token_url: Captured ERTFlix token API URL.
         chosen_season: Selected season (None when page has no season selector).
         chosen_episode: Selected episode.
@@ -178,9 +206,9 @@ def _execute_handoff(args: argparse.Namespace, token_url: str,
         int: Process exit code.
     """
     env_overrides: dict[str, str] = {'NOTIFICATIONS': 'ALL'}
-    if args.program:
+    if program_label:
         season_num = chosen_season.index if chosen_season is not None else 1
-        title_str = f'{args.program} S{season_num:02d}E{chosen_episode.index:02d}'
+        title_str = f'{program_label} S{season_num:02d}E{chosen_episode.index:02d}'
         passthrough = ['--title', title_str, *passthrough]
         env_overrides['NOTIF_MSG'] = title_str
         logger.info(f'Using title and NOTIF_MSG: {title_str!r}')
@@ -208,11 +236,27 @@ def main() -> int:
     """
     args, passthrough = parse_arguments()
     setup_logging(verbose=args.verbose)
-    _validate_series_url(url=args.series_url)
 
     try:
-        with BrowserSession(profile_dir=args.profile_dir, headless=args.headless) as session:
-            session.open_series(series_url=args.series_url)
+        series_url, program_label = resolve_program(
+            series_url=args.series_url, program_label=args.program,
+            picker=lambda programs: pick_program(programs=programs),
+            programs=KNOWN_PROGRAMS,
+        )
+    except KeyboardInterrupt:
+        logger.info('Cancelled by user.')
+        return 130
+    _validate_series_url(url=series_url)
+
+    session = BrowserSession(profile_dir=args.profile_dir, headless=args.headless)
+    api_log: Path | None = None
+    try:
+        with session:
+            if args.log_api:
+                stamp = arrow.now().format('YYYY-MM-DD-HHmmss')
+                api_log = DEBUG_DOM_DIR / f'ertflix-api-{stamp}.jsonl'
+                session.install_api_response_logger(out_path=api_log)
+            session.open_series(series_url=series_url)
             token_urls = session.install_token_interceptor()
             session.ensure_authenticated()
 
@@ -269,10 +313,14 @@ def main() -> int:
     except ErtflixAutomationError as exc:
         logger.error(str(exc))
         return 1
-
+    finally:
+        if api_log is not None:
+            logger.info(f'Saved {count_noun(session.api_responses_logged, "JSON response")} '
+                        f'to {api_log}')
     logger.info(f'Captured token URL: {token_url[:120]}...')
     return _execute_handoff(
         args=args,
+        program_label=program_label,
         token_url=token_url,
         chosen_season=chosen_season,
         chosen_episode=chosen_episode,

@@ -2,6 +2,27 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-11-24-1626] - ERTFlix series browser: program menu, season/episode numbering
+
+### Added
+- **Program menu**: `main-ertflix-series.py` run without a URL first asks which program to open —
+  Parea, To Alati tis Gis (Το Αλάτι της Γης) or Nykhta Stasou — then continues with seasons and
+  episodes as before. `--program <name>` with a known name skips the menu; a URL still works as
+  before. The picked program's name goes into `--title` and `NOTIF_MSG` (`To Alati tis Gis S10E02`).
+  The list lives in `funcs_ertflix_automation/programs.py`.
+- **`--log-api`** saves every JSON response the ERTFlix page receives to
+  `Logs/ertflix-api-<timestamp>.jsonl` (debug aid; used to find the episode metadata).
+
+### Fixed
+- **A forwarded flag value is no longer taken as the URL**: with the URL optional, `mp3` in
+  `--audio-format mp3` was parsed as the series URL. The URL is now the first `http(s)://` argument.
+- **Seasons no longer appear twice**: labels are normalized (`Season Season 10` → `Season 10`)
+  before de-duplication.
+- **Season numbers**: a number in the label is the season number (`Season 11` → 11); year labels
+  (`Season 2026 - 2027`) are numbered by rank, oldest = 1, so Parea shows 3/2/1.
+- **Episode numbers on pages that list oldest first**: rising `Episode N` titles mark the list as
+  oldest first, and the top card becomes episode 1.
+
 ## [2026-11-02-1537] - sanitize_string: no punctuation left at the cut
 
 ### Fixed

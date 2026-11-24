@@ -13,6 +13,7 @@ from rich.table import Table
 from funcs_ertflix_automation.episode_scraper import Episode
 from funcs_ertflix_automation.season_scraper import Season
 from funcs_ertflix_automation.errors import BackToSeasons
+from funcs_ertflix_automation.programs import Program
 
 
 logger = logging.getLogger(__name__)
@@ -159,6 +160,33 @@ def render_episodes_table(episodes: Sequence[Episode]) -> None:
             episode.description,
         )
     console.print(table)
+
+
+def pick_program(programs: Sequence[Program]) -> Program:
+    """Prompt the user to choose an ERTFlix program via arrow-key select.
+
+    ``q`` or ``0`` quit the script (raises ``KeyboardInterrupt``).
+
+    Args:
+        programs: Programs to choose from (must be non-empty).
+
+    Returns:
+        Program: The selected program.
+
+    Raises:
+        ValueError: If the programs list is empty.
+    """
+    if not programs:
+        raise ValueError('pick_program called with an empty program list')
+    labels = [f'{n}. {p.label} ({p.display_name})' for n, p in enumerate(programs, start=1)]
+    labels.append('q/0. Quit')
+    values: list[Program | str] = [*programs, _QUIT]
+    return _select_or_fallback(  # type: ignore
+        prompt='Choose program (q/0 to quit):',
+        labels=labels,
+        values=values,
+        fallback_header='Programs to select from:',
+    )
 
 
 def pick_season(seasons: Sequence[Season]) -> Season:

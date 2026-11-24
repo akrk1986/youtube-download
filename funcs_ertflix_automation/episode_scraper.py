@@ -3,6 +3,7 @@
 __lazy_modules__ = ['playwright.sync_api']
 
 import logging
+import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +17,9 @@ from funcs_ertflix_automation.season_scraper import (ASSET_CARD_SELECTOR,
                                                      PLAY_BUTTON_IN_CARD_SELECTOR,
                                                      SEASON_BUTTON_SELECTORS)
 
+
+# A generic episode title carrying its number, e.g. 'Episode 4' or 'Επεισόδιο 4'.
+NUMBERED_EPISODE_TITLE_RE = re.compile(r'^(?:episode|επεισόδιο|επεισοδιο)\s+(\d+)\b', re.IGNORECASE)
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +122,10 @@ def discover_episodes(page: Page, debug_dump_dir: Path | None = None) -> list[Ep
         debug_dump_dir: If provided and placeholder cards remain after settling,
             write a DOM dump here for diagnosis.
 
+    Episodes are numbered newest-to-oldest by DOM position (the Parea page order),
+    unless the generic ``Episode N`` titles show the page lists them oldest first
+    (see ``_listed_oldest_first``); then the first card is episode 1.
+
     Returns:
         list[Episode]: Episodes in DOM order.
 
@@ -140,9 +148,12 @@ def discover_episodes(page: Page, debug_dump_dir: Path | None = None) -> list[Ep
             logger.debug(f'Post-season-click dump failed: {exc}')
 
     total = len(raw)
+    oldest_first = _listed_oldest_first(titles=[item['title'] for item in raw])
+    if oldest_first:
+        logger.info('Episodes are listed oldest first on this page; numbering from the top.')
     episodes: list[Episode] = [
         Episode(
-            index=total - offset,
+            index=offset + 1 if oldest_first else total - offset,
             title=item['title'],
             episode_id=item.get('episodeId', ''),
             duration=item.get('duration', ''),
@@ -196,6 +207,26 @@ def dump_debug_dom(page: Page, out_dir: Path) -> Path:
     out_path.write_text('\n'.join(lines), encoding='utf-8')
     logger.info(f'Wrote debug DOM dump to {out_path}')
     return out_path
+
+
+def _listed_oldest_first(titles: list[str]) -> bool:
+    """Tell whether the page lists episodes oldest first.
+
+    Uses the generic ``Episode N`` titles some pages give untitled episodes: when at
+    least two exist and their numbers rise down the list, the list is oldest first.
+    Without such titles, returns False (newest first, as on the Parea page).
+
+    Args:
+        titles: Episode titles in DOM order.
+
+    Returns:
+        bool: True when the numbered titles rise down the list.
+    """
+    numbers = [int(match.group(1)) for title in titles
+               if (match := NUMBERED_EPISODE_TITLE_RE.match(title.strip()))]
+    if len(numbers) < 2:
+        return False
+    return all(earlier < later for earlier, later in zip(numbers, numbers[1:]))
 
 
 def _placeholder_card_count(page: Page) -> int:
