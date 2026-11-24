@@ -5,7 +5,6 @@ __lazy_modules__ = ['playwright.sync_api']
 import logging
 import re
 import time
-from collections import Counter
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -117,6 +116,105 @@ def _poll_episodes_until_stable(page: Page, stable_rounds_needed: int = 6,
         page.wait_for_timeout(poll_ms)
     logger.info(f'Scraped {len(raw)} unique episodes from DOM (waited {elapsed:.1f}s)')
     return raw
+
+
+def _apply_metadata(episodes: list[Episode], metadata: ApiMetadataStore,
+                    season_number: int | None) -> list[Episode]:
+    """Give each episode found in the ERTFlix data its official number and broadcast date.
+
+    Episodes not found keep their position-based number. Every number shown must be
+    unique, since the menus select by number: matched episodes claim their official
+    numbers first, and an episode whose number is already taken (an unmatched one whose
+    position-based number is an official number, or a second card matched to the same
+    episode) gets the next number above all others, with a warning.
+
+    Args:
+        episodes: Episodes as scraped, with position-based numbers.
+        metadata: ERTFlix API data collected so far.
+        season_number: The selected season's official number (None = any season).
+
+    Returns:
+        list[Episode]: The episodes, in the same order.
+    """
+    if not metadata.has_episodes:
+        logger.info('No ERTFlix episode data captured; numbering episodes from the page order.')
+        return episodes
+    updated: list[Episode] = []
+    matched: list[bool] = []
+    for episode in episodes:
+        found = metadata.match(season_number=season_number, title=episode.title,
+                               episode_id=episode.episode_id)
+        if found is None:
+            logger.debug(f'Episode {episode.title!r} not found in ERTFlix data')
+            updated.append(episode)
+            matched.append(False)
+            continue
+        updated.append(replace(episode, index=found.episode_number, broadcast=found.broadcast_date))
+        matched.append(True)
+    logger.info(f'Matched {sum(matched)} of {len(episodes)} episodes to ERTFlix data '
+                '(official numbers and broadcast dates)')
+    return _make_numbers_unique(episodes=updated, matched=matched)
+
+
+def _make_numbers_unique(episodes: list[Episode], matched: list[bool]) -> list[Episode]:
+    """Renumber episodes whose number is already taken, so every number is unique.
+
+    Matched episodes claim their numbers first (in list order), then unmatched ones keep
+    theirs when free. Each clashing episode gets the next number above all others.
+
+    Args:
+        episodes: Episodes in display order.
+        matched: Parallel flags: True when the episode's number is official.
+
+    Returns:
+        list[Episode]: The episodes, same order, with unique numbers.
+    """
+    taken: set[int] = set()
+    clashes: list[int] = []
+    for official in (True, False):
+        for position, episode in enumerate(episodes):
+            if matched[position] != official:
+                continue
+            if episode.index in taken:
+                clashes.append(position)
+            else:
+                taken.add(episode.index)
+    result = list(episodes)
+    next_free = max(taken, default=0) + 1
+    for position in sorted(clashes):
+        old = result[position]
+        result[position] = replace(old, index=next_free)
+        logger.warning(f'Episode {old.title!r}: number {old.index} is already used; '
+                       f'shown as {next_free}')
+        next_free += 1
+    return result
+
+
+def _listed_oldest_first(titles: list[str]) -> bool:
+    """Tell whether the page lists episodes oldest first.
+
+    Uses the generic ``Episode N`` titles some pages give untitled episodes: when at
+    least two exist and their numbers rise down the list, the list is oldest first.
+    Without such titles, returns False (newest first, as on the Parea page).
+
+    Args:
+        titles: Episode titles in DOM order.
+
+    Returns:
+        bool: True when the numbered titles rise down the list.
+    """
+    numbers = [int(match.group(1)) for title in titles
+               if (match := NUMBERED_EPISODE_TITLE_RE.match(title.strip()))]
+    if len(numbers) < 2:
+        return False
+    return all(earlier < later for earlier, later in zip(numbers, numbers[1:]))
+
+
+def _placeholder_card_count(page: Page) -> int:
+    """Return the number of ``.asset-card`` divs that have no aria-label yet."""
+    total = len(page.query_selector_all(ASSET_CARD_SELECTOR))
+    hydrated = len(page.query_selector_all(PLAY_BUTTON_IN_CARD_SELECTOR))
+    return max(0, total - hydrated)
 
 
 def discover_episodes(page: Page, debug_dump_dir: Path | None = None,
@@ -254,67 +352,3 @@ def dump_debug_dom(page: Page, out_dir: Path) -> Path:
     out_path.write_text('\n'.join(lines), encoding='utf-8')
     logger.info(f'Wrote debug DOM dump to {out_path}')
     return out_path
-
-
-def _apply_metadata(episodes: list[Episode], metadata: ApiMetadataStore,
-                    season_number: int | None) -> list[Episode]:
-    """Give each episode found in the ERTFlix data its official number and broadcast date.
-
-    Episodes not found keep their position-based number. Duplicate numbers are reported,
-    not renumbered.
-
-    Args:
-        episodes: Episodes as scraped, with position-based numbers.
-        metadata: ERTFlix API data collected so far.
-        season_number: The selected season's official number (None = any season).
-
-    Returns:
-        list[Episode]: The episodes, in the same order.
-    """
-    if not metadata.has_episodes:
-        logger.info('No ERTFlix episode data captured; numbering episodes from the page order.')
-        return episodes
-    updated: list[Episode] = []
-    for episode in episodes:
-        found = metadata.match(season_number=season_number, title=episode.title,
-                               episode_id=episode.episode_id)
-        if found is None:
-            logger.debug(f'Episode {episode.title!r} not found in ERTFlix data')
-            updated.append(episode)
-            continue
-        updated.append(replace(episode, index=found.episode_number, broadcast=found.broadcast_date))
-    matched = sum(1 for old, new in zip(episodes, updated) if new is not old)
-    logger.info(f'Matched {matched} of {len(episodes)} episodes to ERTFlix data '
-                '(official numbers and broadcast dates)')
-    duplicates = sorted(n for n, count in Counter(e.index for e in updated).items() if count > 1)
-    if duplicates:
-        logger.warning(f'Episode numbers used more than once: {duplicates}; check the titles '
-                       'before picking.')
-    return updated
-
-
-def _listed_oldest_first(titles: list[str]) -> bool:
-    """Tell whether the page lists episodes oldest first.
-
-    Uses the generic ``Episode N`` titles some pages give untitled episodes: when at
-    least two exist and their numbers rise down the list, the list is oldest first.
-    Without such titles, returns False (newest first, as on the Parea page).
-
-    Args:
-        titles: Episode titles in DOM order.
-
-    Returns:
-        bool: True when the numbered titles rise down the list.
-    """
-    numbers = [int(match.group(1)) for title in titles
-               if (match := NUMBERED_EPISODE_TITLE_RE.match(title.strip()))]
-    if len(numbers) < 2:
-        return False
-    return all(earlier < later for earlier, later in zip(numbers, numbers[1:]))
-
-
-def _placeholder_card_count(page: Page) -> int:
-    """Return the number of ``.asset-card`` divs that have no aria-label yet."""
-    total = len(page.query_selector_all(ASSET_CARD_SELECTOR))
-    hydrated = len(page.query_selector_all(PLAY_BUTTON_IN_CARD_SELECTOR))
-    return max(0, total - hydrated)

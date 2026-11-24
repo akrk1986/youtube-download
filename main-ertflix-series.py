@@ -54,72 +54,11 @@ from funcs_ertflix_automation.handoff import build_ytdlp_argv
 from funcs_utils import setup_logging
 from project_defs import VALID_OTHER_DOMAINS
 
-VERSION = '2026-11-24-1810'
+VERSION = '2026-11-24-1837'
 DEBUG_DOM_DIR = Path('Logs')
 URL_PREFIX_RE = re.compile(r'https?://', re.IGNORECASE)
 
 logger = logging.getLogger(__name__)
-
-
-def parse_arguments(argv: list[str] | None = None) -> tuple[argparse.Namespace, list[str]]:
-    """Parse known args and collect unknown args for pass-through.
-
-    Args:
-        argv: Arguments to parse (defaults to sys.argv[1:]).
-
-    The optional series URL is taken out of ``argv`` (first ``http(s)://`` token)
-    before argparse runs. An optional positional would otherwise swallow the value
-    of a forwarded flag, e.g. ``mp3`` in ``--audio-format mp3``.
-
-    Returns:
-        tuple[argparse.Namespace, list[str]]: Parsed args (``series_url`` is None
-        when no URL was given) and unknown args to forward to main-yt-dlp.py.
-    """
-    raw = list(sys.argv[1:] if argv is None else argv)
-    series_url = next((a for a in raw if URL_PREFIX_RE.match(a)), None)
-    if series_url is not None:
-        raw.remove(series_url)
-
-    parser = argparse.ArgumentParser(
-        usage='%(prog)s [series_url] [options] [main-yt-dlp.py options]',
-        description='Interactive ERTFlix series browser. series_url is the ERTFlix series '
-                    'page URL; omit it to choose from the program menu. Unknown flags are '
-                    'forwarded to main-yt-dlp.py.',
-        epilog='One-time setup: pip install -r requirements.txt && '
-               'python -m playwright install chromium',
-    )
-    parser.add_argument('--profile-dir', type=Path, default=DEFAULT_PROFILE_DIR,
-                        help='Chromium persistent user-data directory (default: %(default)s)')
-    parser.add_argument('--headless', action='store_true',
-                        help='Run Chromium without a visible window')
-    parser.add_argument('--debug-dom', action='store_true',
-                        help='Dump the rendered DOM + selector probes to Logs/ and exit')
-    parser.add_argument('--debug-dom-player', action='store_true',
-                        help='Pick season + episode, click Play, dump the player DOM to '
-                             'Logs/ and exit (used to discover player info-button selectors)')
-    parser.add_argument('--token-timeout', type=float, default=10.0,
-                        help='Seconds to wait for the token URL after clicking Play '
-                             '(default: %(default)s)')
-    parser.add_argument('--program',
-                        help='Program name (e.g. "Parea"). Without a URL, a known name '
-                             'opens that program and skips the program menu. The hand-off '
-                             'sets --title "<program> S<NN>E<NN>" and NOTIF_MSG to the '
-                             'same string; a program picked from the menu supplies its own name.')
-    parser.add_argument('--get-info', action='store_true',
-                        help='Click Play, mute video, extract episode info popup to '
-                             'Logs/episode-info.txt and print it to the console')
-    parser.add_argument('--dry-run', action='store_true',
-                        help='Print the hand-off command instead of invoking main-yt-dlp.py')
-    parser.add_argument('--log-api', action='store_true',
-                        help='Save every JSON response the ERTFlix page receives to '
-                             'Logs/ertflix-api-<timestamp>.jsonl (to look for metadata such '
-                             'as dates)')
-    parser.add_argument('--verbose', '-v', action='store_true',
-                        help='Enable DEBUG logging')
-    parser.add_argument('--version', action='version', version=f'%(prog)s {VERSION}')
-    args, unknown = parser.parse_known_args(raw)
-    args.series_url = series_url
-    return args, unknown
 
 
 def _pick_season_and_episode(
@@ -147,7 +86,7 @@ def _pick_season_and_episode(
             logger.info('No season selector detected; reading episodes directly.')
         episodes = discover_episodes(
             page=page, debug_dump_dir=DEBUG_DOM_DIR, metadata=metadata,
-            season_number=chosen_season.index if chosen_season is not None else None,
+            season_number=chosen_season.official_number if chosen_season is not None else None,
             oldest_first=oldest_first,
         )
         render_episodes_table(episodes=episodes)
@@ -226,7 +165,8 @@ def _execute_handoff(  # pylint: disable=too-many-arguments
         int: Process exit code.
     """
     env_overrides: dict[str, str] = {'NOTIFICATIONS': 'ALL'}
-    if chosen_episode.broadcast and '--date' not in passthrough:
+    user_date = any(arg == '--date' or arg.startswith('--date=') for arg in passthrough)
+    if chosen_episode.broadcast and not user_date:
         passthrough = ['--date', chosen_episode.broadcast, *passthrough]
         logger.info(f'Using date tag: {chosen_episode.broadcast}')
     if program_label:
@@ -253,6 +193,67 @@ def _execute_handoff(  # pylint: disable=too-many-arguments
     outcome = 'Download finished' if exit_code == 0 else f'Download failed (exit code {exit_code})'
     _wait_for_enter(message=f'{outcome}, press Enter to exit')
     return exit_code
+
+
+def parse_arguments(argv: list[str] | None = None) -> tuple[argparse.Namespace, list[str]]:
+    """Parse known args and collect unknown args for pass-through.
+
+    Args:
+        argv: Arguments to parse (defaults to sys.argv[1:]).
+
+    The optional series URL is taken out of ``argv`` (first ``http(s)://`` token)
+    before argparse runs. An optional positional would otherwise swallow the value
+    of a forwarded flag, e.g. ``mp3`` in ``--audio-format mp3``.
+
+    Returns:
+        tuple[argparse.Namespace, list[str]]: Parsed args (``series_url`` is None
+        when no URL was given) and unknown args to forward to main-yt-dlp.py.
+    """
+    raw = list(sys.argv[1:] if argv is None else argv)
+    series_url = next((a for a in raw if URL_PREFIX_RE.match(a)), None)
+    if series_url is not None:
+        raw.remove(series_url)
+
+    parser = argparse.ArgumentParser(
+        usage='%(prog)s [series_url] [options] [main-yt-dlp.py options]',
+        description='Interactive ERTFlix series browser. series_url is the ERTFlix series '
+                    'page URL; omit it to choose from the program menu. Unknown flags are '
+                    'forwarded to main-yt-dlp.py.',
+        epilog='One-time setup: pip install -r requirements.txt && '
+               'python -m playwright install chromium',
+    )
+    parser.add_argument('--profile-dir', type=Path, default=DEFAULT_PROFILE_DIR,
+                        help='Chromium persistent user-data directory (default: %(default)s)')
+    parser.add_argument('--headless', action='store_true',
+                        help='Run Chromium without a visible window')
+    parser.add_argument('--debug-dom', action='store_true',
+                        help='Dump the rendered DOM + selector probes to Logs/ and exit')
+    parser.add_argument('--debug-dom-player', action='store_true',
+                        help='Pick season + episode, click Play, dump the player DOM to '
+                             'Logs/ and exit (used to discover player info-button selectors)')
+    parser.add_argument('--token-timeout', type=float, default=10.0,
+                        help='Seconds to wait for the token URL after clicking Play '
+                             '(default: %(default)s)')
+    parser.add_argument('--program',
+                        help='Program name (e.g. "Parea"). Without a URL, a known name '
+                             'opens that program and skips the program menu. The hand-off '
+                             'sets --title "<program> S<NN>E<NN>" and NOTIF_MSG to the '
+                             'same string; a program picked from the menu supplies its own name.')
+    parser.add_argument('--get-info', action='store_true',
+                        help='Click Play, mute video, extract episode info popup to '
+                             'Logs/episode-info.txt and print it to the console')
+    parser.add_argument('--dry-run', action='store_true',
+                        help='Print the hand-off command instead of invoking main-yt-dlp.py')
+    parser.add_argument('--log-api', action='store_true',
+                        help='Save every JSON response the ERTFlix page receives to '
+                             'Logs/ertflix-api-<timestamp>.jsonl (to look for metadata such '
+                             'as dates)')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='Enable DEBUG logging')
+    parser.add_argument('--version', action='version', version=f'%(prog)s {VERSION}')
+    args, unknown = parser.parse_known_args(raw)
+    args.series_url = series_url
+    return args, unknown
 
 
 def main() -> int:
@@ -346,8 +347,8 @@ def main() -> int:
         return 1
     finally:
         if api_log is not None:
-            logger.info(f'Saved {count_noun(session.api_responses_logged, "JSON response")} '
-                        f'to {api_log}')
+            logged = count_noun(count=session.api_responses_logged, noun='JSON response')
+            logger.info(f'Saved {logged} to {api_log}')
     logger.info(f'Captured token URL: {token_url[:120]}...')
     return _execute_handoff(
         args=args,

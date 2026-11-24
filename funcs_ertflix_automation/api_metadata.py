@@ -32,6 +32,8 @@ _MEDIACARD_TITLE_PREFIX_RE = re.compile(r'^E\d+\s*‧\s*')
 # Season-button labels carry a 'Season' word the API titles may lack ('Season 2026 - 2027').
 _SEASON_WORD_RE = re.compile(r'^(?:season|σεζόν|σεζον|κύκλος|κυκλος)\s+', re.IGNORECASE)
 _SPACES_RE = re.compile(r'\s+')
+# Errors a malformed API entry can raise while being read; such an entry is skipped.
+_PARSE_ERRORS = (KeyError, TypeError, ValueError, arrow.parser.ParserError)
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +88,7 @@ class ApiMetadataStore:
                 self._add_mediacard(body=body)
             elif _EDITORIALS_PATH_RE.search(parsed.path):
                 self._add_editorials(body=body)
-        except (KeyError, TypeError, ValueError, arrow.parser.ParserError) as exc:
+        except _PARSE_ERRORS as exc:
             logger.debug(f'Could not parse ERTFlix metadata from {parsed.path}: {exc}')
 
     def season_number_for(self, label: str) -> int | None:
@@ -126,11 +128,13 @@ class ApiMetadataStore:
 
     def _add_series(self, body: dict[str, object]) -> None:
         """Record season refs, numbers and titles from the ``vod/series`` response."""
-        for season in _as_list(body['series']):
-            number = int(season['SeasonNumber'])
-            self._season_by_ref[str(season['id'])] = number
-            self._season_by_label[_normalize_season_label(label=str(season['Title']))] = number
-            logger.debug(f"ERTFlix season {number} {season['Title']!r}: "
+        for season in _as_list(value=body['series']):
+            try:
+                number = self._add_season(season=season)
+            except _PARSE_ERRORS as exc:
+                logger.debug(f'Skipping malformed ERTFlix season entry: {exc!r}')
+                continue
+            logger.debug(f"ERTFlix season {number} {season.get('Title')!r}: "
                          f"ReverseSortOrder={season.get('ReverseSortOrder')}")
 
     def _add_mediacard(self, body: dict[str, object]) -> None:
@@ -138,39 +142,62 @@ class ApiMetadataStore:
         series = body['series']
         if not isinstance(series, dict):
             return
-        for season in _as_list(series.get('seasons', [])):
-            number = int(season['SeasonNumber'])
-            self._season_by_ref[str(season['id'])] = number
-            self._season_by_label[_normalize_season_label(label=str(season['Title']))] = number
-            for item in _as_list(season.get('episodes', [])):
-                broadcast = item.get('broadcast') or {}
-                self._add_episode(
-                    episode=ApiEpisode(
+        for season in _as_list(value=series.get('seasons', [])):
+            try:
+                number = self._add_season(season=season)
+            except _PARSE_ERRORS as exc:
+                logger.debug(f'Skipping malformed ERTFlix mediacard season: {exc!r}')
+                continue
+            for item in _as_list(value=season.get('episodes', [])):
+                try:
+                    broadcast = item.get('broadcast') or {}
+                    episode = ApiEpisode(
                         season_number=number,
                         episode_number=int(item['episodeNumber']),
                         title=_MEDIACARD_TITLE_PREFIX_RE.sub('', str(item['Title'])),
                         episode_id=str(item['id']),
                         broadcast=_to_local(epoch=broadcast.get('start')),
-                    ),
-                    from_editorials=False,
-                )
+                    )
+                except _PARSE_ERRORS as exc:
+                    logger.debug(f'Skipping malformed ERTFlix mediacard episode: {exc!r}')
+                    continue
+                self._add_episode(episode=episode, from_editorials=False)
 
     def _add_editorials(self, body: dict[str, object]) -> None:
         """Record every episode of one season from the ``editorials`` response."""
-        for item in _as_list(body['editorials']):
-            season = item.get('SeasonNumber')
-            number = int(season) if season is not None else self._season_by_ref[str(item['seasonRef'])]
-            period = item.get('period') or {}
-            self._add_episode(
-                episode=ApiEpisode(
+        for item in _as_list(value=body['editorials']):
+            try:
+                season = item.get('SeasonNumber')
+                number = int(season) if season is not None else self._season_by_ref[str(item['seasonRef'])]
+                period = item.get('period') or {}
+                episode = ApiEpisode(
                     season_number=number,
                     episode_number=int(item['EpisodeNumber']),
                     title=str(item['Title']),
                     episode_id=str(item['id']),
                     broadcast=_to_local(epoch=period.get('start')),
-                ),
-                from_editorials=True,
-            )
+                )
+            except _PARSE_ERRORS as exc:
+                logger.debug(f'Skipping malformed ERTFlix episode entry: {exc!r}')
+                continue
+            self._add_episode(episode=episode, from_editorials=True)
+
+    def _add_season(self, season: dict) -> int:
+        """Record one season's ref and label, and return its official number.
+
+        A missing ``SeasonNumber`` / ``id`` / ``Title`` (KeyError) or a non-numeric
+        ``SeasonNumber`` (ValueError) propagates; callers skip that entry.
+
+        Args:
+            season: One season entry from the API.
+
+        Returns:
+            int: The season's official number.
+        """
+        number = int(season['SeasonNumber'])
+        self._season_by_ref[str(season['id'])] = number
+        self._season_by_label[_normalize_season_label(label=str(season['Title']))] = number
+        return number
 
     def _add_episode(self, episode: ApiEpisode, from_editorials: bool) -> None:
         """Store an episode; an editorials entry replaces a mediacard one, never the reverse.

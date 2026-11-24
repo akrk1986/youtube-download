@@ -2,6 +2,25 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-11-24-1837] - ERTFlix series browser: code-review fixes
+
+### Fixed
+- **Every episode number in a menu is unique**: episodes matched to the ERTFlix data claim their
+  official numbers first; an episode whose number is already taken gets the next free number above
+  the highest (with a warning). Before, a duplicate number made one episode unselectable by number.
+- **An episode numbered 0 can be selected**: `0` picks it and Quit becomes `q. Quit`; otherwise
+  `q/0` quits as before.
+- **Typing a number with no item keeps the highlight**: `1`,`0` in a 9-item menu no longer falls
+  back to `0` (Quit).
+- **Episode matching uses the season's official number** (`Season.official_number`), not the
+  displayed one, when only some seasons are found in the data.
+- **A forwarded `--date=YYYY-MM-DD` is respected**; the broadcast date is no longer added on top.
+- **A malformed API entry is skipped on its own**; the rest of the response is still read.
+
+### Changed
+- Private functions come before public ones in `episode_scraper.py`, `season_scraper.py` and
+  `main-ertflix-series.py`; keyword arguments for typed calls.
+
 ## [2026-11-24-1810] - --date tag; ERTFlix broadcast date written to the file
 
 ### Added

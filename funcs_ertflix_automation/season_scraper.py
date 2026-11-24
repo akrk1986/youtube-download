@@ -4,7 +4,7 @@ __lazy_modules__ = ['playwright.sync_api']
 
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from playwright.sync_api import ElementHandle, Page
 
@@ -35,54 +35,30 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class Season:
-    """One season tab scraped from the series page."""
+    """One season tab scraped from the series page.
+
+    ``index`` is the number shown and used in the title; ``official_number`` is ERTFlix's
+    own season number when the API data has this season (None otherwise). They are equal
+    whenever every season was found in the data.
+    """
 
     index: int
     label: str
     selector: str
+    official_number: int | None = None
 
 
-def discover_seasons(page: Page, debug_dom: bool = False,
-                     metadata: ApiMetadataStore | None = None) -> list[Season]:
-    """Probe candidate selectors and return any visible season tabs/buttons.
-
-    The same season often matches twice (e.g. ``Season 10`` and ``Season Season 10``),
-    so labels are normalized with ``_normalize_label`` before de-duplication.
-
-    When ``metadata`` knows every season's official number, those numbers are used.
-    Otherwise, when every label carries a number, the list is sorted by it, newest first. A small
-    number ('Season 10') is the season index; a year ('Season 2026 - 2027') is not, so
-    year-labelled seasons are numbered by rank, oldest = 1. Labels without numbers
-    are numbered by DOM position (newest first).
+def _number_seasons(raw: list[tuple[str, str]],
+                    metadata: ApiMetadataStore | None) -> list[Season]:
+    """Number the discovered seasons (see ``discover_seasons`` for the rules).
 
     Args:
-        page: Active Playwright page already navigated to the series URL.
-        debug_dom: If True, log every candidate selector's match count.
-        metadata: ERTFlix API data (official season numbers), if collected.
+        raw: ``(label, selector)`` pairs in DOM order.
+        metadata: ERTFlix API data, if collected.
 
     Returns:
-        list[Season]: Seasons, newest first. Empty when the page has no seasons.
+        list[Season]: Seasons, newest first (``official_number`` not set).
     """
-    seen_labels: set[str] = set()
-    raw: list[tuple[str, str]] = []
-
-    for selector in SEASON_BUTTON_SELECTORS:
-        try:
-            handles = page.query_selector_all(selector)
-        except Exception as exc:
-            logger.debug(f'Selector {selector!r} raised: {exc}')
-            continue
-        if debug_dom:
-            logger.info(f'Selector {selector!r} matched {count_noun(len(handles), "element")}')
-        for handle in handles:
-            label = _normalize_label(label=_label_for_button(handle=handle))
-            if not label or label in seen_labels:
-                continue
-            if not _looks_like_season_label(label=label):
-                continue
-            seen_labels.add(label)
-            raw.append((label, selector))
-
     if raw and metadata is not None:
         official = [metadata.season_number_for(label=label) for label, _ in raw]
         if all(number is not None for number in official) and len(set(official)) == len(official):
@@ -112,43 +88,6 @@ def discover_seasons(page: Page, debug_dom: bool = False,
         Season(index=total - offset, label=label, selector=selector)
         for offset, (label, selector) in enumerate(raw)
     ]
-
-
-def select_season(page: Page, season: Season, wait_ms: int = 15000) -> None:
-    """Click the button whose text/aria-label matches the given season.
-
-    After the click, wait for the episode list to re-render so that
-    ``discover_episodes`` reads the fully-hydrated new season.
-
-    Args:
-        page: Active Playwright page.
-        season: The season to click.
-        wait_ms: Max time to wait for the episode list to re-render + settle.
-
-    Raises:
-        NoSeasonsOrEpisodesFound: If the season button cannot be found on the page.
-    """
-    logger.info(f"Selected season {season.index}: '{season.label}'")
-    logger.info('Retrieving list of episodes (will take a few seconds)...')
-    handles = page.query_selector_all(season.selector)
-    target: ElementHandle | None = None
-    for handle in handles:
-        if _normalize_label(label=_label_for_button(handle=handle)) == season.label:
-            target = handle
-            break
-    if target is None:
-        raise NoSeasonsOrEpisodesFound(
-            f'Could not re-locate season button {season.label!r}'
-        )
-
-    pre_click_titles = set(_current_episode_titles(page=page))
-    logger.debug(f'Pre-click episode titles: {len(pre_click_titles)} found')
-    target.click()
-
-    try:
-        page.wait_for_load_state('networkidle', timeout=wait_ms)
-    except Exception as exc:
-        logger.debug(f'networkidle after season click timed out: {exc}')
 
 
 def _label_for_button(handle: ElementHandle) -> str:
@@ -189,3 +128,89 @@ def _current_episode_titles(page: Page) -> list[str]:
         if aria:
             titles.append(aria.strip())
     return titles
+
+
+def discover_seasons(page: Page, debug_dom: bool = False,
+                     metadata: ApiMetadataStore | None = None) -> list[Season]:
+    """Probe candidate selectors and return any visible season tabs/buttons.
+
+    The same season often matches twice (e.g. ``Season 10`` and ``Season Season 10``),
+    so labels are normalized with ``_normalize_label`` before de-duplication.
+
+    When ``metadata`` knows every season's official number, those numbers are used.
+    Otherwise, when every label carries a number, the list is sorted by it, newest first. A small
+    number ('Season 10') is the season index; a year ('Season 2026 - 2027') is not, so
+    year-labelled seasons are numbered by rank, oldest = 1. Labels without numbers
+    are numbered by DOM position (newest first).
+
+    Args:
+        page: Active Playwright page already navigated to the series URL.
+        debug_dom: If True, log every candidate selector's match count.
+        metadata: ERTFlix API data (official season numbers), if collected.
+
+    Returns:
+        list[Season]: Seasons, newest first, each with its ``official_number`` when known.
+        Empty when the page has no seasons.
+    """
+    seen_labels: set[str] = set()
+    raw: list[tuple[str, str]] = []
+
+    for selector in SEASON_BUTTON_SELECTORS:
+        try:
+            handles = page.query_selector_all(selector)
+        except Exception as exc:
+            logger.debug(f'Selector {selector!r} raised: {exc}')
+            continue
+        if debug_dom:
+            logger.info(f'Selector {selector!r} matched {count_noun(len(handles), "element")}')
+        for handle in handles:
+            label = _normalize_label(label=_label_for_button(handle=handle))
+            if not label or label in seen_labels:
+                continue
+            if not _looks_like_season_label(label=label):
+                continue
+            seen_labels.add(label)
+            raw.append((label, selector))
+
+    seasons = _number_seasons(raw=raw, metadata=metadata)
+    if metadata is None:
+        return seasons
+    return [replace(season, official_number=metadata.season_number_for(label=season.label))
+            for season in seasons]
+
+
+def select_season(page: Page, season: Season, wait_ms: int = 15000) -> None:
+    """Click the button whose text/aria-label matches the given season.
+
+    After the click, wait for the episode list to re-render so that
+    ``discover_episodes`` reads the fully-hydrated new season.
+
+    Args:
+        page: Active Playwright page.
+        season: The season to click.
+        wait_ms: Max time to wait for the episode list to re-render + settle.
+
+    Raises:
+        NoSeasonsOrEpisodesFound: If the season button cannot be found on the page.
+    """
+    logger.info(f"Selected season {season.index}: '{season.label}'")
+    logger.info('Retrieving list of episodes (will take a few seconds)...')
+    handles = page.query_selector_all(season.selector)
+    target: ElementHandle | None = None
+    for handle in handles:
+        if _normalize_label(label=_label_for_button(handle=handle)) == season.label:
+            target = handle
+            break
+    if target is None:
+        raise NoSeasonsOrEpisodesFound(
+            f'Could not re-locate season button {season.label!r}'
+        )
+
+    pre_click_titles = set(_current_episode_titles(page=page))
+    logger.debug(f'Pre-click episode titles: {len(pre_click_titles)} found')
+    target.click()
+
+    try:
+        page.wait_for_load_state('networkidle', timeout=wait_ms)
+    except Exception as exc:
+        logger.debug(f'networkidle after season click timed out: {exc}')

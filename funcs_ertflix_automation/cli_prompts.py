@@ -51,7 +51,8 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
     number (not the list position), so the numbering stays consistent across
     the table, questionary list, and fallback list.
 
-    ``q`` and ``0`` always quit. ``back_key`` (if set) triggers back-to-seasons.
+    ``q`` quits; ``0`` quits too unless an item is numbered 0 (then it selects that item).
+    ``back_key`` (if set) triggers back-to-seasons.
 
     Args:
         prompt: Text shown before the numbered input.
@@ -75,7 +76,7 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
     for label, value in zip(labels, values):
         prefix = label.split('.', 1)[0].strip()
         try:
-            index_map[int(prefix)] = value
+            index_map.setdefault(int(prefix), value)
         except ValueError:
             pass
     lo, hi = (min(index_map), max(index_map)) if index_map else (1, 1)
@@ -83,7 +84,7 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
         raw = input(f'{prompt} ').strip().lower()
         if not raw:
             raise KeyboardInterrupt('Selection cancelled (empty input)')
-        if raw in ('q', '0'):
+        if raw == 'q' or (raw == '0' and 0 not in index_map):
             raise KeyboardInterrupt('Quit')
         if back_key and raw == back_key:
             raise BackToSeasons('Back to season selection')
@@ -97,8 +98,23 @@ def _fallback_numbered_prompt(prompt: str, labels: Sequence[str],
         print(f'Number out of range — enter a number between {lo} and {hi}.')
 
 
+def _quit_label(numbers: Sequence[int]) -> tuple[str, str]:
+    """Return the Quit menu label and its hint ('q/0', or just 'q' when an item is numbered 0).
+
+    Args:
+        numbers: The numbers of the menu's items.
+
+    Returns:
+        tuple[str, str]: The label (``'q/0. Quit'``) and the hint keys (``'q/0'``).
+    """
+    keys = 'q' if 0 in numbers else 'q/0'
+    return f'{keys}. Quit', keys
+
+
 def _label_keys(labels: Sequence[str]) -> dict[str, int]:
     """Map each label's key ('12' in '12. Title', 'q' and '0' in 'q/0. Quit') to its position.
+
+    The first label with a key wins, so an item numbered 0 keeps ``0`` (Quit comes last).
 
     Args:
         labels: Menu labels, each starting with ``'<key>. '``.
@@ -111,8 +127,29 @@ def _label_keys(labels: Sequence[str]) -> dict[str, int]:
         prefix = label.split('.', 1)[0]
         for key in prefix.split('/'):
             if key.strip():
-                keys[key.strip().lower()] = position
+                keys.setdefault(key.strip().lower(), position)
     return keys
+
+
+def _typed_key(keys: dict[str, int], typed_text: str, char: str) -> tuple[str, int | None]:
+    """Add a typed key to the pending number and find the item it selects.
+
+    A combination that is no item ('10' in a 9-item menu) keeps the highlight and starts
+    over; falling back to the last digit would turn '10' into '0', i.e. Quit.
+
+    Args:
+        keys: Item keys -> positions (from ``_label_keys``).
+        typed_text: Digits typed just before (within the timeout), or ''.
+        char: The key just typed.
+
+    Returns:
+        tuple[str, int | None]: The new pending text and the position to highlight
+        (None = leave the highlight where it is).
+    """
+    text = typed_text + char
+    if text not in keys:
+        return '', None
+    return text, keys[text]
 
 
 def _menu_height() -> int:
@@ -157,12 +194,10 @@ def _customize_menu(question: questionary.Question, labels: Sequence[str]) -> No
         char = event.data.lower()
         now = time.monotonic()
         recent = char.isdigit() and now - typed_at <= _NUMBER_KEY_TIMEOUT_S
-        text = (typed_text if recent else '') + char
-        if text not in keys:
-            text = char
-        typed_text, typed_at = text, now
-        if text in keys:
-            control.pointed_at = keys[text]
+        typed_at = now
+        typed_text, position = _typed_key(keys=keys, typed_text=typed_text if recent else '', char=char)
+        if position is not None:
+            control.pointed_at = position
 
     def _move(step: int) -> None:
         """Move the highlight by ``step`` items, stopping at the first/last item."""
@@ -283,7 +318,7 @@ def pick_program(programs: Sequence[Program]) -> Program:
     if not programs:
         raise ValueError('pick_program called with an empty program list')
     labels = [f'{n}. {p.label} ({p.display_name})' for n, p in enumerate(programs, start=1)]
-    labels.append('q/0. Quit')
+    labels.append(_quit_label(numbers=[])[0])
     values: list[Program | str] = [*programs, _QUIT]
     return _select_or_fallback(  # type: ignore
         prompt='Choose program (q/0 to quit):',
@@ -310,10 +345,11 @@ def pick_season(seasons: Sequence[Season]) -> Season:
     if not seasons:
         raise ValueError('pick_season called with an empty season list')
     labels = [f'{s.index}. {s.label}' for s in seasons]
-    labels.append('q/0. Quit')
+    quit_label, quit_keys = _quit_label(numbers=[s.index for s in seasons])
+    labels.append(quit_label)
     values: list[Season | str] = [*seasons, _QUIT]
     return _select_or_fallback(  # type: ignore
-        prompt='Choose season (q/0 to quit):',
+        prompt=f'Choose season ({quit_keys} to quit):',
         labels=labels,
         values=values,
         fallback_header='Seasons to select from:',
@@ -323,7 +359,7 @@ def pick_season(seasons: Sequence[Season]) -> Season:
 def pick_episode(episodes: Sequence[Episode], has_seasons: bool = True) -> Episode:
     """Prompt the user to choose an episode via arrow keys or by typing its number.
 
-    ``q`` or ``0`` quit the script. ``s`` returns to the season selector
+    ``q`` (and ``0``, unless an episode is numbered 0) quit the script. ``s`` returns to the season selector
     (only when ``has_seasons`` is True).
 
     Args:
@@ -343,9 +379,10 @@ def pick_episode(episodes: Sequence[Episode], has_seasons: bool = True) -> Episo
     if has_seasons:
         labels.append('s. Back to season selection')
         values.append(_BACK)
-    labels.append('q/0. Quit')
+    quit_label, quit_keys = _quit_label(numbers=[e.index for e in episodes])
+    labels.append(quit_label)
     values.append(_QUIT)
-    hint = 'q/0 quit, s seasons' if has_seasons else 'q/0 quit'
+    hint = f'{quit_keys} quit, s seasons' if has_seasons else f'{quit_keys} quit'
     return _select_or_fallback(  # type: ignore
         prompt=f'Choose episode ({hint}):',
         labels=labels,

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from funcs_ertflix_automation.cli_prompts import _label_keys
+from funcs_ertflix_automation.cli_prompts import _label_keys, _typed_key
 from funcs_ertflix_automation import (KNOWN_PROGRAMS, TOKEN_URL_FRAGMENT,
                                       ApiMetadataStore, Episode, Program, Season,
                                       build_ytdlp_argv, describe_episode_order,
@@ -561,3 +561,74 @@ class TestHandoffDate:
                                            chosen_season=None, chosen_episode=episode, passthrough=[])
         assert code == 3
         wait.assert_called_once_with('Download failed (exit code 3), press Enter to exit ')
+
+
+class TestReviewFixes:
+    """Regression tests for the code-review findings on the series browser."""
+
+    def test_unmatched_number_clash_renumbered(self):
+        """An unmatched card whose position number is an official number gets a free number."""
+        store = _store('alati-series.json', 'alati-s11-editorials.json')
+        titles = ['Unknown A', 'In Crete with Antonis Martsakis', 'Musical Journey to Kastoria']
+        raw = [{'title': t} for t in titles]
+        with patch('funcs_ertflix_automation.episode_scraper._poll_episodes_until_stable',
+                   return_value=raw), \
+                patch('funcs_ertflix_automation.episode_scraper._placeholder_card_count',
+                      return_value=0):
+            episodes = discover_episodes(page=MagicMock(), metadata=store, season_number=11,
+                                         oldest_first=True)
+        # 'Unknown A' would be 1 by position, but 1 is In Crete's official number.
+        assert [e.index for e in episodes] == [3, 1, 2]
+        assert len({e.index for e in episodes}) == len(episodes)
+
+    def test_episode_zero_wins_key_zero(self):
+        """With an item numbered 0, '0' selects it and Quit is reached with 'q' only."""
+        episodes = [Episode(index=0, title='Special'), Episode(index=1, title='One')]
+        fake_question = MagicMock()
+        fake_question.ask.return_value = episodes[0]
+        with patch('funcs_ertflix_automation.cli_prompts.questionary.select',
+                   return_value=fake_question) as select:
+            pick_episode(episodes=episodes, has_seasons=False)
+        titles = [choice.title for choice in select.call_args.kwargs['choices']]
+        assert titles[-1] == 'q. Quit'
+        assert _label_keys(labels=titles)['0'] == 0
+
+    def test_fallback_zero_selects_episode_zero(self):
+        """In the numbered fallback, '0' picks episode 0 instead of quitting."""
+        episodes = [Episode(index=0, title='Special'), Episode(index=1, title='One')]
+        with patch('funcs_ertflix_automation.cli_prompts.questionary.select',
+                   side_effect=RuntimeError('no console')), \
+                patch('builtins.input', return_value='0'):
+            assert pick_episode(episodes=episodes, has_seasons=False) is episodes[0]
+
+    def test_unknown_number_keeps_highlight(self):
+        """'1' then '0' in a 9-item menu: no item 10, so nothing is highlighted (not Quit)."""
+        keys = _label_keys(labels=[*(f'{n}. T' for n in range(1, 10)), 'q/0. Quit'])
+        text, position = _typed_key(keys=keys, typed_text='', char='1')
+        assert (text, position) == ('1', 0)
+        assert _typed_key(keys=keys, typed_text=text, char='0') == ('', None)
+        assert _typed_key(keys=keys, typed_text='', char='0') == ('0', 9)
+
+    def test_partial_season_data_sets_official_number(self):
+        """Seasons keep their label numbers; only seasons found in the data get official_number."""
+        page = _fake_page({'[role="tablist"] button': ['Season 12', 'Season 11']})
+        seasons = discover_seasons(page=page, metadata=_store('alati-series.json'))
+        assert [(s.index, s.official_number) for s in seasons] == [(12, None), (11, 11)]
+
+    def test_user_date_with_equals_not_doubled(self):
+        """A forwarded --date=YYYY-MM-DD is respected; no second --date is added."""
+        passed = TestHandoffDate._dry_run(broadcast='2023-12-09', passthrough=['--date=2020-01-01'])
+        assert passed == ['--date=2020-01-01']
+
+    def test_malformed_entry_skips_only_itself(self):
+        """A bad episode entry is skipped; the entries after it are still read."""
+        store = ApiMetadataStore()
+        store.add_response(
+            url='https://api.ertflix.opentv.com/metadata/delivery/v2/ERT/vod/editorials',
+            body={'editorials': [
+                {'id': 'ERT_BAD', 'Title': 'Bad', 'SeasonNumber': 1},
+                {'id': 'ERT_OK', 'Title': 'Good', 'SeasonNumber': 1, 'EpisodeNumber': '2',
+                 'period': {'start': 1700000000}},
+            ]})
+        found = store.match(season_number=1, title='Good')
+        assert found is not None and found.episode_number == 2
