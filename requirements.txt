@@ -272,7 +272,9 @@ playwright==1.60.0
 pluggy==1.6.0
     # via pytest
 prompt-toolkit==3.0.52
-    # via questionary
+    # via
+    #   questionary
+    #   youtube-download (pyproject.toml)
 propcache==0.5.2
     # via
     #   aiohttp

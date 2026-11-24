@@ -29,6 +29,7 @@ dependencies = [
     "yt-dlp",
     "playwright>=1.58.0",
     "questionary>=2.1.1",
+    "prompt-toolkit>=3.0.52",
     "rich>=14.3.3",
     "pygments>=2.20.0",
     # capped <4.12: skylos 4.23.x pulls tree-sitter-dart-orchard (sdist-only, no Windows/py3.14 wheel)

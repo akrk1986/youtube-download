@@ -2,6 +2,15 @@
 
 All notable project-wide changes — linters, type checkers, dependency/CVE bumps, security review, and the shared virtual environment — are documented in this file. Main-script history is in [CHANGELOG.md](CHANGELOG.md); utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md).
 
+## [2026-11-24-1915] - declare prompt-toolkit as a direct dependency
+
+### Fixed
+- **deptry DEP003**: `funcs_ertflix_automation/cli_prompts.py` imports `prompt_toolkit` directly (menu
+  keys and height cap in the ERTFlix series browser), but it was only installed as a dependency of
+  `questionary`. `prompt-toolkit>=3.0.52` is now in `pyproject.toml` `[project.dependencies]`, and
+  `requirements.txt` was regenerated with `pip-compile` (pin unchanged at 3.0.52; the editable
+  `-e ../common-av-codebase` line kept relative instead of pip-compile's absolute WSL path).
+
 ## [2026-11-01-1044] - freshness includes pip-audit
 
 ### Changed
