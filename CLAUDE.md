@@ -20,7 +20,7 @@ The codebase follows a modular function-based architecture:
 
 ### Main Entry Points
 - `main-yt-dlp.py` - Primary CLI tool for downloading and processing YouTube content
-- `main-ertflix-series.py` - Interactive ERTFlix series browser (Playwright + Chromium): picks season/episode via arrow-key menus, captures the token API URL when Play is clicked, and hands off to `main-yt-dlp.py --ertflix-program`
+- `main-ertflix-series.py` - Interactive ERTFlix series browser (Playwright + Chromium): picks program (menu, or a URL) → season → episode via arrow-key/number menus, numbers episodes from the page's own API data (official numbers + broadcast dates), captures the token API URL when Play is clicked, and hands off to `main-yt-dlp.py --ertflix-program`
 - `webapp-yt-dlp.py` - Local NiceGUI web app that wraps `main-yt-dlp.py`: exposes curated run-config presets as an editable browser form, shells out to the driver (or `run-linters.py`) as a subprocess, and streams output to a log. Code lives in the `webapp/` package; it has its own `VERSION` (`webapp/__init__.py`), `webapp/CHANGELOG.md`, and `webapp/README.md`. See the "Web App" section below.
 
 ### Utility Scripts (`Utils/`)
@@ -122,6 +122,9 @@ The project requires:
 # Interactive prompts for metadata (use 'ask' or 'prompt')
 ./main-yt-dlp.py --only-audio --title ask --artist prompt "URL"
 
+# Date tag (YYYY-MM-DD, validated with arrow; written via --parse-metadata into meta_date)
+./main-yt-dlp.py --title "My Show S01E01" --date 2023-12-09 "URL"
+
 # Verbose logging with URL debugging (WARNING: may expose Slack webhook)
 ./main-yt-dlp.py --verbose --show-urls --only-audio "URL"
 
@@ -132,7 +135,7 @@ export YTDLP_USE_COOKIES=firefox
 
 ### ERTFlix Interactive Series Browser (`main-ertflix-series.py`)
 
-Top-level CLI that collapses the manual DevTools-console-paste dance into a single command. Drives Chromium via Playwright to an ERTFlix series page, scrapes seasons + episodes, lets the user pick via arrow-key menus, captures the token API URL when Play is clicked, then hands off to `main-yt-dlp.py --ertflix-program` as a subprocess.
+Top-level CLI that collapses the manual DevTools-console-paste dance into a single command. Asks for the program (or takes a series URL), drives Chromium via Playwright to its ERTFlix page, scrapes seasons + episodes, lets the user pick via arrow-key/number menus, captures the token API URL when Play is clicked, then hands off to `main-yt-dlp.py --ertflix-program` as a subprocess.
 
 **Setup (one time):**
 ```bash
@@ -143,51 +146,66 @@ python -m playwright install chromium  # downloads Chromium under ~/.cache/ms-pl
 
 **Usage:**
 ```bash
-# Arrow-key pick + download (unknown flags forward to main-yt-dlp.py)
-./main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
-    --only-audio --audio-format mp3
+# Program menu → season → episode, then download (unknown flags forward to main-yt-dlp.py)
+./main-ertflix-series.py --only-audio --audio-format mp3
 
-# With program name: sets --title "Parea S02E26" and NOTIF_MSG to the same string
-./main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
-    --program Parea --only-audio --audio-format mp3
+# Known program name skips the menu; sets --title "Parea S03E02" and NOTIF_MSG to the same string
+./main-ertflix-series.py --program Parea --only-audio --audio-format mp3
 
-# Print would-be hand-off command (uses shlex.join for shell-safe quoting) and exit
-./main-ertflix-series.py <URL> --program Parea --dry-run --only-audio
+# Any series by URL (the URL is the first http(s):// argument, anywhere on the line)
+./main-ertflix-series.py "https://www.ertflix.gr/#/details/ERT_DS018967_E0" --program "To Alati tis Gis"
+
+# Print would-be hand-off command (shlex.join quoting), then wait for Enter
+./main-ertflix-series.py --program Parea --dry-run --only-audio
+
+# Save every JSON response the page receives to Logs/ertflix-api-<ts>.jsonl
+./main-ertflix-series.py --log-api --dry-run
 
 # Dump rendered DOM + selector probes to Logs/ for diagnosis
-./main-ertflix-series.py <URL> --debug-dom
+./main-ertflix-series.py --program Parea --debug-dom
 ```
 
 **Flags:**
-- `--program <name>` — program label prepended to the `S<NN>E<NN>` formatter. Accepts Greek.
+- `series_url` (optional) — taken out of argv before argparse as the first `http(s)://` token. An optional positional would swallow a forwarded flag's value (`mp3` in `--audio-format mp3`).
+- `--program <name>` — program label prepended to the `S<NN>E<NN>` formatter. Accepts Greek. Without a URL, a known name (case-insensitive) opens that program and skips the menu.
 - `--profile-dir <path>` — Chromium persistent user-data dir (default `.ertflix-profile/`, gitignored).
 - `--headless` — run Chromium without a visible window (default is headed so the user can log in).
 - `--debug-dom` — dump `Logs/ertflix-debug-<ts>.html` and exit before episode selection.
+- `--debug-dom-player` / `--get-info` — dump the player DOM / extract the player's episode-info popup.
 - `--token-timeout <float>` — seconds to wait for the token URL after clicking Play (default 10).
+- `--log-api` — append every JSON response (URL, status, body) to `Logs/ertflix-api-<ts>.jsonl`. The file holds account/profile/session-token responses too — keep it local.
 - `--dry-run` — log the hand-off argv + env overrides instead of invoking the subprocess.
 
 **Behavior notes:**
-- Seasons + episodes are numbered newest-to-oldest, matching the page order. `S02E26` = season 2, 26th episode (= the oldest in that season).
-- Episodes are identified by the Play-button's `aria-label` (the title shown in the UI), NOT by regex against image URLs. This is resilient to naming-scheme changes.
-- The episode table shows four columns: `#`, `Duration`, `Title`, `Description` — scraped from the sibling DOM elements of each `.asset-card`.
+- **Program list** (`programs.py`): `KNOWN_PROGRAMS` in menu order — Parea, To Alati tis Gis, Nykhta Stasou (last: its seasons ended). Each `Program` has `label` (title / `NOTIF_MSG`), `display_name` (Greek, shown in the menu), `url`, and `oldest_first` (the page's episode order: Parea `False`, To Alati tis Gis `True`, Nykhta Stasou `None` = unknown). `resolve_program()` returns `(url, label, oldest_first)`.
+- **Official numbers + dates from the page's API data** (`api_metadata.py`): a `page.on('response')` hook (always on, installed before `open_series()`) feeds `ApiMetadataStore` with three `api.ertflix.opentv.com` endpoints — `/metadata/delivery/ERT/vod/series` (seasons: ref, `SeasonNumber`, `Title`), `/metadata/v1/series/<ref>/mediacard` (each season's newest 5–10 episodes, loaded with the page) and `/metadata/delivery/v2/ERT/vod/editorials` (every episode of a **clicked** season; wins over the mediacard). Episode cards match by id, then by normalized title (mediacard `E5 ‧ ` prefix stripped); a title shared by two episodes (Parea's two `Holiday Special`) matches by id only. Matched episodes take `EpisodeNumber` and the broadcast date (`period.start` / `broadcast.start`, UTC epoch → `Europe/Athens`). Don't use `Year` (wrong on some episodes) or `created` (catalogue upload date). `ReverseSortOrder` does not predict the page order (it is `false` on both newest-first and oldest-first pages).
+- **Season numbers**: official `SeasonNumber` when every button label is found in the data (`Season 10` ↔ `Season 10`, `Season 2026 - 2027` ↔ `2026 - 2027`); otherwise from the labels — a number in the label (`Season 11` → 11), or year labels by rank (oldest = 1). Labels are normalized first (`Season Season 10` → `Season 10`; the page has two elements per season).
+- **Fallback episode numbering** (episodes not in the data): by page position using the program's `oldest_first`; when that is `None`, rising `Episode N` titles mean oldest first, else newest first.
+- **Episode table**: `#`, `Date`, `Duration`, `Title`, `Description`, in the site's order. Its title states the order from the broadcast dates: `Newest first`, `Oldest first`, or `Episode dates unknown, order same as on the site` (`describe_episode_order`).
+- Episodes are identified by the Play-button's `aria-label` (the title shown in the UI) and, when the card image has one, the `ERT_…` id; the scrape de-duplicates by id, falling back to title.
 - After the page loads, the script pauses and notifies the user that now is the time to switch the page language in the browser if desired, before pressing Enter to continue scraping.
-- In the season picker, `q`/`0` quits. In the episode picker, `q`/`0` quits and `s` returns to the season selector.
+- **Menus** (`cli_prompts.py`): questionary runs in a one-worker `ThreadPoolExecutor` — Playwright's sync API keeps an asyncio loop running in the main thread, and prompt_toolkit raises `asyncio.run() cannot be called from a running event loop` there. `_customize_menu()` caps the list at the terminal height (it scrolls), makes Up/Down stop at the ends (no wrap-around), adds PgUp/PgDn/Home/End, and digit keys (digits within 1 s form one number) that move the highlight to that item; `q`/`0` → Quit, `s` → Back to seasons. No type-to-filter: questionary refuses it together with its j/k keys, and digits are used for numbers.
+- `Selected SxxEyy: <title>` is logged right after the episode is picked.
+- **Date tag**: when the episode's broadcast date is known, `_execute_handoff()` prepends `--date <YYYY-MM-DD>` to the pass-through args (unless the user already forwarded `--date`). `main-yt-dlp.py --date` (`get_custom_date()`, `DownloadOptions.custom_date`) becomes `--parse-metadata '<date>:(?P<meta_date>.+)'` in `_append_common_flags()`, which `--embed-metadata` writes as the date tag (video and audio). The shared M4A/FLAC handlers only shorten 8-digit `YYYYMMDD` dates, so `YYYY-MM-DD` is kept; VLC displays only the year.
+- After the hand-off (or the dry-run output) the script waits for Enter (`_wait_for_enter()`), so the terminal window stays open.
 - `discover_episodes` polls a single `page.evaluate(...)` snapshot until the set of hydrated titles stabilizes for several rounds — captures all 25–30 cards even when Angular renders them in bursts.
 - The token interceptor uses `page.on('request', ...)` (observational). Do NOT use `page.route()` — blocking the request prevents ERTFlix from generating a valid `content_URL`.
 - `ensure_authenticated()` detects a redirect to `#/landing` or `#/login` and pauses so the user can sign in inside the headed window, then re-navigates and waits for `.asset-card`.
 - When the console can't host `prompt_toolkit` (e.g. PyCharm Run console → `NoConsoleScreenBufferError`), falls back to a plain numbered `input()` prompt. The displayed numbers match the Rich table (not list position).
-- `NOTIFICATIONS=ALL` is always set in the subprocess environment. `NOTIF_MSG` is set only when `--program` is provided.
+- `NOTIFICATIONS=ALL` is always set in the subprocess environment. `NOTIF_MSG` is set only when a program label is known (`--program` or the menu).
 
 **Package layout (`funcs_ertflix_automation/`):**
-- `browser_session.py` — Playwright lifecycle, persistent-context launch, token request interceptor, authentication-redirect detection.
-- `season_scraper.py` — `Season` dataclass, `discover_seasons`, `select_season`, season-button selectors.
-- `episode_scraper.py` — `Episode` dataclass, `discover_episodes`, `dump_debug_dom`, DOM polling helper.
+- `programs.py` — `Program` dataclass, `KNOWN_PROGRAMS`, `find_program`, `resolve_program`.
+- `api_metadata.py` — `ApiEpisode`, `ApiMetadataStore` (official season/episode numbers + broadcast dates from the page's API responses).
+- `browser_session.py` — Playwright lifecycle, persistent-context launch, token request interceptor, authentication-redirect detection, `install_response_hook()` (feeds `self.metadata`; `--log-api` file).
+- `season_scraper.py` — `Season` dataclass, `discover_seasons`, `select_season`, season-button selectors, label normalization.
+- `episode_scraper.py` — `Episode` dataclass (with `broadcast`), `discover_episodes`, `describe_episode_order`, `dump_debug_dom`, DOM polling helper.
 - `player_scraper.py` — `click_episode_play`, `extract_player_info`, info-dialog selectors.
-- `cli_prompts.py` — Rich tables + questionary selects with numbered-input fallback. `pick_season` / `pick_episode` support `q`/`0` quit and `s` back-to-seasons navigation.
+- `cli_prompts.py` — Rich tables + questionary selects (worker thread, `_customize_menu`) with numbered-input fallback. `pick_program` / `pick_season` / `pick_episode`.
 - `handoff.py` — subprocess hand-off to `main-yt-dlp.py`; accepts `env_overrides` merged on top of `os.environ`.
 - `errors.py` — exception hierarchy (`ErtflixAutomationError`, `BackToSeasons`, `TokenCaptureTimeout`, `NoSeasonsOrEpisodesFound`, `BrowserLaunchFailed`).
 
-**Tests:** `Tests/test_ertflix_automation.py` (10 pytest tests — argv builder, pickers, token-URL fragment).
+**Tests:** `Tests/test_ertflix_automation.py` (54 pytest tests — argv builder, argument parsing, program list, pickers + menu keys, season/episode numbering, API metadata against trimmed JSON fixtures in `Tests/fixtures/ertflix-api/`, order label, token-URL fragment).
 
 ### ERTFlix Support (manual token URL flow)
 
@@ -292,11 +310,11 @@ The project has three categories of tests:
 
 **Pytest tests** (in `Tests/` directory):
 ```bash
-pytest Tests/                                    # Run all pytest tests (112 tests)
+pytest Tests/                                    # Run all pytest tests (318 tests)
 pytest Tests/test_main_ytdlp.py                  # Main script tests (37 tests)
 pytest Tests/test_security_measures.py           # Security tests (20 tests)
 pytest Tests/test_ertflix_token_handler.py       # ERTFlix token handler tests (10 tests)
-pytest Tests/test_ertflix_automation.py          # ERTFlix automation tests (10 tests)
+pytest Tests/test_ertflix_automation.py          # ERTFlix automation tests (54 tests)
 pytest Tests/test_notifications.py               # Notification tests (35 tests)
 ```
 

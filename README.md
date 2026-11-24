@@ -49,7 +49,7 @@ usage: main-yt-dlp.py [-h] [--audio-format AUDIO_FORMAT]
                       [--video-download-timeout VIDEO_DOWNLOAD_TIMEOUT]
                       [--subs] [--no-log-file] [--progress] [--verbose]
                       [--show-urls] [--rerun] [--title TITLE]
-                      [--artist ARTIST] [--album ALBUM]
+                      [--artist ARTIST] [--album ALBUM] [--date DATE]
                       [--list-chapters {json,manual}] [--version]
                       [--with-audio | --only-audio | --ertflix-program]
                       [video_url]
@@ -92,6 +92,9 @@ options:
 
   --album ALBUM         Custom album tag for audio files (ignored for playlists)
                         Use --album ask or --album prompt to be prompted for the album
+
+  --date DATE           Custom date tag, YYYY-MM-DD, e.g. the broadcast date
+                        (ignored for playlists)
 
   --list-chapters {json,manual}
                         List chapters, create the segments CSV, then download the full
@@ -160,6 +163,11 @@ audio extraction mode (mutually exclusive):
 - `--album ALBUM` - Set custom album tag in audio files
   - Use `--album ask` or `--album prompt` to be prompted interactively
   - Ignored for playlists
+- `--date YYYY-MM-DD` - Set the date tag in the video and audio files (e.g. a broadcast date)
+  - Must be a valid `YYYY-MM-DD` date; the full date is kept (some players, e.g. VLC, show only the
+    year)
+  - Ignored for playlists
+  - `main-ertflix-series.py` passes the episode's broadcast date automatically
 
 **Other:**
 - `--rerun` - Reuse URL from previous run without having to paste it again
@@ -314,6 +322,9 @@ You can choose one or more output audio formats using comma-separated values:
 
 # Mix: specify some, prompt for others
 ./main-yt-dlp.py --only-audio --title "Known Title" --artist prompt "URL"
+
+# Set the date tag (e.g. the original broadcast date)
+./main-yt-dlp.py --title "My Show S01E01" --date 2023-12-09 "URL"
 ```
 
 ### Download age-restricted or private videos using browser cookies
@@ -504,7 +515,7 @@ No API calls needed - just simple URL parsing!
 
 ### Interactive Series Browser (`main-ertflix-series.py`)
 
-The fastest way to download a Parea (or any ERTFlix series) episode — no DevTools, no manual console paste, no clipboard juggling. Drive Chromium to the series URL, pick season + episode via arrow-key menus, and the token URL is captured and handed off automatically.
+The fastest way to download an ERTFlix episode — no DevTools, no manual console paste, no clipboard juggling. Pick a program from a menu (or pass a series URL), pick season + episode, and the token URL is captured and handed off to `main-yt-dlp.py` automatically.
 
 **One-time setup:**
 ```bash
@@ -517,36 +528,44 @@ python -m playwright install chromium
 
 **Usage:**
 ```bash
-# Pick an episode interactively, then download video
-./main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea
+# Choose the program from a menu, then season + episode, then download video
+./main-ertflix-series.py
 
 # Same, audio-only as MP3 (unknown flags forward to main-yt-dlp.py)
-./main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
-    --only-audio --audio-format mp3
+./main-ertflix-series.py --only-audio --audio-format mp3
 
-# With a program name — sets --title and NOTIF_MSG to "<program> S<NN>E<NN>"
-./main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
+# Skip the program menu: a known program name opens that program
+./main-ertflix-series.py --program Parea --only-audio
+# → hand-off includes: --title "Parea S03E02"   NOTIF_MSG="Parea S03E02"
+
+# Any other ERTFlix series: pass its URL (and a name for the title)
+./main-ertflix-series.py "https://www.ertflix.gr/#/details/ERT_PS054741_E0" \
     --program Parea --only-audio --audio-format mp3
-# → hand-off includes: --title "Parea S02E26"   NOTIF_MSG="Parea S02E26"
 
-# Print the would-be hand-off command without running it
-./main-ertflix-series.py https://www.ertflix.gr/vod/vod.345646-parea \
-    --program Parea --dry-run --only-audio
+# Print the would-be hand-off command without running it (waits for Enter before exiting)
+./main-ertflix-series.py --dry-run --only-audio
+
+# Save every JSON response the page receives to Logs/ertflix-api-<timestamp>.jsonl (diagnostic)
+./main-ertflix-series.py --log-api --dry-run
 
 # Force headless (default is headed so you can log in the first time)
-./main-ertflix-series.py --headless <URL>
+./main-ertflix-series.py --headless --program Parea
 
 # Dump the rendered DOM + selector probes and exit (diagnostic)
-./main-ertflix-series.py --debug-dom <URL>
+./main-ertflix-series.py --debug-dom --program Parea
 ```
 
 **Key features:**
+- **Program menu**: without a URL, the script first asks for the program — Parea, To Alati tis Gis (Το Αλάτι της Γης) or Nykhta Stasou. The program's name goes into the title (`To Alati tis Gis S11E01`). Programs are listed in `funcs_ertflix_automation/programs.py`; add one there with its URL and episode order.
 - **Persistent login**: Chromium profile is stored in `.ertflix-profile/` (gitignored). Log in once inside the headed window; cookies survive across runs. The script detects a redirect to the login/landing page and pauses so you can sign in before retrying.
 - **Language change window**: after the page loads the script pauses and notifies you that now is the time to switch the page language in the browser if you wish, before pressing Enter to continue scraping.
-- **Episode table**: shows four columns — `#`, `Duration`, `Title`, `Description` — so you can identify the episode before selecting it.
-- **Navigation**: in the season picker, `q`/`0` quits. In the episode picker, `q`/`0` quits and `s` goes back to the season selector.
-- **`--program` flag**: when provided, the hand-off includes `--title "<program> S<NN>E<NN>"` (zero-padded season + episode). The same string is set as `NOTIF_MSG` so Slack/Gmail notifications identify the episode. `NOTIFICATIONS=ALL` is set automatically.
-- **Numbering matches the page**: seasons and episodes are listed newest-to-oldest on ERTFlix, so the newest gets the highest index. `S02E26` means season 2's 26th (oldest) episode.
+- **Official numbers and broadcast dates**: the script reads the season and episode data the ERTFlix page loads, so seasons and episodes carry ERTFlix's own numbers — including gaps (To Alati tis Gis season 11 has episodes 1–5 and 8) — and each episode's original broadcast date (Greek time). An episode missing from that data keeps a number from its position on the page, using the program's episode order.
+- **Episode table**: `#`, `Date`, `Duration`, `Title`, `Description`. The table title says the list's order: `Newest first`, `Oldest first`, or `Episode dates unknown, order same as on the site`. The episodes are shown in the site's order (Parea newest first, To Alati tis Gis oldest first).
+- **Menus**: move with the arrow keys or type an item's number (`12` highlights item 12), then press Enter. PgUp/PgDn move a screenful and Home/End jump to the first/last item; long lists scroll inside the terminal. `q`/`0` quits; in the episode menu `s` goes back to the season selector.
+- **Selected episode**: after you pick, the script logs `Selected S11E01: <title>` before starting the download.
+- **Date tag**: when the broadcast date is known, the hand-off passes `--date <YYYY-MM-DD>` to `main-yt-dlp.py`, so the file's date tag is the original broadcast date (a `--date` you pass yourself wins).
+- **Window stays open**: after the download (or a dry-run) the script waits for Enter, so the output stays readable when the terminal window would otherwise close.
+- **`--program` flag**: names the program for `--title "<program> S<NN>E<NN>"` (zero-padded season + episode); the same string is set as `NOTIF_MSG` so Slack/Gmail notifications identify the episode. Without a URL, a known name opens that program directly. `NOTIFICATIONS=ALL` is set automatically.
 - **Pass-through**: unknown flags go straight to `main-yt-dlp.py` — use `--only-audio`, `--audio-format`, `--subs`, etc. exactly as you would on the main script.
 - **Fallback prompt**: on consoles where `prompt_toolkit` can't drive the TTY (e.g. PyCharm's Run console), the script falls back to a plain numbered `input()` list — the numbers you type match what the Rich table shows.
 - **Dry-run**: `--dry-run` prints the hand-off command using `shlex.join(...)` so you can copy-paste the command even when `--title` contains whitespace.
