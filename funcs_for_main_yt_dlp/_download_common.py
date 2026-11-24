@@ -34,6 +34,7 @@ class DownloadOptions:
     custom_title: str | None = None
     custom_artist: str | None = None
     custom_album: str | None = None
+    custom_date: str | None = None
 
 
 class _ProgressLogState:
@@ -229,8 +230,8 @@ def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,
     """Insert shared conditional flags into a yt-dlp command list (mutates cmd).
 
     Handles: cookies, playlist flag, progress, custom_title metadata replacement (or the
-    Facebook engagement-prefix strip when there is no custom title), custom_artist/album
-    ffmpeg metadata.
+    Facebook engagement-prefix strip when there is no custom title), custom_date (the date
+    tag, via yt-dlp's ``meta_date`` field), custom_artist/album ffmpeg metadata.
 
     Any ``extra_ffmpeg_args`` are merged into the SAME generic ``ffmpeg:`` ``--postprocessor-args``
     entry as the custom artist/album metadata. yt-dlp keeps only the last ``--postprocessor-args``
@@ -257,6 +258,11 @@ def _append_common_flags(cmd: list[str | Path], opts: DownloadOptions,
         # The tag is not cut here: artist detection reads the full title after the download,
         # and set_artists_in_audio_files() cuts it to MAX_TITLE_TAG_LENGTH afterwards.
         cmd[1:1] = ['--replace-in-metadata', 'title', ENGAGEMENT_PREFIX_PATTERN, '']
+
+    if opts.custom_date:
+        # FROM is a literal template ('2023-12-09' is not a field name), TO captures it into
+        # meta_date, which --embed-metadata writes as the date tag (overriding upload_date).
+        cmd[1:1] = ['--parse-metadata', f'{opts.custom_date}:(?P<meta_date>.+)']
 
     # Build a single generic 'ffmpeg:' postprocessor-args entry combining custom artist/album
     # metadata and any caller-supplied extras (e.g. M4A faststart), so they never overwrite.

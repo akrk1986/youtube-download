@@ -20,7 +20,8 @@ from funcs_for_main_yt_dlp import (DownloadOptions,
                                    count_new_files, determine_audio_mode,
                                    extract_audio_with_ytdlp,
                                    format_elapsed_time, generate_session_id,
-                                   get_audio_dir_for_format, get_custom_metadata,
+                                   get_audio_dir_for_format, get_custom_date,
+                                   get_custom_metadata,
                                    get_ytdlp_path,
                                    get_ytdlp_version, organize_and_sanitize_files,
                                    parse_and_validate_audio_formats,
@@ -45,7 +46,7 @@ try:
 except ImportError:
     pass
 
-VERSION = '2026-11-02-1537'
+VERSION = '2026-11-24-1810'
 
 logger = logging.getLogger(__name__)
 
@@ -334,10 +335,11 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         logger.error('--list-chapters does not support playlist URLs. Provide a single video URL.')
         sys.exit(1)
 
-    # Get custom metadata (--title, --artist, --album)
+    # Get custom metadata (--title, --artist, --album, --date)
     custom_title, custom_artist, custom_album = get_custom_metadata(
         args=args, url_is_playlist=url_is_playlist,
     )
+    custom_date = get_custom_date(args=args, url_is_playlist=url_is_playlist)
 
     # Detect chapters and fetch video info (--list-chapters exits here when there are none)
     has_chapters, video_info, video_title = _detect_chapters_or_exit(
@@ -353,7 +355,8 @@ def _execute_main(args: argparse.Namespace, args_dict: dict[str, str], session_i
         video_download_timeout=args.video_download_timeout,
         custom_title=custom_title,
         custom_artist=custom_artist,
-        custom_album=custom_album
+        custom_album=custom_album,
+        custom_date=custom_date,
     )
 
     # Create chapters CSV for user reference (when --list-chapters is active)
@@ -433,6 +436,7 @@ def main() -> None:
         'title': args.title,
         'artist': args.artist,
         'album': args.album,
+        'date': args.date,
         'rerun': args.rerun
     }
 

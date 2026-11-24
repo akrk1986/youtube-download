@@ -40,6 +40,7 @@ from funcs_for_main_yt_dlp.utilities import (
     determine_audio_mode,
     format_elapsed_time,
     generate_session_id,
+    get_custom_date,
     get_custom_metadata,
     parse_and_validate_audio_formats,
     parse_arguments,
@@ -73,6 +74,7 @@ __all__ = [
     'parse_arguments',
     'parse_and_validate_audio_formats',
     'get_custom_metadata',
+    'get_custom_date',
     'validate_list_chapters',
     'determine_audio_mode',
     # ERTFlix token handling

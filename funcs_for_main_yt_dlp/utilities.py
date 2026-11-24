@@ -12,6 +12,24 @@ from project_defs import DEFAULT_AUDIO_FORMAT, VALID_AUDIO_FORMATS
 logger = logging.getLogger(__name__)
 
 
+def _date_argument(value: str) -> str:
+    """Validate a ``--date`` value (``YYYY-MM-DD``) with arrow and return it normalized.
+
+    Args:
+        value: The command-line value.
+
+    Returns:
+        str: The date as ``YYYY-MM-DD``.
+
+    Raises:
+        argparse.ArgumentTypeError: If the value is not a valid ``YYYY-MM-DD`` date.
+    """
+    try:
+        return arrow.get(value.strip(), 'YYYY-MM-DD').format('YYYY-MM-DD')
+    except (arrow.parser.ParserError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(f'invalid date {value!r}, expected YYYY-MM-DD') from exc
+
+
 def format_elapsed_time(seconds: float) -> str:
     """Format elapsed time in seconds to a human-readable string."""
     hours, remainder = divmod(int(seconds), 3600)
@@ -66,6 +84,9 @@ def parse_arguments(argv: list[str] | None = None, version: str = '') -> argpars
                         help='Custom artist tag (ignored for playlists)')
     parser.add_argument('--album',
                         help='Custom album tag (ignored for playlists)')
+    parser.add_argument('--date', type=_date_argument,
+                        help='Custom date tag, YYYY-MM-DD, e.g. the broadcast date '
+                             '(ignored for playlists)')
     parser.add_argument('--list-chapters', choices=['json', 'manual'], default=None,
                         help="List chapters, create the segments CSV, then download the video and "
                              "stop (aborts if the video has no chapters). 'json' uses yt-dlp's "
@@ -117,7 +138,7 @@ def get_custom_metadata(
     """Handle --title, --artist, --album options with interactive prompts.
 
     Prompts the user if value starts with 'ask'/'prompt'. Warns and clears
-    the value if used with a playlist.
+    the value if used with a playlist. ``--date`` is handled by ``get_custom_date``.
 
     Args:
         args: Parsed command-line arguments.
@@ -151,6 +172,22 @@ def get_custom_metadata(
             custom_album = None
 
     return custom_title, custom_artist, custom_album
+
+
+def get_custom_date(args: argparse.Namespace, url_is_playlist: bool) -> str | None:
+    """Return the ``--date`` value (``YYYY-MM-DD``), or None when unset or for a playlist.
+
+    Args:
+        args: Parsed command-line arguments (``date`` is already validated by argparse).
+        url_is_playlist: Whether the URL is a playlist.
+
+    Returns:
+        str | None: The date tag value, or None.
+    """
+    if args.date and url_is_playlist:
+        logger.warning('--date is ignored for playlists')
+        return None
+    return args.date
 
 
 def validate_list_chapters(args: argparse.Namespace) -> None:

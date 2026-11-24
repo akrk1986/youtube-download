@@ -97,3 +97,19 @@ def test_engagement_rule_present_for_playlists() -> None:
 def test_engagement_pattern_compiles() -> None:
     """The pattern must be a valid regex -- yt-dlp would otherwise fail at download start."""
     re.compile(ENGAGEMENT_PREFIX_PATTERN)
+
+
+def test_custom_date_sets_meta_date() -> None:
+    """--date becomes a --parse-metadata rule writing the literal date into meta_date."""
+    opts = DownloadOptions(ytdlp_exe='yt-dlp', url='U', is_it_playlist=False, custom_date='2023-12-09')
+    cmd: list[str | Path] = [Path('yt-dlp'), 'U']
+    _append_common_flags(cmd=cmd, opts=opts)
+    assert cmd[cmd.index('--parse-metadata') + 1] == '2023-12-09:(?P<meta_date>.+)'
+
+
+def test_no_date_rule_without_custom_date() -> None:
+    """Without --date, no meta_date rule is added."""
+    opts = DownloadOptions(ytdlp_exe='yt-dlp', url='U', is_it_playlist=False)
+    cmd: list[str | Path] = [Path('yt-dlp'), 'U']
+    _append_common_flags(cmd=cmd, opts=opts)
+    assert not any('meta_date' in str(part) for part in cmd)

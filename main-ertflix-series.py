@@ -54,7 +54,7 @@ from funcs_ertflix_automation.handoff import build_ytdlp_argv
 from funcs_utils import setup_logging
 from project_defs import VALID_OTHER_DOMAINS
 
-VERSION = '2026-11-24-1713'
+VERSION = '2026-11-24-1810'
 DEBUG_DOM_DIR = Path('Logs')
 URL_PREFIX_RE = re.compile(r'https?://', re.IGNORECASE)
 
@@ -178,6 +178,18 @@ def _print_info_file(path: Path, width: int = 80) -> None:
     print()
 
 
+def _wait_for_enter(message: str) -> None:
+    """Keep the terminal window open until Enter, so the run's output can be read.
+
+    Args:
+        message: Prompt text (without the trailing space).
+    """
+    try:
+        input(f'{message} ')
+    except (EOFError, KeyboardInterrupt):
+        pass
+
+
 def _validate_series_url(url: str) -> None:
     """Abort unless the URL points at an ERTFlix domain.
 
@@ -214,6 +226,9 @@ def _execute_handoff(  # pylint: disable=too-many-arguments
         int: Process exit code.
     """
     env_overrides: dict[str, str] = {'NOTIFICATIONS': 'ALL'}
+    if chosen_episode.broadcast and '--date' not in passthrough:
+        passthrough = ['--date', chosen_episode.broadcast, *passthrough]
+        logger.info(f'Using date tag: {chosen_episode.broadcast}')
     if program_label:
         season_num = chosen_season.index if chosen_season is not None else 1
         title_str = f'{program_label} S{season_num:02d}E{chosen_episode.index:02d}'
@@ -227,17 +242,17 @@ def _execute_handoff(  # pylint: disable=too-many-arguments
         logger.info(shlex.join(argv))
         if env_overrides:
             logger.info(f'With env overrides: {env_overrides}')
-        try:
-            input('Dry-run mode, press Enter to exit ')
-        except (EOFError, KeyboardInterrupt):
-            pass
+        _wait_for_enter(message='Dry-run mode, press Enter to exit')
         return 0
 
-    return hand_off_to_ytdlp(
+    exit_code = hand_off_to_ytdlp(
         token_url=token_url,
         passthrough_args=passthrough,
         env_overrides=env_overrides,
     )
+    outcome = 'Download finished' if exit_code == 0 else f'Download failed (exit code {exit_code})'
+    _wait_for_enter(message=f'{outcome}, press Enter to exit')
+    return exit_code
 
 
 def main() -> int:

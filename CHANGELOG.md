@@ -2,6 +2,20 @@
 
 All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.py`, and their ERTFlix capture helpers) are documented in this file. Utility-script history is in [CHANGELOG-Utils.md](CHANGELOG-Utils.md); project-wide tooling/dependency history is in [CHANGELOG-Project.md](CHANGELOG-Project.md); the web-app history is in [webapp/CHANGELOG.md](webapp/CHANGELOG.md).
 
+## [2026-11-24-1810] - --date tag; ERTFlix broadcast date written to the file
+
+### Added
+- **`main-yt-dlp.py --date YYYY-MM-DD`** sets the date tag of the downloaded video/audio (validated
+  with arrow; ignored for playlists). It is written through `--parse-metadata
+  '<date>:(?P<meta_date>.+)'`, which `--embed-metadata` saves as the date tag; the full date is kept
+  (VLC shows only the year).
+- **`main-ertflix-series.py` passes the episode's broadcast date** as `--date` when it is known
+  (a `--date` given by the user wins), so the file carries the original broadcast date.
+
+### Changed
+- **`main-ertflix-series.py` waits for Enter after the download** too (`Download finished, press
+  Enter to exit` / `Download failed (exit code N), …`), so the terminal window stays open.
+
 ## [2026-11-24-1713] - ERTFlix series browser: official episode numbers and broadcast dates
 
 ### Added

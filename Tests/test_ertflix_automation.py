@@ -516,3 +516,48 @@ class TestDescribeEpisodeOrder:
         assert describe_episode_order(
             self._episodes('2023-01-01', '2023-03-01', '2023-02-01')) == (
             'Episode dates unknown, order same as on the site')
+
+
+class TestHandoffDate:
+    """The series browser passes the episode's broadcast date to main-yt-dlp.py as --date."""
+
+    @staticmethod
+    def _dry_run(broadcast: str, passthrough: list[str]) -> list[str]:
+        """Run _execute_handoff in dry-run mode and return the logged hand-off argv."""
+        module = _load_series_script()
+        args, _ = module.parse_arguments(['--dry-run'])
+        episode = Episode(index=1, title='In Crete', broadcast=broadcast)
+        token = 'https://api.ertflix.opentv.com/urlbuilder/v1/playout/content/token?content_id=X'  # nosec B105
+        with patch.object(module, 'build_ytdlp_argv', wraps=module.build_ytdlp_argv) as build, \
+                patch('builtins.input', return_value=''):
+            module._execute_handoff(args=args, program_label=None, token_url=token,  # pylint: disable=protected-access
+                                    chosen_season=None, chosen_episode=episode,
+                                    passthrough=passthrough)
+        return build.call_args.kwargs['passthrough_args']
+
+    def test_date_passed(self):
+        """A known broadcast date is forwarded as --date YYYY-MM-DD."""
+        assert self._dry_run(broadcast='2023-12-09', passthrough=['--only-audio']) == [
+            '--date', '2023-12-09', '--only-audio']
+
+    def test_no_date_when_unknown(self):
+        """No broadcast date -> no --date."""
+        assert '--date' not in self._dry_run(broadcast='', passthrough=[])
+
+    def test_user_date_wins(self):
+        """A --date the user forwarded is kept, not doubled."""
+        passed = self._dry_run(broadcast='2023-12-09', passthrough=['--date', '2020-01-01'])
+        assert passed == ['--date', '2020-01-01']
+
+    def test_real_run_waits_for_enter(self):
+        """After a real download the script waits for Enter and returns the exit code."""
+        module = _load_series_script()
+        args, _ = module.parse_arguments([])
+        episode = Episode(index=1, title='In Crete', broadcast='2023-12-09')
+        token = 'https://api.ertflix.opentv.com/urlbuilder/v1/playout/content/token?content_id=X'  # nosec B105
+        with patch.object(module, 'hand_off_to_ytdlp', return_value=3), \
+                patch('builtins.input', return_value='') as wait:
+            code = module._execute_handoff(args=args, program_label=None, token_url=token,  # pylint: disable=protected-access
+                                           chosen_season=None, chosen_episode=episode, passthrough=[])
+        assert code == 3
+        wait.assert_called_once_with('Download failed (exit code 3), press Enter to exit ')

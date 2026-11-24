@@ -67,6 +67,7 @@ def sample_args() -> argparse.Namespace:
         title=None,
         artist=None,
         album=None,
+        date=None,
         with_audio=False,
         only_audio=False,
         ertflix_program=False,
