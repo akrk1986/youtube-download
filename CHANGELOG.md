@@ -92,6 +92,9 @@ All notable changes to the main scripts (`main-yt-dlp.py`, `main-ertflix-series.
   episodes as before. `--program <name>` with a known name skips the menu; a URL still works as
   before. The picked program's name goes into `--title` and `NOTIF_MSG` (`To Alati tis Gis S10E02`).
   The list lives in `funcs_ertflix_automation/programs.py`.
+- **New program: To Alati tis Gis (Το Αλάτι της Γης)** —
+  `https://www.ertflix.gr/#/details/ERT_DS018967_E0`. Its episodes are listed oldest first on the
+  page. `--program "To Alati tis Gis"` opens it directly.
 - **`--log-api`** saves every JSON response the ERTFlix page receives to
   `Logs/ertflix-api-<timestamp>.jsonl` (debug aid; used to find the episode metadata).
 
